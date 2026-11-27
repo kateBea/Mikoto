@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Evaluate distance from the nearest silhouette boundary and blend the configured outline over
+// scene color. The MSAA variant reads the matching multisample scene inputs.
+
 #pragma once
 
 #include "base/OutlineComposite_Helpers.slang"
@@ -20,6 +23,8 @@
 float4 main( float2 uv : TEXCOORD0, float4 position : SV_Position ) : SV_Target0 {
     int2 pixel = int2( position.xy );
     // This is the article's interior stencil test expressed through the module's own mask.
-    if ( textures[parameters.Interior].Load( int3( pixel, 0 ) ).r > 0.0f ) { discard; }
+    if ( textures[parameters.mInterior].Load( int3( pixel, 0 ) ).r > 0.0f ) {
+        discard;
+    }
     return EvaluateOutline( pixel, uv );
 }

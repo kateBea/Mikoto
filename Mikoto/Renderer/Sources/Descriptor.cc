@@ -15,13 +15,13 @@
 #include <EASTL/utility.h>
 
 #include <Core/Core.hh>
-#include <Core/Types.hh>
 #include <Core/Profiler.hh>
+#include <Core/Types.hh>
 
 #include <Memory/BufferSpan.hh>
 
-#include <Renderer/Rhi/Descriptor.hh>
 #include <Renderer/Rhi/AccelerationStructure.hh>
+#include <Renderer/Rhi/Descriptor.hh>
 
 namespace mikoto::renderer::rhi {
 
@@ -202,6 +202,11 @@ namespace mikoto::renderer::rhi {
         return *this;
     }
 
+    auto TextureCreateDescription::SetDepth( core::u32 depth ) -> TextureCreateDescription & {
+        mDepth = depth;
+        return *this;
+    }
+
     auto TextureCreateDescription::SetMipCount( core::u32 count ) -> TextureCreateDescription & {
         MKT_BEGIN_PROFILER();
         mMipCount = count;
@@ -217,6 +222,13 @@ namespace mikoto::renderer::rhi {
     auto TextureCreateDescription::SetImageData( asset::ImageHandle image ) -> TextureCreateDescription & {
         MKT_BEGIN_PROFILER();
         mImageHandle = eastl::move( image );
+
+        // Image initializers include every stored mip. Older callers allocate
+        // only the default single level; retain the image's levels there too.
+        // Preserve extra levels requested for later GPU mip generation.
+        if ( mImageHandle && mMipCount < mImageHandle->mMipCount ) {
+            mMipCount = mImageHandle->mMipCount;
+        }
 
         // If you specify initial data it means you to copy it to this
         // resource which means it must support being a copy Dest resource
@@ -364,6 +376,11 @@ namespace mikoto::renderer::rhi {
     auto BufferCreateDescription::SetMaxVersions( core::u32 count ) -> BufferCreateDescription & {
         MKT_BEGIN_PROFILER();
         mMaxVersions = count;
+        return *this;
+    }
+
+    auto SamplerCreateDescription::SetMaxAnisotropy( float anisotropy ) -> SamplerCreateDescription & {
+        mMaxAnisotropy = glm::clamp( anisotropy, 1.0f, 16.0f );
         return *this;
     }
 

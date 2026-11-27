@@ -17,16 +17,17 @@
 
 #include <mutex>
 
+#include <ankerl/unordered_dense.h>
+
 #include <EASTL/atomic.h>
 #include <EASTL/unique_ptr.h>
-
-#include <ankerl/unordered_dense.h>
+#include <EASTL/vector.h>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
 
-#include <Renderer/Rhi/GpuDevice.hh>
 #include <Renderer/Core/FrameGraphTypes.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
 
 namespace mikoto::renderer {
 
@@ -34,20 +35,24 @@ namespace mikoto::renderer {
     public:
         static constexpr FGResourceHandle kInvalidResourceHandle{ 0 };
 
-        explicit FGResourceManager( renderer::rhi::IGpuDevice* device );
+        explicit FGResourceManager( renderer::rhi::IGpuDevice *device );
 
         /** Replaces storage without recording GPU work; initialize it in the next pass. */
         auto ReplaceBufferStorage( FGBufferHandle handle, core::usize bytes ) -> void;
 
         auto SetResource( FGResourceHandle handle, core::Ref<core::Resource> resource ) -> void;
 
-        MKT_NODISCARD auto Get( FGResourceHandle handle ) -> FGResource&;
-        MKT_NODISCARD auto Get( FGResourceHandle handle ) const -> const FGResource&;
+        /** Returns and clears the replaced allocations for fence-based descriptor retirement. */
+        MKT_NODISCARD auto GetReplacedResources() -> eastl::vector<core::Ref<core::Resource>>;
+        MKT_NODISCARD auto IsResourceReferenced( const core::Resource *resource ) const -> bool;
 
-        MKT_NODISCARD auto GetBufferMappedAddress( FGBufferHandle handle ) const -> const void*;
+        MKT_NODISCARD auto Get( FGResourceHandle handle ) -> FGResource &;
+        MKT_NODISCARD auto Get( FGResourceHandle handle ) const -> const FGResource &;
+
+        MKT_NODISCARD auto GetBufferMappedAddress( FGBufferHandle handle ) const -> const void *;
 
         MKT_NODISCARD auto Free( FGResourceHandle name ) -> bool;
-        MKT_NODISCARD auto Allocate( FGResourceType type, core::Resource* resource = nullptr ) -> FGResource&;
+        MKT_NODISCARD auto Allocate( FGResourceType type, core::Resource *resource = nullptr ) -> FGResource &;
 
         /** @brief Allocates larger storage in a preparation pass, returning whether it changed.
          * Does not copy contents or record commands. Restore the complete CPU data in
@@ -70,15 +75,16 @@ namespace mikoto::renderer {
         MKT_NODISCARD auto ImportSampledTexture( renderer::rhi::TextureHandle texture ) -> FGTextureHandle;
 
     private:
-        renderer::rhi::IGpuDevice* mDevice{};
+        renderer::rhi::IGpuDevice *mDevice{};
 
-        std::mutex mResourceMutex{};
+        mutable std::mutex mResourceMutex{};
 
         core::u64 mBufferRevision{};
         eastl::atomic<core::u32> mResourceCount{};
 
-        ankerl::unordered_dense::map<core::Resource*, FGResourceHandle> mImportedResources{};
+        ankerl::unordered_dense::map<core::Resource *, FGResourceHandle> mImportedResources{};
         ankerl::unordered_dense::map<FGResourceHandle, eastl::unique_ptr<FGResource>> mResources{};
+        eastl::vector<core::Ref<core::Resource>> mReplacedResources{};
     };
 }// namespace mikoto::renderer
 

@@ -15,31 +15,33 @@
 #include <EASTL/array.h>
 #include <EASTL/memory.h>
 
+#include <Application/PropertyWidgets.hh>
+
 #include <Core/Core.hh>
-#include <Core/Types.hh>
-#include <Core/Profiler.hh>
-#include <Core/TimeService.hh>
-#include <Core/RuntimeConsole.hh>
 #include <Core/LocalizationService.hh>
+#include <Core/Profiler.hh>
+#include <Core/RuntimeConsole.hh>
+#include <Core/TimeService.hh>
+#include <Core/Types.hh>
+
+#include <ImGui/IconsMaterialDesign.h>
+#include <ImGui/GraphEditor.hh>
+#include <ImGui/ImGuiWidget.hh>
+#include <ImGui/Utility.hh>
+
+#include <Layers/EditorLayer.hh>
 
 #include <Memory/Allocator.hh>
 
-#include <Text/Utility.hh>
-
-#include <Renderer/Rhi/Types.hh>
-#include <Renderer/Core/RenderSystem.hh>
-#include <Renderer/RayTracing/RayTracing.hh>
-#include <Renderer/ForwardRenderer/Passes/OutlineModule.hh>
-#include <Renderer/Particle/ParticleSystem.hh>
-
-#include <ImGui/Utility.hh>
-#include <ImGui/GraphEditor.hh>
-#include <ImGui/ImGuiWidget.hh>
-#include <ImGui/IconsMaterialDesign.h>
-
 #include <Panels/RendererPanel.hh>
 
-#include <Layers/EditorLayer.hh>
+#include <Renderer/Core/RenderSystem.hh>
+#include <Renderer/ForwardRenderer/Passes/OutlineModule.hh>
+#include <Renderer/Particle/ParticleSystem.hh>
+#include <Renderer/RayTracing/RayTracing.hh>
+#include <Renderer/Rhi/Types.hh>
+
+#include <Text/Utility.hh>
 
 namespace mikoto::editor {
 
@@ -47,7 +49,7 @@ namespace mikoto::editor {
     using namespace mikoto::renderer;
     using namespace mikoto::renderer::rhi;
 
-    MKT_NODISCARD static auto BeginRendererRows( const char* id, ImGuiTableFlags flags = ImGuiTableFlags_None ) -> bool {
+    MKT_NODISCARD static auto BeginRendererRows( const char *id, ImGuiTableFlags flags = ImGuiTableFlags_None ) -> bool {
         if ( !ImGui::BeginTable( id, 2, flags | ImGuiTableFlags_NoSavedSettings ) ) {
             return false;
         }
@@ -57,7 +59,7 @@ namespace mikoto::editor {
         return true;
     }
 
-    static auto RendererControlRow( const char* label ) -> void {
+    static auto RendererControlRow( const char *label ) -> void {
         ImGui::TableNextRow();
         ImGui::TableNextColumn();
         ImGui::AlignTextToFramePadding();
@@ -67,7 +69,7 @@ namespace mikoto::editor {
         ImGui::SetNextItemWidth( -1.0f );
     }
 
-    static auto RendererMetricValue( const char* value ) -> void {
+    static auto RendererMetricValue( const char *value ) -> void {
         const core::f32 width{ ImGui::CalcTextSize( value ).x };
         const core::f32 available{ ImGui::GetContentRegionAvail().x };
 
@@ -80,7 +82,7 @@ namespace mikoto::editor {
         }
     }
 
-    static auto RendererMetricRow( const char* label, const char* value ) -> void {
+    static auto RendererMetricRow( const char *label, const char *value ) -> void {
         ImGui::TableNextRow();
         ImGui::TableNextColumn();
         ImGui::TextWrapped( "%s", label );
@@ -89,7 +91,7 @@ namespace mikoto::editor {
         RendererMetricValue( value );
     }
 
-    static auto DrawShadowDiagnostics( const renderer::ShadowDiagnostics& shadows ) -> void {
+    static auto DrawShadowDiagnostics( const renderer::ShadowDiagnostics &shadows ) -> void {
         ImGui::SeparatorText( MKT_LOC( "renderer_shadow_coverage" ).c_str() );
         if ( ImGui::BeginTable( "ShadowCoverage", 3, ImGuiTableFlags_RowBg | ImGuiTableFlags_NoSavedSettings ) ) {
             ImGui::TableSetupColumn( MKT_LOC( "lighting_lights" ).c_str(), ImGuiTableColumnFlags_WidthStretch, 2.0f );
@@ -139,7 +141,7 @@ namespace mikoto::editor {
         }
     }
 
-    RendererPanel::RendererPanel( const RendererPanelCreateInfo& createInfo )
+    RendererPanel::RendererPanel( const RendererPanelCreateInfo &createInfo )
         : Panel{ "Renderer", "Panel", createInfo.mGroup, createInfo.mIsToggleable },
           mEditorState{ createInfo.mState } {
         MKT_BEGIN_PROFILER();
@@ -151,11 +153,11 @@ namespace mikoto::editor {
 
         // Construct the node graph for pass dependencies
         imgui::GraphEditorBuilder builder{};
-        auto& nodeControl{ mEditorState->mEditorRenderer->GetNodeControl() };
+        auto &nodeControl{ mEditorState->mEditorRenderer->GetNodeControl() };
 
-        for ( const auto& entry: nodeControl.mNodes ) {
-            const auto& passName{ entry.first };
-            const auto& pass{ entry.second };
+        for ( const auto &entry: nodeControl.mNodes ) {
+            const auto &passName{ entry.first };
+            const auto &pass{ entry.second };
 
             builder.PushNode( passName );
         }
@@ -182,7 +184,11 @@ namespace mikoto::editor {
             return;
         }
 
-        auto& sceneRenderer{ *mEditorState->mEditorRenderer };
+        auto &sceneRenderer{ *mEditorState->mEditorRenderer };
+        if ( sceneRenderer.IsPreparing() ) {
+            ImGui::TextWrapped( "Preparing renderer pipelines..." );
+        }
+
         if ( !sceneRenderer.HasFrameGraph() ) {
             auto changed{ false };
             auto settings{ sceneRenderer.GetSettings() };
@@ -227,7 +233,7 @@ namespace mikoto::editor {
         }
 
         {
-            auto& renderer{ sceneRenderer };
+            auto &renderer{ sceneRenderer };
             auto settings{ renderer.GetSettings() };
             bool changed{};
 
@@ -245,8 +251,8 @@ namespace mikoto::editor {
                         changed = true;
                     }
 
-                    const char* sampleNames[]{ MKT_LOC( "renderer_off_1x" ).c_str(), "2x", "4x", "8x", "16x" };
-                    const auto* device{ renderer::RenderSystem::Get()->GetGpuDevice() };
+                    const char *sampleNames[]{ MKT_LOC( "renderer_off_1x" ).c_str(), "2x", "4x", "8x", "16x" };
+                    const auto *device{ renderer::RenderSystem::Get()->GetGpuDevice() };
                     const auto maximum{ device->GetMaxSceneMultisampling() };
 
                     RendererControlRow( MKT_LOC( "renderer_geometry_msaa" ).c_str() );
@@ -273,12 +279,55 @@ namespace mikoto::editor {
                 ImGui::TextWrapped( "%s", MKT_LOC( "renderer_msaa_covers_opaque_and_transparent_meshes_post_effects_text_particles" ).c_str() );
             }
 
+            if ( ImGui::CollapsingHeader( MKT_LOC( "renderer_infinite_grid" ).c_str() ) ) {
+                auto &grid{ settings.mInfiniteGrid };
+                auto &visible{ mEditorState->mViewSettings.mShowGrid };
+
+                if ( BeginRendererRows( "InfiniteGridSettings" ) ) {
+                    RendererControlRow( MKT_LOC( "renderer_enabled" ).c_str() );
+                    if ( imgui::CheckBox( "##infinite_grid_enabled", visible ) ) {
+                        renderer.SetEnableInfiniteGrid( visible );
+                    }
+
+                    ImGui::BeginDisabled( !visible );
+                    RendererControlRow( MKT_LOC( "renderer_grid_cell_size" ).c_str() );
+                    changed |= DrawFloatProperty( "##grid_cell_size", &grid.mCellSize, { 0.01f, 10000.0f }, "%.2f m", true );
+                    RendererControlRow( MKT_LOC( "renderer_grid_opacity" ).c_str() );
+                    changed |= DrawFloatProperty( "##grid_opacity", &grid.mOpacity, { 0.0f, 1.0f }, "%.2f", true );
+                    RendererControlRow( MKT_LOC( "renderer_grid_line_width" ).c_str() );
+                    changed |= DrawFloatProperty( "##grid_line_width", &grid.mLineWidth, { 0.5f, 4.0f }, "%.1f px", true );
+                    RendererControlRow( MKT_LOC( "renderer_grid_axis_width" ).c_str() );
+                    changed |= DrawFloatProperty( "##grid_axis_width", &grid.mAxisWidth, { 0.5f, 8.0f }, "%.1f px", true );
+
+                    // Keep the conventional world-axis colors beside each toggle.
+                    ImGui::PushStyleColor( ImGuiCol_Text, ImVec4{ 0.9f, 0.12f, 0.1f, 1.0f } );
+                    RendererControlRow( MKT_LOC( "renderer_grid_x_axis" ).c_str() );
+                    changed |= imgui::CheckBox( "##grid_x_axis", grid.mShowXAxis );
+                    ImGui::PopStyleColor();
+                    ImGui::PushStyleColor( ImGuiCol_Text, ImVec4{ 0.12f, 0.8f, 0.22f, 1.0f } );
+                    RendererControlRow( MKT_LOC( "renderer_grid_y_axis" ).c_str() );
+                    changed |= imgui::CheckBox( "##grid_y_axis", grid.mShowYAxis );
+                    ImGui::PopStyleColor();
+                    ImGui::PushStyleColor( ImGuiCol_Text, ImVec4{ 0.12f, 0.35f, 0.95f, 1.0f } );
+                    RendererControlRow( MKT_LOC( "renderer_grid_z_axis" ).c_str() );
+                    changed |= imgui::CheckBox( "##grid_z_axis", grid.mShowZAxis );
+                    ImGui::PopStyleColor();
+                    ImGui::EndDisabled();
+                    ImGui::EndTable();
+                }
+            }
+
             if ( ImGui::CollapsingHeader( imgui::widget::LocalizedLabel( "renderer_hardware_ray_tracing", "Hardware ray tracing" ).c_str(), ImGuiTreeNodeFlags_DefaultOpen ) ) {
-                const bool supported{ renderer::RenderSystem::Get()->GetGpuDevice()->SupportsRayTracing() };
-                if ( BeginRendererRows( "RayTracingSettings" ) ) {
-                    ImGui::BeginDisabled( !supported );
-                    RendererControlRow( MKT_LOC( "renderer_path_tracing" ).c_str() );
-                    changed |= imgui::CheckBox( "##renderer_path_tracing", settings.mRayTracing.mPathTracingEnabled );
+                const auto *device{ renderer::RenderSystem::Get()->GetGpuDevice() };
+                const bool supported{ device->SupportsRayTracing() };
+                const bool hybridSupported{ device->IsGraphicsApi( renderer::rhi::GraphicsAPI::eVulkan ) || device->IsGraphicsApi( renderer::rhi::GraphicsAPI::eD3D12 ) };
+                auto &tracing{ settings.mRayTracing };
+                ImGui::BeginDisabled( !supported );
+
+                ImGui::SeparatorText( MKT_LOC( "renderer_path_tracing" ).c_str() );
+                if ( BeginRendererRows( "PathTracingSettings" ) ) {
+                    RendererControlRow( MKT_LOC( "renderer_enabled" ).c_str() );
+                    changed |= imgui::CheckBox( "##renderer_path_tracing", tracing.mPathTracingEnabled );
 
                     if ( settings.mRayTracing.mPathTracingEnabled ) {
                         int samples{ static_cast<int>( settings.mRayTracing.mPathSamplesPerFrame ) };
@@ -289,68 +338,176 @@ namespace mikoto::editor {
                             &samples, 1, static_cast<int>( renderer::RayTracingConfiguration::kMaxPathSamplesPerFrame ) );
                         RendererControlRow( MKT_LOC( "renderer_maximum_bounces" ).c_str() );
                         changed |= ImGui::SliderInt( "##renderer_maximum_bounces", &bounces, 1, 32 );
+                        const bool nrd{ settings.mDenoiser.mBackend == renderer::DenoiserBackend::eNrd && renderer.IsDenoiserActive() };
+                        ImGui::BeginDisabled( nrd );
                         RendererControlRow( MKT_LOC( "renderer_sample_limit" ).c_str() );
                         changed |= ImGui::InputInt( "##renderer_sample_limit", &limit );
+                        ImGui::EndDisabled();
                         settings.mRayTracing.mPathSamplesPerFrame = static_cast<core::u32>( glm::max( samples, 1 ) );
                         settings.mRayTracing.mPathMaxBounces = static_cast<core::u32>( glm::max( bounces, 1 ) );
                         settings.mRayTracing.mPathMaxSamples = static_cast<core::u32>( glm::max( limit, 1 ) );
-                        RendererMetricRow( MKT_LOC( "renderer_accumulated_samples_label" ).c_str(),
-                            string::Format( "{}", renderer.GetPathSampleCount() ).c_str() );
+                        if ( nrd ) {
+                            RendererMetricRow( "Temporal history", "NRD (see denoising controls)" );
+                        }
+                        else {
+                            RendererMetricRow( MKT_LOC( "renderer_accumulated_samples_label" ).c_str(),
+                                string::Format( "{}", renderer.GetPathSampleCount() ).c_str() );
+                        }
 
                         RendererControlRow( MKT_LOC( "renderer_accumulation" ).c_str() );
                         if ( ImGui::Button( imgui::widget::LocalizedLabel( "renderer_restart_accumulation", "Restart accumulation" ).c_str() ) ) {
-                            renderer.ResetPathAccumulation();
+                            if ( nrd ) {
+                                ++settings.mDenoiser.mResetRevision;
+                                changed = true;
+                            }
+                            else {
+                                renderer.ResetPathAccumulation();
+                            }
                         }
                     }
-                    else {
-                        const auto* device{ renderer::RenderSystem::Get()->GetGpuDevice() };
-                        const bool rasterSupported{ device->IsGraphicsApi( renderer::rhi::GraphicsAPI::eVulkan ) || device->IsGraphicsApi( renderer::rhi::GraphicsAPI::eD3D12 ) };
-                        ImGui::BeginDisabled( !rasterSupported );
-                        RendererControlRow( MKT_LOC( "renderer_ray_traced_shadows" ).c_str() );
-                        changed |= imgui::CheckBox( "##renderer_ray_traced_shadows", settings.mRayTracing.mShadowsEnabled );
-                        RendererControlRow( MKT_LOC( "renderer_ray_traced_reflections" ).c_str() );
-                        changed |= imgui::CheckBox( "##renderer_ray_traced_reflections", settings.mRayTracing.mReflectionsEnabled );
-                        RendererControlRow( MKT_LOC( "renderer_ray_traced_global_illumination" ).c_str() );
-                        changed |= imgui::CheckBox( "##renderer_ray_traced_global_illumination", settings.mRayTracing.mGlobalIlluminationEnabled );
-
-                        if ( settings.mRayTracing.mGlobalIlluminationEnabled ) {
-                            int samples{ static_cast<int>( settings.mRayTracing.mRayGiSamplesPerFrame ) };
-                            int bounces{ static_cast<int>( settings.mRayTracing.mRayGiMaxBounces ) };
-                            RendererControlRow( MKT_LOC( "renderer_gi_samples_per_frame" ).c_str() );
-                            changed |= ImGui::SliderInt( "##renderer_gi_samples_per_frame", &samples, 1, 8 );
-                            RendererControlRow( MKT_LOC( "renderer_gi_indirect_bounces" ).c_str() );
-                            changed |= ImGui::SliderInt( "##renderer_gi_indirect_bounces", &bounces, 1, 8 );
-                            settings.mRayTracing.mRayGiSamplesPerFrame = static_cast<core::u32>( samples );
-                            settings.mRayTracing.mRayGiMaxBounces = static_cast<core::u32>( bounces );
-                            imgui::widget::ItemTooltip( "%s", MKT_LOC( "renderer_replaces_diffuse_environment_lighting_on_opaque_meshes_samples_accumulate_while" ).c_str() );
-                        }
-
-                        ImGui::EndDisabled();
-
-                        if ( !rasterSupported ) {
-                            ImGui::TextWrapped( MKT_LOC( "renderer_hybrid_effects_require_the_vulkan_or_d3d12_scene_renderer" ).c_str() );
-                        }
-                    }
-
-                    ImGui::EndDisabled();
-
                     ImGui::EndTable();
                 }
 
-                if ( !supported ) {
-                    ImGui::TextWrapped( MKT_LOC( "renderer_hardware_ray_tracing_is_unavailable_on_this_device_backend" ).c_str() );
+                // Hybrid controls stay visible while the path tracer is selected.
+                // Their values are retained for returning to raster rendering.
+                ImGui::BeginDisabled( tracing.mPathTracingEnabled || !hybridSupported );
+                ImGui::SeparatorText( MKT_LOC( "renderer_ray_traced_shadows" ).c_str() );
+                if ( BeginRendererRows( "RayTracedShadowSettings" ) ) {
+                    RendererControlRow( MKT_LOC( "renderer_enabled" ).c_str() );
+                    changed |= imgui::CheckBox( "##renderer_ray_traced_shadows", tracing.mShadowsEnabled );
+                    ImGui::BeginDisabled( !tracing.mShadowsEnabled );
+                    int samples{ core::as<int>( tracing.mShadowSamplesPerFrame ) };
+                    RendererControlRow( MKT_LOC( "renderer_samples_per_pixel" ).c_str() );
+                    changed |= ImGui::SliderInt( "##rt_shadow_samples", &samples, 1, 16 );
+                    tracing.mShadowSamplesPerFrame = core::as<core::u32>( samples );
+                    ImGui::EndDisabled();
+                    ImGui::EndTable();
+                }
+                ImGui::TextWrapped( "%s", MKT_LOC( "renderer_ray_shadow_softness_help" ).c_str() );
+
+                ImGui::SeparatorText( MKT_LOC( "renderer_ray_traced_reflections" ).c_str() );
+                if ( BeginRendererRows( "RayTracedReflectionSettings" ) ) {
+                    RendererControlRow( MKT_LOC( "renderer_enabled" ).c_str() );
+                    changed |= imgui::CheckBox( "##renderer_ray_traced_reflections", tracing.mReflectionsEnabled );
+                    ImGui::BeginDisabled( !tracing.mReflectionsEnabled );
+                    int samples{ core::as<int>( tracing.mRayGiSamplesPerFrame ) };
+                    int bounces{ core::as<int>( tracing.mReflectionMaxBounces ) };
+                    RendererControlRow( MKT_LOC( "renderer_indirect_samples_per_frame" ).c_str() );
+                    changed |= ImGui::SliderInt( "##rt_reflection_samples", &samples, 1, 8 );
+                    imgui::widget::ItemTooltip( "%s", MKT_LOC( "renderer_shared_indirect_sampling_help" ).c_str() );
+                    RendererControlRow( MKT_LOC( "renderer_maximum_bounces" ).c_str() );
+                    changed |= ImGui::SliderInt( "##rt_reflection_bounces", &bounces, 1, 8 );
+                    tracing.mRayGiSamplesPerFrame = core::as<core::u32>( samples );
+                    tracing.mReflectionMaxBounces = core::as<core::u32>( bounces );
+                    ImGui::EndDisabled();
+                    ImGui::EndTable();
                 }
 
+                ImGui::SeparatorText( MKT_LOC( "renderer_ray_traced_global_illumination" ).c_str() );
+                if ( BeginRendererRows( "RayTracedGiSettings" ) ) {
+                    RendererControlRow( MKT_LOC( "renderer_enabled" ).c_str() );
+                    changed |= imgui::CheckBox( "##renderer_ray_traced_global_illumination", tracing.mGlobalIlluminationEnabled );
+                    ImGui::BeginDisabled( !tracing.mGlobalIlluminationEnabled );
+                    int samples{ core::as<int>( tracing.mRayGiSamplesPerFrame ) };
+                    int bounces{ core::as<int>( tracing.mRayGiMaxBounces ) };
+                    RendererControlRow( MKT_LOC( "renderer_indirect_samples_per_frame" ).c_str() );
+                    changed |= ImGui::SliderInt( "##renderer_gi_samples_per_frame", &samples, 1, 8 );
+                    imgui::widget::ItemTooltip( "%s", MKT_LOC( "renderer_shared_indirect_sampling_help" ).c_str() );
+                    RendererControlRow( MKT_LOC( "renderer_gi_indirect_bounces" ).c_str() );
+                    changed |= ImGui::SliderInt( "##renderer_gi_indirect_bounces", &bounces, 1, 8 );
+                    tracing.mRayGiSamplesPerFrame = core::as<core::u32>( samples );
+                    tracing.mRayGiMaxBounces = core::as<core::u32>( bounces );
+                    ImGui::EndDisabled();
+                    ImGui::EndTable();
+                }
+                ImGui::EndDisabled();
+
+                ImGui::SeparatorText( MKT_LOC( "renderer_ray_traced_ao" ).c_str() );
+                if ( BeginRendererRows( "RayTracedAoSettings" ) ) {
+                    ImGui::BeginDisabled( tracing.mPathTracingEnabled );
+                    RendererControlRow( MKT_LOC( "renderer_enabled" ).c_str() );
+                    changed |= imgui::CheckBox( "##renderer_ray_traced_ao", tracing.mAmbientOcclusionEnabled );
+                    ImGui::EndDisabled();
+                    int samples{ core::as<int>( tracing.mAoSamplesPerFrame ) };
+                    RendererControlRow( MKT_LOC( "renderer_ao_samples" ).c_str() );
+                    changed |= ImGui::SliderInt( "##renderer_ao_samples", &samples, 1, 64 );
+                    tracing.mAoSamplesPerFrame = core::as<core::u32>( samples );
+                    RendererControlRow( MKT_LOC( "renderer_ao_distance" ).c_str() );
+                    changed |= DrawFloatProperty( "##renderer_ao_distance", &tracing.mAoMaxDistance, { 0.0f, 10000.0f }, "%.3f", true );
+                    RendererControlRow( MKT_LOC( "renderer_ao_cosine" ).c_str() );
+                    changed |= imgui::CheckBox( "##renderer_ao_cosine", tracing.mUseCosineWeightedAoSampling );
+                    RendererControlRow( MKT_LOC( "renderer_ao_debug" ).c_str() );
+                    if ( ImGui::Button( imgui::widget::LocalizedLabel( "renderer_ao_debug", "View ray-traced AO" ).c_str() ) ) {
+                        mEditorState->mFinalComposition = renderer.GetFinalImage( renderer::FinalImageType::eRayTracedAmbientOcclusion );
+                    }
+                    ImGui::EndTable();
+                }
+                ImGui::TextWrapped( "%s", MKT_LOC( "renderer_ao_help" ).c_str() );
+                ImGui::EndDisabled();
+
+                if ( !supported ) {
+                    ImGui::TextWrapped( "%s", MKT_LOC( "renderer_hardware_ray_tracing_is_unavailable_on_this_device_backend" ).c_str() );
+                }
+                else if ( !hybridSupported ) {
+                    ImGui::TextWrapped( "%s", MKT_LOC( "renderer_hybrid_effects_require_the_vulkan_or_d3d12_scene_renderer" ).c_str() );
+                }
                 if ( !renderer.GetRayTracingError().empty() ) {
                     ImGui::TextWrapped( "%s", renderer.GetRayTracingError().c_str() );
                 }
             }
 
-            if ( ImGui::CollapsingHeader( MKT_LOC( "renderer_ssr_title" ).c_str() ) ) {
+            if ( ImGui::CollapsingHeader( imgui::widget::LocalizedLabel( "renderer_rasterization", "Rasterization" ).c_str(), ImGuiTreeNodeFlags_DefaultOpen ) ) {
+                ImGui::BeginDisabled( settings.mRayTracing.mPathTracingEnabled );
+                ImGui::SeparatorText( MKT_LOC( "renderer_ssao" ).c_str() );
+                if ( BeginRendererRows( "RasterSsaoSettings" ) ) {
+                    ImGui::PushID( "SSAO" );
+                    RendererControlRow( MKT_LOC( "renderer_enabled" ).c_str() );
+                    changed |= imgui::CheckBox( "##SSAO", settings.mSsaoEnabled );
+
+                    ImGui::BeginDisabled( !settings.mSsaoEnabled );
+                    RendererControlRow( MKT_LOC( "renderer_intensity" ).c_str() );
+                    changed |= imgui::Slider( "##renderer_intensity_ssao", settings.mSsaoIntensity, core::float2{ 0.0f, 4.0f } );
+                    ImGui::EndDisabled();
+                    ImGui::PopID();
+
+                    ImGui::EndTable();
+                }
+
+                ImGui::SeparatorText( MKT_LOC( "renderer_shadows" ).c_str() );
+                if ( BeginRendererRows( "ShadowSettings" ) ) {
+                    int quality{ core::as<int>( settings.mShadowQuality ) };
+                    RendererControlRow( MKT_LOC( "renderer_quality" ).c_str() );
+                    if ( ImGui::Combo( "##ShadowQuality", &quality, MKT_LOC( "renderer_low_medium_high" ).c_str() ) ) {
+                        settings.mShadowQuality = static_cast<renderer::ShadowMapQuality>( quality );
+                        changed = true;
+                    }
+
+                    imgui::widget::ItemTooltip( "%s", MKT_LOC( "renderer_controls_shadow_map_detail_ray_traced_shadows_and_path_tracing" ).c_str() );
+                    RendererControlRow( MKT_LOC( "renderer_shadow_distance" ).c_str() );
+                    changed |= imgui::Slider( "##ShadowDistance", settings.mShadowDistance, core::float2{ 200.0f, 700.0f } );
+
+                    RendererControlRow( MKT_LOC( "renderer_cascaded_shadows" ).c_str() );
+                    changed |= imgui::CheckBox( "##CascadedShadows", settings.mCascadedShadowsEnabled );
+                    imgui::widget::ItemTooltip( "%s", MKT_LOC( "renderer_cascaded_shadows_help" ).c_str() );
+
+                    RendererControlRow( MKT_LOC( "renderer_soft_shadows" ).c_str() );
+                    changed |= imgui::CheckBox( "##SoftShadows", settings.mSoftShadowsEnabled );
+                    imgui::widget::ItemTooltip( "%s", MKT_LOC( "renderer_soft_shadows_help" ).c_str() );
+
+                    RendererControlRow( MKT_LOC( "renderer_visualize_cascades" ).c_str() );
+                    changed |= imgui::CheckBox( "##VisualizeCascades", settings.mVisualizeCascades );
+                    imgui::widget::ItemTooltip( "%s", MKT_LOC( "renderer_scene_tint_red_green_blue_yellow_from_near_to_far" ).c_str() );
+
+                    ImGui::EndTable();
+                }
+
+                DrawShadowDiagnostics( renderer.GetShadowDiagnostics() );
+
+                ImGui::SeparatorText( MKT_LOC( "renderer_ssr_title" ).c_str() );
                 const bool replaced{ settings.mRayTracing.mPathTracingEnabled || settings.mRayTracing.mReflectionsEnabled };
                 ImGui::BeginDisabled( replaced );
                 if ( BeginRendererRows( "ScreenSpaceReflectionSettings" ) ) {
-                    auto& reflections{ settings.mScreenSpaceReflections };
+                    auto &reflections{ settings.mScreenSpaceReflections };
                     RendererControlRow( MKT_LOC( "renderer_enabled" ).c_str() );
                     changed |= imgui::CheckBox( "##ssr_enabled", reflections.mEnabled );
                     ImGui::BeginDisabled( !reflections.mEnabled );
@@ -382,37 +539,190 @@ namespace mikoto::editor {
                 }
                 ImGui::EndDisabled();
                 ImGui::TextWrapped( "%s", MKT_LOC( replaced ? "renderer_ssr_replaced" : "renderer_ssr_help" ).c_str() );
+                ImGui::EndDisabled();
+                if ( settings.mRayTracing.mPathTracingEnabled ) {
+                    ImGui::TextDisabled( "%s", MKT_LOC( "renderer_available_in_raster_rendering" ).c_str() );
+                }
             }
 
-            if ( ImGui::CollapsingHeader( MKT_LOC( "renderer_shadows" ).c_str(), ImGuiTreeNodeFlags_DefaultOpen ) ) {
-                if ( BeginRendererRows( "ShadowSettings" ) ) {
-                    int quality{ core::as<int>( settings.mShadowQuality ) };
-                    RendererControlRow( MKT_LOC( "renderer_quality" ).c_str() );
-                    if ( ImGui::Combo( "##ShadowQuality", &quality, MKT_LOC( "renderer_low_medium_high" ).c_str() ) ) {
-                        settings.mShadowQuality = static_cast<renderer::ShadowMapQuality>( quality );
+            if ( ImGui::CollapsingHeader( "Denoising" ) ) {
+                auto &denoiser{ settings.mDenoiser };
+                if ( BeginRendererRows( "DenoiserSelection" ) ) {
+                    RendererControlRow( "Active denoiser" );
+                    const char *backends[]{ "NRD", "OIDN" };
+                    int activeBackend{ static_cast<int>( denoiser.mBackend ) };
+                    if ( ImGui::Combo( "##ActiveDenoiser", &activeBackend, backends, IM_ARRAYSIZE( backends ) ) ) {
+                        denoiser.mBackend = static_cast<renderer::DenoiserBackend>( activeBackend );
                         changed = true;
                     }
-
-                    imgui::widget::ItemTooltip( "%s", MKT_LOC( "renderer_controls_shadow_map_detail_ray_traced_shadows_and_path_tracing" ).c_str() );
-                    RendererControlRow( MKT_LOC( "renderer_shadow_distance" ).c_str() );
-                    changed |= imgui::Slider( "##ShadowDistance", settings.mShadowDistance, core::float2{ 200.0f, 700.0f } );
-
-                    RendererControlRow( MKT_LOC( "renderer_cascaded_shadows" ).c_str() );
-                    changed |= imgui::CheckBox( "##CascadedShadows", settings.mCascadedShadowsEnabled );
-                    imgui::widget::ItemTooltip( "%s", MKT_LOC( "renderer_cascaded_shadows_help" ).c_str() );
-
-                    RendererControlRow( MKT_LOC( "renderer_soft_shadows" ).c_str() );
-                    changed |= imgui::CheckBox( "##SoftShadows", settings.mSoftShadowsEnabled );
-                    imgui::widget::ItemTooltip( "%s", MKT_LOC( "renderer_soft_shadows_help" ).c_str() );
-
-                    RendererControlRow( MKT_LOC( "renderer_visualize_cascades" ).c_str() );
-                    changed |= imgui::CheckBox( "##VisualizeCascades", settings.mVisualizeCascades );
-                    imgui::widget::ItemTooltip( "%s", MKT_LOC( "renderer_scene_tint_red_green_blue_yellow_from_near_to_far" ).c_str() );
-
+                    RendererControlRow( "Enabled" );
+                    changed |= imgui::CheckBox( "##DenoiserEnabled", denoiser.mEnabled );
+                    RendererMetricRow( "Current view", renderer.IsPreparing() ? "Preparing" : renderer.IsDenoiserActive() ? "Filtering" : denoiser.mEnabled ? "Progressive / no matching RT signal" : "Disabled" );
                     ImGui::EndTable();
                 }
 
-                DrawShadowDiagnostics( renderer.GetShadowDiagnostics() );
+                // The dropdown selects execution; tabs only inspect settings.
+                // Reveal the active backend when its selection changes, then
+                // allow either settings tab to be inspected independently.
+                auto *storage{ ImGui::GetStateStorage() };
+                const ImGuiID activeID{ ImGui::GetID( "##ObservedActiveDenoiser" ) };
+                const ImGuiID viewID{ ImGui::GetID( "##DenoiserSettingsView" ) };
+                const int activeBackend{ static_cast<int>( denoiser.mBackend ) };
+                const bool revealActive{ storage->GetInt( activeID, -1 ) != activeBackend };
+                int settingsView{ storage->GetInt( viewID, activeBackend ) };
+                if ( ImGui::BeginTabBar( "##DenoiserBackends" ) ) {
+                    const auto nrdFlags{ revealActive && denoiser.mBackend == renderer::DenoiserBackend::eNrd ? ImGuiTabItemFlags_SetSelected : ImGuiTabItemFlags_None };
+                    if ( ImGui::BeginTabItem( "NRD", nullptr, nrdFlags ) ) {
+                        settingsView = static_cast<int>( renderer::DenoiserBackend::eNrd );
+                        ImGui::EndTabItem();
+                    }
+                    const auto oidnFlags{ revealActive && denoiser.mBackend == renderer::DenoiserBackend::eOidn ? ImGuiTabItemFlags_SetSelected : ImGuiTabItemFlags_None };
+                    if ( ImGui::BeginTabItem( "OIDN", nullptr, oidnFlags ) ) {
+                        settingsView = static_cast<int>( renderer::DenoiserBackend::eOidn );
+                        ImGui::EndTabItem();
+                    }
+                    ImGui::EndTabBar();
+                }
+                storage->SetInt( activeID, activeBackend );
+                storage->SetInt( viewID, settingsView );
+
+                if ( settingsView == static_cast<int>( renderer::DenoiserBackend::eNrd ) ) {
+                    const bool supported{ renderer::RenderSystem::Get()->GetGpuDevice()->SupportsRayTracing() && MIKOTO_ENABLE_NRD };
+                    ImGui::BeginDisabled( !supported );
+                    if ( BeginRendererRows( "DenoiserSettings" ) ) {
+                        ImGui::BeginDisabled( !denoiser.mEnabled );
+                        RendererControlRow( "Method" );
+                        const char *methods[]{ "REBLUR", "RELAX" };
+                        int method{ static_cast<int>( denoiser.mType ) };
+                        if ( ImGui::Combo( "##nrd_method", &method, methods, 2 ) ) {
+                            denoiser.mType = static_cast<renderer::DenoiserType>( method );
+                            changed = true;
+                        }
+                        int history{ static_cast<int>( denoiser.mHistoryFrames ) };
+                        int fast{ static_cast<int>( denoiser.mFastHistoryFrames ) };
+                        RendererControlRow( "History frames" );
+                        changed |= ImGui::SliderInt( "##nrd_history", &history, 1, 63 );
+                        RendererControlRow( "Fast history frames" );
+                        changed |= ImGui::SliderInt( "##nrd_fast_history", &fast, 1, history );
+                        denoiser.mHistoryFrames = static_cast<core::u32>( history );
+                        denoiser.mFastHistoryFrames = static_cast<core::u32>( fast );
+                        if ( denoiser.mType == renderer::DenoiserType::eRelax ) {
+                            int iterations{ static_cast<int>( denoiser.mAtrousIterations ) };
+                            RendererControlRow( "A-trous iterations" );
+                            changed |= ImGui::SliderInt( "##nrd_atrous", &iterations, 2, 8 );
+                            denoiser.mAtrousIterations = static_cast<core::u32>( iterations );
+                        }
+                        RendererControlRow( "Disocclusion threshold" );
+                        changed |= ImGui::SliderFloat( "##nrd_disocclusion", &denoiser.mDisocclusionThreshold, .001f, .1f, "%.3f" );
+                        RendererControlRow( "Adaptive ray budget" );
+                        changed |= imgui::CheckBox( "##nrd_adaptive_sampling", denoiser.mAdaptiveSampling );
+                        imgui::widget::ItemTooltip( "Uses one sample per pixel while the camera moves; stationary views use the requested SPP." );
+                        RendererControlRow( "Responsive lighting history" );
+                        changed |= imgui::CheckBox( "##nrd_responsive_history", denoiser.mResponsiveHistory );
+                        imgui::widget::ItemTooltip( "Reduces temporal lag when video screens or scene lighting change." );
+                        RendererControlRow( "Anti-firefly" );
+                        changed |= imgui::CheckBox( "##nrd_antifirefly", denoiser.mAntiFirefly );
+                        RendererControlRow( "History" );
+                        if ( ImGui::Button( "Reset history##nrd" ) ) {
+                            ++denoiser.mResetRevision;
+                            changed = true;
+                        }
+                        ImGui::EndDisabled();
+                        ImGui::EndTable();
+                    }
+                    ImGui::EndDisabled();
+                    ImGui::TextWrapped( "NRD filters supported surfaces. Glass, media and depth of field retain progressive accumulation. Preview controls are in Tools > Graphics > Output." );
+                    if ( !MIKOTO_ENABLE_NRD ) {
+                        ImGui::TextWrapped( "NRD is disabled in this build." );
+                    }
+                }
+                else {
+                    const auto *device{ renderer::RenderSystem::Get()->GetGpuDevice() };
+                    const bool supported{ MIKOTO_ENABLE_OIDN && device->GetGraphicsApi() == renderer::rhi::GraphicsAPI::eVulkan && device->SupportsRayTracing() };
+                    ImGui::BeginDisabled( !supported );
+                    if ( BeginRendererRows( "OidnSettings" ) ) {
+                        ImGui::BeginDisabled( !denoiser.mEnabled );
+                        RendererControlRow( "Quality" );
+                        const char *qualities[]{ "Fast", "Balanced", "High" };
+                        int quality{ static_cast<int>( denoiser.mOidnQuality ) };
+                        if ( ImGui::Combo( "##oidn_quality", &quality, qualities, IM_ARRAYSIZE( qualities ) ) ) {
+                            denoiser.mOidnQuality = static_cast<renderer::OidnQuality>( quality );
+                            changed = true;
+                        }
+                        RendererControlRow( "Raw / denoised split" );
+                        changed |= ImGui::SliderFloat( "##oidn_split", &denoiser.mSplitScreen, 0.0f, 1.0f, "%.2f" );
+                        ImGui::EndDisabled();
+                        ImGui::EndTable();
+                    }
+                    ImGui::EndDisabled();
+                    ImGui::TextWrapped( "OIDN filters the full HDR image, including transmission, fog and depth of field. Progressive accumulation continues; High quality costs more GPU time." );
+                    if ( !supported ) {
+                        ImGui::TextWrapped( "OIDN requires a Vulkan build with OIDN enabled and hardware ray tracing." );
+                    }
+                }
+            }
+
+            if ( ImGui::CollapsingHeader( MKT_LOC( "renderer_clouds_title" ).c_str() ) ) {
+                const bool pathTracing{ settings.mRayTracing.mPathTracingEnabled };
+                ImGui::BeginDisabled( pathTracing );
+                if ( BeginRendererRows( "CloudSettings" ) ) {
+                    auto &clouds{ settings.mClouds };
+                    RendererControlRow( MKT_LOC( "renderer_enabled" ).c_str() );
+                    changed |= imgui::CheckBox( "##clouds_enabled", clouds.mEnabled );
+                    ImGui::BeginDisabled( !clouds.mEnabled );
+                    RendererControlRow( MKT_LOC( "renderer_ssr_half_resolution" ).c_str() );
+                    changed |= imgui::CheckBox( "##clouds_half_resolution", clouds.mHalfResolution );
+                    RendererControlRow( MKT_LOC( "renderer_clouds_shadows" ).c_str() );
+                    changed |= imgui::CheckBox( "##clouds_surface_shadows", clouds.mCastSurfaceShadows );
+
+                    RendererControlRow( "Packed distance field" );
+                    changed |= imgui::CheckBox( "##clouds_distance_field", clouds.mDistanceFieldEnabled );
+                    RendererControlRow( "Edge darkening" );
+                    changed |= DrawFloatProperty( "##clouds_mEdgeDarkening", &clouds.mEdgeDarkening, { 0.0f, 1.0f }, "%.2f", true );
+                    RendererControlRow( "Inner glow" );
+                    changed |= DrawFloatProperty( "##clouds_mInnerGlow", &clouds.mInnerGlow, { 0.0f, 1.0f }, "%.2f", true );
+                    RendererControlRow( "Detail mip bias" );
+                    changed |= DrawFloatProperty( "##clouds_mDetailMipBias", &clouds.mDetailMipBias, { -2.0f, 2.0f }, "%.2f", true );
+                    RendererControlRow( "Animated jitter range" );
+                    changed |= DrawFloatProperty( "##clouds_mAnimatedJitterDistance", &clouds.mAnimatedJitterDistance, { 0.0f, 2000.0f }, "%.0f m", true );
+
+                    int resolution{ clouds.mFieldResolution <= 64 ? 0 : clouds.mFieldResolution <= 128 ? 1
+                                                                                                       : 2 };
+                    int steps{ core::as<int>( clouds.mMaxSteps ) };
+                    int sunSteps{ core::as<int>( clouds.mSunSteps ) };
+                    int debug{ core::as<int>( clouds.mDebugView ) };
+                    RendererControlRow( MKT_LOC( "renderer_clouds_field_resolution" ).c_str() );
+                    changed |= ImGui::Combo( "##clouds_field_resolution", &resolution,
+                        "64 x 32 x 64\0"
+                        "128 x 64 x 128\0"
+                        "256 x 128 x 256\0" );
+                    clouds.mFieldResolution = 64u << resolution;
+                    RendererControlRow( MKT_LOC( "renderer_clouds_view_steps" ).c_str() );
+                    changed |= ImGui::SliderInt( "##clouds_view_steps", &steps, 32, 512 );
+                    RendererControlRow( MKT_LOC( "renderer_clouds_light_steps" ).c_str() );
+                    changed |= ImGui::SliderInt( "##clouds_light_steps", &sunSteps, 4, 64 );
+                    clouds.mMaxSteps = core::as<core::u32>( steps );
+                    clouds.mSunSteps = core::as<core::u32>( sunSteps );
+                    RendererControlRow( MKT_LOC( "renderer_clouds_step_length" ).c_str() );
+                    changed |= imgui::Slider( "##clouds_step_length", clouds.mStepLength, core::float2{ .5f, 128.0f }, "%.1f m" );
+                    RendererControlRow( MKT_LOC( "renderer_clouds_max_distance" ).c_str() );
+                    changed |= imgui::Slider( "##clouds_max_distance", clouds.mMaxDistance, core::float2{ 100.0f, 200000.0f }, "%.0f m" );
+                    RendererControlRow( MKT_LOC( "renderer_clouds_detail" ).c_str() );
+                    changed |= imgui::Slider( "##clouds_detail", clouds.mDetailStrength, core::float2{ 0.0f, 2.0f }, "%.2f" );
+                    RendererControlRow( MKT_LOC( "renderer_clouds_scattering" ).c_str() );
+                    changed |= imgui::Slider( "##clouds_scattering", clouds.mMultipleScattering, core::float2{ 0.0f, .9f }, "%.2f" );
+                    RendererControlRow( MKT_LOC( "renderer_clouds_ambient" ).c_str() );
+                    changed |= imgui::Slider( "##clouds_ambient", clouds.mAmbientIntensity, core::float2{ 0.0f, 4.0f }, "%.2f" );
+                    RendererControlRow( MKT_LOC( "renderer_clouds_history" ).c_str() );
+                    changed |= imgui::Slider( "##clouds_history", clouds.mHistoryWeight, core::float2{ 0.0f, .98f }, "%.2f" );
+                    RendererControlRow( MKT_LOC( "renderer_clouds_debug" ).c_str() );
+                    changed |= ImGui::Combo( "##clouds_debug", &debug, MKT_LOC( "renderer_clouds_debug_options" ).c_str() );
+                    clouds.mDebugView = static_cast<renderer::CloudsDebugView>( debug );
+                    ImGui::EndDisabled();
+                    ImGui::EndTable();
+                }
+                ImGui::EndDisabled();
+                ImGui::TextWrapped( "%s", MKT_LOC( pathTracing ? "renderer_clouds_path_help" : "renderer_clouds_help" ).c_str() );
             }
 
             if ( ImGui::CollapsingHeader( imgui::widget::LocalizedLabel( "renderer_entity_selection_outline", "Entity selection outline" ).c_str(), ImGuiTreeNodeFlags_DefaultOpen ) ) {
@@ -429,7 +739,7 @@ namespace mikoto::editor {
                 ImGui::TextDisabled( MKT_LOC( "renderer_applied_to_the_selected_entity_and_its_highlighted_hierarchy" ).c_str() );
             }
 
-            if ( auto* particles{ renderer::ParticleSystem::GetPtr() }; particles && ImGui::CollapsingHeader( imgui::widget::LocalizedLabel( "renderer_particles", "Particles" ).c_str() ) ) {
+            if ( auto *particles{ renderer::ParticleSystem::GetPtr() }; particles && ImGui::CollapsingHeader( imgui::widget::LocalizedLabel( "renderer_particles", "Particles" ).c_str() ) ) {
                 const auto mode{ particles->GetSimulationMode() };
 
                 if ( BeginRendererRows( "ParticleSettings" ) ) {
@@ -549,57 +859,6 @@ namespace mikoto::editor {
             ImGui::TextDisabled( "%s", MKT_LOC( "renderer_exposure_and_gamma_follow_the_active_camera" ).c_str() );
             ImGui::TextWrapped( "%s", MKT_LOC( "renderer_view_the_default_output_to_compare_operators_saved_with_the" ).c_str() );
         } );
-        if ( ImGui::CollapsingHeader( MKT_LOC( "renderer_ambient_occlusion" ).c_str() ) ) {
-            auto& renderer{ *mEditorState->mEditorRenderer };
-            auto settings{ renderer.GetSettings() };
-            bool changed{};
-
-            if ( BeginRendererRows( "AmbientOcclusionSettings" ) ) {
-                ImGui::PushID( "SSAO" );
-                ImGui::BeginDisabled( settings.mRayTracing.mPathTracingEnabled );
-                RendererControlRow( MKT_LOC( "renderer_ssao" ).c_str() );
-                changed |= imgui::CheckBox( "##SSAO", settings.mSsaoEnabled );
-
-                ImGui::BeginDisabled( !settings.mSsaoEnabled );
-                RendererControlRow( MKT_LOC( "renderer_intensity" ).c_str() );
-                changed |= imgui::Slider( "##renderer_intensity_ssao", settings.mSsaoIntensity, core::float2{ 0.0f, 4.0f } );
-                ImGui::EndDisabled();
-                ImGui::EndDisabled();
-                ImGui::PopID();
-
-                const bool supported{ renderer::RenderSystem::Get()->GetGpuDevice()->SupportsRayTracing() };
-                ImGui::BeginDisabled( !supported );
-                ImGui::BeginDisabled( settings.mRayTracing.mPathTracingEnabled );
-                RendererControlRow( MKT_LOC( "renderer_ray_traced_ao" ).c_str() );
-                changed |= imgui::CheckBox( "##renderer_ray_traced_ao",
-                    settings.mRayTracing.mAmbientOcclusionEnabled );
-                ImGui::EndDisabled();
-
-                int samples{ core::as<int>( settings.mRayTracing.mAoSamplesPerFrame ) };
-                RendererControlRow( MKT_LOC( "renderer_ao_samples" ).c_str() );
-                changed |= ImGui::SliderInt( "##renderer_ao_samples", &samples, 1, 64 );
-                settings.mRayTracing.mAoSamplesPerFrame = core::as<core::u32>( samples );
-                RendererControlRow( MKT_LOC( "renderer_ao_distance" ).c_str() );
-                changed |= ImGui::DragFloat( "##renderer_ao_distance",
-                    &settings.mRayTracing.mAoMaxDistance, 0.01f, 0.0f, 10000.0f );
-                RendererControlRow( MKT_LOC( "renderer_ao_cosine" ).c_str() );
-                changed |= imgui::CheckBox( "##renderer_ao_cosine",
-                    settings.mRayTracing.mUseCosineWeightedAoSampling );
-                ImGui::TextWrapped( "%s", MKT_LOC( "renderer_ao_help" ).c_str() );
-                if ( ImGui::Button( imgui::widget::LocalizedLabel( "renderer_ao_debug", "View ray-traced AO" ).c_str() ) ) {
-                    mEditorState->mFinalComposition = renderer.GetFinalImage( renderer::FinalImageType::eRayTracedAmbientOcclusion );
-                }
-                ImGui::EndDisabled();
-
-                ImGui::EndTable();
-            }
-
-            if ( changed ) {
-                renderer.CancelPick();
-                renderer.ApplySettings( settings );
-            }
-        }
-
         imgui::DrawNode( MKT_LOC( "renderer_frustum_culling" ).c_str(), [this]() -> void {
             auto settings{ mEditorState->mEditorRenderer->GetSettings() };
 
@@ -632,7 +891,7 @@ namespace mikoto::editor {
             }
         } );
         imgui::DrawNode( MKT_LOC( "renderer_bloom" ).c_str(), [this]() -> void {
-            auto& bloom{ mEditorState->mEditorRenderer->GetBloomSettings() };
+            auto &bloom{ mEditorState->mEditorRenderer->GetBloomSettings() };
             if ( BeginRendererRows( "BloomSettings" ) ) {
                 RendererControlRow( MKT_LOC( "renderer_enabled" ).c_str() );
                 imgui::CheckBox( "##renderer_enabled", bloom.mEnabled );
@@ -653,4 +912,4 @@ namespace mikoto::editor {
 
         ImGui::End();
     }
-}
+}// namespace mikoto::editor

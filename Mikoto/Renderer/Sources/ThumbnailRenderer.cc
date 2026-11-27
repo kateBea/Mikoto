@@ -460,6 +460,8 @@ namespace mikoto::renderer {
         image = asset::AssetRegistryService::Get()->IsTextureCompressionEnabled() ? CompressImage( image ) : DecompressImage( image );
         image = asset::PrepareImageForUpload( image, *mDevice );
         return mDevice->CreateTexture( rhi::TextureCreateDescription{}
+            .SetName( "Thumbnail preview" )
+            .SetMipCount( image->mMipCount )
             .SetWidth( image->mWidth )
             .SetHeight( image->mHeight )
             .SetDimensions( rhi::TextureDimension::eTexture2D )

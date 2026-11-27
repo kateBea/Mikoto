@@ -1,0 +1,36 @@
+{
+  "Version": 1,
+  "Type": "VolumeMaterial",
+  "Name": "Storm cloud",
+  "Material": {
+    "DensityModel": 2,
+    "Absorption": [
+      0.003,
+      0.003,
+      0.003
+    ],
+    "Scattering": [
+      0.06,
+      0.06,
+      0.06
+    ],
+    "Anisotropy": 0.65,
+    "Density": 0.8,
+    "HeightFalloff": 0.1,
+    "NoiseScale": 0.06,
+    "ErosionScale": 0.15,
+    "Erosion": 0.15,
+    "Coverage": 0.8,
+    "Octaves": 5,
+    "CloudForm": 2,
+    "CloudSeed": 37,
+    "CloudFormationCount": 1,
+    "CloudFormationScale": 0.65,
+    "CloudFormationVariation": 0.8,
+    "CloudProfileDepth": 0.12,
+    "CloudDetailType": 0.85,
+    "CloudHeightVariation": 0.15,
+    "CoverageVariation": 0.2,
+    "CloudTypeVariation": 0.1
+  }
+}

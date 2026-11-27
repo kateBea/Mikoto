@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Shared ray-scene layouts, hit payloads and indexed-geometry loads. CPU uploads and ray stages
+// must preserve these field offsets and index conventions.
+
 #pragma once
 
 #include "base/BufferReference.slang"
@@ -20,38 +23,39 @@
 // CPU layout: RayTracingModule::FrameConstants. Sharing it also lets closest hit
 // reconstruct the intersection from the exact positions used to build the BLAS.
 struct FrameParameters {
-    float4x4 InverseViewProjection;
-    float4 Camera;
-    uint4 Frame; // frame number, samples per frame, scattering depth, path mode
-    float2 Display;
-    uint Output;
-    uint SceneIndex;
-    uint4 Options; // history samples, hybrid shadows, hybrid lobes, sample/depth cap
-    uint64_t Vertices;
-    uint64_t Indices;
-    uint64_t Data;
-    uint64_t ViewEffects;
-    uint History;
-    uint Auxiliary;
-    uint MaterialSampler;
-    uint AtmosphereSampler;
-    uint AtmosphereTextures[3];
-    uint LightDistribution;
-    uint64_t BuildPositions;
-    uint OcclusionOutput;
-    uint OcclusionHistory;
-    uint4 Occlusion; // Enabled, samples, accumulated samples, cosine sampling.
-    float OcclusionMaxDistance;
-    uint VolumePadding;
-    uint64_t Volumes;
+    float4x4 mInverseViewProjection;
+    float4 mCamera;
+    uint4 mFrame;// frame number, samples per frame, scattering depth, path mode
+    float2 mDisplay;
+    uint mOutput;
+    uint mSceneIndex;
+    uint4 mOptions;// history samples, hybrid shadow samples (zero disables), hybrid lobes, sample/depth cap
+    uint64_t mVertices;
+    uint64_t mIndices;
+    uint64_t mData;
+    uint64_t mViewEffects;
+    uint mHistory;
+    uint mAuxiliary;
+    uint mMaterialSampler;
+    uint mAtmosphereSampler;
+    uint mAtmosphereTextures[3];
+    uint mLightDistribution;
+    uint64_t mBuildPositions;
+    uint mOcclusionOutput;
+    uint mOcclusionHistory;
+    uint4 mOcclusion;// Enabled, samples, accumulated samples, cosine sampling.
+    float mOcclusionMaxDistance;
+    uint mVolumePadding;
+    uint64_t mVolumes;
+    uint64_t mDenoiser;
 };
 
 struct PushParameters {
-    uint64_t Frame;
+    uint64_t mFrame;
 };
 
 MKT_DECLARE_PUSH_CONSTANT_BUFFER( PushParameters, Push );
-#define Parameters LoadBufferValue<FrameParameters>( Push.Frame, 0 )
+#define Parameters LoadBufferValue<FrameParameters>( Push.mFrame, 0 )
 
 // Hardware stages provide intersections; raygen implements PBRT's Li() loop.
 // https://pbr-book.org/4ed/Light_Transport_I_Surface_Reflection/A_Better_Path_Tracer
@@ -60,72 +64,81 @@ static const float RAY_MAX_DISTANCE = 1e30;
 static const uint RAY_ALL_INSTANCES = 0xffu;
 static const uint MAX_OCCLUSION_HISTORY_SAMPLES = 4096u;
 
-[raypayload]
-struct Hit {
-    float Distance : read( caller ) : write( caller, closesthit, miss );
-    uint Triangle : read( caller ) : write( caller, closesthit );
-    float2 Barycentrics : read( caller ) : write( caller, closesthit );
-    float3 Position : read( caller ) : write( closesthit );
-    float3 PositionError : read( caller ) : write( closesthit );
-    float3 GeometricNormal : read( caller ) : write( closesthit );
+[raypayload] struct Hit {
+    float mDistance : read( caller ) : write( caller, closesthit, miss );
+    uint mTriangle : read( caller ) : write( caller, closesthit );
+    float2 mBarycentrics : read( caller ) : write( caller, closesthit );
+    float3 mPosition : read( caller ) : write( closesthit );
+    float3 mPositionError : read( caller ) : write( closesthit );
+    float3 mGeometricNormal : read( caller ) : write( closesthit );
 };
 
 // These records mirror RayTracingModule's packed scene upload.
 struct SceneRecord {
-    uint MaterialCount;
-    uint LightCount;
-    uint EmitterCount;
-    uint LightOffset;
-    uint EmitterOffset;
-    int Environment;
-    uint FaceOffset;
-    uint HasFaces;
+    uint mMaterialCount;
+    uint mLightCount;
+    uint mEmitterCount;
+    uint mLightOffset;
+    uint mEmitterOffset;
+    int mEnvironment;
+    uint mFaceOffset;
+    uint mHasFaces;
 };
 
 struct VertexRecord {
-    float4 Position;
-    float4 Normal;
-    float4 UV;
-    float4 Color;
+    float4 mPosition;
+    float4 mNormal;
+    float4 mUV;
+    float4 mColor;
 };
 
 struct MaterialRecord {
-    float4 Base, Emission, Values; // Emission.w: material=0, front area=1, two-sided area=2
-    int4 Maps;
-    float4 Extra; // normal scale, two sided, pure area emitter, specular workflow
-    int4 UVSets;
-    float4 Specular, UVTransform;
-    uint4 Properties;
-    float4 Optical, Absorption, Scattering;
-    float4 HeightMapping;
-    int4 HeightInfo;
-    float4 CheckerboardColorA;
-    float4 CheckerboardColorB;
-    float4 CheckerboardOffset;
+    float4 mBase;
+    float4 mEmission;
+    float4 mValues;// Emission.w: material=0, front area=1, two-sided area=2
+    int4 mMaps;
+    float4 mExtra;// normal scale, two sided, pure area emitter, specular workflow
+    int4 mUVSets;
+    float4 mSpecular;
+    float4 mUVTransform;
+    uint4 mProperties;
+    float4 mOptical;
+    float4 mAbsorption;
+    float4 mScattering;
+    float4 mHeightMapping;
+    int4 mHeightInfo;
+    float4 mCheckerboardColorA;
+    float4 mCheckerboardColorB;
+    float4 mCheckerboardOffset;
 };
 
 struct LightRecord {
     // Spot.xy: spot cone cosines; Spot.z: PT point radius or directional half-angle (radians).
-    float4 PositionType, DirectionRadius, ColorIntensity, Spot;
+    float4 mPositionType;
+    float4 mDirectionRadius;
+    float4 mColorIntensity;
+    float4 mSpot;
 };
 
 struct EmitterRecord {
-    uint Triangle;
-    float CDF, Area, Probability;
+    uint mTriangle;
+    float mCDF;
+    float mArea;
+    float mProbability;
 };
 
 // Triangle indices and BLAS build positions are packed as three 32-bit values.
 // Derive byte offsets from their types so raygen and closest hit agree.
 uint3 LoadTriangleIndices( uint triangle ) {
-    return LoadBufferValue<uint3>( Parameters.Indices, triangle * sizeof( uint3 ) );
+    return LoadBufferValue<uint3>( Parameters.mIndices, triangle * sizeof( uint3 ) );
 }
 
 float3 LoadBuildPosition( uint vertex ) {
-    return asfloat( LoadBufferValue<uint3>( Parameters.BuildPositions, vertex * sizeof( uint3 ) ) );
+    return asfloat( LoadBufferValue<uint3>( Parameters.mBuildPositions, vertex * sizeof( uint3 ) ) );
 }
 
 MaterialRecord LoadMaterialRecord( uint index ) {
-    return LoadBufferValue<MaterialRecord>( Parameters.Data, sizeof( SceneRecord ) + index * sizeof( MaterialRecord ) );
+    return LoadBufferValue<MaterialRecord>( Parameters.mData, sizeof( SceneRecord ) + index * sizeof( MaterialRecord ) );
 }
 
 // PBRT offsets outside the position's uncertainty interval, then rounds outward.

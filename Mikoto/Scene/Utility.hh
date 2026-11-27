@@ -17,8 +17,8 @@
 
 #include <entt/entity/registry.hpp>
 
-#include <Scene/Entity.hh>
 #include <Scene/Component.hh>
+#include <Scene/Entity.hh>
 
 namespace mikoto::scene {
 
@@ -29,7 +29,7 @@ namespace mikoto::scene {
      * @returns True when the entity exists and owns ComponentType.
      */
     template<typename ComponentType>
-    MKT_NODISCARD static inline auto IsPresent( Entity* entity ) -> bool {
+    MKT_NODISCARD static inline auto IsPresent( Entity *entity ) -> bool {
         MKT_BEGIN_PROFILER();
         if ( entity == nullptr ) {
             return false;
@@ -45,12 +45,11 @@ namespace mikoto::scene {
      * @param c Unused callback reserved for future group iteration.
      */
     template<typename Callback, typename... ComponentTypes>
-    auto ForEachGroup( const Callback& c ) -> void {
-
+    auto ForEachGroup( const Callback &c ) -> void {
     }
 
     template<typename Visitor>
-    auto ForEachColliderComponent( Visitor&& visitor ) -> void {
+    auto ForEachColliderComponent( Visitor &&visitor ) -> void {
         visitor.template operator()<BoxColliderComponent>();
         visitor.template operator()<SphereColliderComponent>();
         visitor.template operator()<CapsuleColliderComponent>();
@@ -63,7 +62,7 @@ namespace mikoto::scene {
         visitor.template operator()<PlaneColliderComponent>();
     }
 
-    inline auto HasCollider( const entt::registry& registry, entt::entity entity ) -> bool {
+    MKT_NODISCARD inline auto HasCollider( const entt::registry &registry, entt::entity entity ) -> bool {
         bool present{};
         ForEachColliderComponent( [&]<typename T>() {
             present = present || registry.all_of<T>( entity );
@@ -81,7 +80,7 @@ namespace mikoto::scene {
     }
 
     template<typename Visitor>
-    auto VisitPhysicsFields( HeightFieldColliderComponent& component, Visitor&& visitor ) -> void {
+    auto VisitPhysicsFields( HeightFieldColliderComponent &component, Visitor &&visitor ) -> void {
         MKT_PHYSICS_FIELD( "LandscapeEntityID", GetLandscapeEntityID, SetLandscapeEntityID );
         MKT_PHYSICS_FIELD( "HeightmapPath", GetHeightmap, SetHeightmap );
         MKT_PHYSICS_FIELD( "SampleSpacing", GetSampleSpacing, SetSampleSpacing );
@@ -92,7 +91,7 @@ namespace mikoto::scene {
     }
 
     template<typename Visitor>
-    auto VisitPhysicsFields( CompoundColliderComponent& component, Visitor&& visitor ) -> void {
+    auto VisitPhysicsFields( CompoundColliderComponent &component, Visitor &&visitor ) -> void {
         MKT_PHYSICS_FIELD( "ColliderEntities", GetColliderEntities, SetColliderEntities );
         MKT_PHYSICS_FIELD( "Mode", GetMode, SetMode );
         MKT_PHYSICS_FIELD( "Offset", GetOffset, SetOffset );
@@ -100,7 +99,7 @@ namespace mikoto::scene {
     }
 
     template<typename Visitor>
-    auto VisitPhysicsFields( CylinderColliderComponent& component, Visitor&& visitor ) -> void {
+    auto VisitPhysicsFields( CylinderColliderComponent &component, Visitor &&visitor ) -> void {
         MKT_PHYSICS_FIELD( "Radius", GetRadius, SetRadius );
         MKT_PHYSICS_FIELD( "HalfHeight", GetHalfHeight, SetHalfHeight );
         MKT_PHYSICS_FIELD( "Offset", GetOffset, SetOffset );
@@ -108,7 +107,7 @@ namespace mikoto::scene {
     }
 
     template<typename Visitor>
-    auto VisitPhysicsFields( TaperedCapsuleColliderComponent& component, Visitor&& visitor ) -> void {
+    auto VisitPhysicsFields( TaperedCapsuleColliderComponent &component, Visitor &&visitor ) -> void {
         MKT_PHYSICS_FIELD( "TopRadius", GetTopRadius, SetTopRadius );
         MKT_PHYSICS_FIELD( "BottomRadius", GetBottomRadius, SetBottomRadius );
         MKT_PHYSICS_FIELD( "HalfHeight", GetHalfHeight, SetHalfHeight );
@@ -117,7 +116,7 @@ namespace mikoto::scene {
     }
 
     template<typename Visitor>
-    auto VisitPhysicsFields( TaperedCylinderColliderComponent& component, Visitor&& visitor ) -> void {
+    auto VisitPhysicsFields( TaperedCylinderColliderComponent &component, Visitor &&visitor ) -> void {
         MKT_PHYSICS_FIELD( "TopRadius", GetTopRadius, SetTopRadius );
         MKT_PHYSICS_FIELD( "BottomRadius", GetBottomRadius, SetBottomRadius );
         MKT_PHYSICS_FIELD( "HalfHeight", GetHalfHeight, SetHalfHeight );
@@ -126,7 +125,7 @@ namespace mikoto::scene {
     }
 
     template<typename Visitor>
-    auto VisitPhysicsFields( PlaneColliderComponent& component, Visitor&& visitor ) -> void {
+    auto VisitPhysicsFields( PlaneColliderComponent &component, Visitor &&visitor ) -> void {
         MKT_PHYSICS_FIELD( "Normal", GetNormal, SetNormal );
         MKT_PHYSICS_FIELD( "Distance", GetDistance, SetDistance );
         MKT_PHYSICS_FIELD( "Offset", GetOffset, SetOffset );
@@ -134,7 +133,7 @@ namespace mikoto::scene {
     }
 
     template<typename Visitor>
-    auto VisitPhysicsFields( JointComponent& component, Visitor&& visitor ) -> void {
+    auto VisitPhysicsFields( JointComponent &component, Visitor &&visitor ) -> void {
         MKT_PHYSICS_FIELD( "BodyAEntityID", GetBodyAEntityID, SetBodyAEntityID );
         MKT_PHYSICS_FIELD( "BodyBEntityID", GetBodyBEntityID, SetBodyBEntityID );
         MKT_PHYSICS_FIELD( "AnchorA", GetAnchorA, SetAnchorA );
@@ -146,26 +145,26 @@ namespace mikoto::scene {
     }
 
     template<typename Visitor>
-    auto VisitPhysicsFields( DistanceJointComponent& component, Visitor&& visitor ) -> void {
-        VisitPhysicsFields( static_cast<JointComponent&>( component ), visitor );
+    auto VisitPhysicsFields( DistanceJointComponent &component, Visitor &&visitor ) -> void {
+        VisitPhysicsFields( static_cast<JointComponent &>( component ), visitor );
         MKT_PHYSICS_FIELD( "MinDistance", GetMinDistance, SetMinDistance );
         MKT_PHYSICS_FIELD( "MaxDistance", GetMaxDistance, SetMaxDistance );
         MKT_PHYSICS_FIELD( "Spring", GetSpring, SetSpring );
     }
 
     template<typename Visitor>
-    auto VisitPhysicsFields( FixedJointComponent& component, Visitor&& visitor ) -> void {
-        VisitPhysicsFields( static_cast<JointComponent&>( component ), visitor );
+    auto VisitPhysicsFields( FixedJointComponent &component, Visitor &&visitor ) -> void {
+        VisitPhysicsFields( static_cast<JointComponent &>( component ), visitor );
     }
 
     template<typename Visitor>
-    auto VisitPhysicsFields( PointJointComponent& component, Visitor&& visitor ) -> void {
-        VisitPhysicsFields( static_cast<JointComponent&>( component ), visitor );
+    auto VisitPhysicsFields( PointJointComponent &component, Visitor &&visitor ) -> void {
+        VisitPhysicsFields( static_cast<JointComponent &>( component ), visitor );
     }
 
     template<typename Visitor>
-    auto VisitPhysicsFields( HingeJointComponent& component, Visitor&& visitor ) -> void {
-        VisitPhysicsFields( static_cast<JointComponent&>( component ), visitor );
+    auto VisitPhysicsFields( HingeJointComponent &component, Visitor &&visitor ) -> void {
+        VisitPhysicsFields( static_cast<JointComponent &>( component ), visitor );
         MKT_PHYSICS_FIELD( "MinAngle", GetMinAngle, SetMinAngle );
         MKT_PHYSICS_FIELD( "MaxAngle", GetMaxAngle, SetMaxAngle );
         MKT_PHYSICS_FIELD( "LimitSpring", GetLimitSpring, SetLimitSpring );
@@ -173,8 +172,8 @@ namespace mikoto::scene {
     }
 
     template<typename Visitor>
-    auto VisitPhysicsFields( SliderJointComponent& component, Visitor&& visitor ) -> void {
-        VisitPhysicsFields( static_cast<JointComponent&>( component ), visitor );
+    auto VisitPhysicsFields( SliderJointComponent &component, Visitor &&visitor ) -> void {
+        VisitPhysicsFields( static_cast<JointComponent &>( component ), visitor );
         MKT_PHYSICS_FIELD( "MinDistance", GetMinDistance, SetMinDistance );
         MKT_PHYSICS_FIELD( "MaxDistance", GetMaxDistance, SetMaxDistance );
         MKT_PHYSICS_FIELD( "LimitSpring", GetLimitSpring, SetLimitSpring );
@@ -182,14 +181,14 @@ namespace mikoto::scene {
     }
 
     template<typename Visitor>
-    auto VisitPhysicsFields( ConeJointComponent& component, Visitor&& visitor ) -> void {
-        VisitPhysicsFields( static_cast<JointComponent&>( component ), visitor );
+    auto VisitPhysicsFields( ConeJointComponent &component, Visitor &&visitor ) -> void {
+        VisitPhysicsFields( static_cast<JointComponent &>( component ), visitor );
         MKT_PHYSICS_FIELD( "HalfConeAngle", GetHalfConeAngle, SetHalfConeAngle );
     }
 
     template<typename Visitor>
-    auto VisitPhysicsFields( SwingTwistJointComponent& component, Visitor&& visitor ) -> void {
-        VisitPhysicsFields( static_cast<JointComponent&>( component ), visitor );
+    auto VisitPhysicsFields( SwingTwistJointComponent &component, Visitor &&visitor ) -> void {
+        VisitPhysicsFields( static_cast<JointComponent &>( component ), visitor );
         MKT_PHYSICS_FIELD( "NormalHalfConeAngle", GetNormalHalfConeAngle, SetNormalHalfConeAngle );
         MKT_PHYSICS_FIELD( "PlaneHalfConeAngle", GetPlaneHalfConeAngle, SetPlaneHalfConeAngle );
         MKT_PHYSICS_FIELD( "MinTwistAngle", GetMinTwistAngle, SetMinTwistAngle );
@@ -198,8 +197,8 @@ namespace mikoto::scene {
     }
 
     template<typename Visitor>
-    auto VisitPhysicsFields( SixDofJointComponent& component, Visitor&& visitor ) -> void {
-        VisitPhysicsFields( static_cast<JointComponent&>( component ), visitor );
+    auto VisitPhysicsFields( SixDofJointComponent &component, Visitor &&visitor ) -> void {
+        VisitPhysicsFields( static_cast<JointComponent &>( component ), visitor );
         MKT_PHYSICS_FIELD( "TranslationMotion", GetTranslationMotion, SetTranslationMotion );
         MKT_PHYSICS_FIELD( "RotationMotion", GetRotationMotion, SetRotationMotion );
         MKT_PHYSICS_FIELD( "MinTranslation", GetMinTranslation, SetMinTranslation );
@@ -210,8 +209,8 @@ namespace mikoto::scene {
     }
 
     template<typename Visitor>
-    auto VisitPhysicsFields( PathJointComponent& component, Visitor&& visitor ) -> void {
-        VisitPhysicsFields( static_cast<JointComponent&>( component ), visitor );
+    auto VisitPhysicsFields( PathJointComponent &component, Visitor &&visitor ) -> void {
+        VisitPhysicsFields( static_cast<JointComponent &>( component ), visitor );
         MKT_PHYSICS_FIELD( "ControlPoints", GetControlPoints, SetControlPoints );
         MKT_PHYSICS_FIELD( "Looping", IsLooping, SetLooping );
         MKT_PHYSICS_FIELD( "InitialFraction", GetInitialFraction, SetInitialFraction );
@@ -220,24 +219,24 @@ namespace mikoto::scene {
     }
 
     template<typename Visitor>
-    auto VisitPhysicsFields( GearJointComponent& component, Visitor&& visitor ) -> void {
-        VisitPhysicsFields( static_cast<JointComponent&>( component ), visitor );
+    auto VisitPhysicsFields( GearJointComponent &component, Visitor &&visitor ) -> void {
+        VisitPhysicsFields( static_cast<JointComponent &>( component ), visitor );
         MKT_PHYSICS_FIELD( "HingeAEntityID", GetHingeAEntityID, SetHingeAEntityID );
         MKT_PHYSICS_FIELD( "HingeBEntityID", GetHingeBEntityID, SetHingeBEntityID );
         MKT_PHYSICS_FIELD( "Ratio", GetRatio, SetRatio );
     }
 
     template<typename Visitor>
-    auto VisitPhysicsFields( RackAndPinionJointComponent& component, Visitor&& visitor ) -> void {
-        VisitPhysicsFields( static_cast<JointComponent&>( component ), visitor );
+    auto VisitPhysicsFields( RackAndPinionJointComponent &component, Visitor &&visitor ) -> void {
+        VisitPhysicsFields( static_cast<JointComponent &>( component ), visitor );
         MKT_PHYSICS_FIELD( "HingeEntityID", GetHingeEntityID, SetHingeEntityID );
         MKT_PHYSICS_FIELD( "SliderEntityID", GetSliderEntityID, SetSliderEntityID );
         MKT_PHYSICS_FIELD( "Ratio", GetRatio, SetRatio );
     }
 
     template<typename Visitor>
-    auto VisitPhysicsFields( PulleyJointComponent& component, Visitor&& visitor ) -> void {
-        VisitPhysicsFields( static_cast<JointComponent&>( component ), visitor );
+    auto VisitPhysicsFields( PulleyJointComponent &component, Visitor &&visitor ) -> void {
+        VisitPhysicsFields( static_cast<JointComponent &>( component ), visitor );
         MKT_PHYSICS_FIELD( "FixedPointA", GetFixedPointA, SetFixedPointA );
         MKT_PHYSICS_FIELD( "FixedPointB", GetFixedPointB, SetFixedPointB );
         MKT_PHYSICS_FIELD( "Ratio", GetRatio, SetRatio );
@@ -246,7 +245,7 @@ namespace mikoto::scene {
     }
 
     template<typename Visitor>
-    auto VisitPhysicsFields( CharacterControllerComponent& component, Visitor&& visitor ) -> void {
+    auto VisitPhysicsFields( CharacterControllerComponent &component, Visitor &&visitor ) -> void {
         MKT_PHYSICS_FIELD( "ControllerType", GetControllerType, SetControllerType );
         MKT_PHYSICS_FIELD( "Radius", GetRadius, SetRadius );
         MKT_PHYSICS_FIELD( "HalfHeight", GetHalfHeight, SetHalfHeight );
@@ -259,7 +258,7 @@ namespace mikoto::scene {
     }
 
     template<typename Visitor>
-    auto VisitPhysicsFields( RagdollComponent& component, Visitor&& visitor ) -> void {
+    auto VisitPhysicsFields( RagdollComponent &component, Visitor &&visitor ) -> void {
         MKT_PHYSICS_FIELD( "SkeletonPath", GetSkeleton, SetSkeleton );
         MKT_PHYSICS_FIELD( "BoneMappings", GetBoneMappings, SetBoneMappings );
         MKT_PHYSICS_FIELD( "SimulationBlend", GetSimulationBlend, SetSimulationBlend );
@@ -267,7 +266,7 @@ namespace mikoto::scene {
     }
 
     template<typename Visitor>
-    auto VisitPhysicsFields( SoftBodyComponent& component, Visitor&& visitor ) -> void {
+    auto VisitPhysicsFields( SoftBodyComponent &component, Visitor &&visitor ) -> void {
         MKT_PHYSICS_FIELD( "ModelPath", GetModel, SetModel );
         MKT_PHYSICS_FIELD( "MeshIndex", GetMeshIndex, SetMeshIndex );
         MKT_PHYSICS_FIELD( "VertexMass", GetVertexMass, SetVertexMass );
@@ -280,15 +279,31 @@ namespace mikoto::scene {
     }
 
     template<typename Visitor>
-    auto VisitPhysicsFields( ClothComponent& component, Visitor&& visitor ) -> void {
-        VisitPhysicsFields( static_cast<SoftBodyComponent&>( component ), visitor );
+    auto VisitPhysicsFields( ClothComponent &component, Visitor &&visitor ) -> void {
+        VisitPhysicsFields( static_cast<SoftBodyComponent &>( component ), visitor );
         MKT_PHYSICS_FIELD( "BendCompliance", GetBendCompliance, SetBendCompliance );
         MKT_PHYSICS_FIELD( "Drag", GetDrag, SetDrag );
         MKT_PHYSICS_FIELD( "Lift", GetLift, SetLift );
+        MKT_PHYSICS_FIELD( "WindVelocity", GetWindVelocity, SetWindVelocity );
+        MKT_PHYSICS_FIELD( "WindGustStrength", GetWindGustStrength, SetWindGustStrength );
     }
 
     template<typename Visitor>
-    auto VisitPhysicsFields( BuoyancyComponent& component, Visitor&& visitor ) -> void {
+    auto VisitPhysicsFields( WindAreaComponent &component, Visitor &&visitor ) -> void {
+        MKT_PHYSICS_FIELD( "Shape", GetShape, SetShape );
+        MKT_PHYSICS_FIELD( "Velocity", GetVelocity, SetVelocity );
+        MKT_PHYSICS_FIELD( "Dimensions", GetDimensions, SetDimensions );
+        MKT_PHYSICS_FIELD( "Falloff", GetFalloff, SetFalloff );
+        MKT_PHYSICS_FIELD( "GustStrength", GetGustStrength, SetGustStrength );
+        MKT_PHYSICS_FIELD( "GustFrequency", GetGustFrequency, SetGustFrequency );
+        MKT_PHYSICS_FIELD( "GustWavelength", GetGustWavelength, SetGustWavelength );
+        MKT_PHYSICS_FIELD( "Turbulence", GetTurbulence, SetTurbulence );
+        MKT_PHYSICS_FIELD( "Seed", GetSeed, SetSeed );
+        MKT_PHYSICS_FIELD( "Enabled", IsEnabled, SetEnabled );
+    }
+
+    template<typename Visitor>
+    auto VisitPhysicsFields( BuoyancyComponent &component, Visitor &&visitor ) -> void {
         MKT_PHYSICS_FIELD( "WaterVolumeEntityID", GetWaterVolumeEntityID, SetWaterVolumeEntityID );
         MKT_PHYSICS_FIELD( "BuoyancyFactor", GetBuoyancyFactor, SetBuoyancyFactor );
         MKT_PHYSICS_FIELD( "LinearDrag", GetLinearDrag, SetLinearDrag );
@@ -297,7 +312,7 @@ namespace mikoto::scene {
     }
 
     template<typename Visitor>
-    auto VisitPhysicsFields( WaterVolumeComponent& component, Visitor&& visitor ) -> void {
+    auto VisitPhysicsFields( WaterVolumeComponent &component, Visitor &&visitor ) -> void {
         MKT_PHYSICS_FIELD( "HalfExtents", GetHalfExtents, SetHalfExtents );
         MKT_PHYSICS_FIELD( "SurfaceOffset", GetSurfaceOffset, SetSurfaceOffset );
         MKT_PHYSICS_FIELD( "Density", GetDensity, SetDensity );
@@ -307,7 +322,7 @@ namespace mikoto::scene {
     }
 
     template<typename Visitor>
-    auto VisitPhysicsFields( VehicleWheelDescription& component, Visitor&& visitor ) -> void {
+    auto VisitPhysicsFields( VehicleWheelDescription &component, Visitor &&visitor ) -> void {
         ( void )visitor( "Position", component.mPosition );
         ( void )visitor( "SuspensionDirection", component.mSuspensionDirection );
         ( void )visitor( "Radius", component.mRadius );
@@ -324,13 +339,13 @@ namespace mikoto::scene {
     }
 
     template<typename Visitor>
-    auto VisitPhysicsFields( JointSpringSettings& component, Visitor&& visitor ) -> void {
+    auto VisitPhysicsFields( JointSpringSettings &component, Visitor &&visitor ) -> void {
         ( void )visitor( "Frequency", component.mFrequency );
         ( void )visitor( "Damping", component.mDamping );
     }
 
     template<typename Visitor>
-    auto VisitPhysicsFields( JointMotorSettings& component, Visitor&& visitor ) -> void {
+    auto VisitPhysicsFields( JointMotorSettings &component, Visitor &&visitor ) -> void {
         ( void )visitor( "Mode", component.mMode );
         ( void )visitor( "TargetVelocity", component.mTargetVelocity );
         ( void )visitor( "TargetPosition", component.mTargetPosition );
@@ -339,14 +354,14 @@ namespace mikoto::scene {
     }
 
     template<typename Visitor>
-    auto VisitPhysicsFields( JointPathPoint& component, Visitor&& visitor ) -> void {
+    auto VisitPhysicsFields( JointPathPoint &component, Visitor &&visitor ) -> void {
         ( void )visitor( "Position", component.mPosition );
         ( void )visitor( "Tangent", component.mTangent );
         ( void )visitor( "Normal", component.mNormal );
     }
 
     template<typename Visitor>
-    auto VisitPhysicsFields( RagdollBoneDescription& component, Visitor&& visitor ) -> void {
+    auto VisitPhysicsFields( RagdollBoneDescription &component, Visitor &&visitor ) -> void {
         ( void )visitor( "BoneName", component.mBoneName );
         ( void )visitor( "BodyEntityID", component.mBodyEntityID );
         ( void )visitor( "JointEntityID", component.mJointEntityID );
@@ -355,7 +370,7 @@ namespace mikoto::scene {
 #undef MKT_PHYSICS_FIELD
 
     template<typename Visitor>
-    auto ForEachJointComponent( Visitor&& visitor ) -> void {
+    auto ForEachJointComponent( Visitor &&visitor ) -> void {
         visitor.template operator()<DistanceJointComponent>( "DistanceJointComponent" );
         visitor.template operator()<FixedJointComponent>( "FixedJointComponent" );
         visitor.template operator()<PointJointComponent>( "PointJointComponent" );
@@ -371,7 +386,7 @@ namespace mikoto::scene {
     }
 
     template<typename Visitor>
-    auto ForEachExtendedPhysicsComponent( Visitor&& visitor ) -> void {
+    auto ForEachExtendedPhysicsComponent( Visitor &&visitor ) -> void {
         visitor.template operator()<HeightFieldColliderComponent>( "HeightFieldColliderComponent" );
         visitor.template operator()<CompoundColliderComponent>( "CompoundColliderComponent" );
         visitor.template operator()<CylinderColliderComponent>( "CylinderColliderComponent" );
@@ -394,10 +409,11 @@ namespace mikoto::scene {
         visitor.template operator()<RagdollComponent>( "RagdollComponent" );
         visitor.template operator()<SoftBodyComponent>( "SoftBodyComponent" );
         visitor.template operator()<ClothComponent>( "ClothComponent" );
+        visitor.template operator()<WindAreaComponent>( "WindAreaComponent" );
         visitor.template operator()<BuoyancyComponent>( "BuoyancyComponent" );
         visitor.template operator()<WaterVolumeComponent>( "WaterVolumeComponent" );
     }
 
-}
+}// namespace mikoto::scene
 
 #endif// MIKOTO_SCENE_UTILITY_HH

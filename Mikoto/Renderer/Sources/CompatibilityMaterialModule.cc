@@ -60,6 +60,8 @@ namespace mikoto::renderer {
         mDevice = device;
         mUniform = CreateReusableCompatibilityUniform( device, sizeof( CompatibilityDrawParameters ) );
         mSampler = device->CreateSampler( rhi::SamplerCreateDescription{}
+            .SetMipLevels( 32.0f )
+            .SetMaxAnisotropy( 8.0f )
             .SetFilter( rhi::SamplerFilter::eLinear )
             .SetWrap( rhi::SamplerWrapMode::eRepeat ) );
 

@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Cluster-list layouts, screen/depth indexing and light-bound intersection tests. The producer
+// and forward shading consumers share the same cluster address calculation.
+
 #pragma once
 
 #include "LightInfo.slang"
@@ -73,6 +76,8 @@ uint LoadClusterLight( uint64_t address, uint clusterIndex, uint lightIndex ) {
 // HELPERS
 // ============================================================================
 
+// Map fragment screen coordinates and view depth to the flattened cluster grid. Logarithmic
+// depth slices allocate more cluster detail near the camera.
 uint ComputeTileIndex( float3 viewPos, float3 gridSize, float2 planes, float4 fragCoord, float2 screenDimensions ) {
     // Share the exact lookup between forward shading and debug presentation.
     // X/Y use top-left render pixels; Z inverts AABBGen's logarithmic slices.
@@ -126,6 +131,8 @@ float3 ScreenToView( float2 screenCoord, float2 screenDimensions, float4x4 viewI
     return v.xyz;
 }
 
+// Find the squared distance from a sphere center to the closest point of the cluster AABB. The
+// sphere intersects when that distance is within its squared radius.
 bool SphereAABBIntersection( float3 center, float radius, float3 aabbMin, float3 aabbMax ) {
     float3 closest = clamp( center, aabbMin, aabbMax );
 
@@ -137,9 +144,9 @@ bool SphereAABBIntersection( float3 center, float radius, float3 aabbMin, float3
 
 bool TestSphereAABBPointLight( BufferReference<LightInfo> lightPtr, uint32_t index, ClusterHeader cluster,
                                float4x4 view ) {
-    float3 center = mul( view, float4( lightPtr[index].Position.xyz, 1.0 ) ).xyz;
+    float3 center = mul( view, float4( lightPtr[index].mPosition.xyz, 1.0 ) ).xyz;
 
-    float radius = max( lightPtr[index].Radius, 0.0 );
+    float radius = max( lightPtr[index].mRadius, 0.0 );
 
     float3 aabbMin = cluster.mMinPoint.xyz;
     float3 aabbMax = cluster.mMaxPoint.xyz;
@@ -147,19 +154,21 @@ bool TestSphereAABBPointLight( BufferReference<LightInfo> lightPtr, uint32_t ind
     return SphereAABBIntersection( center, radius, aabbMin, aabbMax );
 }
 
+// Conservatively test a spotlight cone against the cluster volume. The test must retain
+// possible contributors even when the cone tip lies outside the box.
 bool TestSpotAABB( LightInfo light, ClusterHeader cluster, float4x4 view ) {
-    float3 apex = mul( view, float4( light.Position.xyz, 1 ) ).xyz;
-    if ( light.Radius <= 0 ||
-         !SphereAABBIntersection( apex, light.Radius, cluster.mMinPoint.xyz, cluster.mMaxPoint.xyz ) ) {
+    float3 apex = mul( view, float4( light.mPosition.xyz, 1 ) ).xyz;
+    if ( light.mRadius <= 0 ||
+         !SphereAABBIntersection( apex, light.mRadius, cluster.mMinPoint.xyz, cluster.mMaxPoint.xyz ) ) {
         return false;
     }
-    float3 axis = normalize( mul( view, float4( light.Direction.xyz, 0 ) ).xyz );
+    float3 axis = normalize( mul( view, float4( light.mDirection.xyz, 0 ) ).xyz );
     float3 center = ( cluster.mMinPoint.xyz + cluster.mMaxPoint.xyz ) * 0.5;
     float radius = length( ( cluster.mMaxPoint.xyz - cluster.mMinPoint.xyz ) * 0.5 );
     float3 offset = center - apex;
     float axial = dot( offset, axis );
     float radial = sqrt( max( dot( offset, offset ) - axial * axial, 0 ) );
-    float cosine = clamp( light.OuterCutOff, 0.001, 1 );
+    float cosine = clamp( light.mOuterCutOff, 0.001, 1 );
     float sine = sqrt( max( 1 - cosine * cosine, 0 ) );
     // Bounding sphere against the infinite cone and its forward half-space.
     // The preceding finite-range sphere test limits the cone without false negatives.

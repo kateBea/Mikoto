@@ -34,7 +34,8 @@ namespace mikoto::renderer {
         auto Initialize( rhi::IGpuDevice* device ) -> void;
         auto Cancel() -> void;
         MKT_NODISCARD auto Request( const ReadPixelViewportInfo& viewport, rhi::Extent2D size ) -> bool;
-        MKT_NODISCARD auto TakeResult() -> eastl::optional<core::u32>;
+        /** Returns the completed pick result and clears the pending request. */
+        MKT_NODISCARD auto GetPickResult() -> eastl::optional<core::u32>;
         MKT_NODISCARD auto ReadRectangle(
             const ReadPixelViewportInfo& first,
             const ReadPixelViewportInfo& last ) const -> eastl::vector<core::u32>;

@@ -16,23 +16,27 @@
 #include <random>
 
 #include <Core/Core.hh>
-#include <Core/Types.hh>
 #include <Core/Profiler.hh>
+#include <Core/Types.hh>
 
 #include <Logging/Logger.hh>
 
-#include <Memory/Allocator.hh>
-
 #include <Material/SkyboxMaterial.hh>
 
-#include <Renderer/Rhi/Types.hh>
-#include <Renderer/Core/FrameGraph.hh>
+#include <Memory/Allocator.hh>
+
 #include <Renderer/Core/CommandContext.hh>
+#include <Renderer/Core/FrameGraph.hh>
+#include <Renderer/ForwardRenderer/Passes/AtmosphericScatteringModule.hh>
 #include <Renderer/ForwardRenderer/Passes/CameraModule.hh>
+#include <Renderer/ForwardRenderer/Passes/CloudsModule.hh>
+#include <Renderer/ForwardRenderer/Passes/GeometryShadingModule.hh>
 #include <Renderer/ForwardRenderer/Passes/PrepassModule.hh>
 #include <Renderer/ForwardRenderer/Passes/PresentationModule.hh>
-#include <Renderer/ForwardRenderer/Passes/GeometryShadingModule.hh>
+#include <Renderer/ForwardRenderer/Passes/ShadowMappingModule.hh>
+#include <Renderer/ForwardRenderer/Passes/TerrainGenerationModule.hh>
 #include <Renderer/ForwardRenderer/Passes/WaterSimulationModule.hh>
+#include <Renderer/Rhi/Types.hh>
 
 #include <Scene/Camera.hh>
 #include <Scene/Component.hh>
@@ -45,11 +49,11 @@ namespace mikoto::renderer {
 
     using namespace mikoto::core;
 
-    static constexpr u32 kFftResolution{ 256 }; // Keep in sync with WaterFFT_Helpers.slang.
+    static constexpr u32 kFftResolution{ 256 };// Keep in sync with WaterFFT_Helpers.slang.
     static constexpr u32 kFftTileSize{ 8 };
     static constexpr u32 kFftSampleCount{ kFftResolution * kFftResolution };
     static constexpr f32 kWaterGravity{ 9.81f };
-    static constexpr f64 kFftLoopSeconds{ 600.0 }; // Frequencies are snapped to this period.
+    static constexpr f64 kFftLoopSeconds{ 600.0 };// Frequencies are snapped to this period.
 
     // Keep these records in sync with base/Water_Helpers.slang. Using float4
     // groups avoids float3 array-stride differences between shader backends.
@@ -65,8 +69,24 @@ namespace mikoto::renderer {
         core::uint4 mGeometry{};    // first vertex, first index, columns, overlay flags
         core::uint4 mSimulation{};  // first wave, count, simulation type, FFT sample offset
         core::float4 mDebugPreviewColor{};
-        core::float4 mFft{};       // reciprocal patch length, remaining lanes reserved
+        core::float4 mFft{};// reciprocal patch length, remaining lanes reserved
+        core::float4x4 mWorldToLocal{};
+        core::float4 mBounds{};
+        core::float4 mScattering{};
+        core::float4 mCoast{};
+        core::float4 mCaustics{};
+        SPointer mTerrainVertices{};
+        SPointer mTerrainRecords{};
+        SPointer mCoastField{};
+        SPointer mCoastHistory{};
+        core::float4 mCoastPatch{};
+        core::float4 mCoastPrevious{};
+        core::float4 mCoastSettings{};
+        core::uint4 mCoastRange{};
+        core::uint4 mAirResources{ 0xffffffffu };
     };
+
+    static_assert( sizeof( WaterSurfaceGPU ) == 416 );
 
     struct WaterFftSpectrumParameters {
         core::u64 mInitialSpectrum{};
@@ -92,12 +112,12 @@ namespace mikoto::renderer {
         core::f32 mInverseDoubleSpacing{};
     };
 
-    static auto CreateWaterFftBuffer( FrameGraph& graph, cstr name ) -> FGBufferHandle {
+    static auto CreateWaterFftBuffer( FrameGraph &graph, cstr name ) -> FGBufferHandle {
         return graph.Create( FGBufferDescription{}
             .SetName( name )
             .SetSizeBytes( sizeof( core::float4 ) )
             .SetUsage( rhi::BufferUsageFlagsBits::Structured |
-                rhi::BufferUsageFlagsBits::CopyDest )
+                           rhi::BufferUsageFlagsBits::CopyDest | rhi::BufferUsageFlagsBits::CopySource )
             .SetHeapType( rhi::HeapType::eDeviceLocal ) );
     }
 
@@ -105,10 +125,10 @@ namespace mikoto::renderer {
     // https://3dmodelizm.ru/ext/graphics.ucsd.edu/courses/rendering/2005/jdewall/tessendorf.pdf
     // Arm's sample likewise builds the initial spectrum on the CPU and evolves it on the GPU.
     // https://arm-software.github.io/opengl-es-sdk-for-android/ocean_f_f_t.html
-    static auto GenerateWaterSpectrum( const scene::WaterSimulationComponent::FftSettings& settings,
-        eastl::vector<core::float2>& spectrum ) -> void {
+    static auto GenerateWaterSpectrum( const scene::WaterSimulationComponent::FftSettings &settings,
+        eastl::vector<core::float2> &spectrum ) -> void {
         constexpr f32 shortWaveDampingFraction{ 0.001f };
-        constexpr f32 opposingWaveEnergy{ 0.07f }; // Weaker waves travelling against the wind.
+        constexpr f32 opposingWaveEnergy{ 0.07f };// Weaker waves travelling against the wind.
         constexpr f32 phillipsScale{ 0.008f };    // Artist amplitude scales the resulting height.
 
         const f32 angle{ glm::radians( settings.mWindDirection ) };
@@ -145,7 +165,7 @@ namespace mikoto::renderer {
                 const f32 shortWaveFalloff{ std::exp( -waveNumberSquared * dampingLength * dampingLength ) };
                 const f32 directionWeight{ alignment * alignment * ( alignment < 0.0f ? opposingWaveEnergy : 1.0f ) };
                 const f32 power{ phillipsScale * longWaveFalloff * shortWaveFalloff * directionWeight /
-                    ( waveNumberSquared * waveNumberSquared ) };
+                                 ( waveNumberSquared * waveNumberSquared ) };
 
                 // Delta k accounts for the frequency sample area. The IFFT evaluates the Fourier sum directly.
                 const f32 scale{ settings.mAmplitude * waveNumberStep * std::sqrt( 0.5f * power ) };
@@ -158,11 +178,11 @@ namespace mikoto::renderer {
         : mResolution{ resolution } {
     }
 
-    auto WaterSimulationModule::SetCamera( const scene::Camera* camera ) -> void {
+    auto WaterSimulationModule::SetCamera( const scene::Camera *camera ) -> void {
         mCamera = camera;
     }
 
-    auto WaterSimulationModule::SetScene( const scene::Scene* scene ) -> void {
+    auto WaterSimulationModule::SetScene( const scene::Scene *scene ) -> void {
         if ( mScene != scene ) {
             mPlanes.clear();
             mUploadedSpectra.clear();
@@ -172,14 +192,14 @@ namespace mikoto::renderer {
         mScene = scene;
     }
 
-    auto WaterSimulationModule::RegisterWaterSimulation( FrameGraph& graph, bool hdr ) -> void {
+    auto WaterSimulationModule::RegisterWaterSimulation( FrameGraph &graph, bool hdr ) -> void {
         MKT_BEGIN_PROFILER();
 
         mPlanes.clear();
         mFftPatches.clear();
         mUploadedSpectra.clear();
 
-        auto& info{ graph.GetOrCreate<WaterSimulationModuleInfo>() };
+        auto &info{ graph.GetOrCreate<WaterSimulationModuleInfo>() };
         info.mVertices = graph.Create( FGBufferDescription{}
             .SetName( "Water_Vertices" )
             .SetSizeBytes( MKT_SIZEOF( core::float3 ) )
@@ -199,19 +219,22 @@ namespace mikoto::renderer {
         info.mWaves = graph.Create( FGBufferDescription{}
             .SetName( "Water_Waves" )
             .SetSizeBytes( sizeof( WaterWaveGPU ) )
-            .SetUsage( rhi::BufferUsageFlagsBits::Structured | 
-                rhi::BufferUsageFlagsBits::CopySource | 
-                rhi::BufferUsageFlagsBits::CopyDest )
+            .SetUsage( rhi::BufferUsageFlagsBits::Structured |
+                           rhi::BufferUsageFlagsBits::CopySource |
+                           rhi::BufferUsageFlagsBits::CopyDest )
             .SetHeapType( rhi::HeapType::eDeviceLocal ) );
 
         info.mSurfaces = graph.Create( FGBufferDescription{}
             .SetName( "Water_Surfaces" )
             .SetSizeBytes( sizeof( WaterSurfaceGPU ) )
-            .SetUsage( rhi::BufferUsageFlagsBits::Structured | 
-                rhi::BufferUsageFlagsBits::CopySource | 
-                rhi::BufferUsageFlagsBits::CopyDest )
+            .SetUsage( rhi::BufferUsageFlagsBits::Structured |
+                           rhi::BufferUsageFlagsBits::CopySource |
+                           rhi::BufferUsageFlagsBits::CopyDest )
             .SetHeapType( rhi::HeapType::eDeviceLocal ) );
-        
+
+        info.mCoast = CreateWaterFftBuffer( graph, "Water_Coast" );
+        info.mCoastHistory = CreateWaterFftBuffer( graph, "Water_CoastHistory" );
+
         info.mFftRows = CreateWaterFftBuffer( graph, "Water_FftRows" );
         info.mFftSpectrum = CreateWaterFftBuffer( graph, "Water_FftSpectrum" );
         info.mFftGradients = CreateWaterFftBuffer( graph, "Water_FftGradients" );
@@ -226,16 +249,16 @@ namespace mikoto::renderer {
                 .SetWidth( width )
                 .SetHeight( height )
                 .SetDimensions( rhi::TextureDimension::eTexture2D )
-                .SetUsage( rhi::TextureUsageFlagsBits::ShaderResource | 
-                    rhi::TextureUsageFlagsBits::CopyDest ) };
+                .SetUsage( rhi::TextureUsageFlagsBits::ShaderResource |
+                               rhi::TextureUsageFlagsBits::CopyDest ) };
 
             info.mSceneColor = graph.Create( snapshot
-                .SetName( "Water_SceneColor" )
-                .SetFormat( rhi::Format::eRGBA16_FLOAT ) );
+                    .SetName( "Water_SceneColor" )
+                    .SetFormat( rhi::Format::eRGBA16_FLOAT ) );
 
             info.mSceneDepth = graph.Create( snapshot
-                .SetName( "Water_SceneDepth" )
-                .SetFormat( rhi::Format::eD32 ) );
+                    .SetName( "Water_SceneDepth" )
+                    .SetFormat( rhi::Format::eD32 ) );
 
             info.mSampler = graph.Create( FGSamplerDescription{}
                 .SetName( "Water_Sampler" )
@@ -259,16 +282,21 @@ namespace mikoto::renderer {
         graph.RegisterPass(
             "WaterSimulation_Prepare",
             FGPassType::eTransfer,
-            []( FGNodeBuilder& builder, core::Blackboard& b ) {
-                const auto& info{ b.Get<WaterSimulationModuleInfo>() };
+            []( FGNodeBuilder &builder, core::Blackboard &b ) {
+                const auto &info{ b.Get<WaterSimulationModuleInfo>() };
+                const auto &terrain{ b.Get<TerrainGenerationInfo>() };
+                // Preparation captures device addresses after terrain growth has
+                // finished; the graph must order these CPU recording callbacks too.
+                builder.UseResource( terrain.mVertices, FGPipelineStage::eCopy, FGResourceAccess::eRead );
+                builder.UseResource( terrain.mSamplingRecords, FGPipelineStage::eCopy, FGResourceAccess::eRead );
 
-                for ( const auto handle: { info.mVertices, info.mIndices, info.mWaves, info.mSurfaces } ) {
+                for ( const auto handle: { info.mVertices, info.mIndices, info.mWaves, info.mSurfaces, info.mCoast, info.mCoastHistory } ) {
                     builder.UseResource( handle, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
                 }
 
                 builder.UseResource( info.mFftInitialSpectrum, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
             },
-            [this]( CommandContext& ctx, core::Blackboard& b ) {
+            [this]( CommandContext &ctx, core::Blackboard &b ) {
                 mUploads.Clear();
                 FilterWaterSimulators( ctx, b );
             } );
@@ -276,8 +304,8 @@ namespace mikoto::renderer {
         graph.RegisterPass(
             "WaterSimulation_Filter",
             FGPassType::eTransfer,
-            [hdr, colorTarget]( FGNodeBuilder& builder, core::Blackboard& b ) {
-                const auto& waterData{ b.Get<WaterSimulationModuleInfo>() };
+            [hdr, colorTarget]( FGNodeBuilder &builder, core::Blackboard &b ) {
+                const auto &waterData{ b.Get<WaterSimulationModuleInfo>() };
 
                 builder.UseResource( waterData.mVertices, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
                 builder.UseResource( waterData.mIndices, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
@@ -292,11 +320,11 @@ namespace mikoto::renderer {
                     builder.UseResource( waterData.mSceneDepth, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
                 }
             },
-            [this, hdr, colorTarget]( CommandContext& ctx, core::Blackboard& b ) {
+            [this, hdr, colorTarget]( CommandContext &ctx, core::Blackboard &b ) {
                 mUploads.Submit( ctx );
 
                 if ( hdr && !mPlanes.empty() ) {
-                    const auto& info{ b.Get<WaterSimulationModuleInfo>() };
+                    const auto &info{ b.Get<WaterSimulationModuleInfo>() };
                     const auto [width, height]{ rhi::InferDimensions( mResolution ) };
                     const rhi::TextureSlice slice{ .mWidth = static_cast<core::u32>( width ), .mHeight = static_cast<core::u32>( height ) };
                     ctx.CopyTexture( colorTarget, slice, info.mSceneColor, slice );
@@ -310,12 +338,20 @@ namespace mikoto::renderer {
         RegisterFftRowsPass( graph );
         RegisterFftColumnsPass( graph );
         RegisterFftGradientsPass( graph );
+        RegisterCoastPass( graph );
 
         graph.RegisterPass(
             "WaterSimulation_Render",
             FGPassType::eGraphics,
-            [hdr, colorTarget]( FGNodeBuilder& builder, core::Blackboard& b ) {
-                const auto& waterData{ b.Get<WaterSimulationModuleInfo>() };
+            [hdr, colorTarget]( FGNodeBuilder &builder, core::Blackboard &b ) {
+                const auto &waterData{ b.Get<WaterSimulationModuleInfo>() };
+
+                const auto &terrain{ b.Get<TerrainGenerationInfo>() };
+                for ( const auto stage: { FGPipelineStage::eVertexShader, FGPipelineStage::ePixelShader } ) {
+                    builder.UseResource( terrain.mVertices, stage, FGResourceAccess::eRead );
+                    builder.UseResource( terrain.mSamplingRecords, stage, FGResourceAccess::eRead );
+                    builder.UseResource( waterData.mCoast, stage, FGResourceAccess::eRead );
+                }
 
                 builder.UseResource( waterData.mVertices, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
                 builder.UseResource( waterData.mIndices, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
@@ -324,6 +360,7 @@ namespace mikoto::renderer {
                 builder.UseResource( waterData.mSurfaces, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
                 builder.UseResource( waterData.mSurfaces, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
                 builder.UseResource( waterData.mFftDisplacement, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
+                builder.UseResource( waterData.mFftDisplacement, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
                 builder.UseResource( waterData.mFftGradients, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
 
                 builder.UseResource( b.Get<CameraModuleInfo>().mCameraData, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
@@ -334,20 +371,37 @@ namespace mikoto::renderer {
                 if ( hdr ) {
                     builder.UseResource( waterData.mSceneColor, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
                     builder.UseResource( waterData.mSceneDepth, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
-                    const auto& lighting{ b.Get<GeomShadingModuleInfo>() };
+                    const auto &shadows{ b.Get<ShadowMapInfo>() };
+                    builder.UseResource( shadows.mRecordsBuffer, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                    for ( const auto map: shadows.mMaps ) {
+                        builder.UseResource( map, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                    }
+                    if ( const auto *atmosphere{ b.TryGet<AtmosphereModuleInfo>() }; atmosphere && atmosphere->mAerialRadiance.mHandle != 0 ) {
+                        builder.UseResource( atmosphere->mParameters, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                        builder.UseResource( atmosphere->mAerialRadiance, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                        builder.UseResource( atmosphere->mAerialTransmittance, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                    }
+                    const auto &lighting{ b.Get<GeomShadingModuleInfo>() };
                     builder.UseResource( b.Get<PrepassModuleInfo>().mLightsBuffer, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                    if ( const auto *clouds{ b.TryGet<CloudsModuleInfo>() } ) {
+                        builder.UseResource( clouds->mFrame, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                        builder.UseResource( clouds->mModels, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                        for ( const auto &volume: clouds->mVolumes ) {
+                            builder.UseResource( volume.mLighting, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                        }
+                    }
 
                     for ( const auto texture: { lighting.mPrefilterCubeRT, lighting.mAtmospherePrefilter, lighting.mIrradianceCubeRT, lighting.mBrdfColorTarget } ) {
                         builder.UseResource( texture, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
                     }
                 }
             },
-            [this, hdr, colorTarget]( CommandContext& ctx, core::Blackboard& b ) {
+            [this, hdr, colorTarget]( CommandContext &ctx, core::Blackboard &b ) {
                 if ( !mScene || !mCamera || mPlanes.empty() ) {
                     return;
                 }
 
-                const auto& info{ b.Get<WaterSimulationModuleInfo>() };
+                const auto &info{ b.Get<WaterSimulationModuleInfo>() };
                 const auto [width, height]{ rhi::InferDimensions( mResolution ) };
 
                 ctx.BeginRender( RenderBeginDescription{}
@@ -385,6 +439,8 @@ namespace mikoto::renderer {
 
                     SPointer mFftDisplacement{};
                     SPointer mFftGradients{};
+                    SPointer mShadows{};
+                    core::u32 mShadowCount{};
                 } params{};
 
                 params.mVertices = ctx.GetDeviceBufferAddress( info.mVertices );
@@ -399,9 +455,11 @@ namespace mikoto::renderer {
                     params.mSceneColor = ctx.PushTexture_SRV( info.mSceneColor );
                     params.mSceneDepth = ctx.PushTexture_SRV( info.mSceneDepth );
                     params.mScreenSampler = ctx.PushSampler( info.mSampler );
-                    const auto& lighting{ b.Get<GeomShadingModuleInfo>() };
-                    const auto& prepass{ b.Get<PrepassModuleInfo>() };
+                    const auto &lighting{ b.Get<GeomShadingModuleInfo>() };
+                    const auto &prepass{ b.Get<PrepassModuleInfo>() };
                     params.mLights = ctx.GetDeviceBufferAddress( prepass.mLightsBuffer );
+                    params.mShadows = ctx.GetDeviceBufferAddress( b.Get<ShadowMapInfo>().mRecordsBuffer );
+                    params.mShadowCount = b.Get<ShadowMapInfo>().mRecordCount;
                     params.mLightCount = prepass.mActiveLightCount;
                     const bool atmosphere{ mScene->GetEnvironmentLightingSource() == scene::EnvironmentLightingSource::eAtmosphere };
                     const auto environment{ mScene->GetEnvironmentMaterial() };
@@ -411,14 +469,14 @@ namespace mikoto::renderer {
                         params.mIrradiance = ctx.PushTexture_SRV( lighting.mIrradianceCubeRT );
                         params.mBrdf = ctx.PushTexture_SRV( lighting.mBrdfColorTarget );
                         params.mSampler = ctx.PushSampler( lighting.mSkyboxCubeSampler );
-                        params.mEnvironmentScale = atmosphere ? 1.0f : environment.As<material::SkyboxMaterial>()->GetAmbientScale();
+                        params.mEnvironmentScale = mScene->GetEnvironmentIntensity();
                     }
                 }
                 else {
                     params.mToneMap = static_cast<core::i32>( mScene->GetToneMapping() );
                 }
 
-                for ( const auto& plane: mPlanes ) {
+                for ( const auto &plane: mPlanes ) {
                     ctx.PushConstants( params );
                     ctx.Draw( plane.mIndexCount );
                     ++params.mSurface;
@@ -426,9 +484,153 @@ namespace mikoto::renderer {
 
                 ctx.EndRender();
             } );
+
+        if ( hdr ) {
+            graph.RegisterPass(
+                "Pass_WaterCoastHistory",
+                FGPassType::eTransfer,
+                []( FGNodeBuilder &builder, core::Blackboard &b ) {
+                    const auto &info{ b.Get<WaterSimulationModuleInfo>() };
+                    builder.UseResource( info.mCoast, FGPipelineStage::eCopy, FGResourceAccess::eRead );
+                    builder.UseResource( info.mCoastHistory, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
+                },
+                [this]( CommandContext &ctx, core::Blackboard &b ) {
+                    if ( mPlanes.empty() ) {
+                        return;
+                    }
+                    const auto &info{ b.Get<WaterSimulationModuleInfo>() };
+                    ctx.CopyBuffer( info.mCoastHistory, info.mCoast );
+                } );
+
+            RegisterUnderwaterPass( graph );
+        }
     }
 
-    auto WaterSimulationModule::RegisterFftSpectrumPass( FrameGraph& graph ) -> void {
+    auto WaterSimulationModule::IsCameraUnderwater() const -> bool {
+        if ( !mScene || !mCamera ) {
+            return false;
+        }
+
+        const auto position{ mCamera->GetPosition() };
+        for ( const auto &plane: mPlanes ) {
+            const auto &water{ mScene->GetRegistry().get<scene::WaterRenderComponent>( plane.mEntity ) };
+            if ( !water.GetAppearance().mUnderwaterScatteringEnabled ) {
+                continue;
+            }
+
+            const auto world{ mScene->GetRegistry().get<scene::TransformComponent>( plane.mEntity ).GetWorldTransform() };
+            const auto local{ core::float3{ glm::inverse( world ) * core::float4{ position, 1.0f } } };
+            const auto size{ water.GetPlaneDimensions() };
+            const auto depth{ -local.y * glm::length( core::float3{ world[1] } ) };
+
+            if ( local.x >= 0.0f && local.z >= 0.0f && local.x <= size.x && local.z <= size.y &&
+                 depth > 0.0f && depth < water.GetAppearance().mMaximumDepth ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    auto WaterSimulationModule::RegisterUnderwaterPass( FrameGraph &graph ) -> void {
+        const auto pipeline{ graph.Create( FGPipelineDescription{}
+            .SetName( "Water_UnderwaterPipeline" )
+            .SetPipelineType( rhi::PipelineType::eGraphics )
+            .SetTopology( rhi::PrimitiveTopology::eTriangleList )
+            .SetDepthTest( false )
+            .SetDepthWrite( false )
+            .AddColorFormat( rhi::Format::eRGBA16_FLOAT )
+            .PushShader( "FullQuad_Vert.slang", FGStageType::eVertex )
+            .PushShader( "WaterMedium_Frag.slang", FGStageType::ePixel ) ) };
+
+        graph.RegisterPass(
+            "Pass_WaterMediumSnapshot",
+            FGPassType::eTransfer,
+            []( FGNodeBuilder &builder, core::Blackboard &b ) {
+                builder.UseResource( b.Get<GeomShadingModuleInfo>().mColorImage, FGPipelineStage::eCopy, FGResourceAccess::eRead );
+                builder.UseResource( b.Get<WaterSimulationModuleInfo>().mSceneColor, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
+            },
+            [this]( CommandContext &ctx, core::Blackboard &b ) {
+                if ( !IsCameraUnderwater() ) {
+                    return;
+                }
+
+                const auto [width, height]{ rhi::InferDimensions( mResolution ) };
+                const rhi::TextureSlice slice{ .mWidth = as<u32>( width ), .mHeight = as<u32>( height ) };
+                ctx.CopyTexture( b.Get<GeomShadingModuleInfo>().mColorImage, slice, b.Get<WaterSimulationModuleInfo>().mSceneColor, slice );
+            } );
+
+        graph.RegisterPass(
+            "Pass_WaterMediumScattering",
+            FGPassType::eGraphics,
+            []( FGNodeBuilder &builder, core::Blackboard &b ) {
+                const auto &info{ b.Get<WaterSimulationModuleInfo>() };
+                const auto &shadows{ b.Get<ShadowMapInfo>() };
+                builder.UseResource( info.mSurfaces, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                builder.UseResource( info.mSceneColor, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                builder.UseResource( info.mSceneDepth, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                builder.UseResource( b.Get<CameraModuleInfo>().mCameraData, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                builder.UseResource( b.Get<PrepassModuleInfo>().mPrepassDepthTarget, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                builder.UseResource( b.Get<PrepassModuleInfo>().mLightsBuffer, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                builder.UseResource( shadows.mRecordsBuffer, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                for ( const auto map: shadows.mMaps ) {
+                    builder.UseResource( map, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                }
+                if ( const auto *clouds{ b.TryGet<CloudsModuleInfo>() } ) {
+                    builder.UseResource( clouds->mFrame, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                    builder.UseResource( clouds->mModels, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                    for ( const auto &volume: clouds->mVolumes ) {
+                        builder.UseResource( volume.mLighting, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                    }
+                }
+                builder.UseResource( b.Get<GeomShadingModuleInfo>().mColorImage, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
+            },
+            [this, pipeline]( CommandContext &ctx, core::Blackboard &b ) {
+                if ( !IsCameraUnderwater() ) {
+                    return;
+                }
+
+                const auto &info{ b.Get<WaterSimulationModuleInfo>() };
+                const auto &prepass{ b.Get<PrepassModuleInfo>() };
+                const auto &shadows{ b.Get<ShadowMapInfo>() };
+                struct Parameters {
+                    SPointer mCamera{};
+                    SPointer mSurfaces{};
+                    SPointer mLights{};
+                    SPointer mShadows{};
+                    u32 mSource{};
+                    u32 mDepth{};
+                    u32 mOpaqueDepth{};
+                    u32 mSampler{};
+                    u32 mSurfaceCount{};
+                    u32 mLightCount{};
+                    u32 mShadowCount{};
+                } parameters{};
+                parameters.mCamera = ctx.GetDeviceBufferAddress( b.Get<CameraModuleInfo>().mCameraData );
+                parameters.mSurfaces = ctx.GetDeviceBufferAddress( info.mSurfaces );
+                parameters.mLights = ctx.GetDeviceBufferAddress( prepass.mLightsBuffer );
+                parameters.mShadows = ctx.GetDeviceBufferAddress( shadows.mRecordsBuffer );
+                parameters.mSource = ctx.PushTexture_SRV( info.mSceneColor );
+                parameters.mDepth = ctx.PushTexture_SRV( prepass.mPrepassDepthTarget );
+                parameters.mOpaqueDepth = ctx.PushTexture_SRV( info.mSceneDepth );
+                parameters.mSampler = ctx.PushSampler( info.mSampler );
+                parameters.mSurfaceCount = as<u32>( mPlanes.size() );
+                parameters.mLightCount = prepass.mActiveLightCount;
+                parameters.mShadowCount = shadows.mRecordCount;
+
+                const auto [width, height]{ rhi::InferDimensions( mResolution ) };
+                ctx.BeginRender( RenderBeginDescription{}
+                    .SetRenderArea( rhi::Rect{ as<i32>( width ), as<i32>( height ) } )
+                    .AddRenderTarget( b.Get<GeomShadingModuleInfo>().mColorImage, rhi::Color{}, rhi::LoadOp::eClear ) );
+                ctx.SetViewportState( rhi::ViewportState{}.AddViewportAndScissorRect( rhi::Viewport{ width, height } ) );
+                ctx.BindPipeline( pipeline );
+                ctx.PushConstants( parameters );
+                ctx.Draw( 3 );
+                ctx.EndRender();
+            } );
+    }
+
+    auto WaterSimulationModule::RegisterFftSpectrumPass( FrameGraph &graph ) -> void {
         const auto pipeline{ graph.Create( FGPipelineDescription{}
             .SetName( "Water_FftSpectrumPipeline" )
             .SetPipelineType( rhi::PipelineType::eCompute )
@@ -437,24 +639,24 @@ namespace mikoto::renderer {
         graph.RegisterPass(
             "WaterSimulation_FftSpectrum",
             FGPassType::eCompute,
-            []( FGNodeBuilder& builder, core::Blackboard& blackboard ) {
-                const auto& info{ blackboard.Get<WaterSimulationModuleInfo>() };
+            []( FGNodeBuilder &builder, core::Blackboard &blackboard ) {
+                const auto &info{ blackboard.Get<WaterSimulationModuleInfo>() };
                 builder.UseResource( info.mFftInitialSpectrum, FGPipelineStage::eComputeShader, FGResourceAccess::eRead );
                 builder.UseResource( info.mFftSpectrum, FGPipelineStage::eComputeShader, FGResourceAccess::eWrite );
             },
-            [this, pipeline]( CommandContext& ctx, core::Blackboard& blackboard ) {
+            [this, pipeline]( CommandContext &ctx, core::Blackboard &blackboard ) {
                 if ( mFftPatches.empty() ) {
                     return;
                 }
 
-                const auto& info{ blackboard.Get<WaterSimulationModuleInfo>() };
+                const auto &info{ blackboard.Get<WaterSimulationModuleInfo>() };
                 const auto initialSpectrum{ ctx.GetDeviceBufferAddress( info.mFftInitialSpectrum ) };
                 const auto output{ ctx.GetDeviceBufferAddress( info.mFftSpectrum ) };
 
                 ctx.BindPipeline( pipeline );
 
                 for ( u32 index{}; index < mFftPatches.size(); ++index ) {
-                    const auto& patch{ mFftPatches[index] };
+                    const auto &patch{ mFftPatches[index] };
                     const auto offset{ index * kFftSampleCount };
                     const WaterFftSpectrumParameters params{
                         .mInitialSpectrum = initialSpectrum,
@@ -472,8 +674,8 @@ namespace mikoto::renderer {
             } );
     }
 
-    auto WaterSimulationModule::RegisterFftRowsPass( FrameGraph& graph ) -> void {
-        auto& info{ graph.GetOrCreate<WaterSimulationModuleInfo>() };
+    auto WaterSimulationModule::RegisterFftRowsPass( FrameGraph &graph ) -> void {
+        auto &info{ graph.GetOrCreate<WaterSimulationModuleInfo>() };
         info.mFftTransformPipeline = graph.Create( FGPipelineDescription{}
             .SetName( "Water_FftTransformPipeline" )
             .SetPipelineType( rhi::PipelineType::eCompute )
@@ -482,21 +684,21 @@ namespace mikoto::renderer {
         RegisterFftTransformPass( graph, "WaterSimulation_FftRows", info.mFftTransformPipeline, info.mFftSpectrum, info.mFftRows, false );
     }
 
-    auto WaterSimulationModule::RegisterFftColumnsPass( FrameGraph& graph ) -> void {
-        const auto& info{ graph.GetData<WaterSimulationModuleInfo>() };
+    auto WaterSimulationModule::RegisterFftColumnsPass( FrameGraph &graph ) -> void {
+        const auto &info{ graph.GetData<WaterSimulationModuleInfo>() };
         RegisterFftTransformPass( graph, "WaterSimulation_FftColumns", info.mFftTransformPipeline, info.mFftRows, info.mFftDisplacement, true );
     }
 
-    auto WaterSimulationModule::RegisterFftTransformPass( FrameGraph& graph, cstr name, FGPipelineHandle pipeline,
+    auto WaterSimulationModule::RegisterFftTransformPass( FrameGraph &graph, cstr name, FGPipelineHandle pipeline,
         FGBufferHandle input, FGBufferHandle output, bool columns ) -> void {
         graph.RegisterPass(
             name,
             FGPassType::eCompute,
-            [input, output]( FGNodeBuilder& builder, core::Blackboard& ) {
+            [input, output]( FGNodeBuilder &builder, core::Blackboard & ) {
                 builder.UseResource( input, FGPipelineStage::eComputeShader, FGResourceAccess::eRead );
                 builder.UseResource( output, FGPipelineStage::eComputeShader, FGResourceAccess::eWrite );
             },
-            [this, pipeline, input, output, columns]( CommandContext& ctx, core::Blackboard& ) {
+            [this, pipeline, input, output, columns]( CommandContext &ctx, core::Blackboard & ) {
                 if ( mFftPatches.empty() ) {
                     return;
                 }
@@ -520,7 +722,7 @@ namespace mikoto::renderer {
             } );
     }
 
-    auto WaterSimulationModule::RegisterFftGradientsPass( FrameGraph& graph ) -> void {
+    auto WaterSimulationModule::RegisterFftGradientsPass( FrameGraph &graph ) -> void {
         const auto pipeline{ graph.Create( FGPipelineDescription{}
             .SetName( "Water_FftGradientsPipeline" )
             .SetPipelineType( rhi::PipelineType::eCompute )
@@ -529,17 +731,17 @@ namespace mikoto::renderer {
         graph.RegisterPass(
             "WaterSimulation_FftGradients",
             FGPassType::eCompute,
-            []( FGNodeBuilder& builder, core::Blackboard& blackboard ) {
-                const auto& info{ blackboard.Get<WaterSimulationModuleInfo>() };
+            []( FGNodeBuilder &builder, core::Blackboard &blackboard ) {
+                const auto &info{ blackboard.Get<WaterSimulationModuleInfo>() };
                 builder.UseResource( info.mFftDisplacement, FGPipelineStage::eComputeShader, FGResourceAccess::eRead );
                 builder.UseResource( info.mFftGradients, FGPipelineStage::eComputeShader, FGResourceAccess::eWrite );
             },
-            [this, pipeline]( CommandContext& ctx, core::Blackboard& blackboard ) {
+            [this, pipeline]( CommandContext &ctx, core::Blackboard &blackboard ) {
                 if ( mFftPatches.empty() ) {
                     return;
                 }
 
-                const auto& info{ blackboard.Get<WaterSimulationModuleInfo>() };
+                const auto &info{ blackboard.Get<WaterSimulationModuleInfo>() };
                 const auto displacement{ ctx.GetDeviceBufferAddress( info.mFftDisplacement ) };
                 const auto gradients{ ctx.GetDeviceBufferAddress( info.mFftGradients ) };
                 ctx.BindPipeline( pipeline );
@@ -558,7 +760,7 @@ namespace mikoto::renderer {
             } );
     }
 
-    auto WaterSimulationModule::PrepareFftInputs( CommandContext& ctx, const WaterSimulationModuleInfo& info ) -> void {
+    auto WaterSimulationModule::PrepareFftInputs( CommandContext &ctx, const WaterSimulationModuleInfo &info ) -> void {
         const auto samples{ mFftPatches.size() * kFftSampleCount };
 
         if ( samples == 0 ) {
@@ -578,8 +780,8 @@ namespace mikoto::renderer {
         eastl::vector<core::float2> spectrum{};
 
         for ( usize index{}; index < mFftPatches.size(); ++index ) {
-            const auto& settings{ mFftPatches[index].mSettings };
-            auto& uploaded{ mUploadedSpectra[index] };
+            const auto &settings{ mFftPatches[index].mSettings };
+            auto &uploaded{ mUploadedSpectra[index] };
 
             // Choppiness and time only affect spectrum evolution. Reuse h0 across frames.
             if ( index < cachedCount && settings.mPatchLength == uploaded.mPatchLength &&
@@ -595,7 +797,63 @@ namespace mikoto::renderer {
         }
     }
 
-    auto WaterSimulationModule::FilterWaterSimulators( CommandContext& ctx, core::Blackboard& b ) -> void {
+    // Depth uses generated terrain triangles, including sculpt edits, independently
+    // of screen visibility. Translation/yaw/scale work; tilted terrain-water pairs are
+    // skipped. Mesh-only seabeds use authored maximum depth. This is not a general
+    // scene-depth cache. A 512-metre, metre-cell foam patch snaps with the camera and
+    // reprojects history. New cells prewarm; seeks/transforms/long gaps reset it.
+    // Exact exponential decay preserves lifetime across frame rates. Outside the patch,
+    // shading blends to equilibrium. Foam follows prescribed wind drift, not fluid flow.
+    // Depth damping of analytic/FFT waves includes the weight derivative in normals;
+    // it is representative-depth attenuation, not frequency-dependent shoaling or a
+    // nonlinear breaking-wave solver. Crest sea-floor depth/foam were references:
+    // https://crest.readthedocs.io/en/stable/user/shallows-and-shorelines.html
+    // https://github.com/wave-harmonic/crest/blob/master/crest/Assets/Crest/Crest/Shaders/Resources/UpdateFoam.compute
+    auto WaterSimulationModule::RegisterCoastPass( FrameGraph &graph ) -> void {
+        const auto pipeline{ graph.Create( FGPipelineDescription{}
+            .SetName( "Water_CoastSimulation" )
+            .SetPipelineType( rhi::PipelineType::eCompute )
+            .PushShader( "WaterCoast_Comp.slang", FGStageType::eCompute ) ) };
+
+        graph.RegisterPass(
+            "Pass_WaterCoastSimulation",
+            FGPassType::eCompute,
+            []( FGNodeBuilder &builder, core::Blackboard &b ) {
+                const auto &water{ b.Get<WaterSimulationModuleInfo>() };
+                const auto &terrain{ b.Get<TerrainGenerationInfo>() };
+                for ( const auto buffer: { water.mSurfaces, water.mWaves, water.mFftDisplacement,
+                          water.mFftGradients, water.mCoastHistory, terrain.mVertices, terrain.mSamplingRecords } ) {
+                    builder.UseResource( buffer, FGPipelineStage::eComputeShader, FGResourceAccess::eRead );
+                }
+                builder.UseResource( water.mCoast, FGPipelineStage::eComputeShader, FGResourceAccess::eWrite );
+            },
+            [this, pipeline]( CommandContext &ctx, core::Blackboard &b ) {
+                if ( mPlanes.empty() ) {
+                    return;
+                }
+                const auto &info{ b.Get<WaterSimulationModuleInfo>() };
+                struct Parameters {
+                    SPointer mSurfaces{};
+                    SPointer mWaves{};
+                    SPointer mDisplacement{};
+                    SPointer mGradients{};
+                    core::u32 mSurface{};
+                } parameters{
+                    .mSurfaces = ctx.GetDeviceBufferAddress( info.mSurfaces ),
+                    .mWaves = ctx.GetDeviceBufferAddress( info.mWaves ),
+                    .mDisplacement = ctx.GetDeviceBufferAddress( info.mFftDisplacement ),
+                    .mGradients = ctx.GetDeviceBufferAddress( info.mFftGradients ),
+                };
+                ctx.BindPipeline( pipeline );
+                for ( core::u32 index{}; index < mPlanes.size(); ++index ) {
+                    parameters.mSurface = index;
+                    ctx.PushConstants( parameters );
+                    ctx.Dispatch( 64, 64, 1 );
+                }
+            } );
+    }
+
+    auto WaterSimulationModule::FilterWaterSimulators( CommandContext &ctx, core::Blackboard &b ) -> void {
         MKT_BEGIN_PROFILER();
 
         mFftPatches.clear();
@@ -618,25 +876,24 @@ namespace mikoto::renderer {
             // Revisions also cover appearance edits. Rebuild the rest mesh only
             // when its dimensions/resolution change, independently per renderer.
             dirty |= index >= mPlanes.size() ||
-                ( mPlanes[index].mEntity != entity ) ||
-                ( !water.IsRevision( mPlanes[index].mRevision ) &&
-                ( mPlanes[index].mDimensions != water.GetPlaneDimensions() ||
-                ( mPlanes[index].mResolution != water.GetPlaneResolution() ) ) );
+                     ( mPlanes[index].mEntity != entity ) ||
+                     ( !water.IsRevision( mPlanes[index].mRevision ) &&
+                         ( mPlanes[index].mDimensions != water.GetPlaneDimensions() ||
+                             ( mPlanes[index].mResolution != water.GetPlaneResolution() ) ) );
 
-            planes.push_back( Plane{ 
-                .mEntity = entity, 
-                .mRevision = water.GetRevision(), 
-                .mDimensions = water.GetPlaneDimensions(), 
-                .mResolution = water.GetPlaneResolution() 
-            } );
+            planes.push_back( Plane{
+                .mEntity = entity,
+                .mRevision = water.GetRevision(),
+                .mDimensions = water.GetPlaneDimensions(),
+                .mResolution = water.GetPlaneResolution() } );
         }
 
         if ( dirty || planes.size() != mPlanes.size() ) {
             eastl::vector<core::u32> indices{};
             eastl::vector<core::float3> vertices{};
 
-            for ( auto& plane: planes ) {
-                const auto& water{ mScene->GetRegistry().get<scene::WaterRenderComponent>( plane.mEntity ) };
+            for ( auto &plane: planes ) {
+                const auto &water{ mScene->GetRegistry().get<scene::WaterRenderComponent>( plane.mEntity ) };
 
                 const auto resolution{ water.GetPlaneResolution() };
                 const auto dimensions{ water.GetPlaneDimensions() };
@@ -661,7 +918,8 @@ namespace mikoto::renderer {
 
                 for ( core::u32 row{}; row < zCells; ++row ) {
                     for ( core::u32 col{}; col < xCells; ++col ) {
-                        const auto a{ row * columns + col }, c{ a + columns };
+                        const auto a{ row * columns + col };
+                        const auto c{ a + columns };
 
                         for ( const auto index: { a, c, a + 1, a + 1, c, c + 1 } ) {
                             indices.push_back( index );
@@ -671,7 +929,7 @@ namespace mikoto::renderer {
             }
 
             if ( !planes.empty() ) {
-                const auto& info{ b.Get<WaterSimulationModuleInfo>() };
+                const auto &info{ b.Get<WaterSimulationModuleInfo>() };
 
                 ctx.EnsureBufferCapacity( info.mVertices, vertices.size() * sizeof( core::float3 ) );
                 ctx.EnsureBufferCapacity( info.mIndices, indices.size() * sizeof( core::u32 ) );
@@ -693,10 +951,16 @@ namespace mikoto::renderer {
         eastl::vector<WaterSurfaceGPU> surfaces{};
         eastl::vector<WaterWaveGPU> waves{};
 
-        for ( const auto& plane: mPlanes ) {
-            const auto& water{ mScene->GetRegistry().get<scene::WaterRenderComponent>( plane.mEntity ) };
+        const auto &coastInfo{ b.Get<WaterSimulationModuleInfo>() };
+        const auto &terrainInfo{ b.Get<TerrainGenerationInfo>() };
+        const auto coastBytes{ mPlanes.size() * 512 * 512 * sizeof( core::float4 ) };
+        const bool coastReplaced{ ctx.EnsureBufferCapacity( coastInfo.mCoast, coastBytes ) };
+        const bool historyReplaced{ ctx.EnsureBufferCapacity( coastInfo.mCoastHistory, coastBytes ) };
+
+        for ( auto &plane: mPlanes ) {
+            const auto &water{ mScene->GetRegistry().get<scene::WaterRenderComponent>( plane.mEntity ) };
             const auto material{ water.GetMaterial() };
-            const auto& dielectric{ material->GetDielectric() };
+            const auto &dielectric{ material->GetDielectric() };
             WaterSurfaceGPU surface{};
             surface.mWorld = mScene->GetRegistry().get<scene::TransformComponent>( plane.mEntity ).GetWorldTransform();
             surface.mColorRoughness = { core::float3{ material->GetBaseColorFactor() }, glm::clamp( material->GetRoughnessFactor(), 0.04f, 1.0f ) };
@@ -706,10 +970,27 @@ namespace mikoto::renderer {
             surface.mGeometry = { plane.mFirstVertex, plane.mFirstIndex, static_cast<core::u32>( water.GetPlaneResolution().x ) + 1,
                 ( water.IsGridVisible() ? 1u : 0u ) | ( water.AreVerticesVisible() ? 2u : 0u ) };
 
-            const auto* simulation{ mScene->GetRegistry().try_get<scene::WaterSimulationComponent>( plane.mEntity ) };
+            const auto &appearance{ water.GetAppearance() };
+            if ( const auto *atmosphere{ b.TryGet<AtmosphereModuleInfo>() }; atmosphere && atmosphere->mAerialRadiance.mHandle != 0 ) {
+                surface.mAirResources = { ctx.PushTexture_SRV( atmosphere->mAerialRadiance ),
+                    ctx.PushTexture_SRV( atmosphere->mAerialTransmittance ), ctx.PushSampler( atmosphere->mSampler ), 0 };
+            }
+            surface.mWorldToLocal = glm::inverse( surface.mWorld );
+            surface.mBounds = { water.GetPlaneDimensions(), glm::clamp( appearance.mMaximumDepth, .1f, 1000.0f ), 0.0f };
+            surface.mScattering = { appearance.mUnderwaterScatteringEnabled ? glm::clamp( appearance.mScattering, core::float3{}, core::float3{ 1.0f } ) : core::float3{},
+                glm::clamp( appearance.mAnisotropy, -.95f, .95f ) };
+            surface.mCoast = { glm::clamp( appearance.mShoreFoamDepth, .01f, 10.0f ),
+                glm::clamp( appearance.mShoreFoamAmount, 0.0f, 1.0f ), glm::clamp( appearance.mShoreWaveSpeed, 0.0f, 5.0f ), water.GetPlaneResolution().y + 1.0f };
+            surface.mCaustics = { glm::clamp( appearance.mCausticsStrength, 0.0f, 2.0f ),
+                glm::clamp( appearance.mCausticsScale, .01f, 4.0f ), glm::clamp( appearance.mCausticsDepth, .1f, 100.0f ), 0.0f };
+            surface.mGeometry.w |= ( appearance.mShoreFoamEnabled ? 4u : 0u ) |
+                                   ( appearance.mUnderwaterScatteringEnabled ? 8u : 0u ) | ( appearance.mCausticsEnabled ? 16u : 0u ) |
+                                   ( appearance.mDepthBasedRefractionEnabled ? 32u : 0u ) | ( appearance.mInfiniteOcean ? 64u : 0u );
+
+            const auto *simulation{ mScene->GetRegistry().try_get<scene::WaterSimulationComponent>( plane.mEntity ) };
 
             if ( simulation && simulation->GetType() == scene::WaterSimulationType::eFastFourierTransform ) {
-                const auto& settings{ simulation->GetFftSettings() };
+                const auto &settings{ simulation->GetFftSettings() };
                 const auto sampleOffset{ as<u32>( mFftPatches.size() ) * kFftSampleCount };
                 surface.mSimulation.z = as<u32>( scene::WaterSimulationType::eFastFourierTransform );
                 surface.mSimulation.w = sampleOffset;
@@ -717,14 +998,13 @@ namespace mikoto::renderer {
 
                 mFftPatches.push_back( FftPatch{
                     .mSettings = settings,
-                    .mTime = simulation->GetTime()
-                } );
+                    .mTime = simulation->GetTime() } );
             }
             else if ( simulation ) {
                 const auto count{ static_cast<core::u32>( simulation->GetWaveCount() ) };
                 surface.mSimulation = { static_cast<core::u32>( waves.size() ), count, static_cast<core::u32>( simulation->GetType() ), 0 };
 
-                for ( const auto& wave: simulation->GetWaves() ) {
+                for ( const auto &wave: simulation->GetWaves() ) {
                     const float frequency{ glm::two_pi<float>() / wave.mWavelength };
                     // Q_i * k_i * A_i <= steepness / N, so the sum stays below
                     // one and Gerstner crests cannot fold over. Zero A stays flat.
@@ -736,11 +1016,43 @@ namespace mikoto::renderer {
                 }
             }
 
+            surface.mBounds.w = simulation ? static_cast<float>( std::fmod( simulation->GetTime(), 3600.0 ) ) : 0.0f;
+            // A metre-spaced patch follows the camera in whole cells. History is
+            // reprojected in water coordinates so moving the view cannot drag foam.
+            const core::float2 cell{ 1.0f / glm::length( core::float3{ surface.mWorld[0] } ),
+                1.0f / glm::length( core::float3{ surface.mWorld[2] } ) };
+            const auto localCamera{ surface.mWorldToLocal * core::float4{ mCamera ? mCamera->GetPosition() : core::float3{}, 1.0f } };
+            const core::float2 origin{ glm::floor( core::float2{ localCamera.x, localCamera.z } / cell ) * cell - cell * 256.0f };
+            const auto time{ simulation ? simulation->GetTime() : 0.0 };
+            const auto delta{ time - plane.mCoastTime };
+            const bool reset{ !plane.mCoastInitialized || coastReplaced || historyReplaced ||
+                              plane.mCoastWorld != surface.mWorld || delta < 0.0 || delta > .25 };
+            surface.mTerrainVertices = ctx.GetDeviceBufferAddress( terrainInfo.mVertices );
+            surface.mTerrainRecords = ctx.GetDeviceBufferAddress( terrainInfo.mSamplingRecords );
+            surface.mCoastField = ctx.GetDeviceBufferAddress( coastInfo.mCoast );
+            surface.mCoastHistory = ctx.GetDeviceBufferAddress( coastInfo.mCoastHistory );
+            surface.mCoastPatch = { origin, cell };
+            surface.mCoastPrevious = { plane.mCoastOrigin, static_cast<core::f32>( glm::clamp( delta, 0.0, .25 ) ), reset ? 1.0f : 0.0f };
+            core::float2 drift{};
+            if ( simulation && simulation->GetType() == scene::WaterSimulationType::eFastFourierTransform ) {
+                const auto angle{ glm::radians( simulation->GetFftSettings().mWindDirection ) };
+                drift = { glm::cos( angle ), glm::sin( angle ) };
+            }
+            else if ( simulation && !simulation->GetWaves().empty() ) {
+                drift = simulation->GetWaves().front().mDirection;
+            }
+            surface.mCoastSettings = { glm::clamp( appearance.mFoamLifetime, .1f, 30.0f ),
+                glm::clamp( appearance.mWaveDepth, .1f, 100.0f ), drift };
+            surface.mCoastRange = { static_cast<core::u32>( surfaces.size() ) * 512 * 512, 512, 0, 0 };
+            plane.mCoastOrigin = origin;
+            plane.mCoastWorld = surface.mWorld;
+            plane.mCoastTime = time;
+            plane.mCoastInitialized = true;
             surfaces.push_back( surface );
         }
 
         if ( !surfaces.empty() ) {
-            const auto& info{ b.Get<WaterSimulationModuleInfo>() };
+            const auto &info{ b.Get<WaterSimulationModuleInfo>() };
             PrepareFftInputs( ctx, info );
 
             ctx.EnsureBufferCapacity( info.mSurfaces, surfaces.size() * sizeof( WaterSurfaceGPU ) );

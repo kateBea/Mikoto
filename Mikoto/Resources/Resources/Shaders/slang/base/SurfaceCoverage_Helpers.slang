@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Classify surface blend modes for coverage handling. Depth, picking and color passes use the
+// same translucent/cutout classification.
+
 #pragma once
 
 // Keep alpha rounding consistent with the forward renderer's depth and color passes.

@@ -15,28 +15,29 @@
 #ifndef MIKOTO_RENDERER_FORWARD_RENDERER_GEOMETRY_CULL_MODULE_HH
 #define MIKOTO_RENDERER_FORWARD_RENDERER_GEOMETRY_CULL_MODULE_HH
 
-#include <EASTL/span.h>
 #include <EASTL/array.h>
-#include <EASTL/vector.h>
 #include <EASTL/optional.h>
+#include <EASTL/span.h>
 #include <EASTL/unique_ptr.h>
+#include <EASTL/vector.h>
 
 #include <glm/glm.hpp>
 
-#include <Core/Core.hh>
-#include <Core/Types.hh>
-#include <Core/Profiler.hh>
-
 #include <Assets/AssetModel.hh>
+
+#include <Core/Core.hh>
+#include <Core/Profiler.hh>
+#include <Core/Types.hh>
 
 #include <Material/SurfaceMaterial.hh>
 
-#include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Core/CommandContext.hh>
+#include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Core/MeshRenderData.hh>
 #include <Renderer/Core/SparseBufferUpload.hh>
 
 #include <Scene/Scene.hh>
+#include <Scene/Wind.hh>
 
 namespace mikoto::renderer {
 
@@ -98,14 +99,14 @@ namespace mikoto::renderer {
         core::i32 mClearCoatNormalTextureSet{};
         core::f32 mClearCoatNormalScale{ 1.0f };
         core::f32 mNormalScale{ 1.0f };
-        core::float4 mSubsurfaceTransmission{}; // Precomputed profile attenuation RGB.
+        core::float4 mSubsurfaceTransmission{};// Precomputed profile attenuation RGB.
         core::float4 mUvTransform{ 1, 1, 0, 0 };
         core::float4 mHeightMapping{};
-        core::i32 mHeightIndex{-1};
+        core::i32 mHeightIndex{ -1 };
         core::u32 mHeightUVSet{};
         core::u32 mHeightPadding[2]{};
-        core::float4 mCheckerboardColorA{}; // RGB tint, enabled in W.
-        core::float4 mCheckerboardColorB{}; // RGB tint, world-space cell size in W.
+        core::float4 mCheckerboardColorA{};// RGB tint, enabled in W.
+        core::float4 mCheckerboardColorB{};// RGB tint, world-space cell size in W.
         core::float4 mCheckerboardOffset{};
     };
 
@@ -131,7 +132,7 @@ namespace mikoto::renderer {
 
         // Reuses GPU padding so shadow shaders can skip material/UV fetches for opaque casters.
         core::u32 mAlphaMode{};
-        
+
         // Bit 0: double-sided materia.
         // Bit 1: mirrored instance transform.
         core::u32 mFaceFlags{};
@@ -141,6 +142,10 @@ namespace mikoto::renderer {
         // Zero selects the vertex-skinning fallback.
         rhi::DeviceAddress mSkinnedPositions{};
         rhi::DeviceAddress mSkinnedNormals{};
+
+        core::float4 mFoliageMotion{};// Height, trunk bend, branch motion, leaf flutter.
+        core::float4 mFoliageWind{};  // Shared field velocity and scene time.
+        core::float4 mFoliageShape{}; // Local root height and frequency.
     };
 
     struct GeometryAllocation {
@@ -157,12 +162,12 @@ namespace mikoto::renderer {
 
     class GeometryAllocator {
     public:
-        auto Get( core::u32 index ) const -> const GeometryAllocation&;
-        auto GetOrAllocate( const MeshRenderDataHandle& mesh ) -> const GeometryAllocation&;
+        MKT_NODISCARD auto Get( core::u32 index ) const -> const GeometryAllocation &;
+        MKT_NODISCARD auto GetOrAllocate( const MeshRenderDataHandle &mesh ) -> const GeometryAllocation &;
 
         // Allocate storage in the preparation pass; record uploads in the next pass.
-        auto Prepare( CommandContext& ctx, core::Blackboard& blackboard ) -> void;
-        auto Flush( CommandContext& ctx, core::Blackboard& blackboard ) -> void;
+        auto Prepare( CommandContext &ctx, core::Blackboard &blackboard ) -> void;
+        auto Flush( CommandContext &ctx, core::Blackboard &blackboard ) -> void;
         auto Clear() -> void;
 
         /** Mark allocations used by this view; inactive ranges are compacted after a grace period. */
@@ -180,7 +185,7 @@ namespace mikoto::renderer {
         eastl::vector<GeometryAllocation> mAllocations{};
         eastl::vector<MeshRenderDataHandle> mSources{};
         eastl::vector<core::u64> mUploadedRevisions{};
-        ankerl::unordered_dense::map<const MeshRenderData*, core::u32> mAllocationIndices{};
+        ankerl::unordered_dense::map<const MeshRenderData *, core::u32> mAllocationIndices{};
 
         core::usize mIndexCount{};
         core::usize mUploadedCount{};
@@ -197,8 +202,8 @@ namespace mikoto::renderer {
             core::u64 mWorldRevision{};
             core::u64 mMeshRevision{};
             MeshRenderDataHandle mMesh{};
-            core::RefConst<asset::Model> mModel{}; // Pins the immutable mesh node and its skin binding.
-            const asset::MeshNode* mNode{};
+            core::RefConst<asset::Model> mModel{};// Pins the immutable mesh node and its skin binding.
+            const asset::MeshNode *mNode{};
             bool mPosed{};
             core::float4x4 mTransform{ 1.0f };
             core::float3 mCenter{};
@@ -209,14 +214,14 @@ namespace mikoto::renderer {
         // Entity index addresses the entry; the full handle rejects recycled generations.
         eastl::vector<Entry> mEntries{};
 
-        MKT_NODISCARD auto Resolve( entt::entity entity ) -> Entry&;
+        MKT_NODISCARD auto Resolve( entt::entity entity ) -> Entry &;
     };
 
     struct GeometryCullModuleInfo {
         FGBufferHandle mGeometryAllocBuffer{};
         FGBufferHandle mMaterialsBuffer{};
         FGBufferHandle mSubsurfaceKernels{};
-        FGBufferHandle mGeometryBuffer{}; // Per-view header, not an instance array.
+        FGBufferHandle mGeometryBuffer{};// Per-view header, not an instance array.
         FGBufferHandle mInstanceBuffer{};
         FGBufferHandle mDrawInstanceBuffer{};
         FGBufferHandle mSkinningBuffer{};
@@ -234,72 +239,78 @@ namespace mikoto::renderer {
 
     class GeometryCullModule final {
     public:
-        auto RegisterGeometryFilterPass( FrameGraph& graph ) -> void;
-        auto RegisterSceneUploadPass( FrameGraph& graph ) -> void;
-        auto RegisterSkinningPass( FrameGraph& graph ) -> void;
-        auto RegisterFrustumCullPass( FrameGraph& graph ) -> void;
+        auto RegisterGeometryFilterPass( FrameGraph &graph ) -> void;
+        auto RegisterSceneUploadPass( FrameGraph &graph ) -> void;
+        auto RegisterSkinningPass( FrameGraph &graph ) -> void;
+        auto RegisterFrustumCullPass( FrameGraph &graph ) -> void;
 
-        auto SetScene( const scene::Scene* scene ) -> void;
+        auto SetScene( const scene::Scene *scene ) -> void;
+        auto SetFoliageWindEnabled( bool enabled ) -> void;
 
-        auto HasStylizedContours() const -> bool;
-
-        auto SetCamera( const scene::Camera* camera ) -> void;
+        auto SetCamera( const scene::Camera *camera ) -> void;
         auto SetFrustumCullingEnabled( bool enabled ) -> void;
         auto SetMeshesVisible( bool visible ) -> void;
 
-        auto SetCullingDebugCamera( const scene::Camera* camera ) -> void;
+        auto SetCullingDebugCamera( const scene::Camera *camera ) -> void;
+
+        MKT_NODISCARD auto HasStylizedContours() const -> bool;
 
         auto DrawInstancesIndirect(
-            CommandContext& context,
+            CommandContext &context,
             GeometryDrawGroup group = GeometryDrawGroup::eAll,
             bool cameraCulled = true ) -> void;
 
         // Appends visible instance runs while preserving the original packed instance IDs.
         // On capacity exhaustion, discards this view's suffix and returns false for an unculled fallback.
         auto AppendShadowDraws(
-            const core::float4x4& viewProjection,
-            eastl::vector<DrawIndirectCommand>& commands, core::usize capacity,
-            core::u32& testedInstances, core::u32& culledInstances ) const -> bool;
+            const core::float4x4 &viewProjection,
+            eastl::vector<DrawIndirectCommand> &commands, core::usize capacity,
+            core::u32 &testedInstances, core::u32 &culledInstances ) const -> bool;
 
-        auto AppendHighlightedDraws( eastl::vector<DrawIndirectCommand>& commands ) const -> void;
+        auto AppendHighlightedDraws( eastl::vector<DrawIndirectCommand> &commands ) const -> void;
 
         MKT_NODISCARD auto GetSharedMaterialCount() const -> core::usize;
         MKT_NODISCARD auto GetShadowCasterBatchCount() const -> core::u32;
-        MKT_NODISCARD auto GetInstanceUploadStatistics() const -> const SceneUploadStatistics&;
-        MKT_NODISCARD auto GetMaterialUploadStatistics() const -> const SceneUploadStatistics&;
+        /** Changes when a caster pose, transform, material, membership or visibility changes. */
+        MKT_NODISCARD auto GetShadowCasterRevision() const -> core::u64;
+        MKT_NODISCARD auto GetInstanceUploadStatistics() const -> const SceneUploadStatistics &;
+        MKT_NODISCARD auto GetMaterialUploadStatistics() const -> const SceneUploadStatistics &;
 
     private:
         auto BuildDrawCommands() -> void;
         auto SortTransparentDraws( bool force ) -> core::u32;
-        auto UpdateDrawBounds( CommandContext& context, FGBufferHandle buffer, core::u32 firstReordered ) -> void;
+        auto UpdateDrawBounds( CommandContext &context, FGBufferHandle buffer, core::u32 firstReordered ) -> void;
         auto UpdateDrawDebugFlags() -> void;
 
         auto ResetGeometryData() -> void;
-        auto InitGeometryData( CommandContext& ctx, core::Blackboard& b ) -> void;
+        auto InitGeometryData( CommandContext &ctx, core::Blackboard &b ) -> void;
 
         auto UpdateMaterialClassification( core::u32 slot ) -> void;
-        auto UpdateMaterials( CommandContext& ctx ) -> void;
-        auto UpdateInstance( core::u32 slot, const SceneGeometryCache::Entry& derived,
-                             core::u32 objectID, bool highlighted, core::i32 skinningPalette ) -> void;
+        auto UpdateMaterials( CommandContext &ctx ) -> void;
+        auto UpdateInstance( core::u32 slot, const SceneGeometryCache::Entry &derived,
+            core::u32 objectID, bool highlighted, core::i32 skinningPalette ) -> void;
 
         auto RetireUnusedSlots() -> void;
-        auto ResolveMesh( core::u32 instanceSlot, const MeshRenderDataHandle& mesh ) -> void;
+        auto ResolveMesh( core::u32 instanceSlot, const MeshRenderDataHandle &mesh ) -> void;
 
-        auto CacheSkinning( MeshGeometryInfo& geometry, const MeshRenderData& mesh ) -> void;
-        auto PrepareSkinningData( CommandContext& context, core::Blackboard& b ) -> void;
-        auto UploadSkinningData( CommandContext& context, core::Blackboard& b ) -> void;
+        auto CacheSkinning( MeshGeometryInfo &geometry, const MeshRenderData &mesh ) -> void;
+        auto PrepareSkinningData( CommandContext &context, core::Blackboard &b ) -> void;
+        auto UploadSkinningData( CommandContext &context, core::Blackboard &b ) -> void;
         auto RetireSkinningSlots() -> void;
 
-        auto PrepareIndirectDraw( CommandContext& context, core::Blackboard& b ) -> void;
-        auto UploadIndirectDraw( CommandContext& context, core::Blackboard& b ) -> void;
+        auto PrepareIndirectDraw( CommandContext &context, core::Blackboard &b ) -> void;
+        auto UploadIndirectDraw( CommandContext &context, core::Blackboard &b ) -> void;
 
         MKT_NODISCARD auto ResolveInstance( entt::entity entity ) -> core::u32;
         MKT_NODISCARD auto FindInstance( entt::entity entity ) const -> core::u32;
         MKT_NODISCARD auto ResolveMaterial( const material::MaterialHandle &material, core::u32 cachedSlot ) -> core::u32;
-        MKT_NODISCARD auto PushTextureID( CommandContext& ctx, renderer::rhi::TextureHandle handle ) -> core::i32;
+        MKT_NODISCARD auto PushTextureID( CommandContext &ctx, renderer::rhi::TextureHandle handle ) -> core::i32;
         MKT_NODISCARD auto ResolveSkinningPalette( core::u64 animatorID, const asset::MeshNode &mesh, core::RefConst<asset::Model> model ) -> core::i32;
 
     private:
+        scene::WindField mFoliageWindField{};
+        bool mFoliageWindEnabled{ true };
+
         struct SkinningPalette {
             eastl::array<core::float4x4, asset::kMaxBonesPerMesh> mBoneTransforms{};
         };
@@ -353,7 +364,7 @@ namespace mikoto::renderer {
             InstanceBounds mBounds{};
             core::u32 mMaterialSlot{ kInvalidSlot };
             core::u32 mGeometryIndex{ kInvalidSlot };
-            const MeshRenderData* mMesh{}; // Pinned by GeometryAllocator.
+            const MeshRenderData *mMesh{};// Pinned by GeometryAllocator.
             core::u64 mDerivedRevision{};
             bool mUploaded{};
         };
@@ -365,18 +376,18 @@ namespace mikoto::renderer {
 
         struct alignas( 16 ) DrawBounds {
             core::float4 mCenter{};
-            core::float4 mExtent{}; // w == 1 only if every instance is safely bounded.
+            core::float4 mExtent{};// w == 1 only if every instance is safely bounded.
         };
 
         // Draw commands index the packed draw-instance list, not persistent slots.
-        MKT_NODISCARD auto GetInstanceBounds( core::u32 drawInstance ) const -> const InstanceBounds&;
+        MKT_NODISCARD auto GetInstanceBounds( core::u32 drawInstance ) const -> const InstanceBounds &;
 
     private:
         static constexpr core::u32 kInvalidSlot{ ~core::u32{} };
         static constexpr core::usize kSkinningCacheSizeMB{ 128 };
 
-        const scene::Scene* mScene{};
-        const scene::Camera* mCamera{};
+        const scene::Scene *mScene{};
+        const scene::Camera *mCamera{};
 
         GeometryAllocator mGeometryAllocator{};
 
@@ -389,7 +400,7 @@ namespace mikoto::renderer {
         eastl::vector<core::u32> mInstanceSlots{};
         eastl::vector<InstanceSlot> mInstanceStates{};
         eastl::vector<MaterialSlot> mMaterialStates{};
-        ankerl::unordered_dense::map<const material::IMaterial*, core::u32> mMaterialSlots{};
+        ankerl::unordered_dense::map<const material::IMaterial *, core::u32> mMaterialSlots{};
 
         eastl::vector<core::u32> mFreeInstances{};
         eastl::vector<core::u32> mFreeMaterials{};
@@ -422,21 +433,22 @@ namespace mikoto::renderer {
 
         bool mMeshesVisible{ true };
         bool mFrustumCullingEnabled{ true };
-        const scene::Camera* mCullingDebugCamera{};
-        
+        const scene::Camera *mCullingDebugCamera{};
+
         eastl::vector<DrawBounds> mDrawBounds{};
         eastl::vector<core::u32> mDirtyDrawBounds{};
         eastl::vector<DrawIndirectCommand> mIndirectCmds{};
-        
+
         core::u32 mFirstChangedDraw{};
 
         // Membership/alpha edits rebuild commands; movement dirties only its mesh batch.
+        core::u64 mShadowCasterRevision{};
         bool mCommandsDirty{ true };
         bool mHadCullingDebugCamera{};
 
         rhi::DeviceAddress mSkinningCacheAddress{};
         eastl::vector<SkinningPalette> mSkinningInfo{};
-        ankerl::unordered_dense::map<std::pair<core::u64, const asset::MeshNode*>, core::u32> mSkinningSlots{};
+        ankerl::unordered_dense::map<std::pair<core::u64, const asset::MeshNode *>, core::u32> mSkinningSlots{};
         eastl::vector<SkinningSlot> mSkinningStates{};
         eastl::vector<core::u32> mFreeSkinningSlots{};
         eastl::vector<core::u32> mDirtySkinningSlots{};

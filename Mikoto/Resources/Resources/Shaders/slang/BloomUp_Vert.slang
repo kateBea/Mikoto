@@ -12,11 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Generate a fullscreen triangle from SV_VertexID and pass its sampling coordinates onward. The
+// paired fragment stage performs the image operation using the pipeline viewport convention.
+
 #pragma once
 
 struct VSOutput {
-    float2 UV : TEXCOORD0;
-    float4 Position : SV_Position;
+    float2 mUV : TEXCOORD0;
+    float4 mPosition : SV_Position;
 };
 
 [shader( "vertex" )]
@@ -25,12 +28,12 @@ VSOutput main( uint vertexID : SV_VertexID ) {
 
     float2 uv = float2( ( vertexID << 1 ) & 2, ( vertexID ) & 2 );
 
-    o.UV = uv;
-    o.Position = float4( uv * 2.0f - 1.0f, 0.0f, 1.0f );
+    o.mUV = uv;
+    o.mPosition = float4( uv * 2.0f - 1.0f, 0.0f, 1.0f );
 
     // Rotate by the Y axis for Vulkan otherwise cube appears upside down
 #if defined( MKT_SUPPORT_VULKAN ) || defined( MKT_SUPPORT_D3D12 )
-    o.Position.y *= -1.0;
+    o.mPosition.y *= -1.0;
 #endif
 
     return o;

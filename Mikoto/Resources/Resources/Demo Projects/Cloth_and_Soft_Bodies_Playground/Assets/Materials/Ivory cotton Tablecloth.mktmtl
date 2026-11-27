@@ -1,0 +1,44 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Ivory cotton Tablecloth",
+  "Material": {
+    "BaseColorFactor": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "MetallicFactor": 0,
+    "RoughnessFactor": 0.88,
+    "DoubleSided": 1,
+    "AlphaMask": 0,
+    "Textures": [
+      {
+        "Map": 1,
+        "Present": true,
+        "Used": true,
+        "TexturePath": "../Textures/Fabric/col_2.jpg"
+      },
+      {
+        "Map": 2,
+        "Present": true,
+        "Used": true,
+        "TexturePath": "../Textures/Fabric/nor_gl.jpg"
+      },
+      {
+        "Map": 4,
+        "Present": true,
+        "Used": true,
+        "TexturePath": "../Textures/Fabric/Rough.jpg"
+      }
+    ],
+    "NormalScale": 0.3,
+    "UvTransform": [
+      3,
+      3,
+      0,
+      0
+    ]
+  }
+}

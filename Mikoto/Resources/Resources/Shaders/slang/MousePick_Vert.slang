@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Project selectable geometry using the same instance and deformation data as scene rendering.
+// Carry the object identifier to the picking fragment stage.
+
 #pragma once
 
 #include "base/Base.slang"
@@ -21,19 +24,19 @@
 #include "base/Animation_Helpers.slang"
 
 struct VSInput {
-    uint VertexID : SV_VertexID;
-    uint InstanceIndex : SV_InstanceID;
-    uint BaseInstanceIndex : SV_StartInstanceLocation;
+    uint mVertexID : SV_VertexID;
+    uint mInstanceIndex : SV_InstanceID;
+    uint mBaseInstanceIndex : SV_StartInstanceLocation;
 };
 
 struct VSOutput {
-    nointerpolation uint ObjectID : ATTRIBUTE0;
-    nointerpolation uint MaterialIndex : TEXCOORD0;
-    nointerpolation uint FaceFlags : TEXCOORD4;
-    float2 Uv0 : TEXCOORD1;
-    float2 Uv1 : TEXCOORD2;
-    float VertexAlpha : TEXCOORD3;
-    float4 Position : SV_Position;
+    nointerpolation uint mObjectID : ATTRIBUTE0;
+    nointerpolation uint mMaterialIndex : TEXCOORD0;
+    nointerpolation uint mFaceFlags : TEXCOORD4;
+    float2 mUv0 : TEXCOORD1;
+    float2 mUv1 : TEXCOORD2;
+    float mVertexAlpha : TEXCOORD3;
+    float4 mPosition : SV_Position;
 };
 
 struct DrawParams {
@@ -53,12 +56,12 @@ VSOutput main( VSInput input ) {
     VSOutput o;
 
     // Prepare vertex data
-    uint instanceIndex = input.BaseInstanceIndex + input.InstanceIndex;
+    uint instanceIndex = input.mBaseInstanceIndex + input.mInstanceIndex;
 
     // Apply skinning
     MeshGeometryInfo meshInfo = LoadMeshGeometry( parameters.mGeometryPtr, instanceIndex );
     GeometryAllocation allocation = GetGeometryAllocation( meshInfo, parameters.mGeometryDescPtr );
-    uint vertexIndex = PullVertexIndex( allocation, input.VertexID );
+    uint vertexIndex = PullVertexIndex( allocation, input.mVertexID );
     VertexDescription vertex = PullDepthVertex( meshInfo, allocation, vertexIndex );
 
     // Compute world position
@@ -67,14 +70,14 @@ VSOutput main( VSInput input ) {
     BufferReference<CameraInfo> camera = ( BufferReference<CameraInfo> )parameters.mCameraBda;
 
     // Final position
-    o.Position = CameraClipPosition( worldPos, camera[0] );
+    o.mPosition = CameraClipPosition( worldPos, camera[0] );
 
-    o.ObjectID = meshInfo.ObjectID;
-    o.MaterialIndex = meshInfo.MaterialIndex;
-    o.FaceFlags = meshInfo.FaceFlags;
-    o.Uv0 = vertex.uv0;
-    o.Uv1 = vertex.uv1;
-    o.VertexAlpha = vertex.color.a;
+    o.mObjectID = meshInfo.mObjectID;
+    o.mMaterialIndex = meshInfo.mMaterialIndex;
+    o.mFaceFlags = meshInfo.mFaceFlags;
+    o.mUv0 = vertex.mUv0;
+    o.mUv1 = vertex.mUv1;
+    o.mVertexAlpha = vertex.mColor.a;
 
     return o;
 }

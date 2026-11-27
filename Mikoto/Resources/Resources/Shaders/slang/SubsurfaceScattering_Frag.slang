@@ -16,12 +16,26 @@
 // https://bentobaux.github.io/posts/separable-subsurface-scattering-in-unity-6/#2-scattering-the-diffuse-lighting
 // https://github.com/bentoBAUX/Separable-Subsurface-Scattering-in-Unity-6
 // Kernel weights are normalized on CPU; offsets are integer screen pixels.
+
+// Blur the diffuse lighting using the configured subsurface profile. Depth-aware weights limit
+// scattering across unrelated surfaces.
+
 #include "base/Memory_Helpers.slang"
 #include "base/Material_Helpers.slang"
 
+// Matches the per-material kernel allocation and supported tap range in SubsurfaceScatteringModule.
+static const uint kSubsurfaceMinTaps = 7u;
+static const uint kSubsurfaceKernelCapacity = 65u;
+
 struct Parameters {
-    Pointer Materials, Kernels;
-    uint Original, Input, Metadata, Axis, Width, Height;
+    Pointer mMaterials;
+    Pointer mKernels;
+    uint mOriginal;
+    uint mInput;
+    uint mMetadata;
+    uint mAxis;
+    uint mWidth;
+    uint mHeight;
 };
 
 MKT_DECLARE_PUSH_CONSTANT( Parameters, parameters );
@@ -30,28 +44,34 @@ MKT_DECLARE_TEXTURE_SRV( Texture2D ) images;
 [shader( "fragment" )]
 float4 main( float2 unusedUV : TEXCOORD0, float4 position : SV_Position ) : SV_Target0 {
     int2 pixel = int2( position.xy );
-    float4 original = images[parameters.Original].Load( int3( pixel, 0 ) );
-    if ( original.a <= 0 ) { return float4( 0 ); }
+    float4 original = images[parameters.mOriginal].Load( int3( pixel, 0 ) );
+    if ( original.a <= 0 ) {
+        return float4( 0 );
+    }
     uint index = uint( original.a ) - 1;
-    MaterialParameters material = ( ( BufferReference<MaterialParameters> )parameters.Materials )[index];
-    float3 center = images[parameters.Input].Load( int3( pixel, 0 ) ).rgb;
-    if ( material.Subsurface.x <= 0 || material.Subsurface.y <= 0 ) { return float4( center, 0 ); }
+    MaterialParameters material = ( ( BufferReference<MaterialParameters> )parameters.mMaterials )[index];
+    float3 center = images[parameters.mInput].Load( int3( pixel, 0 ) ).rgb;
+    if ( material.mSubsurface.x <= 0 || material.mSubsurface.y <= 0 ) {
+        return float4( center, 0 );
+    }
     // Load one tap at a time rather than materializing a 65-float4 local array.
-    BufferReference<float4> kernels = ( BufferReference<float4> )parameters.Kernels;
-    float4 metadata = images[parameters.Metadata].Load( int3( pixel, 0 ) );
-    int2 axis = parameters.Axis == 0 ? int2( 1, 0 ) : int2( 0, 1 );
+    // The uploaded RGB kernel stores scattering weights and an integer pixel offset. The
+    // selected pass axis makes the profile separable into horizontal and vertical filtering.
+    BufferReference<float4> kernels = ( BufferReference<float4> )parameters.mKernels;
+    float4 metadata = images[parameters.mMetadata].Load( int3( pixel, 0 ) );
+    int2 axis = parameters.mAxis == 0 ? int2( 1, 0 ) : int2( 0, 1 );
     float3 filtered = float3( 0 );
-    uint count = clamp( uint( material.SurfaceShading.z ), 7u, 65u );
+    uint count = clamp( uint( material.mSurfaceShading.z ), kSubsurfaceMinTaps, kSubsurfaceKernelCapacity );
     for ( uint tap = 0; tap < count; ++tap ) {
-        float4 k = kernels[index * 65u + tap];
-        int2 location = clamp( pixel + axis * int( k.w ), int2( 0 ), int2( parameters.Width, parameters.Height ) - 1 );
-        float4 sampleMetadata = images[parameters.Metadata].Load( int3( location, 0 ) );
+        float4 k = kernels[index * kSubsurfaceKernelCapacity + tap];
+        int2 location = clamp( pixel + axis * int( k.w ), int2( 0 ), int2( parameters.mWidth, parameters.mHeight ) - 1 );
+        float4 sampleMetadata = images[parameters.mMetadata].Load( int3( location, 0 ) );
         float3 value = center;
         // Extend center radiance at silhouettes/other instances. This retains DC
         // energy and avoids the reference's background bleed and brightness mask.
         if ( sampleMetadata.a == metadata.a ) {
-            value = images[parameters.Input].Load( int3( location, 0 ) ).rgb;
-            float threshold = material.SurfaceShading.y;
+            value = images[parameters.mInput].Load( int3( location, 0 ) ).rgb;
+            float threshold = material.mSurfaceShading.y;
             if ( threshold > 0 ) {
                 float relativeDepth = abs( sampleMetadata.x - metadata.x ) / max( abs( metadata.x ), 1e-4 );
                 value = lerp( value, center, smoothstep( threshold, threshold * 2, relativeDepth ) );

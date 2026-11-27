@@ -5,7 +5,7 @@
 # EditorCamera configures editor navigation; the scene camera controls the Game view.
 
 Version: 1
-Project: "Sphere Materials"
+Project: "Sphere_Materials"
 Assets: "Assets"
 Cache: "Assets/.cache"
 Scene: "Scene/Sphere_Materials.mktscn"
@@ -14,7 +14,7 @@ AutoSave: false
 AutoSaveIntervalMs: 2000
 EditorCamera:
   NavigationMode: "Fly"
-  Position: [60,60,220]
+  Position: [60,60.1,220]
   Direction: [0.0,0.0,-1.0]
   Projection: "Perspective"
   FieldOfView: 45

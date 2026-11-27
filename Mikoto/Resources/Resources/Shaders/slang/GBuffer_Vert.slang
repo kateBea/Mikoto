@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Pull and deform scene geometry, then export world-space surface attributes. This guide pass
+// shares geometry evaluation with forward shading so depth and normals line up.
+
 #pragma once
 
 #include "base/Animation_Helpers.slang"
@@ -21,23 +24,23 @@
 #include "base/Memory_Helpers.slang"
 
 struct VSInput {
-    uint VertexID : SV_VertexID;
-    uint InstanceIndex : SV_InstanceID;
-    uint BaseInstanceIndex : SV_StartInstanceLocation;
+    uint mVertexID : SV_VertexID;
+    uint mInstanceIndex : SV_InstanceID;
+    uint mBaseInstanceIndex : SV_StartInstanceLocation;
 };
 
 struct VSOutput {
-    float3 ViewPos : TEXCOORD0;
-    float3 WorldPos : TEXCOORD1;
-    float3 Normal : TEXCOORD2;
-    float2 TexCoord0 : TEXCOORD3;
-    float2 TexCoord1 : TEXCOORD4;
-    float4 Color : TEXCOORD5;
+    float3 mViewPos : TEXCOORD0;
+    float3 mWorldPos : TEXCOORD1;
+    float3 mNormal : TEXCOORD2;
+    float2 mTexCoord0 : TEXCOORD3;
+    float2 mTexCoord1 : TEXCOORD4;
+    float4 mColor : TEXCOORD5;
 
-    nointerpolation uint MaterialIndex : TEXTCOORD6;
-    nointerpolation uint FaceFlags : TEXCOORD7;
+    nointerpolation uint mMaterialIndex : TEXTCOORD6;
+    nointerpolation uint mFaceFlags : TEXCOORD7;
 
-    float4 Position : SV_Position;
+    float4 mPosition : SV_Position;
 };
 
 struct DrawParams {
@@ -57,12 +60,12 @@ VSOutput main( VSInput input ) {
     VSOutput o;
 
     // Prepare vertex data
-    uint instanceIndex = input.BaseInstanceIndex + input.InstanceIndex;
+    uint instanceIndex = input.mBaseInstanceIndex + input.mInstanceIndex;
 
     // Apply skinning
     MeshGeometryInfo meshInfo = LoadMeshGeometry( parameters.mGeometryPtr, instanceIndex );
     GeometryAllocation allocation = GetGeometryAllocation( meshInfo, parameters.mGeometryDescPtr );
-    uint vertexIndex = PullVertexIndex( allocation, input.VertexID );
+    uint vertexIndex = PullVertexIndex( allocation, input.mVertexID );
     VertexDescription vertex = PullShadingVertex( meshInfo, allocation, vertexIndex );
 
     // Compute world position
@@ -73,18 +76,18 @@ VSOutput main( VSInput input ) {
 
     BufferReference<CameraInfo> camera = ( BufferReference<CameraInfo> )parameters.mCameraBda;
 
-    o.TexCoord0 = vertex.uv0;
-    o.TexCoord1 = vertex.uv1;
-    o.Color = vertex.color;
+    o.mTexCoord0 = vertex.mUv0;
+    o.mTexCoord1 = vertex.mUv1;
+    o.mColor = vertex.mColor;
 
-    o.WorldPos = worldPos.xyz;
-    o.ViewPos = mul( camera[0].mViewMatrix, worldPos ).xyz;
-    o.Normal = worldNormal;
+    o.mWorldPos = worldPos.xyz;
+    o.mViewPos = mul( camera[0].mViewMatrix, worldPos ).xyz;
+    o.mNormal = worldNormal;
 
-    o.MaterialIndex = meshInfo.MaterialIndex;
-    o.FaceFlags = meshInfo.FaceFlags;
+    o.mMaterialIndex = meshInfo.mMaterialIndex;
+    o.mFaceFlags = meshInfo.mFaceFlags;
 
-    o.Position = CameraClipPosition( worldPos, camera[0] );
+    o.mPosition = CameraClipPosition( worldPos, camera[0] );
 
     return o;
 }

@@ -1,0 +1,57 @@
+{
+  "Version": 1,
+  "Project": "Forest_Island",
+  "Assets": "Assets",
+  "Cache": "Assets/.cache",
+  "Scene": "Scene/Forest_Island.mktscn",
+  "CompressTextures": false,
+  "AutoSave": false,
+  "Renderer": {
+    "Version": 1,
+    "Resolution": 1,
+    "Samples": 1,
+    "RayTracedAmbientOcclusion": false,
+    "PathTracing": false,
+    "SsaoEnabled": true,
+    "ShadowDistance": 900,
+    "BloomEnabled": false,
+    "Clouds": {
+      "Enabled": true,
+      "HalfResolution": true,
+      "FieldResolution": 128,
+      "MaxSteps": 256,
+      "SunSteps": 24,
+      "StepLength": 12,
+      "MaxDistance": 40000,
+      "CastSurfaceShadows": true,
+      "DistanceFieldEnabled": true,
+      "EdgeDarkening": 0.45,
+      "InnerGlow": 0.45,
+      "AmbientIntensity": 0.16,
+      "AnimatedJitterDistance": 250,
+      "DetailMipBias": 0
+    }
+  },
+  "EditorCamera": {
+    "NavigationMode": "Fly",
+    "Position": [
+      575.0,
+      44.81628994411902,
+      -2050.0
+    ],
+    "Direction": [
+      -0.3325964362843055,
+      0.13521854517671786,
+      0.9333249999926456
+    ],
+    "Projection": "Perspective",
+    "FieldOfView": 60,
+    "NearPlane": 0.1,
+    "FarPlane": 35000,
+    "MovementSpeed": 40,
+    "RotationSpeed": 10,
+    "SmoothTime": 0.1,
+    "AllowPitch": true,
+    "AllowYaw": true
+  }
+}

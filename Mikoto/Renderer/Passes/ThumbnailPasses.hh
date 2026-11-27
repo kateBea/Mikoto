@@ -28,6 +28,9 @@
 
 namespace mikoto::renderer {
 
+    // Keep preview grounds and subjects above the editor grid's Y=0 plane.
+    inline constexpr core::f32 kPreviewStageElevation{ 0.2f };
+
     struct ThumbnailPreviewSettings {
         core::f32 mYaw{ 35.0f };
         core::f32 mPitch{ 18.0f };

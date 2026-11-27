@@ -12,39 +12,62 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Place the water surface using its finite or projected-ocean geometry path. Wave displacement
+// and world-space attributes are evaluated before projection.
+
 #include "base/Camera_Helpers.slang"
 #include "base/Water_Helpers.slang"
 
 MKT_DECLARE_PUSH_CONSTANT( WaterParameters, parameters );
 
-[shader("vertex")]
+[shader( "vertex" )]
 WaterVaryings main( uint vertexID : SV_VertexID ) {
-    BufferReference<WaterSurface> surfaces = (BufferReference<WaterSurface>)parameters.surfaces;
-    WaterSurface surface = surfaces[parameters.surface];
-    BufferReference<uint> indices = (BufferReference<uint>)parameters.indices;
-    uint index = indices[surface.geometry.y + vertexID];
+    BufferReference<WaterSurface> surfaces = ( BufferReference<WaterSurface> )parameters.mSurfaces;
+    WaterSurface surface = surfaces[parameters.mSurface];
+    BufferReference<uint> indices = ( BufferReference<uint> )parameters.mIndices;
+    uint index = indices[surface.mGeometry.y + vertexID];
 
     // Rest positions are packed float3s (12 bytes); pull scalars to preserve stride.
-    BufferReference<float> vertices = (BufferReference<float>)parameters.vertices;
-    uint offset = (surface.geometry.x + index) * 3;
+    BufferReference<float> vertices = ( BufferReference<float> )parameters.mVertices;
+    uint offset = ( surface.mGeometry.x + index ) * 3;
     float3 rest = float3( vertices[offset], vertices[offset + 1], vertices[offset + 2] );
-    float3 position, tangentX, tangentZ;
-    if ( surface.simulation.z == kWaterSimulationFft ) {
-        WaterFftSample sample = GetWaterFftSample( rest.xz, surface.fft.x );
-        position = rest + SampleWaterFft( parameters.fftDisplacement, surface.simulation.w, sample, 1 ).xyz;
+    CameraInfo camera = LoadBufferValue<CameraInfo>( parameters.mCamera, 0 );
+    float2 grid = float2( index % surface.mGeometry.z, index / surface.mGeometry.z );
+    bool ocean = ( surface.mGeometry.w & 64u ) != 0;
+    float2 gridSize = float2( surface.mGeometry.z, surface.mCoast.w ) - 1;
+    if ( ocean ) {
+        rest = WaterProjectedOceanRest( surface, camera, grid / max( gridSize, 1 ) );
+    }
+    float3 position;
+    float3 tangentX;
+    float3 tangentZ;
+    if ( surface.mSimulation.z == kWaterSimulationFft ) {
+        WaterFftSample sample = GetWaterFftSample( rest.xz, surface.mFft.x );
+        position = rest + SampleWaterFft( parameters.mFftDisplacement, surface.mSimulation.w, sample, 1 ).xyz;
     }
     else {
-        EvaluateWater( rest, surface, parameters.waves, position, tangentX, tangentZ );
+        EvaluateWater( rest, surface, parameters.mWaves, position, tangentX, tangentZ );
     }
 
-    float4 worldPosition = mul( surface.world, float4( position, 1 ) );
-    BufferReference<CameraInfo> camera = (BufferReference<CameraInfo>)parameters.camera;
+    float fade = 1;
+    if ( ocean ) {
+        float3 worldRest = mul( surface.mWorld, float4( rest, 1 ) ).xyz;
+        float distance = length( worldRest - camera.mViewPosition.xyz );
+        fade = 1 - smoothstep( 80, 800, distance );
+        // Fixed borders prevent displaced screen-grid edges opening holes.
+        if ( any( grid <= 0 ) || any( grid >= gridSize ) ) {
+            fade = 0;
+        }
+    }
+    position = rest + ( position - rest ) * WaterWaveWeight( surface, rest.xz ) * fade;
+
+    float4 worldPosition = mul( surface.mWorld, float4( position, 1 ) );
 
     WaterVaryings output;
-    output.position = CameraClipPosition( worldPosition, camera[0] );
-    output.worldPosition = worldPosition.xyz;
-    output.restPosition = rest.xz;
+    output.mPosition = CameraClipPosition( worldPosition, camera );
+    output.mWorldPosition = worldPosition.xyz;
+    output.mRestPosition = rest.xz;
     // Rest-grid coordinates stick to the moving mesh, including lateral motion.
-    output.grid = float2( index % surface.geometry.z, index / surface.geometry.z );
+    output.mGrid = ocean ? rest.xz : grid;
     return output;
 }

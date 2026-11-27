@@ -1,0 +1,28 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Sheltered forest lake",
+  "Material": {
+    "BaseColorFactor": [
+      0.025,
+      0.16,
+      0.13,
+      1
+    ],
+    "MetallicFactor": 0,
+    "RoughnessFactor": 0.2,
+    "AlphaMask": 0,
+    "ShadingModel": 6,
+    "Dielectric": {
+      "IndexOfRefraction": 1.333,
+      "Transmission": 1,
+      "ThinWalled": false,
+      "AttenuationColor": [
+        0.12,
+        0.48,
+        0.32
+      ],
+      "AttenuationDistance": 6
+    }
+  }
+}

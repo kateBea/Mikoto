@@ -131,7 +131,7 @@ namespace mikoto::scripting {
 
     struct ManagedNativeApi {
         core::u32 mSize{};
-        core::u32 mVersion{ 10 };
+        core::u32 mVersion{ 11 };
         core::i32 ( *mGetTransform )( core::u64, core::u64, core::i32, ManagedVector3* ){};
         core::i32 ( *mSetTransform )( core::u64, core::u64, core::i32, const ManagedVector3* ){};
         core::i32 ( *mIsKeyPressed )( core::i32 ){};
@@ -174,7 +174,13 @@ namespace mikoto::scripting {
         eCompile,
         eReloadScene,
         eInspect,
-        eSetFields
+        eSetFields,
+        eCollisionEnter,
+        eCollisionStay,
+        eCollisionExit,
+        eTriggerEnter,
+        eTriggerStay,
+        eTriggerExit
     };
 
     struct ManagedCommand {
@@ -189,6 +195,7 @@ namespace mikoto::scripting {
         core::u32 mReserved{};
         core::u32* mClassID{};
         core::cstr mValues{};
+        core::u64 mOtherEntity{};
     };
 }// namespace mikoto::scripting
 

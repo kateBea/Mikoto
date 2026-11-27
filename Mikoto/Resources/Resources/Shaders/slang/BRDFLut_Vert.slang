@@ -12,22 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Generate a fullscreen triangle from SV_VertexID and pass its sampling coordinates onward. The
+// paired fragment stage performs the image operation using the pipeline viewport convention.
+
 #pragma once
 
 #include "base/Base.slang"
 
 struct VSOutput {
-    float2 UV : TEXCOORD0;
-    float4 PositionH : SV_Position;
+    float2 mUV : TEXCOORD0;
+    float4 mPositionH : SV_Position;
 };
 
 [shader( "vertex" )]
 VSOutput main( uint vertexIndex : SV_VertexID ) {
     VSOutput o;
 
-    o.UV = float2( float( ( vertexIndex << 1 ) & 2 ), float( vertexIndex & 2 ) );
+    o.mUV = float2( float( ( vertexIndex << 1 ) & 2 ), float( vertexIndex & 2 ) );
 
-    o.PositionH = float4( o.UV * 2.0f - 1.0f, 0.0f, 1.0f );
+    o.mPositionH = float4( o.mUV * 2.0f - 1.0f, 0.0f, 1.0f );
 
     return o;
 }

@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Write the interpolated physics-debug color. Depth and blending behavior are selected by the
+// debug pipeline rather than by material lighting.
+
 #pragma once
 
 struct VSOutput {

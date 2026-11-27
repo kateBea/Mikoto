@@ -12,11 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// CPU-mirrored material/geometry records and shared vertex pulling. Coverage helpers centralize
+// sidedness and alpha tests so picking, depth, shadows and color agree on visible surfaces.
+
 #pragma once
 
+#include "Checkerboard_Helpers.slang"
 #include "Memory_Helpers.slang"
 #include "SurfaceCoverage_Helpers.slang"
-#include "Checkerboard_Helpers.slang"
 
 // ============================================================================
 // Constants
@@ -38,84 +41,84 @@ static const float MIN_ROUGHNESS = 0.04;
 // Structs
 // ============================================================================
 struct MaterialParameters {
-    float4 BaseColorFactor;
-    float4 EmissiveFactor;
-    float4 DiffuseFactor;
-    float4 SpecularFactor;
+    float4 mBaseColorFactor;
+    float4 mEmissiveFactor;
+    float4 mDiffuseFactor;
+    float4 mSpecularFactor;
 
-    float MetallicFactor;
-    float RoughnessFactor;
-    float AlphaMask;
-    float AlphaMaskCutoff;
-    float EmissiveStrength;
+    float mMetallicFactor;
+    float mRoughnessFactor;
+    float mAlphaMask;
+    float mAlphaMaskCutoff;
+    float mEmissiveStrength;
 
-    int BaseColorTextureSet;
-    int MetallicRoughnessTextureSet;
-    int SpecularGlossinessSet;
-    int NormalTextureSet;
-    int OcclusionTextureSet;
-    int EmissiveTextureSet;
+    int mBaseColorTextureSet;
+    int mMetallicRoughnessTextureSet;
+    int mSpecularGlossinessSet;
+    int mNormalTextureSet;
+    int mOcclusionTextureSet;
+    int mEmissiveTextureSet;
 
-    int AlbedoIndex;
-    int DiffuseIndex;
-    int NormalIndex;
-    int MetallicIndex;
-    int RoughnessIndex;
-    int AoIndex;
-    int EmissiveIndex;
-    int MetallicRoughnessIndex;
-    int SpecularGlossinessIndex;
+    int mAlbedoIndex;
+    int mDiffuseIndex;
+    int mNormalIndex;
+    int mMetallicIndex;
+    int mRoughnessIndex;
+    int mAoIndex;
+    int mEmissiveIndex;
+    int mMetallicRoughnessIndex;
+    int mSpecularGlossinessIndex;
 
-    int IsBloomy;
+    int mIsBloomy;
 
-    int Workflow;
+    int mWorkflow;
 
     int mPadding[2];
-    float4 Subsurface; // Screen-space scatter scale, weight, shading model, cell bands.
-    float4 SurfaceShading; // Coat weight/roughness, toon threshold/softness. Subsurface.w holds cell bands.
-    float4 SubsurfaceColorOpacity; // Per-channel scattering weight and suppression; not coverage.
-    int ClearCoatNormalIndex;
-    int ClearCoatNormalTextureSet;
-    float ClearCoatNormalScale;
-    float NormalScale;
-    float4 SubsurfaceTransmission; // Precomputed near/far attenuation RGB.
-    float4 UvTransform;
-    float4 HeightMapping; // Scale, midlevel, mode, maximum POM steps.
-    int HeightIndex;
-    uint HeightUVSet;
-    uint2 HeightPadding;
-    float4 CheckerboardColorA;
-    float4 CheckerboardColorB;
-    float4 CheckerboardOffset;
+    float4 mSubsurface;            // Screen-space scatter scale, weight, shading model, cell bands.
+    float4 mSurfaceShading;        // Coat weight/roughness, toon threshold/softness. Subsurface.w holds cell bands.
+    float4 mSubsurfaceColorOpacity;// Per-channel scattering weight and suppression; not coverage.
+    int mClearCoatNormalIndex;
+    int mClearCoatNormalTextureSet;
+    float mClearCoatNormalScale;
+    float mNormalScale;
+    float4 mSubsurfaceTransmission;// Precomputed near/far attenuation RGB.
+    float4 mUvTransform;
+    float4 mHeightMapping;// Scale, midlevel, mode, maximum POM steps.
+    int mHeightIndex;
+    uint mHeightUVSet;
+    uint2 mHeightPadding;
+    float4 mCheckerboardColorA;
+    float4 mCheckerboardColorB;
+    float4 mCheckerboardOffset;
 };
 
 struct MeshParameters {
-    float4x4 Transform;
+    float4x4 mTransform;
 
     // For vertex pulling, this tells the offset into the  array of vertices
-    uint VertexOffset;
-    uint IndexOffset;
+    uint mVertexOffset;
+    uint mIndexOffset;
 
-    int AnimatorID;// MatricesIndex
-    int HasArmature;
+    int mAnimatorID;// MatricesIndex
+    int mHasArmature;
 };
 
 struct VertexDescription {
-    float3 position;
+    float3 mPosition;
     float mPad0;
-    float3 normal;
+    float3 mNormal;
     float mPad1;
 
-    float4 color;
+    float4 mColor;
 
-    float2 uv0;
-    float2 uv1;
+    float2 mUv0;
+    float2 mUv1;
 
-    float4 joints0;
-    float4 weights0;
+    float4 mJoints0;
+    float4 mWeights0;
 
-    float4 joints1;
-    float4 weights1;
+    float4 mJoints1;
+    float4 mWeights1;
 };
 
 // Match renderer::MeshStream in Renderer/Core/MeshRenderData.hh.
@@ -145,40 +148,43 @@ struct GeometryAllocation {
 
 // Persistent GPU instance record.
 struct MeshGeometryInfo {
-    float4x4 Transform;
+    float4x4 mTransform;
 
     // Index into the buffer
     // of list of skinning matrices
-    int SkinningMatricesID;
-    int HasArmature;
+    int mSkinningMatricesID;
+    int mHasArmature;
 
     // Index into buffer of geometry info
-    uint GeometryIndex;
+    uint mGeometryIndex;
 
     // TODO: add a list of shadow casters. This will be an index into the array of shadow casters
     // buffer to know from which lights this entity needs shadows casted from, ofc there will be a limit you cannot
     // just slap a unlimited amount of shadow casters
 
-    uint ObjectID;
+    uint mObjectID;
 
-    uint IsHighlighted;
-    uint AlphaMode;
-    uint FaceFlags;
-    uint MaterialIndex;
-    uint64_t SkinnedPositions;
-    uint64_t SkinnedNormals;
+    uint mIsHighlighted;
+    uint mAlphaMode;
+    uint mFaceFlags;
+    uint mMaterialIndex;
+    uint64_t mSkinnedPositions;
+    uint64_t mSkinnedNormals;
+    float4 mFoliageMotion;
+    float4 mFoliageWind;
+    float4 mFoliageShape;
 };
 
 struct SceneGeometryView {
-    Pointer Instances;
-    Pointer DrawInstances;
+    Pointer mInstances;
+    Pointer mDrawInstances;
 };
 
 MeshGeometryInfo LoadMeshGeometry( Pointer address, uint drawInstance ) {
     SceneGeometryView view = LoadBufferValue<SceneGeometryView>( address, 0 );
-    uint2 draw = LoadBufferValue<uint2>( view.DrawInstances, drawInstance * 8 );
-    MeshGeometryInfo mesh = LoadBufferValue<MeshGeometryInfo>( view.Instances, draw.x * sizeof( MeshGeometryInfo ) );
-    mesh.FaceFlags |= draw.y;
+    uint2 draw = LoadBufferValue<uint2>( view.mDrawInstances, drawInstance * 8 );
+    MeshGeometryInfo mesh = LoadBufferValue<MeshGeometryInfo>( view.mInstances, draw.x * sizeof( MeshGeometryInfo ) );
+    mesh.mFaceFlags |= draw.y;
     return mesh;
 }
 
@@ -205,28 +211,32 @@ bool MaterialBackfaceDiscard( uint faceFlags, bool rasterFrontFacing ) {
 // Opacity stays linear and uses the same texture, UV set, factor, and vertex alpha
 // in the depth, selection, and color passes.
 int MaterialAlphaTexture( MaterialParameters material ) {
-    return material.Workflow == PBR_WORKFLOW_SPECULAR_GLOSSINESS ? material.DiffuseIndex : material.AlbedoIndex;
+    return material.mWorkflow == PBR_WORKFLOW_SPECULAR_GLOSSINESS ? material.mDiffuseIndex : material.mAlbedoIndex;
 }
 
 float2 MaterialAlphaUV( MaterialParameters material, float2 uv0, float2 uv1 ) {
-    return ( material.BaseColorTextureSet == 0 ? uv0 : uv1 ) * material.UvTransform.xy + material.UvTransform.zw;
+    return ( material.mBaseColorTextureSet == 0 ? uv0 : uv1 ) * material.mUvTransform.xy + material.mUvTransform.zw;
 }
 
+// Combine material alpha factors, the selected UV set and the texture sample. Centralizing this
+// query keeps depth/shadow coverage compatible with shaded surfaces.
 float MaterialAlpha( MaterialParameters material, float textureAlpha, float vertexAlpha ) {
-    float factor = material.Workflow == PBR_WORKFLOW_SPECULAR_GLOSSINESS ? material.DiffuseFactor.a
-                                                                         : material.BaseColorFactor.a;
+    float factor = material.mWorkflow == PBR_WORKFLOW_SPECULAR_GLOSSINESS ? material.mDiffuseFactor.a
+                                                                         : material.mBaseColorFactor.a;
     return saturate( factor * textureAlpha * vertexAlpha );
 }
 
 bool MaterialAlphaDiscard( MaterialParameters material, float alpha ) {
-    return ( material.AlphaMask == PBR_ALPHA_MASK && alpha < material.AlphaMaskCutoff ) ||
-           ( material.AlphaMask == PBR_ALPHA_BLEND && alpha <= 0.0f );
+    return ( material.mAlphaMask == PBR_ALPHA_MASK && alpha < material.mAlphaMaskCutoff ) ||
+           ( material.mAlphaMask == PBR_ALPHA_BLEND && alpha <= 0.0f );
 }
 
 // Match the packed PBR pass flag in GeometryShadingModule. Keep the low bits
 // available for the environment mip count within the 128-byte push constants.
 static const uint PBR_TRANSPARENT_SURFACE_PASS = 1u << 28;
 
+// Decide whether this fragment belongs to the current opaque/transparent surface pass. Blend
+// classification and alpha cutoff are applied before expensive lighting.
 bool MaterialSurfaceDiscard( MaterialParameters material, float alpha, bool transparentPass ) {
     if ( MaterialAlphaDiscard( material, alpha ) ) {
         return true;
@@ -238,16 +248,16 @@ bool MaterialSurfaceDiscard( MaterialParameters material, float alpha, bool tran
     // An exact comparison lets depth and color disagree, producing pinholes.
     // Share the same tiny rounding band in both passes; it is far smaller than
     // one 8/16-bit texture-alpha step. Fractional glass remains translucent.
-    bool translucent = IsTranslucentBlend( alpha, material.AlphaMask == PBR_ALPHA_BLEND );
+    bool translucent = IsTranslucentBlend( alpha, material.mAlphaMask == PBR_ALPHA_BLEND );
     return translucent != transparentPass;
 }
 
 // Gets metallic factor from specular glossiness workflow inputs
 float ConvertMetallic( float3 diffuse, float3 specular, float maxSpecular ) {
     float perceivedDiffuse =
-            sqrt( 0.299 * diffuse.r * diffuse.r + 0.587 * diffuse.g * diffuse.g + 0.114 * diffuse.b * diffuse.b );
+        sqrt( 0.299 * diffuse.r * diffuse.r + 0.587 * diffuse.g * diffuse.g + 0.114 * diffuse.b * diffuse.b );
     float perceivedSpecular =
-            sqrt( 0.299 * specular.r * specular.r + 0.587 * specular.g * specular.g + 0.114 * specular.b * specular.b );
+        sqrt( 0.299 * specular.r * specular.r + 0.587 * specular.g * specular.g + 0.114 * specular.b * specular.b );
     if ( perceivedSpecular < MIN_ROUGHNESS ) {
         return 0.0;
     }
@@ -269,10 +279,14 @@ float SphereLightAttenuation( float distance, float radius ) {
 
 // Stream order matches renderer::MeshStream. DrawIndirect invokes the shader once
 // per index. Resolve that index once, then pull only the required attributes.
+// Resolve the shared geometry allocation for this draw. Vertex-pulling helpers use its offsets
+// to address position-only or full shading streams.
 GeometryAllocation GetGeometryAllocation( MeshGeometryInfo mesh, Pointer allocations ) {
-    return ( ( BufferReference<GeometryAllocation> )allocations )[mesh.GeometryIndex];
+    return ( ( BufferReference<GeometryAllocation> )allocations )[mesh.mGeometryIndex];
 }
 
+// Resolve the draw vertex into the shared index stream. The resulting mesh index is reused by
+// the position and shading attribute loads.
 uint PullVertexIndex( GeometryAllocation allocation, uint invocation ) {
     return ( ( BufferReference<uint> )allocation.mIndexBuffer )[invocation];
 }
@@ -286,38 +300,42 @@ float3 PullFloat3( uint64_t address, uint vertexID ) {
 
 VertexDescription PullPositionVertex( MeshGeometryInfo mesh, GeometryAllocation allocation, uint vertexID ) {
     VertexDescription vertex = ( VertexDescription )0;
-    if ( mesh.SkinnedPositions != 0 ) {
-        float4 position = ( ( BufferReference<float4> )mesh.SkinnedPositions )[vertexID];
-        vertex.position = position.xyz;
+    if ( mesh.mSkinnedPositions != 0 ) {
+        float4 position = ( ( BufferReference<float4> )mesh.mSkinnedPositions )[vertexID];
+        vertex.mPosition = position.xyz;
         vertex.mPad0 = position.w;
         return vertex;
     }
-    vertex.position = PullFloat3( allocation.mStreams[uint( MeshStream::Position )], vertexID );
+    vertex.mPosition = PullFloat3( allocation.mStreams[uint( MeshStream::Position )], vertexID );
     // Static meshes omit skinning streams, whose addresses remain zero.
-    if ( mesh.SkinningMatricesID > 0 && allocation.mStreams[uint( MeshStream::Joints0 )] != 0 ) {
-        vertex.joints0 = ( ( BufferReference<float4> )allocation.mStreams[uint( MeshStream::Joints0 )] )[vertexID];
-        vertex.weights0 = ( ( BufferReference<float4> )allocation.mStreams[uint( MeshStream::Weights0 )] )[vertexID];
-        vertex.joints1 = ( ( BufferReference<float4> )allocation.mStreams[uint( MeshStream::Joints1 )] )[vertexID];
-        vertex.weights1 = ( ( BufferReference<float4> )allocation.mStreams[uint( MeshStream::Weights1 )] )[vertexID];
+    if ( mesh.mSkinningMatricesID > 0 && allocation.mStreams[uint( MeshStream::Joints0 )] != 0 ) {
+        vertex.mJoints0 = ( ( BufferReference<float4> )allocation.mStreams[uint( MeshStream::Joints0 )] )[vertexID];
+        vertex.mWeights0 = ( ( BufferReference<float4> )allocation.mStreams[uint( MeshStream::Weights0 )] )[vertexID];
+        vertex.mJoints1 = ( ( BufferReference<float4> )allocation.mStreams[uint( MeshStream::Joints1 )] )[vertexID];
+        vertex.mWeights1 = ( ( BufferReference<float4> )allocation.mStreams[uint( MeshStream::Weights1 )] )[vertexID];
     }
     return vertex;
 }
 
+// Read only the attributes required by geometry/depth evaluation. Avoiding the full shading
+// stream reduces bandwidth in early passes.
 VertexDescription PullDepthVertex( MeshGeometryInfo mesh, GeometryAllocation allocation, uint vertexID ) {
     VertexDescription vertex = PullPositionVertex( mesh, allocation, vertexID );
     // Keep alpha cutouts identical to shading, without fetching any normals.
-    vertex.uv0 = ( ( BufferReference<float2> )allocation.mStreams[uint( MeshStream::UV0 )] )[vertexID];
-    vertex.uv1 = ( ( BufferReference<float2> )allocation.mStreams[uint( MeshStream::UV1 )] )[vertexID];
-    vertex.color.a = ( ( BufferReference<float> )allocation.mStreams[uint( MeshStream::Color )] )[vertexID * 4 + 3];
+    vertex.mUv0 = ( ( BufferReference<float2> )allocation.mStreams[uint( MeshStream::UV0 )] )[vertexID];
+    vertex.mUv1 = ( ( BufferReference<float2> )allocation.mStreams[uint( MeshStream::UV1 )] )[vertexID];
+    vertex.mColor.a = ( ( BufferReference<float> )allocation.mStreams[uint( MeshStream::Color )] )[vertexID * 4 + 3];
     return vertex;
 }
 
+// Load the complete vertex attributes needed for surface shading. The layout and offsets mirror
+// the CPU geometry upload.
 VertexDescription PullShadingVertex( MeshGeometryInfo mesh, GeometryAllocation allocation, uint vertexID ) {
     VertexDescription vertex = PullPositionVertex( mesh, allocation, vertexID );
-    vertex.normal = mesh.SkinnedNormals != 0 ? ( ( BufferReference<float4> )mesh.SkinnedNormals )[vertexID].xyz
+    vertex.mNormal = mesh.mSkinnedNormals != 0 ? ( ( BufferReference<float4> )mesh.mSkinnedNormals )[vertexID].xyz
                                              : PullFloat3( allocation.mStreams[uint( MeshStream::Normal )], vertexID );
-    vertex.color = ( ( BufferReference<float4> )allocation.mStreams[uint( MeshStream::Color )] )[vertexID];
-    vertex.uv0 = ( ( BufferReference<float2> )allocation.mStreams[uint( MeshStream::UV0 )] )[vertexID];
-    vertex.uv1 = ( ( BufferReference<float2> )allocation.mStreams[uint( MeshStream::UV1 )] )[vertexID];
+    vertex.mColor = ( ( BufferReference<float4> )allocation.mStreams[uint( MeshStream::Color )] )[vertexID];
+    vertex.mUv0 = ( ( BufferReference<float2> )allocation.mStreams[uint( MeshStream::UV0 )] )[vertexID];
+    vertex.mUv1 = ( ( BufferReference<float2> )allocation.mStreams[uint( MeshStream::UV1 )] )[vertexID];
     return vertex;
 }

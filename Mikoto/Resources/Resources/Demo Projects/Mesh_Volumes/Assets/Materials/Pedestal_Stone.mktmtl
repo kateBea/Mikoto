@@ -1,0 +1,16 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Pedestal_Stone",
+  "Material": {
+    "BaseColorFactor": [
+      0.42,
+      0.45,
+      0.5,
+      1
+    ],
+    "MetallicFactor": 0,
+    "RoughnessFactor": 0.42,
+    "AlphaMask": 0
+  }
+}

@@ -13,9 +13,13 @@
 // limitations under the License.
 
 #include <limits>
+
 #include <EASTL/algorithm.h>
+
 #include <Core/Exception.hh>
+
 #include <Logging/Logger.hh>
+
 #include <Renderer/Core/RenderSystem.hh>
 #include <Renderer/Video/Video.hh>
 
@@ -32,12 +36,12 @@ namespace mikoto::renderer {
     auto VideoRenderData::PreparePicture( Ref<H264Picture> picture, Ref<DecodedVideoFrame> frame ) -> void {
         // Match Wicked's decode-order DPB bookkeeping; presentation still follows MP4 PTS.
         // https://github.com/turanszkij/WickedEngine/blob/master/WickedEngine/wiVideo.cpp
-        const auto& sps{ picture->GetSps() };
-        const auto& slice{ picture->GetSlices().front() };
+        const auto &sps{ picture->GetSps() };
+        const auto &slice{ picture->GetSlices().front() };
         const i32 maximumFrameNumber{ 1 << ( sps.log2_max_frame_num_minus4 + 4 ) };
 
         if ( picture->IsIdr() ) {
-            for ( auto& slot: mDpb ) {
+            for ( auto &slot: mDpb ) {
                 slot.mUsed = false;
             }
 
@@ -53,23 +57,27 @@ namespace mikoto::renderer {
             }
 
             poc = picture->IsIdr() ? 0 : 2 * ( mFrameNumberOffset + slice.frame_num ) - ( picture->IsReference() ? 0 : 1 );
-        } else if ( sps.pic_order_cnt_type == 0 && !slice.delta_pic_order_cnt_bottom ) {
+        }
+        else if ( sps.pic_order_cnt_type == 0 && !slice.delta_pic_order_cnt_bottom ) {
             const i32 maximumPoc{ 1 << ( sps.log2_max_pic_order_cnt_lsb_minus4 + 4 ) };
             pocMsb = mPreviousPocMsb;
 
             if ( slice.pic_order_cnt_lsb < mPreviousPocLsb && mPreviousPocLsb - slice.pic_order_cnt_lsb >= maximumPoc / 2 ) {
                 pocMsb += maximumPoc;
-            } else if ( slice.pic_order_cnt_lsb > mPreviousPocLsb && slice.pic_order_cnt_lsb - mPreviousPocLsb > maximumPoc / 2 ) {
+            }
+            else if ( slice.pic_order_cnt_lsb > mPreviousPocLsb && slice.pic_order_cnt_lsb - mPreviousPocLsb > maximumPoc / 2 ) {
                 pocMsb -= maximumPoc;
             }
 
             poc = pocMsb + slice.pic_order_cnt_lsb;
-        } else {
+        }
+        else {
             MKT_THROW_RUNTIME_ERROR( "This H.264 picture-order mode is not supported yet." );
         }
 
-        auto free{ mDecoder->UsesCoincidentOutput() ? mDpb.begin() + frame->mSlot :
-            eastl::find_if( mDpb.begin(), mDpb.end(), []( const auto& slot ) { return !slot.mUsed; } ) };
+        auto free{ mDecoder->UsesCoincidentOutput() ? mDpb.begin() + frame->mSlot : eastl::find_if( mDpb.begin(), mDpb.end(), []( const auto &slot ) {
+            return !slot.mUsed;
+        } ) };
 
         if ( free == mDpb.end() ) {
             MKT_THROW_RUNTIME_ERROR( "H.264 decoded-picture buffer has no free reconstruction slot." );
@@ -87,7 +95,7 @@ namespace mikoto::renderer {
         operation.mReconstruction.mPictureOrderCount = poc;
         operation.mResetSession = mResetDecoder;
 
-        for ( const auto& slot: mDpb ) {
+        for ( const auto &slot: mDpb ) {
             if ( slot.mUsed ) {
                 operation.mReferences.push_back( slot.mPicture );
             }
@@ -110,14 +118,14 @@ namespace mikoto::renderer {
                 const i32 shortNumber{ slice.frame_num - slice.drpm.difference_of_pic_nums_minus1[index] - 1 };
                 const i32 longIndex{ slice.drpm.long_term_frame_idx[index] };
 
-                for ( auto& slot: mDpb ) {
+                for ( auto &slot: mDpb ) {
                     if ( !slot.mUsed ) {
                         continue;
                     }
 
-                    auto& reference{ slot.mPicture };
+                    auto &reference{ slot.mPicture };
                     const bool matchingShort{ !reference.mLongTerm &&
-                        PictureNumber( reference.mFrameNumber, slice.frame_num, maximumFrameNumber ) == shortNumber };
+                                              PictureNumber( reference.mFrameNumber, slice.frame_num, maximumFrameNumber ) == shortNumber };
                     const bool replacedLong{ reference.mLongTerm && static_cast<i32>( reference.mFrameNumber ) == longIndex };
 
                     if ( ( op == 1 && matchingShort ) ||
@@ -136,15 +144,20 @@ namespace mikoto::renderer {
 
                 if ( op == 5 ) {
                     resetOrder = true;
-                } else if ( op == 6 ) {
+                }
+                else if ( op == 6 ) {
                     currentLongTerm = true;
                     currentLongTermIndex = longIndex;
-                } else if ( op < 1 || op > 6 ) {
+                }
+                else if ( op < 1 || op > 6 ) {
                     MKT_THROW_RUNTIME_ERROR( "Invalid H.264 reference marking operation." );
                 }
             }
-        } else if ( picture->IsReference() && !picture->IsIdr() ) {
-            const auto used{ eastl::count_if( mDpb.begin(), mDpb.end(), []( const auto& slot ) { return slot.mUsed; } ) };
+        }
+        else if ( picture->IsReference() && !picture->IsIdr() ) {
+            const auto used{ eastl::count_if( mDpb.begin(), mDpb.end(), []( const auto &slot ) {
+                return slot.mUsed;
+            } ) };
 
             if ( used >= eastl::max( sps.num_ref_frames, 1 ) ) {
                 auto oldest{ mDpb.end() };
@@ -152,7 +165,7 @@ namespace mikoto::renderer {
                 for ( auto slot{ mDpb.begin() }; slot != mDpb.end(); ++slot ) {
                     if ( slot->mUsed && !slot->mPicture.mLongTerm &&
                          ( oldest == mDpb.end() || PictureNumber( slot->mPicture.mFrameNumber, slice.frame_num, maximumFrameNumber ) <
-                             PictureNumber( oldest->mPicture.mFrameNumber, slice.frame_num, maximumFrameNumber ) ) ) {
+                                                       PictureNumber( oldest->mPicture.mFrameNumber, slice.frame_num, maximumFrameNumber ) ) ) {
                         oldest = slot;
                     }
                 }
@@ -186,7 +199,7 @@ namespace mikoto::renderer {
         mResetDecoder = false;
     }
 
-    auto VideoBitstream::Create( const Ref<asset::VideoClip>& clip, IVideoDecoder* decoder ) -> Ref<VideoBitstream> {
+    auto VideoBitstream::Create( const Ref<asset::VideoClip> &clip, IVideoDecoder *decoder ) -> Ref<VideoBitstream> {
         // Pack every access unit once, retaining per-picture offsets for seeks and reordering.
         // https://github.com/turanszkij/mini_video/blob/master/mini_video_vulkan.cpp
         auto stream{ Ref<VideoBitstream>::New() };
@@ -211,7 +224,7 @@ namespace mikoto::renderer {
             const usize maximumSize{ std::numeric_limits<usize>::max() };
 
             if ( bytes.size() > maximumSize - layout.mOffsetAlignment ||
-                pictureSize > maximumSize - layout.mSizeAlignment ) {
+                 pictureSize > maximumSize - layout.mSizeAlignment ) {
                 MKT_THROW_RUNTIME_ERROR( "Video bitstream exceeds the addressable upload size." );
             }
 
@@ -268,7 +281,7 @@ namespace mikoto::renderer {
             ResetDecoder();
         }
 
-        if ( mPlayback->IsPreview() && mCurrentFrame ) {
+        if ( mPlayback->IsPosterFrameOnly() && mCurrentFrame ) {
             return;
         }
 
@@ -296,7 +309,7 @@ namespace mikoto::renderer {
                 }
 
                 if ( !mOutput ) {
-                    const auto& info{ mPlayback->GetClip()->GetInfo().mVideo };
+                    const auto &info{ mPlayback->GetClip()->GetInfo().mVideo };
                     mOutput = RenderSystem::Get()->GetGpuDevice()->CreateTexture( TextureCreateDescription{}
                         .SetName( "Video material output" )
                         .SetWidth( info.mWidth )
@@ -307,10 +320,10 @@ namespace mikoto::renderer {
             }
 
             while ( mDecoder && mPlayback->GetPicture() && mDecodeWork.size() < 4 ) {
-                auto free{ eastl::find_if( mFramePool.begin(), mFramePool.end(), [&]( const auto& frame ) {
+                auto free{ eastl::find_if( mFramePool.begin(), mFramePool.end(), [&]( const auto &frame ) {
                     // A coincident picture is reusable only after both reference and display users release it.
                     return frame->GetRefCount() == 1 &&
-                        ( !mDecoder->UsesCoincidentOutput() || !mDpb[frame->mSlot].mUsed );
+                           ( !mDecoder->UsesCoincidentOutput() || !mDpb[frame->mSlot].mUsed );
                 } ) };
 
                 if ( free == mFramePool.end() ) {
@@ -331,16 +344,24 @@ namespace mikoto::renderer {
             // Select by presentation timestamp after
             // preparing every required decode reference.
             Ref<DecodedVideoFrame> selected{};
+            const auto samples{ mPlayback->GetClip()->GetSamples( TrackKind::eVideo ) };
+            const auto firstFrameTime{ samples[mPlayback->GetPreviewSample()].mPresentationTime.ToSeconds() };
+            const bool showFirstFrame{ mPlayback->IsPosterFrameOnly() || mPlayback->GetTimeSeconds() < firstFrameTime };
 
             for ( auto entry{ mDisplayQueue.begin() }; entry != mDisplayQueue.end(); ) {
-                if ( mPlayback->IsPreview() ) {
-                    const auto samples{ mPlayback->GetClip()->GetSamples( TrackKind::eVideo ) };
-
-                    if ( ( *entry )->mPresentationTime.ToSeconds() == samples[mPlayback->GetPreviewSample()].mPresentationTime.ToSeconds() ) {
+                if ( showFirstFrame ) {
+                    // A paused scrub before a positive first PTS still shows
+                    // that first picture; retain later pictures for resume.
+                    if ( ( *entry )->mPresentationTime.ToSeconds() == firstFrameTime ) {
                         selected = *entry;
+                        entry = mDisplayQueue.erase( entry );
                     }
-
-                    entry = mDisplayQueue.erase( entry );
+                    else if ( mPlayback->IsPosterFrameOnly() ) {
+                        entry = mDisplayQueue.erase( entry );
+                    }
+                    else {
+                        ++entry;
+                    }
                     continue;
                 }
 
@@ -350,7 +371,8 @@ namespace mikoto::renderer {
                     }
 
                     entry = mDisplayQueue.erase( entry );
-                } else {
+                }
+                else {
                     ++entry;
                 }
             }
@@ -360,7 +382,7 @@ namespace mikoto::renderer {
                 mCurrentFrame = eastl::move( selected );
                 ++mRevision;
             }
-        } catch ( const std::exception& error ) {
+        } catch ( const std::exception &error ) {
             mPlayback->SetFailure( error.what() );
             MKT_CORE_LOGGER_ERROR( "Prepare video: {}", error.what() );
         }
@@ -373,7 +395,7 @@ namespace mikoto::renderer {
 
         try {
             mBitstream = RenderSystem::Get()->AcquireVideoBitstream( mPlayback->GetClip(), mDecoder.GetPtr() );
-        } catch ( const std::exception& error ) {
+        } catch ( const std::exception &error ) {
             mPlayback->SetFailure( error.what() );
             mDecodeWork.clear();
             MKT_CORE_LOGGER_ERROR( "Upload video: {}", error.what() );
@@ -411,7 +433,7 @@ namespace mikoto::renderer {
         return mPresentedGeneration == generation;
     }
 
-    auto VideoRenderData::GetPlayback() const -> const VideoPlaybackHandle& {
+    auto VideoRenderData::GetPlayback() const -> const VideoPlaybackHandle & {
         return mPlayback;
     }
 
@@ -430,4 +452,4 @@ namespace mikoto::renderer {
     auto VideoRenderData::GetRevision() const -> u64 {
         return mRevision;
     }
-}
+}// namespace mikoto::renderer

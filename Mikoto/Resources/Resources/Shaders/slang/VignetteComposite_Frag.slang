@@ -12,11 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Apply vignette color and strength using the precomputed shape mask. The effect blends over
+// the sampled scene image.
+
 #include "base/Base.slang"
 #include "base/Memory_Helpers.slang"
 
 struct FSInput {
-    float2 UV : TEXCOORD0;
+    float2 mUV : TEXCOORD0;
 };
 
 struct DrawParams {
@@ -40,8 +43,8 @@ float3 ApplyVignette( float3 sceneColor, float3 vignetteColor, float mask, float
 float4 main( FSInput input ) : SV_Target0 {
     SamplerState sampler = samplers[parameters.mSampler];
 
-    float4 sceneColor = textures[parameters.mSceneImage].SampleLevel( sampler, input.UV, 0 );
-    float mask = textures[parameters.mMaskImage].SampleLevel( sampler, input.UV, 0 ).r;
+    float4 sceneColor = textures[parameters.mSceneImage].SampleLevel( sampler, input.mUV, 0 );
+    float mask = textures[parameters.mMaskImage].SampleLevel( sampler, input.mUV, 0 ).r;
 
     return float4( ApplyVignette( sceneColor.rgb, parameters.mColor, mask, parameters.mStrength ), sceneColor.a );
 }

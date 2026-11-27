@@ -9,6 +9,8 @@
       1,
       1
     ],
-    "TexturePath": "../../Textures/kenney_particle-pack/PNG (Transparent)/spark_05.png"
+    "TexturePath": "../../Textures/kenney_particle-pack/PNG (Transparent)/spark_05.png",
+    "BloomEnabled": true,
+    "BloomIntensity": 5
   }
 }

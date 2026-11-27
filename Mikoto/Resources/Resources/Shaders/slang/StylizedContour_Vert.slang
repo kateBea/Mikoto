@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Expand a material silhouette along its projected normal to form a contour shell. The
+// expansion uses viewport scaling so outline width follows screen-space settings.
+
 #pragma once
 
 #include "base/Animation_Helpers.slang"
@@ -62,24 +65,24 @@ MKT_DECLARE_STRUCTURED_SRV buffers;
 MKT_DECLARE_PUSH_CONSTANT( DrawParams, parameters );
 
 struct VSInput {
-    uint VertexID : SV_VertexID;
-    uint InstanceIndex : SV_InstanceID;
-    uint BaseInstanceIndex : SV_StartInstanceLocation;
+    uint mVertexID : SV_VertexID;
+    uint mInstanceIndex : SV_InstanceID;
+    uint mBaseInstanceIndex : SV_StartInstanceLocation;
 };
 
 struct VSOutput {
-    float3 FragmentViewPos : TEXCOORD0;
-    float3 FragmentWorldPos : TEXCOORD1;
-    float3 Normal : NORMAL;
-    float2 TexCoord0 : TEXCOORD3;
-    float2 TexCoord1 : TEXCOORD4;
-    float4 Color : TEXCOORD5;
+    float3 mFragmentViewPos : TEXCOORD0;
+    float3 mFragmentWorldPos : TEXCOORD1;
+    float3 mNormal : NORMAL;
+    float2 mTexCoord0 : TEXCOORD3;
+    float2 mTexCoord1 : TEXCOORD4;
+    float4 mColor : TEXCOORD5;
 
-    nointerpolation uint MaterialIndex : TEXCOORD6;
-    nointerpolation uint FaceFlags : TEXCOORD7;
-    nointerpolation uint DrawIdentity : TEXCOORD8;
+    nointerpolation uint mMaterialIndex : TEXCOORD6;
+    nointerpolation uint mFaceFlags : TEXCOORD7;
+    nointerpolation uint mDrawIdentity : TEXCOORD8;
 
-    float4 PositionH : SV_Position;
+    float4 mPositionH : SV_Position;
 };
 
 [shader( "vertex" )]
@@ -87,12 +90,12 @@ VSOutput main( VSInput input ) {
     VSOutput o;
 
     // Prepare vertex data
-    uint instanceIndex = input.BaseInstanceIndex + input.InstanceIndex;
+    uint instanceIndex = input.mBaseInstanceIndex + input.mInstanceIndex;
 
     // Apply skinning
     MeshGeometryInfo meshInfo = LoadMeshGeometry( parameters.mGeometryPtr, instanceIndex );
     GeometryAllocation allocation = GetGeometryAllocation( meshInfo, parameters.mGeometryDescPtr );
-    uint vertexIndex = PullVertexIndex( allocation, input.VertexID );
+    uint vertexIndex = PullVertexIndex( allocation, input.mVertexID );
     VertexDescription vertex = PullShadingVertex( meshInfo, allocation, vertexIndex );
 
     // Compute world position
@@ -103,27 +106,27 @@ VSOutput main( VSInput input ) {
 
     BufferReference<CameraInfo> camera = ( BufferReference<CameraInfo> )parameters.mCameraPtr;
 
-    o.TexCoord0 = vertex.uv0;
-    o.TexCoord1 = vertex.uv1;
-    o.Color = vertex.color;
+    o.mTexCoord0 = vertex.mUv0;
+    o.mTexCoord1 = vertex.mUv1;
+    o.mColor = vertex.mColor;
 
-    o.FragmentWorldPos = worldPos.xyz;
-    o.FragmentViewPos = mul( camera[0].mViewMatrix, worldPos ).xyz;
-    o.Normal = worldNormal;
+    o.mFragmentWorldPos = worldPos.xyz;
+    o.mFragmentViewPos = mul( camera[0].mViewMatrix, worldPos ).xyz;
+    o.mNormal = worldNormal;
 
-    o.DrawIdentity = instanceIndex + 1;
-    o.MaterialIndex = meshInfo.MaterialIndex;
-    o.FaceFlags = meshInfo.FaceFlags;
+    o.mDrawIdentity = instanceIndex + 1;
+    o.mMaterialIndex = meshInfo.mMaterialIndex;
+    o.mFaceFlags = meshInfo.mFaceFlags;
 
-    o.PositionH = CameraClipPosition( worldPos, camera[0] );
+    o.mPositionH = CameraClipPosition( worldPos, camera[0] );
 
-    MaterialParameters material = ( ( BufferReference<MaterialParameters> )parameters.mMaterialsPtr )[meshInfo.MaterialIndex];
+    MaterialParameters material = ( ( BufferReference<MaterialParameters> )parameters.mMaterialsPtr )[meshInfo.mMaterialIndex];
     float4 projectedNormal = mul( camera[0].mProjection, mul( camera[0].mViewMatrix, float4( worldNormal, 0 ) ) );
     // Differentiate the perspective divide, then normalize in pixel space.
-    float2 direction = ( projectedNormal.xy * o.PositionH.w - o.PositionH.xy * projectedNormal.w ) * camera[0].mScreenDimensions.xy;
+    float2 direction = ( projectedNormal.xy * o.mPositionH.w - o.mPositionH.xy * projectedNormal.w ) * camera[0].mScreenDimensions.xy;
     float lengthSquared = dot( direction, direction );
-    if ( lengthSquared > 1e-12 && o.PositionH.w > 0 ) {
-        o.PositionH.xy += direction * rsqrt( lengthSquared ) * ( 2 * material.SubsurfaceColorOpacity.a / camera[0].mScreenDimensions.xy ) * o.PositionH.w;
+    if ( lengthSquared > 1e-12 && o.mPositionH.w > 0 ) {
+        o.mPositionH.xy += direction * rsqrt( lengthSquared ) * ( 2 * material.mSubsurfaceColorOpacity.a / camera[0].mScreenDimensions.xy ) * o.mPositionH.w;
     }
     return o;
 }

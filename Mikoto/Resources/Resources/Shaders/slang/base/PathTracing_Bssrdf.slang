@@ -1,5 +1,9 @@
 // PBRT-derived portions: Copyright (c) 1998-2020 Matt Pharr, Wenzel Jakob,
 // and Greg Humphreys. SPDX-License-Identifier: Apache-2.0
+
+// Sample subsurface transport using the uploaded diffusion profile. Surface probes search for
+// an exit point and return the probability/weight for the selected radial sample.
+
 #pragma once
 
 // TabulatedBSSRDF: sample a projected disk, then reservoir-sample the same-material
@@ -10,17 +14,20 @@
 static const uint BSSRDF_SAMPLES = 64;
 
 float4 BssrdfTable( Surface s, uint index, bool cdf = false ) {
-    return LoadBufferValue<float4>( Parameters.Data, s.Profile + ( index + ( cdf ? BSSRDF_SAMPLES : 0 ) ) * sizeof( float4 ) );
+    return LoadBufferValue<float4>( Parameters.mData, s.mProfile + ( index + ( cdf ? BSSRDF_SAMPLES : 0 ) ) * sizeof( float4 ) );
 }
 
+// Sample a diffusion-profile radius from the uploaded table. The returned radius determines
+// where to probe for a possible subsurface exit.
 float BssrdfRadius( Surface s, uint channel, float sample ) {
-    float extinction = s.Absorption[channel] + s.Scattering[channel];
+    float extinction = s.mAbsorption[channel] + s.mScattering[channel];
     float total = BssrdfTable( s, BSSRDF_SAMPLES - 1, true )[channel + 1];
     if ( extinction <= 0.0 || total <= 0.0 ) {
         return 0.0;
     }
     float target = sample * total;
-    uint low = 0, high = BSSRDF_SAMPLES - 2;
+    uint low = 0;
+    uint high = BSSRDF_SAMPLES - 2;
     while ( low < high ) {
         uint mid = ( low + high + 1 ) / 2;
         if ( BssrdfTable( s, mid, true )[channel + 1] <= target ) {
@@ -31,21 +38,24 @@ float BssrdfRadius( Surface s, uint channel, float sample ) {
         }
     }
 
-    float4 a = BssrdfTable( s, low ), b = BssrdfTable( s, low + 1 );
+    float4 a = BssrdfTable( s, low );
+    float4 b = BssrdfTable( s, low + 1 );
     float area = ( target - BssrdfTable( s, low, true )[channel + 1] ) / ( b.x - a.x );
-    float start = a[channel + 1], slope = b[channel + 1] - start;
+    float start = a[channel + 1];
+    float slope = b[channel + 1] - start;
     float denominator = start + sqrt( max( 0.0, start * start + 2.0 * slope * area ) );
     float t = denominator > 0.0 ? 2.0 * area / denominator : 0.0;
     return lerp( a.x, b.x, saturate( t ) ) / extinction;
 }
 
 float BssrdfRadial( Surface s, uint channel, float radius, bool pdf ) {
-    float extinction = s.Absorption[channel] + s.Scattering[channel];
+    float extinction = s.mAbsorption[channel] + s.mScattering[channel];
     float optical = radius * extinction;
     if ( extinction <= 0.0 || optical > BssrdfTable( s, BSSRDF_SAMPLES - 1 ).x ) {
         return 0.0;
     }
-    uint low = 0, high = BSSRDF_SAMPLES - 2;
+    uint low = 0;
+    uint high = BSSRDF_SAMPLES - 2;
     while ( low < high ) {
         uint mid = ( low + high + 1 ) / 2;
         if ( BssrdfTable( s, mid ).x <= optical ) {
@@ -55,7 +65,8 @@ float BssrdfRadial( Surface s, uint channel, float radius, bool pdf ) {
             high = mid - 1;
         }
     }
-    float4 a = BssrdfTable( s, low ), b = BssrdfTable( s, low + 1 );
+    float4 a = BssrdfTable( s, low );
+    float4 b = BssrdfTable( s, low + 1 );
     float value = lerp( a[channel + 1], b[channel + 1], ( optical - a.x ) / ( b.x - a.x ) );
     // The first interval has profile(0)=0, so its area density has this finite limit.
     value = optical > 0.0 ? value / ( 2.0 * PI * optical ) : b[channel + 1] / ( 2.0 * PI * b.x );
@@ -66,13 +77,19 @@ float BssrdfRadial( Surface s, uint channel, float radius, bool pdf ) {
     return value * extinction * extinction;
 }
 
+// Probe the object for an exit point and weight the chosen surface sample by the diffusion
+// profile and selection PDF. The integrator resumes surface transport from that exit.
+// Bound the number of candidate surface crossings visited by one subsurface exit probe.
+static const uint kBssrdfProbeCrossingLimit = 256;
+
 bool SampleBssrdf( Surface entry, inout uint random, out Surface exit, out float3 weight ) {
     exit = ( Surface )0;
     weight = float3( 0 );
     uint channel = min( uint( Random( random ) * 3.0 ), 2u );
     float choose = Random( random );
-    float3 tangent = Tangent( entry.Normal ), bitangent = cross( entry.Normal, tangent );
-    float3 axis = choose < 0.25 ? tangent : choose < 0.5 ? bitangent : entry.Normal;
+    float3 tangent = Tangent( entry.mNormal );
+    float3 bitangent = cross( entry.mNormal, tangent );
+    float3 axis = choose < 0.25 ? tangent : choose < 0.5 ? bitangent : entry.mNormal;
     float radius = BssrdfRadius( entry, channel, Random( random ) );
     float maximum = BssrdfRadius( entry, channel, 0.999 );
     if ( maximum <= 0.0 || radius >= maximum ) {
@@ -80,32 +97,32 @@ bool SampleBssrdf( Surface entry, inout uint random, out Surface exit, out float
     }
     float phi = 2.0 * PI * Random( random );
     float halfLength = sqrt( maximum * maximum - radius * radius );
-    float3 start = entry.Position + ToWorld( float3( radius * cos( phi ), radius * sin( phi ), -halfLength ), axis );
+    float3 start = entry.mPosition + ToWorld( float3( radius * cos( phi ), radius * sin( phi ), -halfLength ), axis );
     RayDesc ray = { start, 0.0, axis, 2.0 * halfLength };
 
     // Raw geometry hits preserve outward normals and include both sides of a closed mesh.
     // A reservoir avoids storing a variable-length list of intersected surface points.
     uint count = 0;
-    for ( uint crossing = 0; crossing < 256; ++crossing ) {
+    for ( uint crossing = 0; crossing < kBssrdfProbeCrossingLimit; ++crossing ) {
         Hit hit = ( Hit )0;
-        hit.Distance = -1.0;
-        TraceRay( LoadRayScene( Parameters.SceneIndex ), RAY_FLAG_NONE, RAY_ALL_INSTANCES, 0, 1, 0, ray, hit );
-        if ( hit.Distance < 0.0 ) {
+        hit.mDistance = -1.0;
+        TraceRay( LoadRayScene( Parameters.mSceneIndex ), RAY_FLAG_NONE, RAY_ALL_INSTANCES, 0, 1, 0, ray, hit );
+        if ( hit.mDistance < 0.0 ) {
             break;
         }
-        Surface candidate = Evaluate( hit.Triangle, hit.Barycentrics );
-        bool covered = candidate.AlphaMode == 0 ||
-            ( candidate.AlphaMode == 1 ? candidate.Alpha >= candidate.Cutoff : Random( random ) < candidate.Alpha );
-        if ( covered && candidate.Material == entry.Material ) {
+        Surface candidate = Evaluate( hit.mTriangle, hit.mBarycentrics );
+        bool covered = candidate.mAlphaMode == 0 ||
+            ( candidate.mAlphaMode == 1 ? candidate.mAlpha >= candidate.mCutoff : Random( random ) < candidate.mAlpha );
+        if ( covered && candidate.mMaterial == entry.mMaterial ) {
             ++count;
             if ( Random( random ) * count < 1.0 ) {
                 exit = candidate;
-                exit.Position = hit.Position;
-                exit.PositionError = hit.PositionError;
-                exit.GeometricNormal = hit.GeometricNormal;
+                exit.mPosition = hit.mPosition;
+                exit.mPositionError = hit.mPositionError;
+                exit.mGeometricNormal = hit.mGeometricNormal;
             }
         }
-        ray.TMin = NextFloat( hit.Distance, true );
+        ray.TMin = NextFloat( hit.mDistance, true );
         if ( ray.TMin >= ray.TMax ) {
             break;
         }
@@ -117,10 +134,10 @@ bool SampleBssrdf( Surface entry, inout uint random, out Surface exit, out float
         return false;
     }
 
-    float3 delta = exit.Position - entry.Position;
+    float3 delta = exit.mPosition - entry.mPosition;
     float distance = length( delta );
-    float3 local = ToLocal( delta, entry.Normal );
-    float3 normal = abs( ToLocal( exit.GeometricNormal, entry.Normal ) );
+    float3 local = ToLocal( delta, entry.mNormal );
+    float3 normal = abs( ToLocal( exit.mGeometricNormal, entry.mNormal ) );
     float3 projected = sqrt( max( float3( 0 ), dot( local, local ) - local * local ) );
     float pdf = 0.0;
     for ( uint c = 0; c < 3; ++c ) {
@@ -135,6 +152,6 @@ bool SampleBssrdf( Surface entry, inout uint random, out Surface exit, out float
         return false;
     }
     weight *= float( count ) / pdf;
-    exit.SubsurfaceExit = true;
+    exit.mSubsurfaceExit = true;
     return true;
 }

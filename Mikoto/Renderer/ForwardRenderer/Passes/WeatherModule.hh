@@ -18,31 +18,30 @@
 #include <Core/Core.hh>
 #include <Core/Types.hh>
 
-#include <Renderer/Rhi/Types.hh>
 #include <Renderer/Core/FrameGraph.hh>
+#include <Renderer/Rhi/Types.hh>
 
-#include <Scene/Scene.hh>
 #include <Scene/Camera.hh>
+#include <Scene/Scene.hh>
 
 namespace mikoto::renderer {
 
-    // Fog, Wind, Rain, etc
-    // For wind look at GDC of Horizon Zero Dawn
+    struct WeatherModuleInfo {
+        FGBufferHandle mWindField{};
+    };
+
     class WeatherModule {
     public:
         explicit WeatherModule( rhi::RenderResolution resolution );
 
-        auto RegisterWindSimulation( FrameGraph& graph ) -> void;
+        auto RegisterWindSimulation( FrameGraph &graph ) -> void;
 
-        auto SetScene( const scene::Scene* scene ) -> void;
-        auto SetCamera( const scene::Camera* camera ) -> void;
-
-    private:
-
+        auto SetScene( const scene::Scene *scene ) -> void;
+        auto SetCamera( const scene::Camera *camera ) -> void;
 
     private:
-        const scene::Scene* mScene{ nullptr };
-        const scene::Camera* mCamera{ nullptr };
+        const scene::Scene *mScene{ nullptr };
+        const scene::Camera *mCamera{ nullptr };
 
         rhi::RenderResolution mResolution{ rhi::RenderResolution::e1080P };
     };

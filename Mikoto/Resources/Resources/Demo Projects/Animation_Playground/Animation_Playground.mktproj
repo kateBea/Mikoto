@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Project": "Animation Playground",
+  "Project": "Animation_Playground",
   "Assets": "Assets",
   "Cache": "Assets/.cache",
   "Scene": "Scene/Animation_Playground.mktscn",
@@ -20,7 +20,7 @@
     "NavigationMode": "Fly",
     "Position": [
       18,
-      15,
+      15.1,
       23
     ],
     "Direction": [

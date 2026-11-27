@@ -12,14 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Combine filtered screen-space reflections with the scene using material reflection factors.
+// Missing screen-space information retains the existing lighting fallback.
+
 #include "base/SSR_Common.slang"
 
 struct Parameters {
-    Pointer Frame;
-    uint Scene;
-    uint Reflection;
-    uint Environment;
-    uint Output;
+    Pointer mFrame;
+    uint mScene;
+    uint mReflection;
+    uint mEnvironment;
+    uint mOutput;
 };
 
 MKT_DECLARE_STRUCTURED_SRV buffers;
@@ -28,18 +31,18 @@ MKT_DECLARE_TEXTURE_UAV( RWTexture2D<float4> ) images;
 MKT_DECLARE_PUSH_CONSTANT( Parameters, parameters );
 
 [shader( "compute" )]
-[numthreads( 8, 8, 1 )]
+[numthreads( kImageGroupWidth, kImageGroupHeight, 1 )]
 void main( uint3 thread : SV_DispatchThreadID ) {
-    SsrFrame frame = ( ( BufferReference<SsrFrame> )parameters.Frame )[0];
+    SsrFrame frame = ( ( BufferReference<SsrFrame> )parameters.mFrame )[0];
     uint2 pixel = thread.xy;
-    if ( any( pixel >= uint2( frame.Screen.xy ) ) ) {
+    if ( any( pixel >= uint2( frame.mScreen.xy ) ) ) {
         return;
     }
-    float4 scene = textures[parameters.Scene].Load( int3( pixel, 0 ) );
-    float4 reflection = textures[parameters.Reflection].Load( int3( pixel, 0 ) );
-    float3 environment = textures[parameters.Environment].Load( int3( pixel, 0 ) ).rgb;
-    float coverage = saturate( reflection.w * frame.Filter.z );
+    float4 scene = textures[parameters.mScene].Load( int3( pixel, 0 ) );
+    float4 reflection = textures[parameters.mReflection].Load( int3( pixel, 0 ) );
+    float3 environment = textures[parameters.mEnvironment].Load( int3( pixel, 0 ) ).rgb;
+    float coverage = saturate( reflection.w * frame.mFilter.z );
     // Misses retain the exact existing environment lobe. A hit replaces it,
     // preserving direct lighting, diffuse IBL and emission in scene-linear HDR.
-    images[parameters.Output][pixel] = float4( max( scene.rgb + coverage * ( reflection.rgb - environment ), 0 ), scene.a );
+    images[parameters.mOutput][pixel] = float4( max( scene.rgb + coverage * ( reflection.rgb - environment ), 0 ), scene.a );
 }

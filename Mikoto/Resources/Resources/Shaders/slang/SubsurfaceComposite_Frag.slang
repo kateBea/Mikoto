@@ -14,11 +14,20 @@
 
 // https://bentobaux.github.io/posts/separable-subsurface-scattering-in-unity-6/#3-reconstructing-the-final-image
 // https://github.com/bentoBAUX/Separable-Subsurface-Scattering-in-Unity-6
+
+// Recombine scattered diffuse illumination with the remaining surface lighting. The MSAA
+// variant preserves per-sample surface coverage during composition.
+
 #include "base/Memory_Helpers.slang"
 #include "base/Material_Helpers.slang"
 struct Parameters {
-    Pointer Materials;
-    uint Original, Filtered, Specular, Ambient, Scene, Padding;
+    Pointer mMaterials;
+    uint mOriginal;
+    uint mFiltered;
+    uint mSpecular;
+    uint mAmbient;
+    uint mScene;
+    uint mPadding;
 };
 
 MKT_DECLARE_TEXTURE_SRV( Texture2D ) images;
@@ -27,23 +36,23 @@ MKT_DECLARE_PUSH_CONSTANT( Parameters, parameters );
 [shader( "fragment" )]
 float4 main( float2 unusedUV : TEXCOORD0, float4 position : SV_Position ) : SV_Target0 {
     int3 pixel = int3( int2( position.xy ), 0 );
-    float4 scene = images[parameters.Scene].Load( pixel );
-    float4 original = images[parameters.Original].Load( pixel );
+    float4 scene = images[parameters.mScene].Load( pixel );
+    float4 original = images[parameters.mOriginal].Load( pixel );
 
     // Membership, not luminance: black/shadowed SSS pixels can receive diffusion.
     if ( original.a <= 0 ) {
         return scene;
     }
 
-    MaterialParameters material = ( ( BufferReference<MaterialParameters> )parameters.Materials )[uint( original.a ) - 1];
-    float3 weight = saturate( material.SubsurfaceColorOpacity.rgb ) *
-        saturate( material.Subsurface.y * ( 1 - material.SubsurfaceColorOpacity.a ) );
+    MaterialParameters material = ( ( BufferReference<MaterialParameters> )parameters.mMaterials )[uint( original.a ) - 1];
+    float3 weight = saturate( material.mSubsurfaceColorOpacity.rgb ) *
+        saturate( material.mSubsurface.y * ( 1 - material.mSubsurfaceColorOpacity.a ) );
 
-    if ( material.Subsurface.x <= 0 || !any( weight > 0 ) ) {
+    if ( material.mSubsurface.x <= 0 || !any( weight > 0 ) ) {
         return scene;
     }
 
-    float3 diffuse = lerp( original.rgb, images[parameters.Filtered].Load( pixel ).rgb, weight );
-    float3 sharp = images[parameters.Specular].Load( pixel ).rgb + images[parameters.Ambient].Load( pixel ).rgb;
+    float3 diffuse = lerp( original.rgb, images[parameters.mFiltered].Load( pixel ).rgb, weight );
+    float3 sharp = images[parameters.mSpecular].Load( pixel ).rgb + images[parameters.mAmbient].Load( pixel ).rgb;
     return float4( diffuse + sharp, scene.a );
 }

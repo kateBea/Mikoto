@@ -20,6 +20,10 @@ function(mikoto_deploy_application target)
     # added without making this shared runtime deployment helper know about them.
     if(NOT TARGET ${target}Resources)
         add_custom_target(${target}Resources
+            COMMAND "${CMAKE_COMMAND}"
+                "-DMIKOTO_DEMO_SOURCE=${CMAKE_SOURCE_DIR}/Mikoto/Resources/Resources/Demo Projects"
+                "-DMIKOTO_DEMO_DESTINATION=$<TARGET_FILE_DIR:${target}>/Resources/Demo Projects"
+                -P "${CMAKE_SOURCE_DIR}/CMake/MigrateDemoFolders.cmake"
             COMMAND "${CMAKE_COMMAND}" -E copy_directory
                 "${CMAKE_SOURCE_DIR}/Mikoto/Resources" "$<TARGET_FILE_DIR:${target}>"
             COMMENT "Synchronizing ${target} resources..."

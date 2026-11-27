@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Filter HDR radiance into the next smaller bloom level. Thresholding and highlight compression
+// are delegated to the shared bloom helpers.
+
 #pragma once
 
 #include "base/Base.slang"
@@ -19,11 +22,11 @@
 #include "base/Memory_Helpers.slang"
 
 struct FSInput {
-    float2 UV : TEXCOORD0;
+    float2 mUV : TEXCOORD0;
 };
 
 struct FSOutput {
-    float4 Color : SV_Target0;
+    float4 mColor : SV_Target0;
 };
 
 struct DrawParams {
@@ -47,10 +50,10 @@ FSOutput main( FSInput input ) {
     Texture2D srcTexture = textures[parameters.mTargetImageID];
 
     float3 color = BloomDownsample(
-        srcTexture, sampler, input.UV,
+        srcTexture, sampler, input.mUV,
         parameters.mThreshold, parameters.mPrefilter != 0 );
 
-    output.Color = float4( color, 1.0 );
+    output.mColor = float4( color, 1.0 );
 
     return output;
 }

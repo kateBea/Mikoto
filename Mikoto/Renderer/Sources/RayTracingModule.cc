@@ -14,13 +14,18 @@
 
 #include <cmath>
 #include <cstring>
-#include <limits>
 #include <exception>
+#include <limits>
 
-#include <EASTL/array.h>
 #include <ankerl/unordered_dense.h>
 
+#include <EASTL/array.h>
+
 #include <glm/gtc/matrix_inverse.hpp>
+
+#include <Animation/AnimationSystem.hh>
+#include <Animation/SkinningPalette.hh>
+#include <Animation/Utility.hh>
 
 #include <Core/Exception.hh>
 
@@ -29,34 +34,29 @@
 #include <Material/Bssrdf.hh>
 #include <Material/SurfaceMaterial.hh>
 
-#include <Animation/Utility.hh>
-#include <Animation/AnimationSystem.hh>
-#include <Animation/SkinningPalette.hh>
-
+#include <Renderer/Core/CommandContext.hh>
+#include <Renderer/ForwardRenderer/Passes/GeometryShadingModule.hh>
+#include <Renderer/ForwardRenderer/Passes/RayTracingModule.hh>
+#include <Renderer/ForwardRenderer/Passes/VolumeModule.hh>
+#include <Renderer/RayTracing/RayTracing.hh>
 #include <Renderer/Video/Video.hh>
 
-#include <Renderer/Core/CommandContext.hh>
-#include <Renderer/RayTracing/RayTracing.hh>
-#include <Renderer/ForwardRenderer/Passes/VolumeModule.hh>
-#include <Renderer/ForwardRenderer/Passes/RayTracingModule.hh>
-#include <Renderer/ForwardRenderer/Passes/GeometryShadingModule.hh>
-
-#include <Scene/Scene.hh>
 #include <Scene/Camera.hh>
+#include <Scene/Scene.hh>
 
 namespace mikoto::renderer {
     using namespace core;
     using namespace rhi;
     using namespace scene;
 
-    static auto CreateUploadBuffer( FrameGraph& graph, cstr name, usize size, BufferUsageFlags extraUsage = {} ) -> FGBufferHandle {
+    static auto CreateUploadBuffer( FrameGraph &graph, cstr name, usize size, BufferUsageFlags extraUsage = {} ) -> FGBufferHandle {
         return graph.Create( FGBufferDescription{}
             .SetName( name )
             .SetSizeBytes( size )
             .SetUsage( BufferUsageFlagsBits::Structured | BufferUsageFlagsBits::CopyDest | extraUsage ) );
     }
 
-    static auto AppendSceneBytes( eastl::vector<ubyte>& data, const void* source, usize size ) -> void {
+    static auto AppendSceneBytes( eastl::vector<ubyte> &data, const void *source, usize size ) -> void {
         if ( size == 0 ) {
             return;
         }
@@ -69,18 +69,19 @@ namespace mikoto::renderer {
     // Repeat + bilinear sampling matches the material sampler's level-zero height.
     // Displacement changes traversal geometry, not just the shading normal.
     // https://developer.nvidia.com/gpugems/gpugems2/part-ii-shading-lighting-and-shadows/chapter-18-using-vertex-texture-displacement
-    static auto SampleDisplacementHeight( const asset::Image& image, float2 uv ) -> f32 {
+    static auto SampleDisplacementHeight( const asset::Image &image, float2 uv ) -> f32 {
         const auto size{ glm::ivec2{ image.mWidth, image.mHeight } };
         const auto pixel{ uv * float2{ size } - 0.5f };
         const auto origin{ glm::ivec2{ glm::floor( pixel ) } };
         const auto blend{ glm::fract( pixel ) };
         const auto sample{ [&]( i32 x, i32 y ) {
-            const auto wrappedX{ ( x % size.x + size.x ) % size.x }, wrappedY{ ( y % size.y + size.y ) % size.y };
+            const auto wrappedX{ ( x % size.x + size.x ) % size.x };
+            const auto wrappedY{ ( y % size.y + size.y ) % size.y };
             const auto offset{ ( as<usize>( wrappedY ) * image.mWidth + wrappedX ) * image.mChannels };
             if ( image.mFormat == asset::ImageFormat::eRGBA32_FLOAT ) {
-                return static_cast<const f32*>( image.mBufferSpan->GetData() )[offset];
+                return static_cast<const f32 *>( image.mBufferSpan->GetData() )[offset];
             }
-            return static_cast<const ubyte*>( image.mBufferSpan->GetData() )[offset] / 255.0f;
+            return static_cast<const ubyte *>( image.mBufferSpan->GetData() )[offset] / 255.0f;
         } };
         return glm::mix( glm::mix( sample( origin.x, origin.y ), sample( origin.x + 1, origin.y ), blend.x ),
             glm::mix( sample( origin.x, origin.y + 1 ), sample( origin.x + 1, origin.y + 1 ), blend.x ), blend.y );
@@ -89,19 +90,19 @@ namespace mikoto::renderer {
     // PBRT attaches radiance to the shape, independently of its scattering material.
     // A model-root light covers its descendant meshes; a nearer light overrides that binding.
     // https://pbr-book.org/4ed/Light_Sources/Area_Lights
-    static auto FindMeshAreaLight( const Scene& scene, entt::entity entity ) -> const AreaLight* {
-        const auto& registry{ scene.GetRegistry() };
+    static auto FindMeshAreaLight( const Scene &scene, entt::entity entity ) -> const AreaLight * {
+        const auto &registry{ scene.GetRegistry() };
 
         while ( entity != entt::null ) {
-            if ( const auto* component{ registry.try_get<LightComponent>( entity ) };
-                 component && component->IsTypeActive( LightType::eAreaLight ) ) {
-                const auto& light{ component->Get<AreaLight>() };
-                const auto* tag{ registry.try_get<TagComponent>( entity ) };
+            if ( const auto *component{ registry.try_get<LightComponent>( entity ) };
+                component && component->IsTypeActive( LightType::eAreaLight ) ) {
+                const auto &light{ component->Get<AreaLight>() };
+                const auto *tag{ registry.try_get<TagComponent>( entity ) };
                 return tag && tag->IsActive() && light.GetShape() == AreaLightShape::eMesh ? &light : nullptr;
             }
 
-            const auto* relation{ registry.try_get<RelationComponent>( entity ) };
-            const auto* parent{ relation && relation->HasParent() ? scene.FindByID( *relation->GetParent() ) : nullptr };
+            const auto *relation{ registry.try_get<RelationComponent>( entity ) };
+            const auto *parent{ relation && relation->HasParent() ? scene.FindByID( *relation->GetParent() ) : nullptr };
             entity = parent ? parent->Get() : entt::null;
         }
 
@@ -112,8 +113,8 @@ namespace mikoto::renderer {
     // Use a local XY rectangle facing +Z; two triangles share the existing emitter sampler.
     // https://pbr-book.org/4ed/Light_Sources/Area_Lights
     // https://pbr-book.org/4ed/Shapes/Triangle_Meshes
-    static auto BuildRectangleEmitter( const AreaLight& light, const float4x4& world,
-        RectangleEmitter& shape ) -> bool {
+    static auto BuildRectangleEmitter( const AreaLight &light, const float4x4 &world,
+        RectangleEmitter &shape ) -> bool {
         const auto halfSize{ 0.5f * light.GetSize() };
         const float3 radiance{ light.GetColor() * light.GetIntensity() };
 
@@ -148,7 +149,7 @@ namespace mikoto::renderer {
         return true;
     }
 
-    static auto AbsoluteLinear( const float4x4& transform ) -> glm::mat3 {
+    static auto AbsoluteLinear( const float4x4 &transform ) -> glm::mat3 {
         return { glm::abs( float3{ transform[0] } ), glm::abs( float3{ transform[1] } ), glm::abs( float3{ transform[2] } ) };
     }
 
@@ -156,9 +157,9 @@ namespace mikoto::renderer {
     // A mesh extent bounds every triangle; the scalar bound fits the unused normal.w.
     // https://pbr-book.org/4ed/Shapes/Managing_Rounding_Error
     // https://developer.nvidia.com/blog/solving-self-intersection-artifacts-in-directx-raytracing/
-    static auto SampledPositionError( const float3& local, const float3& world, f32 extent,
-        const glm::mat3& linear, const float3& translation,
-        const glm::mat3& inverseLinear, const float3& inverseTranslation ) -> f32 {
+    static auto SampledPositionError( const float3 &local, const float3 &world, f32 extent,
+        const glm::mat3 &linear, const float3 &translation,
+        const glm::mat3 &inverseLinear, const float3 &inverseTranslation ) -> f32 {
         constexpr f32 c0{ 5.9604644775390625e-8f };
         constexpr f32 c1{ 1.7881397695873602e-7f };
         constexpr f32 c2{ 1.1920931797249068e-7f };
@@ -169,8 +170,8 @@ namespace mikoto::renderer {
         return glm::max( worldError.x, glm::max( worldError.y, worldError.z ) ) * 1.000001f;
     }
 
-    auto RayTracingModule::HashBytes( core::u64& hash, const void* data, core::usize bytes ) -> void {
-        const auto* values{ static_cast<const core::ubyte*>( data ) };
+    auto RayTracingModule::HashBytes( core::u64 &hash, const void *data, core::usize bytes ) -> void {
+        const auto *values{ static_cast<const core::ubyte *>( data ) };
 
         for ( core::usize i{}; i < bytes; ++i ) {
             hash = ( hash ^ values[i] ) * kRevisionHashPrime;
@@ -178,7 +179,7 @@ namespace mikoto::renderer {
     }
 
     template<typename T>
-    auto RayTracingModule::Hash( core::u64& hash, const T& value ) -> void {
+    auto RayTracingModule::Hash( core::u64 &hash, const T &value ) -> void {
         HashBytes( hash, &value, sizeof( value ) );
     }
 
@@ -186,12 +187,12 @@ namespace mikoto::renderer {
         : mRenderResolution{ resolution } {
     }
 
-    auto RayTracingModule::RegisterUploadPass( FrameGraph& graph ) -> void {
+    auto RayTracingModule::RegisterUploadPass( FrameGraph &graph ) -> void {
         RegisterGeometryPreparePass( graph );
         RegisterGeometryTransferPass( graph );
     }
 
-    auto RayTracingModule::RegisterGeometryPreparePass( FrameGraph& graph ) -> void {
+    auto RayTracingModule::RegisterGeometryPreparePass( FrameGraph &graph ) -> void {
         // Allocate an initial buffer for each stream. The upload grows them to fit the scene.
         mShadingVertexBuffer = CreateUploadBuffer( graph, "RayTracing_Vertices", sizeof( Vertex ) );
         mAccelerationBuildPositionBuffer = CreateUploadBuffer( graph, "RayTracing_BuildPositions", kTriangleIndexCount * kPositionStreamStride,
@@ -202,12 +203,12 @@ namespace mikoto::renderer {
         graph.RegisterPass(
             "RayTracing_PrepareGeometry",
             FGPassType::eGraphics,
-            [this]( FGNodeBuilder& builder, core::Blackboard& ) {
+            [this]( FGNodeBuilder &builder, core::Blackboard & ) {
                 for ( const auto handle: { mShadingVertexBuffer, mAccelerationBuildPositionBuffer, mIndexBuffer } ) {
                     builder.UseResource( handle, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
                 }
             },
-            [this]( CommandContext& context, core::Blackboard& ) {
+            [this]( CommandContext &context, core::Blackboard & ) {
                 mGeometryUploads.Clear();
 
                 if ( !mCanTraceFrame || !mGeometryUploadPending ) {
@@ -216,22 +217,22 @@ namespace mikoto::renderer {
 
                 try {
                     PrepareGeometryUpload( context );
-                } catch ( const std::exception& error ) {
+                } catch ( const std::exception &error ) {
                     RecordTraceError( error.what() );
                 }
             } );
     }
 
-    auto RayTracingModule::RegisterGeometryTransferPass( FrameGraph& graph ) -> void {
+    auto RayTracingModule::RegisterGeometryTransferPass( FrameGraph &graph ) -> void {
         graph.RegisterPass(
             "RayTracing_UploadGeometry",
             FGPassType::eTransfer,
-            [this]( FGNodeBuilder& builder, core::Blackboard& ) {
+            [this]( FGNodeBuilder &builder, core::Blackboard & ) {
                 for ( const auto handle: { mShadingVertexBuffer, mAccelerationBuildPositionBuffer, mIndexBuffer } ) {
                     builder.UseResource( handle, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
                 }
             },
-            [this]( CommandContext& context, core::Blackboard& ) {
+            [this]( CommandContext &context, core::Blackboard & ) {
                 if ( !mCanTraceFrame || !mGeometryUploadPending ) {
                     return;
                 }
@@ -241,18 +242,18 @@ namespace mikoto::renderer {
             } );
     }
 
-    auto RayTracingModule::RegisterBuildPass( FrameGraph& graph ) -> void {
+    auto RayTracingModule::RegisterBuildPass( FrameGraph &graph ) -> void {
         mSceneAccelerationStructure = graph.Create( FGAccelerationStructureDescription{ "RayTracing_AccelerationStructure" } );
 
         graph.RegisterPass(
             "RayTracing_BuildAccelerationStructures",
             FGPassType::eGraphics,
-            [this]( FGNodeBuilder& builder, core::Blackboard& ) {
+            [this]( FGNodeBuilder &builder, core::Blackboard & ) {
                 builder.UseResource( mAccelerationBuildPositionBuffer, FGPipelineStage::eAccelStructBuildInput, FGResourceAccess::eRead );
                 builder.UseResource( mIndexBuffer, FGPipelineStage::eAccelStructBuildInput, FGResourceAccess::eRead );
                 builder.UseResource( mSceneAccelerationStructure, FGPipelineStage::eAccelStructWrite, FGResourceAccess::eWrite );
             },
-            [this]( CommandContext& context, core::Blackboard& ) {
+            [this]( CommandContext &context, core::Blackboard & ) {
                 if ( !mCanTraceFrame || !mAccelerationBuildPending ) {
                     return;
                 }
@@ -264,41 +265,52 @@ namespace mikoto::renderer {
                         mIndexBuffer, mPackedScene.mMeshes );
                     mAccelerationBuildPending = false;
                     mGeometryUploadPending = false;
-                } catch ( const std::exception& error ) {
+                } catch ( const std::exception &error ) {
                     RecordTraceError( error.what() );
                 }
             } );
     }
 
-    auto RayTracingModule::RegisterFramePass( FrameGraph& graph ) -> void {
+    auto RayTracingModule::RegisterFramePass( FrameGraph &graph ) -> void {
         RegisterFramePreparePass( graph );
         RegisterFrameTransferPass( graph );
     }
 
-    auto RayTracingModule::RegisterFramePreparePass( FrameGraph& graph ) -> void {
+    auto RayTracingModule::RegisterFramePreparePass( FrameGraph &graph ) -> void {
         mSceneDataBuffer = CreateUploadBuffer( graph, "RayTracing_MaterialsAndLights", sizeof( SceneHeader ) );
         mViewEffectsBuffer = CreateUploadBuffer( graph, "RayTracing_ViewEffects", sizeof( ViewEffects ) );
         mFrameConstantsBuffer = CreateUploadBuffer( graph, "RayTracing_Frame", sizeof( FrameConstants ) );
 
+#if MIKOTO_ENABLE_NRD
+        if ( mDenoiserSettings.mEnabled ) {
+            mDenoiserDataBuffer = CreateUploadBuffer( graph, "Denoiser_RayData", sizeof( DenoiserRayData ) );
+            mPreviousPositionsBuffer = CreateUploadBuffer( graph, "Denoiser_PreviousPositions", sizeof( core::float4 ) );
+        }
+#endif
         graph.RegisterPass(
             "RayTracing_PrepareFrame",
             FGPassType::eGraphics,
-            [this]( FGNodeBuilder& builder, core::Blackboard& b ) {
-                if ( const auto* volumes{ b.TryGet<VolumeModuleInfo>() } ) {
+            [this]( FGNodeBuilder &builder, core::Blackboard &b ) {
+                if ( const auto *volumes{ b.TryGet<VolumeModuleInfo>() } ) {
                     builder.UseResource( volumes->mData, FGPipelineStage::eRayTracingShader, FGResourceAccess::eRead );
                 }
 
                 // Frame preparation requests the TLAS descriptor after the build pass runs.
                 builder.UseResource( mSceneAccelerationStructure, FGPipelineStage::eAccelStructRead, FGResourceAccess::eRead );
 
+                if ( mDenoiserDataBuffer.mHandle ) {
+                    builder.UseResource( mDenoiserDataBuffer, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
+                    builder.UseResource( mPreviousPositionsBuffer, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
+                }
                 for ( const auto handle: { mFrameConstantsBuffer, mViewEffectsBuffer, mSceneDataBuffer } ) {
                     builder.UseResource( handle, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
                 }
             },
-            [this]( CommandContext& context, core::Blackboard& b ) {
+            [this]( CommandContext &context, core::Blackboard &b ) {
                 // Zero tells the shader that this graph has no volume buffer.
                 mFrameConstants.mVolumes = b.Contains<VolumeModuleInfo>()
-                    ? context.GetDeviceBufferAddress( b.Get<VolumeModuleInfo>().mData ) : 0;
+                                               ? context.GetDeviceBufferAddress( b.Get<VolumeModuleInfo>().mData )
+                                               : 0;
                 mFrameUploads.Clear();
 
                 if ( !mCanTraceFrame ) {
@@ -307,24 +319,28 @@ namespace mikoto::renderer {
 
                 try {
                     PrepareFrameUpload( context );
-                } catch ( const std::exception& error ) {
+                } catch ( const std::exception &error ) {
                     RecordTraceError( error.what() );
                 }
             } );
     }
 
-    auto RayTracingModule::RegisterFrameTransferPass( FrameGraph& graph ) -> void {
+    auto RayTracingModule::RegisterFrameTransferPass( FrameGraph &graph ) -> void {
         graph.RegisterPass(
             "RayTracing_UploadFrame",
             FGPassType::eTransfer,
-            [this]( FGNodeBuilder& builder, core::Blackboard& ) {
+            [this]( FGNodeBuilder &builder, core::Blackboard & ) {
                 builder.UseResource( mSceneAccelerationStructure, FGPipelineStage::eAccelStructRead, FGResourceAccess::eRead );
 
+                if ( mDenoiserDataBuffer.mHandle ) {
+                    builder.UseResource( mDenoiserDataBuffer, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
+                    builder.UseResource( mPreviousPositionsBuffer, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
+                }
                 for ( const auto handle: { mFrameConstantsBuffer, mViewEffectsBuffer, mSceneDataBuffer } ) {
                     builder.UseResource( handle, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
                 }
             },
-            [this]( CommandContext& context, core::Blackboard& ) {
+            [this]( CommandContext &context, core::Blackboard & ) {
                 if ( !mCanTraceFrame ) {
                     return;
                 }
@@ -333,7 +349,7 @@ namespace mikoto::renderer {
             } );
     }
 
-    auto RayTracingModule::RegisterTracePass( FrameGraph& graph, bool pathTracing, bool atmosphere ) -> void {
+    auto RayTracingModule::RegisterTracePass( FrameGraph &graph, bool pathTracing, bool atmosphere ) -> void {
         MKT_BEGIN_PROFILER();
 
         mTracePassUsesPathTracing = pathTracing;
@@ -344,16 +360,23 @@ namespace mikoto::renderer {
         graph.RegisterPass(
             "RayTracing_Lighting",
             FGPassType::eGraphics,
-            [this, atmosphere]( FGNodeBuilder& builder, core::Blackboard& b ) {
-                if ( const auto* volumes{ b.TryGet<VolumeModuleInfo>() } ) {
+            [this, atmosphere]( FGNodeBuilder &builder, core::Blackboard &b ) {
+                if ( const auto *volumes{ b.TryGet<VolumeModuleInfo>() } ) {
                     builder.UseResource( volumes->mData, FGPipelineStage::eRayTracingShader, FGResourceAccess::eRead );
                 }
 
                 for ( const auto handle: { mShadingVertexBuffer, mAccelerationBuildPositionBuffer, mIndexBuffer,
-                         mSceneDataBuffer, mViewEffectsBuffer, mFrameConstantsBuffer } ) {
+                          mSceneDataBuffer, mViewEffectsBuffer, mFrameConstantsBuffer } ) {
                     builder.UseResource( handle, FGPipelineStage::eRayTracingShader, FGResourceAccess::eRead );
                 }
 
+                if ( mDenoiserDataBuffer.mHandle ) {
+                    builder.UseResource( mDenoiserDataBuffer, FGPipelineStage::eRayTracingShader, FGResourceAccess::eRead );
+                    builder.UseResource( mPreviousPositionsBuffer, FGPipelineStage::eRayTracingShader, FGResourceAccess::eRead );
+                    for ( auto texture: mDenoiserInputs.Textures() ) {
+                        builder.UseResource( texture, FGPipelineStage::eRayTracingShader, FGResourceAccess::eWrite );
+                    }
+                }
                 builder.UseResource( mLightingHistory, FGPipelineStage::eRayTracingShader, FGResourceAccess::eRead );
                 builder.UseResource( mRadianceOutput, FGPipelineStage::eRayTracingShader, FGResourceAccess::eWrite );
                 builder.UseResource( mAccumulatedLightingOutput, FGPipelineStage::eRayTracingShader, FGResourceAccess::eWrite );
@@ -362,15 +385,15 @@ namespace mikoto::renderer {
                 builder.UseResource( mSceneAccelerationStructure, FGPipelineStage::eRayTracingShader, FGResourceAccess::eRead );
 
                 if ( atmosphere ) {
-                    const auto& sky{ b.Get<AtmosphereModuleInfo>() };
+                    const auto &sky{ b.Get<AtmosphereModuleInfo>() };
 
                     for ( const auto handle: { sky.mTransmittance, sky.mMultipleScattering, sky.mSkyView } ) {
                         builder.UseResource( handle, FGPipelineStage::eRayTracingShader, FGResourceAccess::eRead );
                     }
                 }
             },
-            [this]( CommandContext& context, core::Blackboard& b ) {
-                auto& info{ b.Get<RayTracingInfo>() };
+            [this]( CommandContext &context, core::Blackboard &b ) {
+                auto &info{ b.Get<RayTracingInfo>() };
                 info.mShadowsEnabled = mConfiguration.mShadowsEnabled;
                 info.mReflectionsEnabled = mConfiguration.mReflectionsEnabled;
                 info.mGlobalIlluminationEnabled = mConfiguration.mGlobalIlluminationEnabled;
@@ -379,7 +402,7 @@ namespace mikoto::renderer {
                 if ( mCanTraceFrame ) {
                     try {
                         Trace( context );
-                    } catch ( const std::exception& error ) {
+                    } catch ( const std::exception &error ) {
                         RecordTraceError( error.what() );
                     }
                 }
@@ -388,7 +411,7 @@ namespace mikoto::renderer {
             } );
     }
 
-    auto RayTracingModule::CreateTraceResources( FrameGraph& graph ) -> void {
+    auto RayTracingModule::CreateTraceResources( FrameGraph &graph ) -> void {
         const auto [width, height]{ InferDimensions( mRenderResolution ) };
 
         const auto texture{ [&]( cstr name ) {
@@ -398,12 +421,28 @@ namespace mikoto::renderer {
                 .SetHeight( height )
                 .SetFormat( Format::eRGBA32_FLOAT )
                 .SetUsage( TextureUsageFlagsBits::ShaderResource |
-                    TextureUsageFlagsBits::UnorderedAccess |
-                    TextureUsageFlagsBits::CopySource |
-                    TextureUsageFlagsBits::CopyDest ) );
+                               TextureUsageFlagsBits::UnorderedAccess |
+                               TextureUsageFlagsBits::CopySource |
+                               TextureUsageFlagsBits::CopyDest ) );
         } };
 
         mRadianceOutput = texture( "RayTracing_Output" );
+#if MIKOTO_ENABLE_NRD
+        if ( mDenoiserSettings.mEnabled ) {
+            auto fields{ mDenoiserInputs.Textures() };
+            const char *names[]{ "Diffuse", "Specular", "NormalRoughness", "ViewZ", "Motion", "DiffuseFactor", "SpecularFactor", "Base" };
+            for ( core::u32 i{}; i < fields.size(); ++i ) {
+                fields[i] = graph.Create( FGTextureDescription{}
+                    .SetName( string::Format( "Denoiser_Input_{}", names[i] ) )
+                    .SetWidth( width )
+                    .SetHeight( height )
+                    .SetFormat( i == 3 ? Format::eR32_FLOAT : i == 7 ? Format::eRGBA32_FLOAT
+                                                                         : Format::eRGBA16_FLOAT )
+                        .SetUsage( TextureUsageFlagsBits::ShaderResource | TextureUsageFlagsBits::UnorderedAccess ) );
+            }
+            mDenoiserInputs = { fields[0], fields[1], fields[2], fields[3], fields[4], fields[5], fields[6], fields[7] };
+        }
+#endif
         mAccumulatedLightingOutput = texture( "RayTracing_Accumulation" );
         mLightingHistory = texture( "RayTracing_History" );
         mOcclusionOutput = texture( "RayTracing_AmbientOcclusion" );
@@ -411,6 +450,8 @@ namespace mikoto::renderer {
 
         mMaterialSampler = graph.Create( FGSamplerDescription{}
             .SetName( "RayTracing_MaterialSampler" )
+            .SetMipLevels( 32.0f )
+            .SetMaxAnisotropy( 8.0f )
             .SetFilter( SamplerFilter::eLinear )
             .SetWrap( SamplerWrapMode::eRepeat ) );
 
@@ -419,18 +460,19 @@ namespace mikoto::renderer {
             .SetFilter( SamplerFilter::eLinear )
             .SetWrap( SamplerWrapMode::eClampToEdge ) );
 
-        auto& info{ graph.GetOrCreate<RayTracingInfo>() };
+        auto &info{ graph.GetOrCreate<RayTracingInfo>() };
+        info.mDenoiser = mDenoiserInputs;
         info.mDirect = mRadianceOutput;
         info.mIndirect = mAccumulatedLightingOutput;
         info.mAmbientOcclusion = mOcclusionOutput;
     }
 
-    auto RayTracingModule::CreateTracePipeline( FrameGraph& graph ) -> void {
+    auto RayTracingModule::CreateTracePipeline( FrameGraph &graph ) -> void {
         // Compilation creates the pipeline first, then its dependent shader table.
         FGPipelineDescription pipeline{};
         pipeline.SetName( "RayTracing_Pipeline" )
             .SetPipelineType( PipelineType::eRayTracing )
-            .PushShader( "PathTracing_RayGen.slang", FGStageType::eRayGen )
+            .PushShader( mDenoiserDataBuffer.mHandle ? "PathTracing_NRD_RayGen.slang" : "PathTracing_RayGen.slang", FGStageType::eRayGen )
             .PushShader( "PathTracing_Miss.slang", FGStageType::eMiss )
             .PushShader( "PathTracing_ClosestHit.slang", FGStageType::eClosestHit );
 
@@ -440,24 +482,24 @@ namespace mikoto::renderer {
         mTraceShaderTable = graph.CreateShaderTable( mTracePipeline );
     }
 
-    auto RayTracingModule::RegisterHistoryPass( FrameGraph& graph ) -> void {
+    auto RayTracingModule::RegisterHistoryPass( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER();
 
         graph.RegisterPass(
             "RayTracing_UpdateHistory",
             FGPassType::eGraphics,
-            [this]( FGNodeBuilder& builder, core::Blackboard& ) {
+            [this]( FGNodeBuilder &builder, core::Blackboard & ) {
                 builder.UseResource( mAccumulatedLightingOutput, FGPipelineStage::eCopy, FGResourceAccess::eRead );
                 builder.UseResource( mLightingHistory, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
                 builder.UseResource( mOcclusionOutput, FGPipelineStage::eCopy, FGResourceAccess::eRead );
                 builder.UseResource( mOcclusionHistory, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
             },
-            [this]( CommandContext& context, core::Blackboard& ) {
+            [this]( CommandContext &context, core::Blackboard & ) {
                 UpdateHistory( context );
             } );
     }
 
-    auto RayTracingModule::UpdateHistory( CommandContext& context ) -> void {
+    auto RayTracingModule::UpdateHistory( CommandContext &context ) -> void {
         if ( !mCanTraceFrame ) {
             return;
         }
@@ -477,10 +519,10 @@ namespace mikoto::renderer {
         }
 
         if ( mTracePassUsesPathTracing ) {
-            mAccumulatedRadianceSamples = eastl::min( mConfiguration.mPathMaxSamples, mAccumulatedRadianceSamples + mConfiguration.mPathSamplesPerFrame );
+            mAccumulatedRadianceSamples = eastl::min( mConfiguration.mPathMaxSamples, mAccumulatedRadianceSamples + mActivePathSamples );
         }
         else if ( mConfiguration.mGlobalIlluminationEnabled || mConfiguration.mReflectionsEnabled ) {
-            const auto samples{ mConfiguration.mGlobalIlluminationEnabled ? mConfiguration.mRayGiSamplesPerFrame : 1u };
+            const auto samples{ mConfiguration.mRayGiSamplesPerFrame };
             mAccumulatedRadianceSamples = eastl::min( kHybridHistoryLimit, mAccumulatedRadianceSamples + samples );
         }
 
@@ -491,11 +533,11 @@ namespace mikoto::renderer {
         return ( !mTracePassUsesPathTracing && mConfiguration.mAmbientOcclusionEnabled ) || mAmbientOcclusionDebugEnabled;
     }
 
-    auto RayTracingModule::PrepareGeometryUpload( CommandContext& context ) -> void {
+    auto RayTracingModule::PrepareGeometryUpload( CommandContext &context ) -> void {
         MKT_BEGIN_PROFILER();
 
         // Reuse device-local storage; graph read/write barriers protect earlier ray consumers.
-        const auto upload{ [&]( FGBufferHandle handle, const auto& values ) {
+        const auto upload{ [&]( FGBufferHandle handle, const auto &values ) {
             const usize bytes{ values.size() * sizeof( values[0] ) };
             context.EnsureBufferCapacity( handle, bytes );
 
@@ -507,7 +549,7 @@ namespace mikoto::renderer {
         upload( mIndexBuffer, mPackedScene.mIndices );
     }
 
-    auto RayTracingModule::PrepareFrameUpload( CommandContext& context ) -> void {
+    auto RayTracingModule::PrepareFrameUpload( CommandContext &context ) -> void {
         MKT_BEGIN_PROFILER();
 
         const auto data{ ResolveSceneTextures( context ) };
@@ -515,17 +557,31 @@ namespace mikoto::renderer {
 
         mFrameUploads.CopyBuffer( mSceneDataBuffer, 0, data.data(), data.size() );
         mFrameUploads.CopyBuffer( mViewEffectsBuffer, mViewEffects, 0 );
+        if ( mDenoiserDataBuffer.mHandle ) {
+            context.EnsureBufferCapacity( mPreviousPositionsBuffer, mPreviousPositions.size() * sizeof( core::float4 ) );
+            mFrameUploads.CopyBuffer( mPreviousPositionsBuffer, 0, mPreviousPositions.data(), mPreviousPositions.size() * sizeof( core::float4 ) );
+            auto images{ mDenoiserInputs.Textures() };
+            for ( core::u32 i{}; i < 4; ++i ) {
+                mDenoiserData.mImages0[i] = context.PushTexture_UAV( images[i] );
+                mDenoiserData.mImages1[i] = context.PushTexture_UAV( images[i + 4] );
+            }
+            mDenoiserData.mPreviousPositions = context.GetDeviceBufferAddress( mPreviousPositionsBuffer );
+            mDenoiserData.mEnabled = mDenoiserSettings.mEnabled;
+            mDenoiserData.mMethod = static_cast<core::u32>( mDenoiserSettings.mType );
+            mDenoiserData.mJitter.z = static_cast<float>( mAccumulatedRadianceSamples );
+            mFrameUploads.CopyBuffer( mDenoiserDataBuffer, mDenoiserData, 0 );
+        }
 
         BindFrameResources( context );
         mFrameUploads.CopyBuffer( mFrameConstantsBuffer, mFrameConstants, 0 );
     }
 
-    auto RayTracingModule::ResolveSceneTextures( CommandContext& context ) const -> eastl::vector<ubyte> {
+    auto RayTracingModule::ResolveSceneTextures( CommandContext &context ) const -> eastl::vector<ubyte> {
         // Keep local texture indices in the cached scene. Resolve graph descriptors each frame.
         eastl::vector<u32> textureIndices{};
         textureIndices.reserve( mPackedScene.mTextures.size() );
 
-        for ( const auto& texture: mPackedScene.mTextures ) {
+        for ( const auto &texture: mPackedScene.mTextures ) {
             const auto handle{ context.ImportSampledTexture( texture ) };
             textureIndices.push_back( context.UseImportedTexture( handle ) );
         }
@@ -569,8 +625,9 @@ namespace mikoto::renderer {
         return data;
     }
 
-    auto RayTracingModule::BindFrameResources( CommandContext& context ) -> void {
+    auto RayTracingModule::BindFrameResources( CommandContext &context ) -> void {
         // Scene arrays use buffer addresses. Textures, samplers and the TLAS use descriptor indices.
+        mFrameConstants.mDenoiser = mDenoiserDataBuffer.mHandle ? context.GetDeviceBufferAddress( mDenoiserDataBuffer ) : 0;
         mFrameConstants.mVertices = context.GetDeviceBufferAddress( mShadingVertexBuffer );
         mFrameConstants.mBuildPositions = context.GetDeviceBufferAddress( mAccelerationBuildPositionBuffer );
         mFrameConstants.mIndices = context.GetDeviceBufferAddress( mIndexBuffer );
@@ -591,23 +648,24 @@ namespace mikoto::renderer {
         mFrameConstants.mSceneIndex = context.PushAccelerationStructure( mSceneAccelerationStructure );
 
         for ( usize index{}; index < mAtmosphereTextures.size(); ++index ) {
-            const auto& texture{ mAtmosphereTextures[index] };
+            const auto &texture{ mAtmosphereTextures[index] };
             mFrameConstants.mAtmosphereTextures[index] = texture
-                ? context.UseImportedTexture( context.ImportSampledTexture( texture ) ) : 0;
+                                                             ? context.UseImportedTexture( context.ImportSampledTexture( texture ) )
+                                                             : 0;
         }
 
         mFrameConstants.mFrame = glm::uvec4{
             mTraceFrameIndex,
-            mTracePassUsesPathTracing ? mConfiguration.mPathSamplesPerFrame : mConfiguration.mRayGiSamplesPerFrame,
+            mTracePassUsesPathTracing ? mActivePathSamples : mConfiguration.mRayGiSamplesPerFrame,
             mTracePassUsesPathTracing ? mConfiguration.mPathMaxBounces : mConfiguration.mRayGiMaxBounces,
             mTracePassUsesPathTracing ? 1u : 0u
         };
-        mFrameConstants.mOptions = glm::uvec4{ mAccumulatedRadianceSamples, mConfiguration.mShadowsEnabled ? 1u : 0u,
+        mFrameConstants.mOptions = glm::uvec4{ mDenoiserDataBuffer.mHandle && mDenoiserSettings.mEnabled ? 0u : mAccumulatedRadianceSamples, mConfiguration.mShadowsEnabled ? mConfiguration.mShadowSamplesPerFrame : 0u,
             ( mConfiguration.mReflectionsEnabled ? 1u : 0u ) | ( mConfiguration.mGlobalIlluminationEnabled ? 2u : 0u ),
-            mTracePassUsesPathTracing ? mConfiguration.mPathMaxSamples : eastl::min( mConfiguration.mPathMaxBounces, 4u ) };
+            mTracePassUsesPathTracing ? mConfiguration.mPathMaxSamples : mConfiguration.mReflectionMaxBounces };
     }
 
-    auto RayTracingModule::Trace( CommandContext& context ) -> void {
+    auto RayTracingModule::Trace( CommandContext &context ) -> void {
         // Frame preparation has already resolved the TLAS index written to the shader constants.
         ( void )context.PushAccelerationStructure( mSceneAccelerationStructure );
 
@@ -623,6 +681,8 @@ namespace mikoto::renderer {
     }
 
     auto RayTracingConfiguration::Sanitize() -> void {
+        mShadowSamplesPerFrame = glm::clamp( mShadowSamplesPerFrame, 1u, 16u );
+        mReflectionMaxBounces = glm::clamp( mReflectionMaxBounces, 1u, 8u );
         mRayGiSamplesPerFrame = glm::clamp( mRayGiSamplesPerFrame, 1u, 8u );
         mRayGiMaxBounces = glm::clamp( mRayGiMaxBounces, 1u, 8u );
         mAoSamplesPerFrame = glm::clamp( mAoSamplesPerFrame, 1u, 64u );
@@ -632,9 +692,19 @@ namespace mikoto::renderer {
         mPathMaxSamples = glm::clamp( mPathMaxSamples, 1u, 1048576u );
     }
 
-    auto RayTracingModule::Prepare( FrameGraph&, const scene::Scene* scene, const scene::Camera* camera, const RayTracingConfiguration& settings,
+    auto RayTracingModule::Prepare( FrameGraph &, const scene::Scene *scene, const scene::Camera *camera, const RayTracingConfiguration &settings,
         rhi::TextureHandle environment, float environmentScale, float exposure, float gamma ) -> void {
         mCanTraceFrame = false;
+        mPreviousPositions.clear();
+        if ( mDenoiserDataBuffer.mHandle ) {
+            mPreviousPositions.reserve( mPackedScene.mVertices.size() );
+            for ( const auto &vertex: mPackedScene.mVertices ) {
+                mPreviousPositions.push_back( vertex.mPosition );
+            }
+        }
+        if ( camera ) {
+            mDenoiserData.mWorldToView = camera->GetViewMatrix();
+        }
 
         // AO has its own history and can change independently of radiance.
         if ( mConfiguration.mAmbientOcclusionEnabled != settings.mAmbientOcclusionEnabled ||
@@ -646,7 +716,7 @@ namespace mikoto::renderer {
         mConfiguration = settings;
 
         const bool hasRayWork{ mTracePassUsesPathTracing || settings.mShadowsEnabled || settings.mReflectionsEnabled ||
-            settings.mGlobalIlluminationEnabled || settings.mAmbientOcclusionEnabled || mAmbientOcclusionDebugEnabled };
+                               settings.mGlobalIlluminationEnabled || settings.mAmbientOcclusionEnabled || mAmbientOcclusionDebugEnabled };
 
         if ( !camera || !hasRayWork ) {
             ResetAccumulation();
@@ -658,12 +728,12 @@ namespace mikoto::renderer {
             PrepareScene( scene, environment );
             mCanTraceFrame = true;
             mLastTraceError.clear();
-        } catch ( const std::exception& error ) {
+        } catch ( const std::exception &error ) {
             RecordTraceError( error.what() );
         }
     }
 
-    auto RayTracingModule::RecordTraceError( const char* message ) -> void {
+    auto RayTracingModule::RecordTraceError( const char *message ) -> void {
         if ( mLastTraceError != message ) {
             MKT_CORE_LOGGER_ERROR( "Ray tracing: {}", message );
         }
@@ -674,6 +744,15 @@ namespace mikoto::renderer {
 
     auto RayTracingModule::IsReady() const -> bool {
         return mCanTraceFrame;
+    }
+
+    auto RayTracingModule::SetDenoiserSettings( const DenoiserSettings &settings ) -> void {
+        auto transportSettings{ settings };
+        transportSettings.mEnabled &= settings.mBackend == DenoiserBackend::eNrd;
+        if ( mDenoiserSettings.mEnabled != transportSettings.mEnabled || mDenoiserSettings.mBackend != settings.mBackend ) {
+            ResetAccumulation();
+        }
+        mDenoiserSettings = transportSettings;
     }
 
     auto RayTracingModule::ResetAccumulation() -> void {
@@ -692,7 +771,7 @@ namespace mikoto::renderer {
         return mAccumulatedRadianceSamples;
     }
 
-    auto RayTracingModule::GetError() const -> const eastl::string& {
+    auto RayTracingModule::GetError() const -> const eastl::string & {
         return mLastTraceError;
     }
 
@@ -704,7 +783,7 @@ namespace mikoto::renderer {
         };
     }
 
-    auto RayTracingModule::SetAtmosphere( const AtmosphereData* data, const eastl::array<renderer::rhi::TextureHandle, 3>& textures ) -> void {
+    auto RayTracingModule::SetAtmosphere( const AtmosphereData *data, const eastl::array<renderer::rhi::TextureHandle, 3> &textures ) -> void {
         const bool enabled{ data != nullptr };
 
         if ( enabled != ( mViewEffects.mControl.x != 0.0f ) ||
@@ -721,11 +800,11 @@ namespace mikoto::renderer {
         mMeshesVisible = visible;
     }
 
-    auto RayTracingModule::SetEnvironmentFaces( const eastl::array<rhi::TextureHandle, 6>& textures ) -> void {
+    auto RayTracingModule::SetEnvironmentFaces( const eastl::array<rhi::TextureHandle, 6> &textures ) -> void {
         mEnvironmentFaces = textures;
     }
 
-    auto RayTracingModule::PrepareView( const scene::Camera& camera, f32 environmentScale, f32 exposure, f32 gamma ) -> void {
+    auto RayTracingModule::PrepareView( const scene::Camera &camera, f32 environmentScale, f32 exposure, f32 gamma ) -> void {
         if ( mConfiguration.mPathTracingEnabled && mAccumulatedRadianceSamples > mConfiguration.mPathMaxSamples ) {
             mAccumulatedRadianceSamples = 0;
         }
@@ -738,7 +817,7 @@ namespace mikoto::renderer {
         mViewEffects.mLensRight = {};
         mViewEffects.mLensForward = {};
 
-        const auto& lens{ camera.GetDepthOfFieldSettings() };
+        const auto &lens{ camera.GetDepthOfFieldSettings() };
         if ( mConfiguration.mPathTracingEnabled && lens.mEnabled && !camera.IsOrthographic() ) {
             const auto pose{ glm::inverse( camera.GetViewMatrix() ) };
             const f32 focalLength{ glm::clamp( lens.mFocalLength, 1.0f, 300.0f ) * 0.001f };
@@ -757,6 +836,8 @@ namespace mikoto::renderer {
         Hash( viewHash, mConfiguration.mShadowsEnabled );
         Hash( viewHash, mConfiguration.mReflectionsEnabled );
         Hash( viewHash, mConfiguration.mGlobalIlluminationEnabled );
+        Hash( viewHash, mConfiguration.mShadowSamplesPerFrame );
+        Hash( viewHash, mConfiguration.mReflectionMaxBounces );
         Hash( viewHash, mConfiguration.mRayGiSamplesPerFrame );
         Hash( viewHash, mConfiguration.mRayGiMaxBounces );
         Hash( viewHash, environmentScale );
@@ -764,6 +845,12 @@ namespace mikoto::renderer {
         Hash( viewHash, mViewEffects.mLensRight );
         Hash( viewHash, mViewEffects.mLensUp );
         Hash( viewHash, mViewEffects.mLensForward );
+
+        // Interactive navigation needs a fresh image more than extra samples of
+        // a view that has already moved. Stationary views retain the requested SPP.
+        mActivePathSamples = mDenoiserSettings.mEnabled && mDenoiserSettings.mAdaptiveSampling && viewHash != mAccumulationViewHash
+                                 ? 1u
+                                 : mConfiguration.mPathSamplesPerFrame;
 
         if ( viewHash != mAccumulationViewHash ) {
             ResetAccumulation();
@@ -780,7 +867,7 @@ namespace mikoto::renderer {
         mViewEffects.mControl.w = camera.GetFarPlane();
     }
 
-    auto RayTracingModule::PrepareScene( const scene::Scene* scene, const TextureHandle& environment ) -> void {
+    auto RayTracingModule::PrepareScene( const scene::Scene *scene, const TextureHandle &environment ) -> void {
         SceneInputs inputs{};
         CollectEnvironment( environment, inputs );
 
@@ -801,7 +888,23 @@ namespace mikoto::renderer {
             CollectLights( *scene, inputs );
         }
 
-        for ( const auto& texture: inputs.mTextures ) {
+        // Lighting changes need responsive histories, not new vertex/index data.
+        Hash( inputs.mLightingHash, scene );
+        Hash( inputs.mLightingHash, mViewEffects.mBackground.w );
+        Hash( inputs.mLightingHash, mViewEffects.mAtmosphere.mSunDirection );
+        Hash( inputs.mLightingHash, mViewEffects.mAtmosphere.mSunIlluminance );
+        for ( const auto &light: inputs.mLights ) {
+            Hash( inputs.mLightingHash, light );
+        }
+        for ( const auto &mesh: inputs.mMeshes ) {
+            Hash( inputs.mLightingHash, mesh.mMaterial.mEmission );
+        }
+        if ( mLightingRevision != inputs.mLightingHash ) {
+            ResetAccumulation();
+            mLightingRevision = inputs.mLightingHash;
+        }
+
+        for ( const auto &texture: inputs.mTextures ) {
             Hash( inputs.mHash, texture.GetPtr() );
         }
 
@@ -809,18 +912,28 @@ namespace mikoto::renderer {
             return;
         }
 
+        const bool topologyChanged{ inputs.mTopologyHash != mTopologyHash || scene != mDenoiserScene };
         mPackedScene = PackScene( inputs );
+        if ( mDenoiserDataBuffer.mHandle && ( topologyChanged || mPreviousPositions.size() != mPackedScene.mVertices.size() ) ) {
+            ++mTopologyRevision;
+            mPreviousPositions.clear();
+            for ( const auto &vertex: mPackedScene.mVertices ) {
+                mPreviousPositions.push_back( vertex.mPosition );
+            }
+        }
+        mTopologyHash = inputs.mTopologyHash;
+        mDenoiserScene = scene;
         mGeometryUploadPending = true;
         mPackedSceneHash = inputs.mHash;
 
         ResetAccumulation();
     }
 
-    auto RayTracingModule::CollectEnvironment( const TextureHandle& environment, SceneInputs& inputs ) const -> void {
+    auto RayTracingModule::CollectEnvironment( const TextureHandle &environment, SceneInputs &inputs ) const -> void {
         inputs.mEnvironmentIndex = inputs.AddTexture( environment );
         inputs.mCubeEnvironment = !environment;
 
-        for ( const auto& face: mEnvironmentFaces ) {
+        for ( const auto &face: mEnvironmentFaces ) {
             inputs.mCubeEnvironment &= face && face->GetDimension() == TextureDimension::eTexture2D;
         }
 
@@ -828,19 +941,19 @@ namespace mikoto::renderer {
 
         if ( inputs.mCubeEnvironment ) {
             // Raygen expects six contiguous entries, including duplicate face textures.
-            for ( const auto& face: mEnvironmentFaces ) {
+            for ( const auto &face: mEnvironmentFaces ) {
                 inputs.mTextureIndices.try_emplace( face.GetPtr(), as<i32>( inputs.mTextures.size() ) );
                 inputs.mTextures.push_back( face );
             }
         }
     }
 
-    auto RayTracingModule::CollectMeshes( const scene::Scene& scene, SceneInputs& inputs ) const -> void {
+    auto RayTracingModule::CollectMeshes( const scene::Scene &scene, SceneInputs &inputs ) const -> void {
         if ( !mMeshesVisible ) {
             return;
         }
 
-        const auto& registry{ scene.GetRegistry() };
+        const auto &registry{ scene.GetRegistry() };
 
         for ( const auto [entity, tag, transform, mesh, material]:
             registry.view<scene::TagComponent, scene::TransformComponent, scene::MeshComponent, scene::MaterialComponent>().each() ) {
@@ -849,21 +962,22 @@ namespace mikoto::renderer {
             }
 
             // A camera capture takes precedence over video and the authored material.
-            const auto* videoComponent{ registry.try_get<scene::VideoComponent>( entity ) };
+            const auto *videoComponent{ registry.try_get<scene::VideoComponent>( entity ) };
             const auto videoData{ videoComponent ? videoComponent->GetRenderData() : VideoRenderDataHandle{} };
             const auto videoMaterial{ videoData ? videoData->GetMaterial() : material::MaterialHandle{} };
-            const auto* capture{ registry.try_get<scene::TextureRenderComponent>( entity ) };
+            const auto *capture{ registry.try_get<scene::TextureRenderComponent>( entity ) };
             const auto capturedMaterial{ capture ? capture->GetMaterial() : material::MaterialHandle{} };
-            auto renderMaterial{ capturedMaterial ? capturedMaterial : videoMaterial ? videoMaterial : material.GetMaterialReference() };
-            auto* physical{ dynamic_cast<material::SurfaceMaterial*>( renderMaterial.GetPtr() ) };
+            auto renderMaterial{ capturedMaterial ? capturedMaterial : videoMaterial ? videoMaterial
+                                                                                     : material.GetMaterialReference() };
+            auto *physical{ dynamic_cast<material::SurfaceMaterial *>( renderMaterial.GetPtr() ) };
 
             if ( !physical ) {
                 continue;
             }
 
             MeshInstance item{};
-            const auto* node{ mesh.GetMesh() };
-            const auto* deformed{ registry.try_get<scene::DeformedMeshComponent>( entity ) };
+            const auto *node{ mesh.GetMesh() };
+            const auto *deformed{ registry.try_get<scene::DeformedMeshComponent>( entity ) };
             item.mMesh = deformed && deformed->mMesh ? MeshRenderDataHandle{ deformed->mMesh } : node->GetRenderData();
 
             if ( !item.mMesh || item.mMesh->GetIndices().empty() ) {
@@ -873,11 +987,11 @@ namespace mikoto::renderer {
             item.mTransform = transform.GetWorldTransform();
 
             // Skinning yields posed mesh-local positions for the BLAS.
-            if ( const auto* skin{ registry.try_get<scene::SkinnedMeshRenderer>( entity ) }; skin && item.mMesh->IsSkinned() ) {
-                const auto* animator{ animation::AnimationSystem::Get()->GetAnimator( skin->GetAnimatorID() ) };
+            if ( const auto *skin{ registry.try_get<scene::SkinnedMeshRenderer>( entity ) }; skin && item.mMesh->IsSkinned() ) {
+                const auto *animator{ animation::AnimationSystem::Get()->GetAnimator( skin->GetAnimatorID() ) };
 
                 if ( animator ) {
-                    const auto& pose{ animator->GetJointModelMatrices( node->GetSkinBinding().mRigIndex ) };
+                    const auto &pose{ animator->GetJointModelMatrices( node->GetSkinBinding().mRigIndex ) };
                     item.mPalette.resize( asset::kMaxBonesPerMesh );
 
                     if ( !animation::BuildSkinningPalette( node->GetSkinBinding(), { pose.data(), pose.size() },
@@ -893,9 +1007,9 @@ namespace mikoto::renderer {
 
             item.mMaterialSource = physical;
             item.mMaterial = PackMaterial( *physical, inputs );
-            auto& materialRecord{ item.mMaterial };
+            auto &materialRecord{ item.mMaterial };
 
-            if ( const auto* area{ mConfiguration.mPathTracingEnabled ? FindMeshAreaLight( scene, entity ) : nullptr } ) {
+            if ( const auto *area{ mConfiguration.mPathTracingEnabled ? FindMeshAreaLight( scene, entity ) : nullptr } ) {
                 // Reuse the mesh's actual posed triangles and texture UVs. The light supplies
                 // radiance; the material still supplies scattering, alpha and the emission map.
                 materialRecord.mEmission = float4{ glm::max( area->GetColor() * area->GetIntensity(), float3{ 0 } ),
@@ -911,7 +1025,7 @@ namespace mikoto::renderer {
             const bool mirrored{ glm::determinant( glm::mat3{ item.mTransform } ) < 0.0f };
             Hash( item.mShapeRevision, mirrored );
 
-            const auto& height{ physical->GetHeightMapping() };
+            const auto &height{ physical->GetHeightMapping() };
 
             if ( height.mMode == material::HeightMappingMode::eDisplacement && physical->IsTextureUsed( material::MapType::eHeight ) ) {
                 Hash( item.mShapeRevision, materialRecord.mHeightMapping );
@@ -927,14 +1041,20 @@ namespace mikoto::renderer {
 
             if ( capturedMaterial ) {
                 // A capture can update pixels without changing its bindless texture index.
-                Hash( inputs.mHash, capture->GetTextureRevision() );
+                Hash( inputs.mLightingHash, capture->GetTextureRevision() );
             }
 
+            if ( mDenoiserDataBuffer.mHandle ) {
+                Hash( inputs.mTopologyHash, entity );
+                Hash( inputs.mTopologyHash, item.mMesh->GetVertexCount() );
+                Hash( inputs.mTopologyHash, item.mMesh->GetIndices().size() );
+                HashBytes( inputs.mTopologyHash, item.mMesh->GetIndices().data(), item.mMesh->GetIndices().size() * sizeof( core::u32 ) );
+            }
             inputs.mMeshes.push_back( eastl::move( item ) );
         }
     }
 
-    auto RayTracingModule::PackMaterial( material::SurfaceMaterial& source, SceneInputs& inputs ) const -> Material {
+    auto RayTracingModule::PackMaterial( material::SurfaceMaterial &source, SceneInputs &inputs ) const -> Material {
         // Resolve streamed textures before building the material's descriptor indices.
         source.UpdateTextureResidency();
         const auto materialTextureIndex{ [&]( material::MapType type ) -> core::i32 {
@@ -944,7 +1064,7 @@ namespace mikoto::renderer {
         Material result{};
         const auto shadingModel{ source.GetShadingModel() };
         const bool specularWorkflow{ source.GetWorkflow() == material::Workflow::eSpecularGlossiness &&
-            shadingModel != material::ShadingModel::eConductor && shadingModel != material::ShadingModel::eUnlit };
+                                     shadingModel != material::ShadingModel::eConductor && shadingModel != material::ShadingModel::eUnlit };
         result.mBase = specularWorkflow ? source.GetDiffuseFactor() : source.GetBaseColorFactor();
         result.mEmission = core::float4{ source.GetEmissiveFactor() * source.GetEmissiveStrength(), 0.0f };
         result.mParameters = core::float4{ specularWorkflow ? 0.0f : source.GetMetallicFactor(),
@@ -961,12 +1081,12 @@ namespace mikoto::renderer {
         result.mSpecular = source.GetSpecularFactor();
         result.mUvTransform = source.GetUvTransform();
 
-        const auto& checker{ source.GetCheckerboard() };
+        const auto &checker{ source.GetCheckerboard() };
         result.mCheckerboardColorA = { checker.mColorA, checker.mEnabled ? 1.0f : 0.0f };
         result.mCheckerboardColorB = { checker.mColorB, checker.mCellSize };
         result.mCheckerboardOffset = { checker.mOffset, 0.0f };
 
-        const auto& height{ source.GetHeightMapping() };
+        const auto &height{ source.GetHeightMapping() };
         result.mHeightMapping = { height.mScale, height.mMidlevel, as<float>( height.mMode ), as<float>( height.mSteps ) };
         result.mHeightInfo = { materialTextureIndex( material::MapType::eHeight ), as<i32>( height.mUVSet ), 0, 0 };
 
@@ -976,20 +1096,20 @@ namespace mikoto::renderer {
             const auto model{ shadingModel };
             result.mProperties.x = as<u32>( model );
             if ( model == material::ShadingModel::eDielectric ) {
-                const auto& optical{ source.GetDielectric() };
+                const auto &optical{ source.GetDielectric() };
                 result.mProperties.y = optical.mThinWalled;
                 result.mOptical = float4{ optical.mIndexOfRefraction, optical.mTransmission, optical.mThickness, 0 };
                 result.mAbsorption = float4{ -glm::log( optical.mAttenuationColor ) / optical.mAttenuationDistance, optical.mPhaseAnisotropy };
                 result.mScattering = float4{ optical.mScattering, 0 };
             }
             else if ( model == material::ShadingModel::eSubsurfaceScattering ) {
-                const auto& optical{ source.GetSubsurface() };
+                const auto &optical{ source.GetSubsurface() };
                 result.mOptical = float4{ optical.mIndexOfRefraction, 1, 0, 0 };
                 result.mAbsorption = float4{ optical.mAbsorption / optical.mUnitsPerMillimeter, optical.mAnisotropy };
                 result.mScattering = float4{ optical.mScattering / optical.mUnitsPerMillimeter, 0 };
             }
             else if ( model == material::ShadingModel::eConductor ) {
-                const auto& optical{ source.GetConductor() };
+                const auto &optical{ source.GetConductor() };
                 result.mAbsorption = float4{ optical.mEta, 0 };
                 result.mScattering = float4{ optical.mK, 0 };
             }
@@ -998,8 +1118,8 @@ namespace mikoto::renderer {
         return result;
     }
 
-    auto RayTracingModule::CollectLights( const scene::Scene& scene, SceneInputs& inputs ) const -> void {
-        const auto& registry{ scene.GetRegistry() };
+    auto RayTracingModule::CollectLights( const scene::Scene &scene, SceneInputs &inputs ) const -> void {
+        const auto &registry{ scene.GetRegistry() };
 
         for ( const auto [entity, tag, transform, component]:
             registry.view<scene::TagComponent, scene::TransformComponent, scene::LightComponent>().each() ) {
@@ -1009,14 +1129,14 @@ namespace mikoto::renderer {
 
             Light light{};
             const auto type{ component.GetActiveType() };
-            const auto& world{ transform.GetWorldTransform() };
+            const auto &world{ transform.GetWorldTransform() };
             light.mPositionType = core::float4{ core::float3{ world[3] }, static_cast<float>( type ) };
 
             if ( type == LightType::eAreaLight ) {
                 // Explicit area lights belong only to path tracing, including their visible surfaces.
                 RectangleEmitter shape{};
 
-                const auto& area{ component.Get<AreaLight>() };
+                const auto &area{ component.Get<AreaLight>() };
 
                 if ( mConfiguration.mPathTracingEnabled && mMeshesVisible && area.GetShape() == AreaLightShape::eRectangle &&
                      BuildRectangleEmitter( area, world, shape ) ) {
@@ -1029,19 +1149,19 @@ namespace mikoto::renderer {
                 continue;
             }
             else if ( type == LightType::eDirectional ) {
-                const auto& source{ component.Get<DirectionalLight>() };
+                const auto &source{ component.Get<DirectionalLight>() };
                 light.mDirectionRadius = core::float4{ source.GetWorldDirection( world ), 0.0f };
                 light.mColorIntensity = core::float4{ source.GetColor(), source.GetIntensity() };
                 light.mSpot.z = mConfiguration.mPathTracingEnabled ? glm::radians( source.GetAngularRadius() ) : 0.0f;
             }
             else if ( type == LightType::ePoint ) {
-                const auto& source{ component.Get<PointLight>() };
+                const auto &source{ component.Get<PointLight>() };
                 light.mDirectionRadius.w = source.GetRadius();
                 light.mColorIntensity = core::float4{ source.GetColor(), source.GetIntensity() };
                 light.mSpot.z = mConfiguration.mPathTracingEnabled ? source.GetSourceRadius() : 0.0f;
             }
             else if ( type == LightType::eSpot ) {
-                const auto& source{ component.Get<SpotLight>() };
+                const auto &source{ component.Get<SpotLight>() };
                 light.mDirectionRadius = core::float4{ source.GetWorldDirection( world ), source.GetRadius() };
                 light.mColorIntensity = core::float4{ source.GetColor(), source.GetIntensity() };
                 light.mSpot = core::float4{ source.GetCutOff(), source.GetOuterCutOff(), 0.0f, 0.0f };
@@ -1055,7 +1175,7 @@ namespace mikoto::renderer {
         }
     }
 
-    auto RayTracingModule::PackScene( SceneInputs& inputs ) -> GeometryData {
+    auto RayTracingModule::PackScene( SceneInputs &inputs ) -> GeometryData {
         GeometryData next{};
         next.mTextures = eastl::move( inputs.mTextures );
 
@@ -1072,8 +1192,7 @@ namespace mikoto::renderer {
             next.mBuildPositions.resize( kTriangleIndexCount );
             next.mMeshes.push_back( FGAccelerationGeometry{
                 .mIndexCount = kTriangleIndexCount,
-                .mMask = 0
-            } );
+                .mMask = 0 } );
             materials.resize( 1 );
         }
 
@@ -1082,22 +1201,22 @@ namespace mikoto::renderer {
         AppendLightDistribution( next, inputs.mLights, materials, emitters );
 
         // Build indices address the entire shared position buffer.
-        for ( auto& geometry: next.mMeshes ) {
+        for ( auto &geometry: next.mMeshes ) {
             geometry.mVertexCount = as<u32>( next.mVertices.size() );
         }
 
         return next;
     }
 
-    auto RayTracingModule::PackSceneMeshes( GeometryData& next, eastl::span<const MeshInstance> instances,
-        eastl::vector<Material>& materials ) -> void {
-        ankerl::unordered_dense::map<const material::SurfaceMaterial*, u32> materialSlots{};
+    auto RayTracingModule::PackSceneMeshes( GeometryData &next, eastl::span<const MeshInstance> instances,
+        eastl::vector<Material> &materials ) -> void {
+        ankerl::unordered_dense::map<const material::SurfaceMaterial *, u32> materialSlots{};
         mPackedMeshCache.resize( instances.size() );
 
         usize meshSlot{};
 
-        for ( const auto& instance: instances ) {
-            const auto& mesh{ *instance.mMesh };
+        for ( const auto &instance: instances ) {
+            const auto &mesh{ *instance.mMesh };
             const core::u32 base{ static_cast<core::u32>( next.mVertices.size() ) };
             u32 materialIndex{ as<u32>( materials.size() ) };
 
@@ -1130,7 +1249,7 @@ namespace mikoto::renderer {
                 }
             }
 
-            auto& cached{ mPackedMeshCache[meshSlot++] };
+            auto &cached{ mPackedMeshCache[meshSlot++] };
             u64 vertexHash{ instance.mShapeRevision };
             Hash( vertexHash, instance.mTransform );
             Hash( vertexHash, materialIndex );
@@ -1165,15 +1284,15 @@ namespace mikoto::renderer {
         }
     }
 
-    auto RayTracingModule::PackMeshVertices( GeometryData& next, const MeshInstance& instance, u32 base, u32 materialIndex ) -> void {
-        const auto& mesh{ *instance.mMesh };
+    auto RayTracingModule::PackMeshVertices( GeometryData &next, const MeshInstance &instance, u32 base, u32 materialIndex ) -> void {
+        const auto &mesh{ *instance.mMesh };
         const auto bytes{ mesh.GetAttributes() };
-        const auto& offsets{ mesh.GetOffsets() };
-        const auto read{ [&]( MeshStream stream, u32 vertex, void* destination, usize size ) {
+        const auto &offsets{ mesh.GetOffsets() };
+        const auto read{ [&]( MeshStream stream, u32 vertex, void *destination, usize size ) {
             std::memcpy( destination, bytes.data() + offsets[as<usize>( stream )] + vertex * size, size );
         } };
 
-        const auto* source{ instance.mMaterialSource };
+        const auto *source{ instance.mMaterialSource };
         const bool displaced{ source && source->GetHeightMapping().mMode == material::HeightMappingMode::eDisplacement &&
                               source->IsTextureUsed( material::MapType::eHeight ) && source->GetTexture( material::MapType::eHeight ) };
         const auto heightImage{ displaced ? source->GetHeightImage() : asset::ImageHandle{} };
@@ -1195,7 +1314,7 @@ namespace mikoto::renderer {
 
             // Apply local displacement before skinning so traversal sees the posed surface.
             if ( heightImage ) {
-                const auto& mapping{ source->GetHeightMapping() };
+                const auto &mapping{ source->GetHeightMapping() };
                 const auto transform{ source->GetUvTransform() };
                 const auto uv{ ( mapping.mUVSet == 0 ? float2{ vertex.mUV.x, vertex.mUV.y } : float2{ vertex.mUV.z, vertex.mUV.w } ) *
                                    float2{ transform.x, transform.y } +
@@ -1254,23 +1373,23 @@ namespace mikoto::renderer {
         const f32 extent{ glm::max( extents.x, glm::max( extents.y, extents.z ) ) };
 
         for ( u32 index{ base }; index < next.mVertices.size(); ++index ) {
-            auto& vertex{ next.mVertices[index] };
+            auto &vertex{ next.mVertices[index] };
             vertex.mNormal.w = SampledPositionError( next.mBuildPositions[index], float3{ vertex.mPosition }, extent,
                 linear, translation, inverseLinear, inverseTranslation );
         }
     }
 
-    auto RayTracingModule::AppendRectangleEmitters( GeometryData& next, const SceneInputs& inputs,
-        eastl::vector<Material>& materials ) -> void {
+    auto RayTracingModule::AppendRectangleEmitters( GeometryData &next, const SceneInputs &inputs,
+        eastl::vector<Material> &materials ) -> void {
         // Bake rectangular lights into the path-only BLAS so camera, reflection and shadow
         // rays see the same surface sampled by next-event estimation. Radiance has no range cutoff.
-        for ( const auto& shape: inputs.mRectangleEmitters ) {
+        for ( const auto &shape: inputs.mRectangleEmitters ) {
             Material material{};
             material.mBase = float4{ 0, 0, 0, 1 };
             material.mEmission = float4{ shape.mRadiance, shape.mTwoSided ? 2.0f : 1.0f };
             material.mParameters.y = 1.0f;
             material.mExtra.y = shape.mTwoSided ? 1.0f : 0.0f;
-            material.mExtra.z = 1.0f; // Pure emitter; sided emission is independent of opaque visibility.
+            material.mExtra.z = 1.0f;// Pure emitter; sided emission is independent of opaque visibility.
             const u32 materialIndex{ as<u32>( materials.size() ) };
             materials.push_back( material );
 
@@ -1282,14 +1401,14 @@ namespace mikoto::renderer {
             };
             const u32 base{ as<u32>( next.mVertices.size() ) };
             const auto extents{ 2.0f * ( glm::abs( shape.mCorners[1] - shape.mCorners[0] ) +
-                                         glm::abs( shape.mCorners[3] - shape.mCorners[0] ) ) };
+                                           glm::abs( shape.mCorners[3] - shape.mCorners[0] ) ) };
             const f32 extent{ glm::max( extents.x, glm::max( extents.y, extents.z ) ) };
 
-            for ( const auto& position: shape.mCorners ) {
+            for ( const auto &position: shape.mCorners ) {
                 Vertex vertex{};
                 vertex.mPosition = float4{ position, as<f32>( materialIndex ) };
                 vertex.mNormal = float4{ shape.mNormal, SampledPositionError( position, position, extent,
-                    glm::mat3{ 1 }, float3{ 0 }, glm::mat3{ 1 }, float3{ 0 } ) };
+                                                            glm::mat3{ 1 }, float3{ 0 }, glm::mat3{ 1 }, float3{ 0 } ) };
                 vertex.mColor = float4{ 1 };
                 next.mVertices.push_back( vertex );
                 next.mBuildPositions.push_back( position );
@@ -1303,16 +1422,16 @@ namespace mikoto::renderer {
         }
     }
 
-    auto RayTracingModule::CollectTriangleEmitters( const GeometryData& next, eastl::span<const Material> materials,
+    auto RayTracingModule::CollectTriangleEmitters( const GeometryData &next, eastl::span<const Material> materials,
         u32 triangleCount ) -> eastl::vector<Emitter> {
         // Weight emissive triangles by area and luminance, then normalize the selection CDF.
         eastl::vector<Emitter> emitters{};
         f32 totalWeight{};
 
         for ( core::u32 triangle{}; triangle < triangleCount; ++triangle ) {
-            const auto& a{ next.mVertices[next.mIndices[triangle * kTriangleIndexCount]] };
-            const auto& b{ next.mVertices[next.mIndices[triangle * kTriangleIndexCount + 1]] };
-            const auto& c{ next.mVertices[next.mIndices[triangle * kTriangleIndexCount + 2]] };
+            const auto &a{ next.mVertices[next.mIndices[triangle * kTriangleIndexCount]] };
+            const auto &b{ next.mVertices[next.mIndices[triangle * kTriangleIndexCount + 1]] };
+            const auto &c{ next.mVertices[next.mIndices[triangle * kTriangleIndexCount + 2]] };
             const auto emission{ core::float3{ materials[static_cast<core::u32>( a.mPosition.w )].mEmission } };
             const f32 area{ 0.5f * glm::length( glm::cross( core::float3{ b.mPosition - a.mPosition }, core::float3{ c.mPosition - a.mPosition } ) ) };
             const f32 weight{ area * glm::dot( emission, core::float3{ 0.2126f, 0.7152f, 0.0722f } ) };
@@ -1323,12 +1442,11 @@ namespace mikoto::renderer {
                     .mTriangle = triangle,
                     .mCDF = totalWeight,
                     .mArea = area,
-                    .mWeight = weight
-                } );
+                    .mWeight = weight } );
             }
         }
 
-        for ( auto& emitter: emitters ) {
+        for ( auto &emitter: emitters ) {
             emitter.mCDF /= totalWeight;
             emitter.mWeight /= totalWeight;
         }
@@ -1336,7 +1454,7 @@ namespace mikoto::renderer {
         return emitters;
     }
 
-    auto RayTracingModule::PackSceneData( GeometryData& next, const SceneInputs& inputs, eastl::span<Material> materials,
+    auto RayTracingModule::PackSceneData( GeometryData &next, const SceneInputs &inputs, eastl::span<Material> materials,
         eastl::span<const Emitter> emitters ) -> void {
         const auto lights{ eastl::span<const Light>{ inputs.mLights } };
         const auto lightOffset{ sizeof( SceneHeader ) + materials.size_bytes() };
@@ -1345,7 +1463,7 @@ namespace mikoto::renderer {
         // Profiles belong to the material upload, so camera motion never rebuilds diffusion tables.
         eastl::vector<material::BssrdfProfile> profiles{};
         const auto profileBase{ emitterOffset + emitters.size() * sizeof( Emitter ) };
-        for ( auto& record: materials ) {
+        for ( auto &record: materials ) {
             if ( record.mProperties.x != as<u32>( material::ShadingModel::eSubsurfaceScattering ) ) {
                 continue;
             }
@@ -1377,25 +1495,26 @@ namespace mikoto::renderer {
         AppendSceneBytes( next.mSceneData, profiles.data(), profiles.size() * sizeof( material::BssrdfProfile ) );
     }
 
-    auto RayTracingModule::AppendLightDistribution( GeometryData& next, eastl::span<const Light> lights,
+    auto RayTracingModule::AppendLightDistribution( GeometryData &next, eastl::span<const Light> lights,
         eastl::span<const Material> materials, eastl::span<const Emitter> emitters ) const -> void {
         // PBRT PowerLightSampler: use emitted-power estimates to select a light,
         // and retain the exact PMF for both next-event estimation and emitter-hit MIS.
         // https://pbr-book.org/4ed/Light_Sources/Light_Sampling#PowerLightSampler
-        float3 minimum{ std::numeric_limits<f32>::max() }, maximum{ std::numeric_limits<f32>::lowest() };
+        float3 minimum{ std::numeric_limits<f32>::max() };
+        float3 maximum{ std::numeric_limits<f32>::lowest() };
 
-        for ( const auto& vertex: next.mVertices ) {
+        for ( const auto &vertex: next.mVertices ) {
             minimum = glm::min( minimum, float3{ vertex.mPosition } );
             maximum = glm::max( maximum, float3{ vertex.mPosition } );
         }
 
         constexpr f64 pi{ 3.14159265358979323846 };
         const f64 radius2{ glm::max( glm::dot( maximum - minimum, maximum - minimum ) * .25f, .0001f ) };
-        const auto luminance{ []( const float3& color ) -> f64 {
+        const auto luminance{ []( const float3 &color ) -> f64 {
             return glm::dot( glm::max( color, float3{ 0 } ), float3{ .2126f, .7152f, .0722f } );
         } };
         eastl::vector<f64> powers{};
-        for ( const auto& light: lights ) {
+        for ( const auto &light: lights ) {
             float3 illumination{ float3{ light.mColorIntensity } * light.mColorIntensity.w };
             const bool directional{ light.mPositionType.w == as<f32>( LightType::eDirectional ) };
             const bool spotlight{ light.mPositionType.w == as<f32>( LightType::eSpot ) };
@@ -1408,15 +1527,16 @@ namespace mikoto::renderer {
 
             const f64 intensity{ luminance( illumination ) };
             const f64 solidAngle{ directional ? pi * radius2
-                : spotlight ? 2 * pi * ( 1 - .5 * ( light.mSpot.x + light.mSpot.y ) ) : 4 * pi };
+                                  : spotlight ? 2 * pi * ( 1 - .5 * ( light.mSpot.x + light.mSpot.y ) )
+                                              : 4 * pi };
             powers.push_back( glm::max( intensity * solidAngle, 0.0 ) );
         }
 
         if ( !emitters.empty() ) {
             f64 power{};
-            for ( const auto& emitter: emitters ) {
-                const auto& vertex{ next.mVertices[next.mIndices[emitter.mTriangle * kTriangleIndexCount]] };
-                const auto& material{ materials[as<u32>( vertex.mPosition.w )] };
+            for ( const auto &emitter: emitters ) {
+                const auto &vertex{ next.mVertices[next.mIndices[emitter.mTriangle * kTriangleIndexCount]] };
+                const auto &material{ materials[as<u32>( vertex.mPosition.w )] };
                 const bool twoSided{ material.mEmission.w > 1 || ( material.mEmission.w == 0 && material.mExtra.y != 0 ) };
                 power += pi * emitter.mArea * luminance( float3{ material.mEmission } ) * ( twoSided ? 2 : 1 );
             }

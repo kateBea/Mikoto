@@ -1,0 +1,49 @@
+# Mesh-shaped density volumes; path tracing enabled by default.
+{
+  "Version": 1,
+  "Project": "Mesh_Volumes",
+  "Assets": "Assets",
+  "Cache": "Assets/.cache",
+  "Scene": "Scene/Mesh_Volumes.mktscn",
+  "CompressTextures": false,
+  "AutoSave": false,
+  "Renderer": {
+    "Version": 1,
+    "Resolution": 0,
+    "Samples": 1,
+    "PathTracing": true,
+    "PathSamplesPerFrame": 2,
+    "PathMaxBounces": 16,
+    "PathMaxSamples": 4096,
+    "RayTracedAmbientOcclusion": false,
+    "AoSamplesPerFrame": 2,
+    "AoCosineSampling": true,
+    "AoMaxDistance": 0.12,
+    "BloomEnabled": false,
+    "BloomThreshold": 2,
+    "BloomIntensity": 0.1,
+    "SsaoEnabled": false
+  },
+  "EditorCamera": {
+    "NavigationMode": "Fly",
+    "Position": [
+      8,
+      8.6,
+      21
+    ],
+    "Direction": [
+      -0.3228300655915071,
+      -0.22194567009416113,
+      -0.9200656869357953
+    ],
+    "Projection": "Perspective",
+    "FieldOfView": 54,
+    "NearPlane": 0.1,
+    "FarPlane": 1000,
+    "MovementSpeed": 5,
+    "RotationSpeed": 10,
+    "SmoothTime": 0.1,
+    "AllowPitch": true,
+    "AllowYaw": true
+  }
+}

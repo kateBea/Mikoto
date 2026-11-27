@@ -15,22 +15,25 @@
 #ifndef MIKOTO_RENDERER_VULKAN_VIDEO_DECODER_HH
 #define MIKOTO_RENDERER_VULKAN_VIDEO_DECODER_HH
 
-#include <volk.h>
 #include <vk_mem_alloc.h>
-#include <vk_video/vulkan_video_codec_h264std_decode.h>
+#include <volk.h>
 
-#include <Video/H264Parser.hh>
+#include <vk_video/vulkan_video_codec_h264std_decode.h>
 
 #include <Renderer/Rhi/Buffer.hh>
 #include <Renderer/Rhi/VideoDecoder.hh>
+
+#include <Video/H264Parser.hh>
 
 namespace mikoto::renderer::vulkan {
 
     class VideoImageStorage final : public rhi::DeviceObject {
     public:
-        VideoImageStorage( const VkVideoProfileInfoKHR& profile, VkExtent2D extent, VkImageUsageFlags usage );
+        VideoImageStorage( const VkVideoProfileInfoKHR &profile, VkExtent2D extent, VkImageUsageFlags usage );
+
+        MKT_NODISCARD auto GetImage() const -> VkImage;
+
         ~VideoImageStorage() override;
-        auto GetImage() const -> VkImage;
 
     private:
         auto Initialize() -> void override;
@@ -45,29 +48,34 @@ namespace mikoto::renderer::vulkan {
 
     class VideoSurface final : public rhi::IVideoSurface {
     public:
-        VideoSurface( const VkVideoProfileInfoKHR& profile, VkExtent2D extent, bool reference, bool coincident );
-        ~VideoSurface() override;
+        VideoSurface( const VkVideoProfileInfoKHR &profile, VkExtent2D extent, bool reference, bool coincident );
 
-        auto GetImage() const -> rhi::TextureHandle override;
-        auto GetLumaImage() const -> rhi::TextureHandle override;
-        auto GetChromaImage() const -> rhi::TextureHandle override;
+        MKT_NODISCARD auto GetImage() const -> rhi::TextureHandle override;
+        MKT_NODISCARD auto GetLumaImage() const -> rhi::TextureHandle override;
+        MKT_NODISCARD auto GetChromaImage() const -> rhi::TextureHandle override;
+
+        ~VideoSurface() override;
 
     private:
         auto Initialize() -> void override;
         auto Destroy() -> void override;
 
-        core::Ref<VideoImageStorage> mStorage{};
+    private:
         rhi::TextureHandle mImage{};
         rhi::TextureHandle mLumaImage{};
         rhi::TextureHandle mChromaImage{};
+
+        core::Ref<VideoImageStorage> mStorage{};
+
         VkExtent2D mExtent{};
         VkImageUsageFlags mUsage{};
+
         bool mSampled{};
     };
 
     class VideoDecoder final : public rhi::IVideoDecoder {
     public:
-        explicit VideoDecoder( const rhi::VideoDecoderDescription& description );
+        explicit VideoDecoder( const rhi::VideoDecoderDescription &description );
 
         MKT_NODISCARD auto GetMaxReferences() const -> core::u32 override;
         MKT_NODISCARD auto GetDpbSlotCount() const -> core::u32 override;
@@ -83,9 +91,10 @@ namespace mikoto::renderer::vulkan {
         MKT_NODISCARD auto CreateBitstream( eastl::span<const core::ubyte> bytes ) -> rhi::BufferHandle override;
         MKT_NODISCARD auto GetBitstreamLayout() const -> rhi::VideoBitstreamLayout override;
 
-        MKT_NODISCARD auto MatchesConfiguration( const video::H264Picture& picture ) const -> bool;
+        MKT_NODISCARD auto MatchesConfiguration( const video::H264Picture &picture ) const -> bool;
 
         ~VideoDecoder() override;
+
     private:
         auto Initialize() -> void override;
         auto Destroy() -> void override;
@@ -110,6 +119,6 @@ namespace mikoto::renderer::vulkan {
 
         bool mIsCoincident{};
     };
-}
+}// namespace mikoto::renderer::vulkan
 
 #endif

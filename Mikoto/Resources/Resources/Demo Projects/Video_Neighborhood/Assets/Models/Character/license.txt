@@ -1,0 +1,11 @@
+Model Information:
+* title:	Xbot multiple animations
+* source:	https://sketchfab.com/3d-models/xbot-multiple-animations-d96647512d9249b083d70e383944bdbf
+* author:	nitwit.friends (https://sketchfab.com/nitwit.friends)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Xbot multiple animations" (https://sketchfab.com/3d-models/xbot-multiple-animations-d96647512d9249b083d70e383944bdbf) by nitwit.friends (https://sketchfab.com/nitwit.friends) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

@@ -92,8 +92,16 @@ namespace mikoto::renderer {
                     core::u32 mAxis;
                     core::u32 mWidth;
                     core::u32 mHeight;
-                } params{ ctx.GetDeviceBufferAddress( materials ), ctx.GetDeviceBufferAddress( kernels ),
-                    ctx.PushTexture_SRV( original ), ctx.PushTexture_SRV( input ), ctx.PushTexture_SRV( metadata ), axis, width, height };
+                } params{
+                    .mMaterials = ctx.GetDeviceBufferAddress( materials ),
+                    .mKernels = ctx.GetDeviceBufferAddress( kernels ),
+                    .mOriginal = ctx.PushTexture_SRV( original ),
+                    .mInput = ctx.PushTexture_SRV( input ),
+                    .mMetadata = ctx.PushTexture_SRV( metadata ),
+                    .mAxis = axis,
+                    .mWidth = width,
+                    .mHeight = height,
+                };
                 ctx.PushConstants( params );
                 draw( ctx, output, blurPipeline );
             } );
@@ -168,11 +176,19 @@ namespace mikoto::renderer {
                         core::u32 mAmbient;
                         core::u32 mMetadata;
                         core::u32 mSampler;
-                    } params{ ctx.GetDeviceBufferAddress( data.mGeometryBuffer ), ctx.GetDeviceBufferAddress( data.mSkinningBuffer ),
-                        ctx.GetDeviceBufferAddress( data.mGeometryAllocBuffer ), ctx.GetDeviceBufferAddress( camera ),
-                        ctx.GetDeviceBufferAddress( materials ), ctx.PushTexture_SRV( original ), ctx.PushTexture_SRV( vertical ),
-                        ctx.PushTexture_SRV( specular ), ctx.PushTexture_SRV( ambient ), ctx.PushTexture_SRV( metadata ),
-                        ctx.PushSampler( data.mMaterialSampler ) };
+                    } params{
+                        .mGeometry = ctx.GetDeviceBufferAddress( data.mGeometryBuffer ),
+                        .mSkinning = ctx.GetDeviceBufferAddress( data.mSkinningBuffer ),
+                        .mAllocations = ctx.GetDeviceBufferAddress( data.mGeometryAllocBuffer ),
+                        .mCamera = ctx.GetDeviceBufferAddress( camera ),
+                        .mMaterials = ctx.GetDeviceBufferAddress( materials ),
+                        .mOriginal = ctx.PushTexture_SRV( original ),
+                        .mFiltered = ctx.PushTexture_SRV( vertical ),
+                        .mSpecular = ctx.PushTexture_SRV( specular ),
+                        .mAmbient = ctx.PushTexture_SRV( ambient ),
+                        .mMetadata = ctx.PushTexture_SRV( metadata ),
+                        .mSampler = ctx.PushSampler( data.mMaterialSampler ),
+                    };
                     ctx.PushConstants( params );
                     ctx.BeginRender( RenderBeginDescription{}.SetRenderArea( renderer::rhi::Rect{ core::as<core::i32>( width ), core::as<core::i32>( height ) } ).AddRenderTarget( raster, renderer::rhi::Color{ 0, 0, 0, 0 }, renderer::rhi::LoadOp::eLoad ).AddDepthTarget( depth, renderer::rhi::LoadOp::eLoad ) );
                     ctx.SetViewportState( renderer::rhi::ViewportState{}.AddViewportAndScissorRect( renderer::rhi::Viewport{ core::as<core::f32>( width ), core::as<core::f32>( height ) } ) );
@@ -206,8 +222,14 @@ namespace mikoto::renderer {
                     core::u32 mAmbient;
                     core::u32 mScene;
                     core::u32 mPadding{};
-                } params{ ctx.GetDeviceBufferAddress( materials ), ctx.PushTexture_SRV( original ), ctx.PushTexture_SRV( vertical ),
-                    ctx.PushTexture_SRV( specular ), ctx.PushTexture_SRV( ambient ), ctx.PushTexture_SRV( scene ) };
+                } params{
+                    .mMaterials = ctx.GetDeviceBufferAddress( materials ),
+                    .mOriginal = ctx.PushTexture_SRV( original ),
+                    .mFiltered = ctx.PushTexture_SRV( vertical ),
+                    .mSpecular = ctx.PushTexture_SRV( specular ),
+                    .mAmbient = ctx.PushTexture_SRV( ambient ),
+                    .mScene = ctx.PushTexture_SRV( scene ),
+                };
                 ctx.PushConstants( params );
                 draw( ctx, composite, compositePipeline );
             } );

@@ -23,7 +23,13 @@
 // GPU port of my CPU pathtracer available at:
 // https://github.com/kateBea/RT-In-One-WeekEnd.
 
+// Compute example for the uploaded software sphere scene. Each pixel averages camera/lens
+// samples from its fixed demo camera, then writes the gamma-encoded result to the output image.
+
 #include "raytracing/Camera.slang"
+
+// Matches the CPU dispatch divisor for this frame-graph example.
+static const uint kSoftwareTraceTileSide = 16;
 
 struct Parameters {
     Pointer mSpheres;
@@ -37,7 +43,7 @@ MKT_DECLARE_TEXTURE_UAV( RWTexture2D<float4> ) textures;
 MKT_DECLARE_PUSH_CONSTANT( Parameters, parameters );
 
 [shader( "compute" )]
-[numthreads( 16, 16, 1 )]
+[numthreads( kSoftwareTraceTileSide, kSoftwareTraceTileSide, 1 )]
 void main( uint3 tid : SV_DispatchThreadID ) {
     RWTexture2D<float4> output = textures[parameters.mImageIndex];
     uint width;

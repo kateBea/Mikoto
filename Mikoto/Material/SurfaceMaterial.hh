@@ -17,15 +17,19 @@
 
 #include <mutex>
 
-#include <EASTL/utility.h>
-#include <EASTL/array.h>
-#include <EASTL/vector.h>
-#include <EASTL/string.h>
-#include <EASTL/string_view.h>
-
 #include <ankerl/unordered_dense.h>
 
+#include <EASTL/array.h>
+#include <EASTL/string.h>
+#include <EASTL/string_view.h>
+#include <EASTL/utility.h>
+#include <EASTL/vector.h>
+
 #include <yaml-cpp/yaml.h>
+
+#include <Assets/AssetLoadRegistry.hh>
+#include <Assets/AssetTexture.hh>
+#include <Assets/Image.hh>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
@@ -33,15 +37,11 @@
 #include <Filesystem/File.hh>
 #include <Filesystem/Path.hh>
 
-#include <Assets/Image.hh>
-#include <Assets/AssetTexture.hh>
-#include <Assets/AssetLoadRegistry.hh>
-
 #include <Material/Material.hh>
 #include <Material/MaterialGraph.hh>
 
-#include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/Texture.hh>
+#include <Renderer/Rhi/Types.hh>
 
 namespace mikoto::material {
 
@@ -78,9 +78,21 @@ namespace mikoto::material {
     struct CheckerboardSettings {
         bool mEnabled{};
         core::f32 mCellSize{ 1.0f };
-        core::float3 mColorA{ 10.0f / 255.0f, 11.0f / 255.0f, 11.0f / 255.0f }; // #0A0B0B
-        core::float3 mColorB{ 105.0f / 255.0f, 117.0f / 255.0f, 125.0f / 255.0f }; // #69757D
+        core::float3 mColorA{ 10.0f / 255.0f, 11.0f / 255.0f, 11.0f / 255.0f };   // #0A0B0B
+        core::float3 mColorB{ 105.0f / 255.0f, 117.0f / 255.0f, 125.0f / 255.0f };// #69757D
         core::float3 mOffset{};
+    };
+
+    // Dimensions are mesh-local metres. Bark and leaves sharing a tree use the
+    // same height/root so their main bend remains continuous at branch joints.
+    struct FoliageWindSettings {
+        bool mEnabled{};
+        core::f32 mHeight{ 10.0f };
+        core::f32 mRootHeight{};
+        core::f32 mTrunkBend{ .035f };
+        core::f32 mBranchMotion{ .12f };
+        core::f32 mLeafFlutter{ .025f };
+        core::f32 mFrequency{ 1.0f };
     };
 
     enum class HeightMappingMode : core::u32 {
@@ -93,7 +105,7 @@ namespace mikoto::material {
     struct HeightMappingSettings {
         HeightMappingMode mMode{ HeightMappingMode::eNone };
 
-        core::f32 mScale{ 0.05f }; // Mesh-local distance; parallax uses texture space.
+        core::f32 mScale{ 0.05f };// Mesh-local distance; parallax uses texture space.
         core::f32 mMidlevel{ 0.5f };
         core::u32 mUVSet{};
         core::u32 mSteps{ 32 };
@@ -124,7 +136,7 @@ namespace mikoto::material {
         core::f32 mThickness{ 1.0f };
         core::f32 mAttenuationDistance{ 10.0f };
         bool mThinWalled{};
-        core::float3 mScattering{}; // Homogeneous interior, inverse world units; path tracing only.
+        core::float3 mScattering{};// Homogeneous interior, inverse world units; path tracing only.
         core::f32 mPhaseAnisotropy{};
     };
 
@@ -142,7 +154,7 @@ namespace mikoto::material {
         core::f32 mToonSoftness{ 0.05f };
         core::i32 mCellBands{ 4 };
         core::float3 mContourColor{ 0.015f };
-        core::f32 mContourWidth{ 2.0f }; // Screen pixels; zero disables the silhouette.
+        core::f32 mContourWidth{ 2.0f };// Screen pixels; zero disables the silhouette.
     };
 
 
@@ -217,6 +229,7 @@ namespace mikoto::material {
         core::f32 NormalScale{ 1.f };
         core::f32 ClearCoatNormalScale{ 1.f };
         CheckerboardSettings mCheckerboard{};
+        FoliageWindSettings mFoliageWind{};
         ShadingModel mShadingModel{};
         SurfaceShadingSettings mSurfaceShading{};
         DielectricSettings mDielectric{};
@@ -247,9 +260,9 @@ namespace mikoto::material {
     class SurfaceMaterial final : public IMaterial, public core::RevisionTracked {
     public:
         explicit SurfaceMaterial( eastl::string_view name = "PBR" );
-        explicit SurfaceMaterial( const SurfaceMaterialDescription& props );
+        explicit SurfaceMaterial( const SurfaceMaterialDescription &props );
 
-        SurfaceMaterial( const SurfaceMaterial& other );
+        SurfaceMaterial( const SurfaceMaterial &other );
 
         auto Deserialize( const filesystem::Path &filename ) -> void override;
         auto Serialize( const filesystem::Path &filename ) const -> void override;
@@ -257,31 +270,20 @@ namespace mikoto::material {
         auto Deserialize( filesystem::FileHandle file ) -> void override;
         auto Serialize( filesystem::FileHandle file ) const -> void override;
 
-        auto SetCheckerboard( const CheckerboardSettings& settings ) -> void;
+        auto SetCheckerboard( const CheckerboardSettings &settings ) -> void;
+        auto SetFoliageWind( const FoliageWindSettings &settings ) -> void;
         auto SetHeightMapping( HeightMappingSettings settings ) -> void;
-        auto SetTextureReference( MapType type, const filesystem::Path& path ) -> void;
+        auto SetTextureReference( MapType type, const filesystem::Path &path ) -> void;
 
-        auto SetUvTransform( const core::float4& transform ) -> void;
+        auto SetUvTransform( const core::float4 &transform ) -> void;
 
         auto RemoveTexture( MapType type ) -> void;
 
         auto UpdateTextureResidency( bool wanted = true ) -> void;
 
         auto UseTexture( MapType type, bool use = true ) -> void;
-        auto SetTexture( MapType type, const renderer::rhi::TextureHandle& texture ) -> void;
-        auto SetTexture( MapType type, const asset::AssetHandle<asset::Texture>& texture ) -> void;
-
-        MKT_NODISCARD auto GetCheckerboard() const -> const CheckerboardSettings&;
-        MKT_NODISCARD auto GetHeightImage() const -> asset::ImageHandle;
-        MKT_NODISCARD auto GetHeightMapping() const -> const HeightMappingSettings&;
-        MKT_NODISCARD auto GetTexturePath( MapType type ) const -> filesystem::Path;
-
-        MKT_NODISCARD auto IsOpaque() const -> bool;
-        MKT_NODISCARD auto IsTransparent() const -> bool;
-
-        MKT_NODISCARD auto IsTextureUsed( MapType type ) const -> bool;
-
-        MKT_NODISCARD auto GetSourcePath() const -> const filesystem::Path&;
+        auto SetTexture( MapType type, const renderer::rhi::TextureHandle &texture ) -> void;
+        auto SetTexture( MapType type, const asset::AssetHandle<asset::Texture> &texture ) -> void;
 
         // ===============================
         // Scalar & Factor Setters
@@ -289,10 +291,10 @@ namespace mikoto::material {
         auto SetAlphaMask( AlphaMode mode ) -> void;
         auto SetWorkflow( Workflow mode ) -> void;
 
-        auto SetBaseColorFactor( const core::float4& value ) -> void;
-        auto SetDiffuseFactor( const core::float4& value ) -> void;
-        auto SetSpecularFactor( const core::float4& value ) -> void;
-        auto SetEmissiveFactor( const core::float3& value ) -> void;
+        auto SetBaseColorFactor( const core::float4 &value ) -> void;
+        auto SetDiffuseFactor( const core::float4 &value ) -> void;
+        auto SetSpecularFactor( const core::float4 &value ) -> void;
+        auto SetEmissiveFactor( const core::float3 &value ) -> void;
 
         auto SetAoFactor( core::f32 v ) -> void;
         auto SetMetallicFactor( core::f32 v ) -> void;
@@ -300,10 +302,6 @@ namespace mikoto::material {
         auto SetGlossinessFactor( core::f32 v ) -> void;
         auto SetClearCoatNormalScale( core::f32 v ) -> void;
         auto SetClearCoatNormalTextureSet( core::i32 set ) -> void;
-
-        MKT_NODISCARD auto GetClearCoatNormalScale() const -> float;
-        MKT_NODISCARD auto GetClearCoatNormalTextureSet() const -> core::i32;
-        MKT_NODISCARD auto GetUvTransform() const -> const core::float4&;
 
         auto SetNormalScale( core::f32 v ) -> void;
         auto SetOcclusionStrength( core::f32 v ) -> void;
@@ -322,6 +320,36 @@ namespace mikoto::material {
         auto SetEmissiveTextureSet( core::i32 set ) -> void;
 
         // ===============================
+        // Shading Model
+        // ===============================
+        auto SetShadingModel( ShadingModel model ) -> void;
+        auto SetSurfaceShading( const SurfaceShadingSettings &settings ) -> void;
+        auto SetDielectric( const DielectricSettings &settings ) -> void;
+        auto SetConductor( const ConductorSettings &settings ) -> void;
+
+        /** @brief Updates diffusion settings and invalidates uploaded material data. */
+        auto SetSubsurface( const SubsurfaceSettings &settings ) -> void;
+
+        auto SetName( eastl::string_view newName ) -> void override;
+
+        MKT_NODISCARD auto GetCheckerboard() const -> const CheckerboardSettings &;
+        MKT_NODISCARD auto GetFoliageWind() const -> const FoliageWindSettings &;
+        MKT_NODISCARD auto GetHeightImage() const -> asset::ImageHandle;
+        MKT_NODISCARD auto GetHeightMapping() const -> const HeightMappingSettings &;
+        MKT_NODISCARD auto GetTexturePath( MapType type ) const -> filesystem::Path;
+
+        MKT_NODISCARD auto IsOpaque() const -> bool;
+        MKT_NODISCARD auto IsTransparent() const -> bool;
+
+        MKT_NODISCARD auto IsTextureUsed( MapType type ) const -> bool;
+
+        MKT_NODISCARD auto GetSourcePath() const -> const filesystem::Path &;
+
+        MKT_NODISCARD auto GetClearCoatNormalScale() const -> float;
+        MKT_NODISCARD auto GetClearCoatNormalTextureSet() const -> core::i32;
+        MKT_NODISCARD auto GetUvTransform() const -> const core::float4 &;
+
+        // ===============================
         // Bloom
         // ===============================
         auto EnableBloom( bool enable ) -> void;
@@ -332,10 +360,10 @@ namespace mikoto::material {
         MKT_NODISCARD auto GetAlphaMask() const -> AlphaMode;
         MKT_NODISCARD auto GetWorkflow() const -> Workflow;
 
-        MKT_NODISCARD auto GetBaseColorFactor() const -> const core::float4&;
-        MKT_NODISCARD auto GetDiffuseFactor() const -> const core::float4&;
-        MKT_NODISCARD auto GetSpecularFactor() const -> const core::float4&;
-        MKT_NODISCARD auto GetEmissiveFactor() const -> const core::float3&;
+        MKT_NODISCARD auto GetBaseColorFactor() const -> const core::float4 &;
+        MKT_NODISCARD auto GetDiffuseFactor() const -> const core::float4 &;
+        MKT_NODISCARD auto GetSpecularFactor() const -> const core::float4 &;
+        MKT_NODISCARD auto GetEmissiveFactor() const -> const core::float3 &;
 
         MKT_NODISCARD auto GetAoFactor() const -> float;
         MKT_NODISCARD auto GetMetallicFactor() const -> float;
@@ -362,42 +390,28 @@ namespace mikoto::material {
         MKT_NODISCARD auto HasTexture( MapType type ) const -> bool;
         MKT_NODISCARD auto GetTexture( MapType type ) const -> renderer::rhi::TextureHandle;
 
-        // ===============================
-        // Shading Model
-        // ===============================
-        auto SetShadingModel( ShadingModel model ) -> void;
-        auto SetSurfaceShading( const SurfaceShadingSettings& settings ) -> void;
-        auto SetDielectric( const DielectricSettings& settings ) -> void;
-        auto SetConductor( const ConductorSettings& settings ) -> void;
-
         MKT_NODISCARD auto GetShadingModel() const -> ShadingModel;
-        MKT_NODISCARD auto GetSurfaceShading() const -> const SurfaceShadingSettings&;
-        MKT_NODISCARD auto GetDielectric() const -> const DielectricSettings&;
-        MKT_NODISCARD auto GetConductor() const -> const ConductorSettings&;
+        MKT_NODISCARD auto GetSurfaceShading() const -> const SurfaceShadingSettings &;
+        MKT_NODISCARD auto GetDielectric() const -> const DielectricSettings &;
+        MKT_NODISCARD auto GetConductor() const -> const ConductorSettings &;
         MKT_NODISCARD auto GetConductorReflectance() const -> core::float3;
 
         /** Presets initialize the same editable optical properties; they are not shading models. */
         auto ApplyConductorPreset( core::u32 preset ) -> void;
         auto ApplyDielectricPreset( core::u32 preset ) -> void;
         auto ApplySubsurfacePreset( core::u32 preset ) -> void;
+        MKT_NODISCARD auto GetSubsurface() const -> const SubsurfaceSettings &;
 
-        /** @brief Updates diffusion settings and invalidates uploaded material data. */
-        auto SetSubsurface( const SubsurfaceSettings& settings ) -> void;
-        MKT_NODISCARD auto GetSubsurface() const -> const SubsurfaceSettings&;
-
-        /** @brief Owns this material's editable graph independently of other instances. */
-        auto GetGraph() -> MaterialGraph*;
-        auto GetGraph() const -> const MaterialGraph*;
-
-        auto SetName( eastl::string_view newName ) -> void override;
-        MKT_NODISCARD auto GetName() const -> const eastl::string& override;
+        MKT_NODISCARD auto GetGraph() -> MaterialGraph *;
+        MKT_NODISCARD auto GetGraph() const -> const MaterialGraph *;
+        MKT_NODISCARD auto GetName() const -> const eastl::string & override;
 
         ~SurfaceMaterial() override = default;
 
     private:
         // YAML is an implementation detail of the ISerializable entry points.
         MKT_NODISCARD auto SerializeProperties() const -> YAML::Node;
-        auto RestoreProperties( const YAML::Node& node ) -> void;
+        auto RestoreProperties( const YAML::Node &node ) -> void;
 
         mutable filesystem::Path mSourcePath{};
 
@@ -424,6 +438,7 @@ namespace mikoto::material {
         core::f32 mRoughnessFactor{ 1.f };
         core::f32 mGlossinessFactor{ 1.f };
         CheckerboardSettings mCheckerboard{};
+        FoliageWindSettings mFoliageWind{};
         HeightMappingSettings mHeightMapping{};
         mutable std::mutex mHeightImageMutex{};
         mutable filesystem::Path mHeightImagePath{};
@@ -464,6 +479,6 @@ namespace mikoto::material {
     };
 
     using SurfaceMaterialHandle = core::Ref<SurfaceMaterial>;
-}
+}// namespace mikoto::material
 
 #endif// MIKOTO_MATERIAL_SURFACE_MATERIAL_HH

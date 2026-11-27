@@ -15,9 +15,18 @@
 // Atmosphere parameterization adapted from Mirinae, Copyright (c) 2023 Sungmin Woo (MIT).
 // https://github.com/SausageTaste/mirinae/blob/54293d427b1c107f0566a0db59935950546e1528/LICENSE
 
+// Atmosphere data layout, planet-space conversion and transmittance-LUT coordinates. These
+// helpers connect world-space surfaces and rays to the atmosphere integration tables.
+
 #pragma once
 
 static const float AtmosGroundOffset = 0.01;
+
+// Matches the 32x32x32 aerial-perspective atlas allocated by AtmosphericScatteringModule.
+static const uint kAtmosAerialSliceSize = 32;
+static const uint kAtmosAerialSliceCount = 32;
+static const uint kAtmosAerialLastSlice = kAtmosAerialSliceCount - 1;
+static const uint kAtmosAerialAtlasHeight = kAtmosAerialSliceSize * kAtmosAerialSliceCount;
 
 struct AtmosphereData {
     float4 mRadii;
@@ -33,6 +42,8 @@ struct AtmosphereData {
 // As in Mirinae, world up is radial at the scene origin and the planet is
 // centered one ground radius below it. Mikoto supplies its own world scale.
 // https://github.com/SausageTaste/mirinae/blob/54293d427b1c107f0566a0db59935950546e1528/asset/slang/atmos/sky_view.slang#L24-L45
+// Convert world coordinates into the planet-centered atmosphere domain. The world-unit scale is
+// applied before adding the reference planet radius.
 float3 AtmosPlanetPosition( AtmosphereData a, float3 world ) {
     return ( world - float3( 0, a.mRadii.w, 0 ) ) * a.mRadii.z + float3( 0, a.mRadii.x, 0 );
 }
@@ -78,6 +89,8 @@ float2 AtmosUnitToTexel( float2 uv, float2 size ) {
 
 // Bruneton's parameterization, used by Hillaire, gives long horizon paths
 // more resolution. https://sebh.github.io/publications/egsr2020.pdf
+// Map radius and sun/view cosine into the nonlinear transmittance-LUT coordinates. This
+// parameterization concentrates precision near the atmospheric horizon.
 float2 AtmosTransmittanceUv( AtmosphereData a, float height, float cosine ) {
     float H = sqrt( max( 0, a.mRadii.y * a.mRadii.y - a.mRadii.x * a.mRadii.x ) );
     float rho = sqrt( max( 0, height * height - a.mRadii.x * a.mRadii.x ) );

@@ -24,42 +24,40 @@
 MKT_DECLARE_PUSH_CONSTANT( ShadowDrawParams, parameters );
 
 [shader( "vertex" )]
-ShadowVertexOutput main( uint vertexID : SV_VertexID,
-    uint instanceID : SV_InstanceID,
-    uint baseInstance : SV_StartInstanceLocation ) {
+ShadowVertexOutput main( uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID, uint baseInstance : SV_StartInstanceLocation ) {
 
     uint instance = instanceID + baseInstance;
-    MeshGeometryInfo mesh = LoadMeshGeometry( parameters.Geometry, instance );
-    GeometryAllocation allocation = GetGeometryAllocation( mesh, parameters.Allocation );
+    MeshGeometryInfo mesh = LoadMeshGeometry( parameters.mGeometry, instance );
+    GeometryAllocation allocation = GetGeometryAllocation( mesh, parameters.mAllocation );
     uint vertexIndex = PullVertexIndex( allocation, vertexID );
 
     // Opaque casters need positions and optional skinning only. Reusing the
     // per-instance alpha mode avoids another dependent material-buffer lookup.
     VertexDescription vertex;
-    if ( mesh.AlphaMode != PBR_ALPHA_OPAQUE ) {
+    if ( mesh.mAlphaMode != PBR_ALPHA_OPAQUE ) {
         vertex = PullDepthVertex( mesh, allocation, vertexIndex );
     } else {
         vertex = PullPositionVertex( mesh, allocation, vertexIndex );
     }
 
-    float4 worldPosition = ApplySkinningPosition( vertex, mesh, parameters.Skinning );
-    uint recordOffset = parameters.Record * sizeof( ShadowRecord );
+    float4 worldPosition = ApplySkinningPosition( vertex, mesh, parameters.mSkinning );
+    uint recordOffset = parameters.mRecord * sizeof( ShadowRecord );
 
-    float4x4 viewProjection = LoadBufferValue<float4x4>( parameters.Records, recordOffset + parameters.Face * sizeof( float4x4 ) );
-    ShadowMetadata metadata = LoadBufferValue<ShadowMetadata>( parameters.Records, recordOffset + ShadowMetadataOffset );
+    float4x4 viewProjection = LoadBufferValue<float4x4>( parameters.mRecords, recordOffset + parameters.mFace * sizeof( float4x4 ) );
+    ShadowMetadata metadata = LoadBufferValue<ShadowMetadata>( parameters.mRecords, recordOffset + ShadowMetadataOffset );
 
     ShadowVertexOutput o;
 
-    o.Position = mul( viewProjection, worldPosition );
-    o.MaterialIndex = mesh.MaterialIndex;
-    o.AlphaMode = mesh.AlphaMode;
-    o.FaceFlags = mesh.FaceFlags;
-    o.Uv0 = vertex.uv0;
-    o.Uv1 = vertex.uv1;
-    o.VertexAlpha = vertex.color.a;
-    o.WorldPosition = worldPosition.xyz;
-    o.LightPositionRange = metadata.PositionRange;
-    o.LightType = metadata.LightType;
+    o.mPosition = mul( viewProjection, worldPosition );
+    o.mMaterialIndex = mesh.mMaterialIndex;
+    o.mAlphaMode = mesh.mAlphaMode;
+    o.mFaceFlags = mesh.mFaceFlags;
+    o.mUv0 = vertex.mUv0;
+    o.mUv1 = vertex.mUv1;
+    o.mVertexAlpha = vertex.mColor.a;
+    o.mWorldPosition = worldPosition.xyz;
+    o.mLightPositionRange = metadata.mPositionRange;
+    o.mLightType = metadata.mLightType;
 
     return o;
 }

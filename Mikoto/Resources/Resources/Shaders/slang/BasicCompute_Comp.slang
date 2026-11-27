@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Frame-graph compute example: test candidate integers for primality and write the results
+// through the bound output buffer. It exercises dispatch and storage-buffer access.
+
 #pragma once
 
 #include "base/Base.slang"
@@ -20,6 +23,9 @@
 using namespace mikoto;
 
 MKT_DECLARE_STRUCTURED_UAV sBuffers;
+
+// Matches the CPU dispatch divisor for this frame-graph example.
+static const uint kPrimeTestGroupSize = 64;
 
 bool IsPrime( uint n ) {
     if ( n < 2 ) {
@@ -43,10 +49,10 @@ bool IsPrime( uint n ) {
 }
 
 struct MyStruct {
-    int x;
-    int y;
-    int prime;
-    int _pad;
+    int mX;
+    int mY;
+    int mPrime;
+    int mPad;
 };
 
 struct ShaderParameters {
@@ -56,12 +62,12 @@ struct ShaderParameters {
 
 MKT_DECLARE_PUSH_CONSTANT( ShaderParameters, uParams );
 
-[numthreads( 64, 1, 1 )]
+[numthreads( kPrimeTestGroupSize, 1, 1 )]
 [shader( "compute" )]
 void main( uint3 gid : SV_DispatchThreadID ) {
     MyStruct s = ( MyStruct )0;
-    s.x = gid.x;
-    s.y = gid.y;
+    s.mX = gid.x;
+    s.mY = gid.y;
 
     uint idx = gid.x;
     if ( idx >= uParams.mBufferSize ) {
@@ -73,7 +79,7 @@ void main( uint3 gid : SV_DispatchThreadID ) {
         value = idx;
     }
 
-    s.prime = value;
+    s.mPrime = value;
 
     RWBufferReference<MyStruct> buf = ( RWBufferReference<MyStruct> )uParams.mBufferID;
     buf[idx] = s;

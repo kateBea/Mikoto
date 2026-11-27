@@ -12,31 +12,38 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Sample integrated fog at the opaque surface distance. Composition adds in-scattered radiance
+// and attenuates the existing scene with the fog transmittance.
+
 #include "Fog_Common.slang"
 
 // Apply accumulated in-scattering + transmittance at the actual surface depth.
 // https://bartwronski.com/wp-content/uploads/2014/08/bwronski_volumetric_fog_siggraph2014.pdf
 
-[shader( "fragment" )] float4 main( float2 uv : TEXCOORD0 ) : SV_Target0 {
-    float4 color = textures[parameters.Source].SampleLevel( samplers[parameters.Sampler], uv, 0.0 );
-    if ( parameters.Stage == 3 ) {
+[shader( "fragment" )]
+float4 main( float2 uv : TEXCOORD0 ) : SV_Target0 {
+    float4 color = textures[parameters.mSource].SampleLevel( samplers[parameters.mSampler], uv, 0.0 );
+    if ( parameters.mStage == 3 ) {
         return color;
     }
-    FogFrameData frame = LoadBufferValue<FogFrameData>( parameters.Frame, 0 );
-    CameraInfo camera = LoadBufferValue<CameraInfo>( parameters.Camera, 0 );
-    uint width, height;
-    textures[parameters.Depth].GetDimensions( width, height );
+    FogFrameData frame = LoadBufferValue<FogFrameData>( parameters.mFrame, 0 );
+    CameraInfo camera = LoadBufferValue<CameraInfo>( parameters.mCamera, 0 );
+    uint width;
+    uint height;
+    textures[parameters.mDepth].GetDimensions( width, height );
     int2 pixel = clamp( int2( uv * float2( width, height ) ), int2( 0 ), int2( width, height ) - 1 );
-    float depth = textures[parameters.Depth].Load( int3( pixel, 0 ) ).r;
-    float3 origin, direction;
+    float depth = textures[parameters.mDepth].Load( int3( pixel, 0 ) ).r;
+    float3 origin;
+    float3 direction;
     FogCameraRay( camera.mInverseViewProjection, camera.mViewPosition.xyz, camera.mProjection[3][3] != 0.0, uv, origin, direction );
-    float distance = frame.Range.y;
+    float distance = frame.mRange.y;
     if ( depth < 1.0 ) {
         float4 world = mul( camera.mInverseViewProjection, float4( uv.x * 2.0 - 1.0, 1.0 - uv.y * 2.0, depth, 1.0 ) );
         distance = min( length( world.xyz / world.w - origin ), distance );
     }
-    float3 radiance, transmittance;
-    ReadIntegratedFog( textures[parameters.Radiance], textures[parameters.Transmittance], samplers[parameters.Sampler],
+    float3 radiance;
+    float3 transmittance;
+    ReadIntegratedFog( textures[parameters.mRadiance], textures[parameters.mTransmittance], samplers[parameters.mSampler],
                        uv, distance, frame, radiance, transmittance );
     return float4( color.rgb * transmittance + radiance, color.a );
 }

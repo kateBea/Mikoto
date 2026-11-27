@@ -190,15 +190,19 @@ namespace mikoto::renderer {
 
                 const auto& geometry{ b.Get<GeometryCullModuleInfo>() };
                 struct Parameters {
-                    core::u64 mGeometry{}, mSkinning{}, mAllocation{}, mCamera{}, mMaterials{};
+                    core::u64 mGeometry{};
+                    core::u64 mSkinning{};
+                    core::u64 mAllocation{};
+                    core::u64 mCamera{};
+                    core::u64 mMaterials{};
                     core::u32 mSampler{};
                 } params{
-                    ctx.GetDeviceBufferAddress( geometry.mGeometryBuffer ),
-                    ctx.GetDeviceBufferAddress( geometry.mSkinningBuffer ),
-                    ctx.GetDeviceBufferAddress( geometry.mGeometryAllocBuffer ),
-                    ctx.GetDeviceBufferAddress( b.Get<CameraModuleInfo>().mCameraData ),
-                    ctx.GetDeviceBufferAddress( geometry.mMaterialsBuffer ),
-                    ctx.PushSampler( geometry.mMaterialSampler )
+                    .mGeometry = ctx.GetDeviceBufferAddress( geometry.mGeometryBuffer ),
+                    .mSkinning = ctx.GetDeviceBufferAddress( geometry.mSkinningBuffer ),
+                    .mAllocation = ctx.GetDeviceBufferAddress( geometry.mGeometryAllocBuffer ),
+                    .mCamera = ctx.GetDeviceBufferAddress( b.Get<CameraModuleInfo>().mCameraData ),
+                    .mMaterials = ctx.GetDeviceBufferAddress( geometry.mMaterialsBuffer ),
+                    .mSampler = ctx.PushSampler( geometry.mMaterialSampler ),
                 };
                 ctx.PushConstants( params );
                 BeginOutlineRender( ctx, outline.mInteriorMask, pipeline, mResolution, rhi::Color{ 0.0f } );
@@ -218,7 +222,8 @@ namespace mikoto::renderer {
 
         info.mSilhouette = CreateOutlineTexture( graph, "Outline_Silhouette", mResolution,
             rhi::Format::eRGBA16_FLOAT, rhi::TextureUsageFlagsBits::CopyDest | rhi::TextureUsageFlagsBits::ShaderResource );
-        const auto source{ info.mInteriorMask }, target{ info.mSilhouette };
+        const auto source{ info.mInteriorMask };
+        const auto target{ info.mSilhouette };
         graph.RegisterPass(
             "Outline_SilhouetteResolve",
             FGPassType::eGraphics,
@@ -256,7 +261,9 @@ namespace mikoto::renderer {
 
                 struct Parameters {
                     core::u32 mSilhouette;
-                } params{ ctx.PushTexture_SRV( outline.mSilhouette ) };
+                } params{
+                    .mSilhouette = ctx.PushTexture_SRV( outline.mSilhouette ),
+                };
                 ctx.PushConstants( params );
                 BeginOutlineRender( ctx, outline.mSeeds[0], pipeline, mResolution, rhi::Color{ -1.0f } );
                 ctx.Draw( 3 );
@@ -273,7 +280,8 @@ namespace mikoto::renderer {
 
         for ( core::u32 step{ FirstOutlineJump( kMaxOutlineWidth ) }; step; step /= 2 ) {
             for ( core::u32 axis{}; axis < 2; ++axis ) {
-                const auto input{ info.mSeeds[axis] }, output{ info.mSeeds[1 - axis] };
+                const auto input{ info.mSeeds[axis] };
+                const auto output{ info.mSeeds[1 - axis] };
                 graph.RegisterPass(
                     string::Format( "Outline_JFA_{}_Step{}", axis == 0 ? "X" : "Y", step ),
                     FGPassType::eGraphics,
@@ -289,8 +297,16 @@ namespace mikoto::renderer {
                         }
 
                         struct Parameters {
-                            core::u32 mSeeds, mStep, mAxis, mPadding;
-                        } params{ ctx.PushTexture_SRV( input ), step, axis, 0 };
+                            core::u32 mSeeds;
+                            core::u32 mStep;
+                            core::u32 mAxis;
+                            core::u32 mPadding;
+                        } params{
+                            .mSeeds = ctx.PushTexture_SRV( input ),
+                            .mStep = step,
+                            .mAxis = axis,
+                            .mPadding = 0,
+                        };
                         ctx.PushConstants( params );
                         BeginOutlineRender( ctx, output, pipeline, mResolution, rhi::Color{ -1.0f } );
                         ctx.Draw( 3 );
@@ -334,8 +350,13 @@ namespace mikoto::renderer {
                     core::f32 mWidth;
                     core::u32 mInterior;
                     core::u32 mPadding;
-                } params{ outline.mColor, ctx.PushTexture_SRV( outline.mSeeds[0] ), outline.mWidth,
-                    ctx.PushTexture_SRV( outline.mInteriorMask ), 0 };
+                } params{
+                    .mColor = outline.mColor,
+                    .mSeeds = ctx.PushTexture_SRV( outline.mSeeds[0] ),
+                    .mWidth = outline.mWidth,
+                    .mInterior = ctx.PushTexture_SRV( outline.mInteriorMask ),
+                    .mPadding = 0,
+                };
                 ctx.PushConstants( params );
                 // Kept separate from scene color so atmosphere cannot erase background outlines.
                 BeginOutlineRender( ctx, target, pipeline, mResolution, rhi::kColorTransparent );
@@ -380,9 +401,16 @@ namespace mikoto::renderer {
                 }
 
                 struct Parameters {
-                    core::u32 mOutline, mIDs, mHover, mShowOutline;
-                } params{ ctx.PushTexture_SRV( outline.mResolvedColor ),
-                    ctx.PushTexture_SRV( b.Get<MousePickingModuleInfo>().mColorImage ), mTextureDropHover, outline.mEnabled ? 1u : 0u };
+                    core::u32 mOutline;
+                    core::u32 mIDs;
+                    core::u32 mHover;
+                    core::u32 mShowOutline;
+                } params{
+                    .mOutline = ctx.PushTexture_SRV( outline.mResolvedColor ),
+                    .mIDs = ctx.PushTexture_SRV( b.Get<MousePickingModuleInfo>().mColorImage ),
+                    .mHover = mTextureDropHover,
+                    .mShowOutline = outline.mEnabled ? 1u : 0u,
+                };
                 ctx.PushConstants( params );
                 BeginOutlineRender( ctx, b.Get<PresentationPassData>().mColorImage, pipeline, mResolution,
                     rhi::Color{}, rhi::LoadOp::eLoad );

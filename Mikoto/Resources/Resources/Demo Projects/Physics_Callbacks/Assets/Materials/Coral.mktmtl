@@ -1,0 +1,15 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Coral",
+  "Material": {
+    "BaseColorFactor": [
+      0.8,
+      0.17,
+      0.12,
+      1
+    ],
+    "MetallicFactor": 0,
+    "RoughnessFactor": 0.72
+  }
+}

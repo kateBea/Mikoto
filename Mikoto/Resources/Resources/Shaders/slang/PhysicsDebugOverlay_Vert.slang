@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Clip each physics line against the view frustum and expand it into a pixel-width ribbon.
+// Expansion in clip space keeps the overlay width independent of distance.
+
 #pragma once
 
 #include "base/Base.slang"
@@ -19,36 +22,36 @@
 #include "base/Memory_Helpers.slang"
 
 struct DebugVertex {
-    float4 position;
-    float4 color;
+    float4 mPosition;
+    float4 mColor;
 };
 
 struct Parameters {
-    Pointer lines;
-    Pointer camera;
-    float2 viewport;
-    float lineWidth;
-    float padding;
+    Pointer mLines;
+    Pointer mCamera;
+    float2 mViewport;
+    float mLineWidth;
+    float mPadding;
 };
 MKT_DECLARE_PUSH_CONSTANT( Parameters, parameters );
 
 struct VSOutput {
-    float4 position : SV_Position;
-    float4 color : COLOR0;
+    float4 mPosition : SV_Position;
+    float4 mColor : COLOR0;
 };
 
 [shader( "vertex" )]
 VSOutput main( uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID ) {
-    BufferReference<DebugVertex> vertices = ( BufferReference<DebugVertex> )parameters.lines;
-    BufferReference<CameraInfo> camera = ( BufferReference<CameraInfo> )parameters.camera;
+    BufferReference<DebugVertex> vertices = ( BufferReference<DebugVertex> )parameters.mLines;
+    BufferReference<CameraInfo> camera = ( BufferReference<CameraInfo> )parameters.mCamera;
 
     VSOutput output;
 
     DebugVertex start = vertices[instanceID * 2];
     DebugVertex end = vertices[instanceID * 2 + 1];
-    float4 a = mul( camera[0].mProjection, mul( camera[0].mViewMatrix, float4( start.position.xyz, 1 ) ) );
-    float4 b = mul( camera[0].mProjection, mul( camera[0].mViewMatrix, float4( end.position.xyz, 1 ) ) );
-    output.color = float4( start.color.rgb, 1 );
+    float4 a = mul( camera[0].mProjection, mul( camera[0].mViewMatrix, float4( start.mPosition.xyz, 1 ) ) );
+    float4 b = mul( camera[0].mProjection, mul( camera[0].mViewMatrix, float4( end.mPosition.xyz, 1 ) ) );
+    output.mColor = float4( start.mColor.rgb, 1 );
 
     // Clip before perspective division and line expansion. Camera volumes and
     // large light ranges can cross any of the six planes, including the eye.
@@ -58,7 +61,7 @@ VSOutput main( uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID ) {
         float da = dot( a, planes[plane] );
         float db = dot( b, planes[plane] );
         if ( da < 0 && db < 0 ) {
-            output.position = float4( 0, 0, -1, 1 );
+            output.mPosition = float4( 0, 0, -1, 1 );
             return output;
         }
         if ( ( da < 0 ) != ( db < 0 ) ) {
@@ -71,22 +74,22 @@ VSOutput main( uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID ) {
         }
     }
     if ( a.w <= 0 || b.w <= 0 ) {
-        output.position = float4( 0, 0, -1, 1 );
+        output.mPosition = float4( 0, 0, -1, 1 );
         return output;
     }
-    float2 delta = ( b.xy / b.w - a.xy / a.w ) * parameters.viewport;
+    float2 delta = ( b.xy / b.w - a.xy / a.w ) * parameters.mViewport;
     float2 normal = float2( -delta.y, delta.x ) / max( length( delta ), 1e-6 );
-    static const uint corners[6] = { 0, 1, 2, 0, 2, 3 };
+    static const uint corners[kVerticesPerQuad] = { 0, 1, 2, 0, 2, 3 };
     uint corner = corners[vertexID];
     bool atEnd = corner == 1 || corner == 2;
     float side = corner < 2 ? -1 : 1;
-    output.position = atEnd ? b : a;
-    output.position.xy += normal * side * max( parameters.lineWidth, 1 ) / parameters.viewport * output.position.w;
+    output.mPosition = atEnd ? b : a;
+    output.mPosition.xy += normal * side * max( parameters.mLineWidth, 1 ) / parameters.mViewport * output.mPosition.w;
 
     // A small clip-space bias avoids surface fighting without a constant NDC
     // offset, which would pull distant lines through substantial scene geometry.
-    output.position.z -= 0.00001;
-    output.color = float4( atEnd ? end.color.rgb : start.color.rgb, 1 );
+    output.mPosition.z -= 0.00001;
+    output.mColor = float4( atEnd ? end.mColor.rgb : start.mColor.rgb, 1 );
 
     return output;
 }

@@ -6,7 +6,7 @@
 
 {
   "Version": 1,
-  "Project": "Optical Materials",
+  "Project": "Optical_Materials",
   "Assets": "Assets",
   "Cache": "Assets/.cache",
   "Scene": "Scene/Optical_Materials.mktscn",
@@ -33,7 +33,7 @@
     "NavigationMode": "Fly",
     "Position": [
       0,
-      0.78,
+      0.88,
       1.7
     ],
     "Direction": [

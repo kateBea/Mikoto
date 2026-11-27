@@ -12,15 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cmath>
+
 #include <glm/gtx/compatibility.hpp>
 
+#include <Assets/AssetRegistryService.hh>
+
 #include <Core/Core.hh>
-#include <Core/Types.hh>
 #include <Core/Exception.hh>
+#include <Core/Types.hh>
 
 #include <Filesystem/FileService.hh>
-
-#include <Assets/AssetRegistryService.hh>
 
 #include <Material/ParticleMaterial.hh>
 
@@ -28,7 +30,7 @@ namespace mikoto::material {
 
     using namespace mikoto::core;
 
-    static auto WriteColor( const core::float4& color ) -> YAML::Node {
+    static auto WriteColor( const core::float4 &color ) -> YAML::Node {
         YAML::Node node;
 
         for ( core::i32 component{}; component < 4; ++component ) {
@@ -38,7 +40,7 @@ namespace mikoto::material {
         return node;
     }
 
-    static auto ReadColor( const YAML::Node& node ) -> core::float4 {
+    static auto ReadColor( const YAML::Node &node ) -> core::float4 {
         if ( !node.IsSequence() || node.size() != 4 ) {
             MKT_THROW_RUNTIME_ERROR( "Material color needs four components." );
         }
@@ -57,19 +59,39 @@ namespace mikoto::material {
         : mName{ name } {
     }
 
-    ParticleMaterial::ParticleMaterial( const ParticleMaterialDescription& description )
+    ParticleMaterial::ParticleMaterial( const ParticleMaterialDescription &description )
         : mName{ description.mName } {
         SetColor( description.mColor );
+        SetBloomEnabled( description.mBloomEnabled );
+        SetBloomIntensity( description.mBloomIntensity );
     }
 
-    ParticleMaterial::ParticleMaterial( const ParticleMaterial& other )
+    ParticleMaterial::ParticleMaterial( const ParticleMaterial &other )
         : mName{ other.mName },
           mColor{ other.mColor },
+          mBloomEnabled{ other.mBloomEnabled },
+          mBloomIntensity{ other.mBloomIntensity },
           mGraph{ other.mGraph },
           mTexture{ other.mTexture } {
     }
 
-    auto ParticleMaterial::SetColor( const core::float4& value ) -> void {
+    auto ParticleMaterial::SetBloomEnabled( bool enabled ) -> void {
+        mBloomEnabled = enabled;
+    }
+
+    auto ParticleMaterial::SetBloomIntensity( core::f32 intensity ) -> void {
+        mBloomIntensity = std::isfinite( intensity ) ? glm::clamp( intensity, 0.0f, 1000.0f ) : 0.0f;
+    }
+
+    auto ParticleMaterial::IsBloomEnabled() const -> bool {
+        return mBloomEnabled;
+    }
+
+    auto ParticleMaterial::GetBloomIntensity() const -> core::f32 {
+        return mBloomIntensity;
+    }
+
+    auto ParticleMaterial::SetColor( const core::float4 &value ) -> void {
         mColor = glm::max( value, core::float4{ 0 } );
         mColor.a = glm::clamp( value.a, 0.0f, 1.0f );
     }
@@ -87,19 +109,19 @@ namespace mikoto::material {
         return mTexture.GetRef().GetPath();
     }
 
-    auto ParticleMaterial::GetColor() const -> const core::float4& {
+    auto ParticleMaterial::GetColor() const -> const core::float4 & {
         return mColor;
     }
 
-    auto ParticleMaterial::GetGraph() -> MaterialGraph* {
+    auto ParticleMaterial::GetGraph() -> MaterialGraph * {
         return &mGraph;
     }
 
-    auto ParticleMaterial::GetGraph() const -> const MaterialGraph* {
+    auto ParticleMaterial::GetGraph() const -> const MaterialGraph * {
         return &mGraph;
     }
 
-    auto ParticleMaterial::Serialize( const filesystem::Path& filename ) const -> void {
+    auto ParticleMaterial::Serialize( const filesystem::Path &filename ) const -> void {
         MKT_BEGIN_PROFILER();
 
         YAML::Node root{};
@@ -110,14 +132,14 @@ namespace mikoto::material {
 
         // Store texture paths relative to this material file, including graph references.
         const auto directory{ filename.ToAbsolute().GetPathTyped<std::filesystem::path>().parent_path() };
-        const auto relativize{ [&]( const auto& self, YAML::Node node ) -> void {
+        const auto relativize{ [&]( const auto &self, YAML::Node node ) -> void {
             if ( node.IsMap() ) {
-                for ( const auto& entry: node ) {
+                for ( const auto &entry: node ) {
                     if ( entry.first.as<std::string>() == "TexturePath" ) {
                         const auto texture{ std::filesystem::absolute( std::filesystem::u8path( entry.second.as<std::string>() ) ) };
                         const auto relative{ texture.lexically_relative( directory ) };
                         const auto utf8{ ( relative.empty() ? texture : relative ).generic_u8string() };
-                        node["TexturePath"] = std::string{ reinterpret_cast<const char*>( utf8.data() ), utf8.size() };
+                        node["TexturePath"] = std::string{ reinterpret_cast<const char *>( utf8.data() ), utf8.size() };
                     }
                     else {
                         self( self, entry.second );
@@ -125,7 +147,7 @@ namespace mikoto::material {
                 }
             }
             else if ( node.IsSequence() ) {
-                for ( const auto& entry: node ) {
+                for ( const auto &entry: node ) {
                     self( self, entry );
                 }
             }
@@ -159,7 +181,7 @@ namespace mikoto::material {
         file->UpdateContentsFromDisk();
     }
 
-    auto ParticleMaterial::Deserialize( const filesystem::Path& filename ) -> void {
+    auto ParticleMaterial::Deserialize( const filesystem::Path &filename ) -> void {
         Deserialize( filesystem::FileHandle::New( filename ) );
     }
 
@@ -190,9 +212,9 @@ namespace mikoto::material {
 
         // Version 1 paths were relative to the working directory; version 2 uses the file.
         const auto directory{ file->GetDirectory().GetPathTyped<std::filesystem::path>() };
-        const auto resolve{ [&]( const auto& self, YAML::Node node ) -> void {
+        const auto resolve{ [&]( const auto &self, YAML::Node node ) -> void {
             if ( node.IsMap() ) {
-                for ( const auto& entry: node ) {
+                for ( const auto &entry: node ) {
                     if ( entry.first.as<std::string>() == "TexturePath" ) {
                         auto path{ std::filesystem::u8path( entry.second.as<std::string>() ) };
 
@@ -201,7 +223,7 @@ namespace mikoto::material {
                         }
 
                         const auto utf8{ path.lexically_normal().generic_u8string() };
-                        node["TexturePath"] = std::string{ reinterpret_cast<const char*>( utf8.data() ), utf8.size() };
+                        node["TexturePath"] = std::string{ reinterpret_cast<const char *>( utf8.data() ), utf8.size() };
                     }
                     else {
                         self( self, entry.second );
@@ -209,7 +231,7 @@ namespace mikoto::material {
                 }
             }
             else if ( node.IsSequence() ) {
-                for ( const auto& entry: node ) {
+                for ( const auto &entry: node ) {
                     self( self, entry );
                 }
             }
@@ -224,11 +246,13 @@ namespace mikoto::material {
         mSourcePath = file->GetPath();
         mName = eastl::move( value->mName );
         mColor = value->mColor;
+        mBloomEnabled = value->mBloomEnabled;
+        mBloomIntensity = value->mBloomIntensity;
         mGraph = eastl::move( value->mGraph );
         mTexture = eastl::move( value->mTexture );
     }
 
-    auto ParticleMaterial::GetName() const -> const eastl::string& {
+    auto ParticleMaterial::GetName() const -> const eastl::string & {
         MKT_BEGIN_PROFILER();
         return mName;
     }
@@ -244,6 +268,8 @@ namespace mikoto::material {
 
         YAML::Node data{ YAML::NodeType::Map };
         data["Color"] = WriteColor( GetColor() );
+        data["BloomEnabled"] = IsBloomEnabled();
+        data["BloomIntensity"] = GetBloomIntensity();
 
         if ( const auto path{ GetTexturePath() }; !path.IsEmpty() ) {
             data["TexturePath"] = path.GetC_Str();
@@ -256,10 +282,12 @@ namespace mikoto::material {
         return data;
     }
 
-    auto ParticleMaterial::RestoreProperties( const YAML::Node& node ) -> void {
+    auto ParticleMaterial::RestoreProperties( const YAML::Node &node ) -> void {
         MKT_BEGIN_PROFILER();
 
         SetColor( ReadColor( node["Color"] ) );
+        SetBloomEnabled( node["BloomEnabled"].as<bool>( false ) );
+        SetBloomIntensity( node["BloomIntensity"].as<core::f32>( 4.0f ) );
 
         if ( const auto path{ node["TexturePath"] } ) {
             const asset::AssetRef<asset::Texture> reference{ filesystem::Path{ path.as<std::string>().c_str() } };
@@ -271,7 +299,7 @@ namespace mikoto::material {
         }
     }
 
-    auto ParticleMaterial::GetSourcePath() const -> const filesystem::Path& {
+    auto ParticleMaterial::GetSourcePath() const -> const filesystem::Path & {
         return mSourcePath;
     }
 

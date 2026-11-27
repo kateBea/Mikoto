@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Load and store typed records in byte-addressed buffers and buffer references. Element indices
+// and byte offsets are distinct; callers must use the CPU-mirrored record stride.
+
 #pragma once
 
 #include "Base.slang"

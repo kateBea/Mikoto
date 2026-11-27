@@ -16,9 +16,9 @@
 
 #include <EASTL/algorithm.h>
 
-#include <Core/Exception.hh>
-
 #include <Audio/AudioDevice.hh>
+
+#include <Core/Exception.hh>
 
 #include <Video/VideoAudioStream.hh>
 
@@ -29,16 +29,16 @@ namespace mikoto::video {
     // Adapt miniaudio's custom-data-source and SPSC ring-buffer examples.
     // https://miniaud.io/docs/manual/index.html#data-sources
     // https://miniaud.io/docs/manual/index.html#ring-buffers
-    static auto ReadPcm( ma_data_source* source, void* output, ma_uint64 count, ma_uint64* read ) -> ma_result {
+    static auto ReadPcm( ma_data_source *source, void *output, ma_uint64 count, ma_uint64 *read ) -> ma_result {
         u64 consumed{};
-        const auto result{ static_cast<VideoPcmDataSource*>( source )->mStream->ReadFrames( output, count, consumed ) };
+        const auto result{ static_cast<VideoPcmDataSource *>( source )->mStream->ReadFrames( output, count, consumed ) };
         *read = consumed;
         return result;
     }
 
-    static auto GetPcmFormat( ma_data_source* source, ma_format* format, ma_uint32* channels,
-                              ma_uint32* sampleRate, ma_channel* channelMap, size_t capacity ) -> ma_result {
-        const auto& stream{ *static_cast<VideoPcmDataSource*>( source )->mStream };
+    static auto GetPcmFormat( ma_data_source *source, ma_format *format, ma_uint32 *channels,
+        ma_uint32 *sampleRate, ma_channel *channelMap, size_t capacity ) -> ma_result {
+        const auto &stream{ *static_cast<VideoPcmDataSource *>( source )->mStream };
         *format = ma_format_f32;
         *channels = stream.GetChannels();
         *sampleRate = stream.GetSampleRate();
@@ -50,12 +50,12 @@ namespace mikoto::video {
         return MA_SUCCESS;
     }
 
-    static auto GetPcmCursor( ma_data_source* source, ma_uint64* cursor ) -> ma_result {
-        *cursor = static_cast<VideoPcmDataSource*>( source )->mStream->GetConsumedFrames();
+    static auto GetPcmCursor( ma_data_source *source, ma_uint64 *cursor ) -> ma_result {
+        *cursor = static_cast<VideoPcmDataSource *>( source )->mStream->GetConsumedFrames();
         return MA_SUCCESS;
     }
 
-    VideoAudioStream::VideoAudioStream( audio::AudioDevice& device, const AudioTrackInfo& track, const audio::SourceSettings& settings )
+    VideoAudioStream::VideoAudioStream( audio::AudioDevice &device, const AudioTrackInfo &track, const audio::SourceSettings &settings )
         : mSampleRate{ track.mSampleRate }, mChannels{ track.mChannels } {
         if ( !mSampleRate || !mChannels || ma_pcm_rb_init( ma_format_f32, mChannels, mSampleRate * 2, nullptr, nullptr, &mBuffer ) != MA_SUCCESS ) {
             MKT_THROW_RUNTIME_ERROR( "Cannot initialize video PCM ring buffer." );
@@ -81,11 +81,7 @@ namespace mikoto::video {
                 MKT_THROW_RUNTIME_ERROR( "Cannot attach video PCM to the audio engine." );
             }
 
-            auto playback{ settings };
-            playback.mLooping = false;
-            playback.mPitch = 1;
-            playback.mDoppler = 0;
-            mSource->SetSettings( playback );
+            SetSettings( settings );
         } catch ( ... ) {
             mSource.Reset();
             ma_data_source_uninit( &mDataSource );
@@ -107,7 +103,17 @@ namespace mikoto::video {
         }
     }
 
-    auto VideoAudioStream::Push( const PcmBlock& block ) -> bool {
+    auto VideoAudioStream::SetSettings( const audio::SourceSettings &settings ) -> void {
+        // The media clock owns speed and looping. Preserve those constraints
+        // when applying Inspector edits as well as when creating the stream.
+        auto playback{ settings };
+        playback.mLooping = false;
+        playback.mPitch = 1;
+        playback.mDoppler = 0;
+        mSource->SetSettings( playback );
+    }
+
+    auto VideoAudioStream::Push( const PcmBlock &block ) -> bool {
         if ( block.mSampleRate != mSampleRate || block.mChannels != mChannels || block.mSamples.size() % mChannels ) {
             MKT_THROW_RUNTIME_ERROR( "Decoded video audio changed its PCM format." );
         }
@@ -127,7 +133,7 @@ namespace mikoto::video {
 
         while ( written < count ) {
             auto frames{ count - written };
-            void* destination{};
+            void *destination{};
             ma_pcm_rb_acquire_write( &mBuffer, &frames, &destination );
             std::memcpy( destination, block.mSamples.data() + static_cast<usize>( written ) * mChannels,
                 static_cast<usize>( frames ) * mChannels * sizeof( float ) );
@@ -138,7 +144,7 @@ namespace mikoto::video {
         return true;
     }
 
-    auto VideoAudioStream::ReadFrames( void* output, u64 count, u64& read ) -> ma_result {
+    auto VideoAudioStream::ReadFrames( void *output, u64 count, u64 &read ) -> ma_result {
         read = 0;
 
         while ( read < count ) {
@@ -148,11 +154,11 @@ namespace mikoto::video {
                 break;
             }
 
-            void* source{};
+            void *source{};
             ma_pcm_rb_acquire_read( &mBuffer, &frames, &source );
 
             if ( output ) {
-                std::memcpy( static_cast<float*>( output ) + read * mChannels, source,
+                std::memcpy( static_cast<float *>( output ) + read * mChannels, source,
                     static_cast<usize>( frames ) * mChannels * sizeof( float ) );
             }
 
@@ -167,7 +173,7 @@ namespace mikoto::video {
         }
 
         if ( output && read < count ) {
-            std::memset( static_cast<float*>( output ) + read * mChannels, 0,
+            std::memset( static_cast<float *>( output ) + read * mChannels, 0,
                 static_cast<usize>( count - read ) * mChannels * sizeof( float ) );
         }
 
@@ -193,7 +199,7 @@ namespace mikoto::video {
         return static_cast<f64>( ma_pcm_rb_available_read( &mBuffer ) ) / mSampleRate;
     }
 
-    auto VideoAudioStream::GetSource() -> audio::AudioSource* {
+    auto VideoAudioStream::GetSource() -> audio::AudioSource * {
         return mSource.GetPtr();
     }
 
@@ -209,4 +215,4 @@ namespace mikoto::video {
         return mConsumedFrames.load();
     }
 
-}
+}// namespace mikoto::video

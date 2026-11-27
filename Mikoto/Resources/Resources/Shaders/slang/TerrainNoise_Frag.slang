@@ -12,47 +12,50 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Generate the procedural height-noise source used by terrain geometry. Octave settings control
+// the terrain frequency content before mesh construction.
+
 #include "base/Noise_Helpers.slang"
 #include "base/Memory_Helpers.slang"
 
 // Flat layout matches TerrainNoiseSettings plus padding (48 bytes).
 struct TerrainNoiseParameters {
-    float frequency;
-    float amplitude;
-    float persistence;
-    float lacunarity;
-    uint octaves;
-    float perlinFrequency;
-    float perlinAmplitude;
-    float perlinBlend;
-    float2 offset;
-    uint2 padding;
+    float mFrequency;
+    float mAmplitude;
+    float mPersistence;
+    float mLacunarity;
+    uint mOctaves;
+    float mPerlinFrequency;
+    float mPerlinAmplitude;
+    float mPerlinBlend;
+    float2 mOffset;
+    uint2 mPadding;
 };
 
 struct TerrainNoisePushConstants {
-    BufferReference<TerrainNoiseParameters> settings;
+    BufferReference<TerrainNoiseParameters> mSettings;
 };
 
 MKT_DECLARE_PUSH_CONSTANT( TerrainNoisePushConstants, pushConstants );
 
 [shader("fragment")]
 float4 main( float2 uv : TEXCOORD0 ) : SV_Target0 {
-    TerrainNoiseParameters parameters = pushConstants.settings[0];
+    TerrainNoiseParameters parameters = pushConstants.mSettings[0];
 
     FBMSettings settings;
-    settings.mFrequency = parameters.frequency;
-    settings.mAmplitude = parameters.amplitude;
-    settings.mPersistence = parameters.persistence;
-    settings.mLacunarity = parameters.lacunarity;
-    settings.mOctaves = parameters.octaves;
+    settings.mFrequency = parameters.mFrequency;
+    settings.mAmplitude = parameters.mAmplitude;
+    settings.mPersistence = parameters.mPersistence;
+    settings.mLacunarity = parameters.mLacunarity;
+    settings.mOctaves = parameters.mOctaves;
 
-    float2 position = uv + parameters.offset;
+    float2 position = uv + parameters.mOffset;
     float fractal = FBM( position, settings );
-    float perlin = PerlinNoise2D( position * parameters.perlinFrequency ) * parameters.perlinAmplitude;
+    float perlin = PerlinNoise2D( position * parameters.mPerlinFrequency ) * parameters.mPerlinAmplitude;
 
     // Blend signed signals before mapping to height. Amplitudes above one can
     // intentionally flatten peaks/valleys as the final map is clamped to [0,1].
-    float combined = lerp( fractal, perlin, parameters.perlinBlend );
+    float combined = lerp( fractal, perlin, parameters.mPerlinBlend );
     float height = saturate( combined * 0.5f + 0.5f );
     
     return float4( height, height, height, 1.0f );

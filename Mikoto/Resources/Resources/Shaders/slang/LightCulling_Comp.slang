@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Assign scene lights to view-space clusters. Each invocation builds one bounded light list and
+// records overflow; forward material shading reads the resulting cluster indices.
+
 #pragma once
 
 static const uint kLocalSize = 128;
@@ -39,9 +42,7 @@ MKT_DECLARE_PUSH_CONSTANT( ClusteredParams, parameters );
 
 [shader( "compute" )]
 [numthreads( kLocalSize, 1, 1 )]
-void main( uint3 groupID : SV_GroupID,
-    uint3 groupThreadID : SV_GroupThreadID,
-    uint3 dispatchID : SV_DispatchThreadID ) {
+void main( uint3 groupID : SV_GroupID, uint3 groupThreadID : SV_GroupThreadID, uint3 dispatchID : SV_DispatchThreadID ) {
     // Get the buffers
     CameraInfo camera = parameters.mCameraPtr[0];
     BufferReference<LightInfo> lights = parameters.mLightsPtr;
@@ -58,24 +59,26 @@ void main( uint3 groupID : SV_GroupID,
     cluster.mCount = 0;
     cluster.mPadding[0] = 0;
 
+    // Test the complete active light set against this cluster. Directional lights affect every
+    // cluster; local lights use conservative sphere/cone bounds.
     uint lightCount = parameters.mActiveLightCount;
 
     // Each cluster tests the complete active light list.
     for ( uint i = 0; i < lightCount; ++i ) {
         bool visible = false;
 
-        switch ( lights[i].ActiveLightType ) {
+        switch ( lights[i].mActiveLightType ) {
             case LIGHT_TYPE_POINT:
                 visible = TestSphereAABBPointLight( lights, i, cluster, camera.mViewMatrix );
                 break;
 
             case LIGHT_TYPE_AREA: {
                 LightInfo light = lights[i];
-                RasterAreaShape shape = (RasterAreaShape)uint( light.Position.w );
-                float extent = shape == RasterAreaShape::eRectangle ? length( float2( light.AreaAxisX.w, light.AreaAxisY.w ) ) :
-                    ( shape == RasterAreaShape::eTube ? light.AreaAxisX.w : 0.0 ) + light.Padding;
-                float3 center = mul( camera.mViewMatrix, float4( light.Position.xyz, 1.0 ) ).xyz;
-                visible = SphereAABBIntersection( center, light.Radius + extent, cluster.mMinPoint.xyz, cluster.mMaxPoint.xyz );
+                RasterAreaShape shape = (RasterAreaShape)uint( light.mPosition.w );
+                float extent = shape == RasterAreaShape::eRectangle ? length( float2( light.mAreaAxisX.w, light.mAreaAxisY.w ) ) :
+                    ( shape == RasterAreaShape::eTube ? light.mAreaAxisX.w : 0.0 ) + light.mPadding;
+                float3 center = mul( camera.mViewMatrix, float4( light.mPosition.xyz, 1.0 ) ).xyz;
+                visible = SphereAABBIntersection( center, light.mRadius + extent, cluster.mMinPoint.xyz, cluster.mMaxPoint.xyz );
                 break;
             }
 
@@ -93,7 +96,9 @@ void main( uint3 groupID : SV_GroupID,
                 break;
         }
 
-        if ( visible && lights[i].Intensity > 0 ) {
+        // Append only within the fixed cluster capacity. The overflow marker exposes a
+        // truncated list to diagnostics instead of writing beyond the record.
+        if ( visible && lights[i].mIntensity > 0 ) {
             if ( cluster.mCount < MAX_LIGHT_CLUSTERS ) {
                 StoreBufferValue<uint>(
                         clusters.address,

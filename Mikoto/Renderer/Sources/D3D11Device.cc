@@ -635,16 +635,13 @@ namespace mikoto::renderer::d3d11 {
         MKT_BEGIN_PROFILER();
         //https://eatplayhate.me/2013/09/29/d3d11-texture-update-costs/
 
-        const UINT width{ target->GetWidth() };
-        const UINT height{ target->GetHeight() };
-        const UINT bytesPerPixel{ GetBytesPerPixel( target->GetFormat() ) };
-
-        const UINT rowPitch{ width * bytesPerPixel };
-
-        MKT_ASSERT( byteSize >= core::as<core::usize>( rowPitch ) * height, "Insufficient texture data" );
-
         ID3D11Resource *texture{ *core::checked_cast<Texture *>( target ) };
-        mDeviceContextDeferred->UpdateSubresource( texture, 0, nullptr, data, rowPitch, 0 );
+        for ( const auto &region: rhi::GetTextureUploadRegions( *target, byteSize ) ) {
+            const UINT subresource{ region.mLayer * target->GetMipLevelCount() + region.mMip };
+            mDeviceContextDeferred->UpdateSubresource( texture, subresource, nullptr,
+                static_cast<const core::u8 *>( data ) + region.mOffset,
+                static_cast<UINT>( region.mRowPitch ), static_cast<UINT>( region.mSlicePitch ) );
+        }
     }
 
     auto CommandList::Copy( renderer::rhi::ITexture *src, const renderer::rhi::TextureSlice &srcSlice, renderer::rhi::ITexture *dest, const renderer::rhi::TextureSlice &destSlice ) -> void {
@@ -1552,7 +1549,8 @@ namespace mikoto::renderer::d3d11 {
             return {};
         }
 
-        DXGI_QUERY_VIDEO_MEMORY_INFO local{}, shared{};
+        DXGI_QUERY_VIDEO_MEMORY_INFO local{};
+        DXGI_QUERY_VIDEO_MEMORY_INFO shared{};
 
         if ( FAILED( mAdapter3->QueryVideoMemoryInfo( 0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &local ) ) ||
              FAILED( mAdapter3->QueryVideoMemoryInfo( 0, DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL, &shared ) ) ) {

@@ -23,6 +23,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+// Analytic glyph coverage from banded quadratic curves. Horizontal and vertical winding
+// estimates are combined to antialias the glyph boundary without a distance-field atlas.
+
 #pragma once
 
 // Matches the pinned default Atlas width and indirection-table size.
@@ -48,7 +51,10 @@ float2 slug_SolveHorizPoly(float4 p12, float2 p3) {
 	float d = sqrt(max(b.y * b.y - a.y * p12.y, 0.0));
 	float t1 = (b.y - d) * ra;
 	float t2 = (b.y + d) * ra;
-	if(abs(a.y) < 1.0 / 65536.0) { t1 = p12.y * rb; t2 = t1; }
+	if(abs(a.y) < 1.0 / 65536.0) {
+     t1 = p12.y * rb;
+     t2 = t1;
+ }
 	return float2(
 		(a.x * t1 - b.x * 2.0) * t1 + p12.x,
 		(a.x * t2 - b.x * 2.0) * t2 + p12.x
@@ -63,7 +69,10 @@ float2 slug_SolveVertPoly(float4 p12, float2 p3) {
 	float d = sqrt(max(b.x * b.x - a.x * p12.x, 0.0));
 	float t1 = (b.x - d) * ra;
 	float t2 = (b.x + d) * ra;
-	if(abs(a.x) < 1.0 / 65536.0) { t1 = p12.x * rb; t2 = t1; }
+	if(abs(a.x) < 1.0 / 65536.0) {
+     t1 = p12.x * rb;
+     t2 = t1;
+ }
 	return float2(
 		(a.y * t1 - b.y * 2.0) * t1 + p12.y,
 		(a.y * t2 - b.y * 2.0) * t2 + p12.y
@@ -108,7 +117,8 @@ float SlugHornRender(Texture2D curveTexture, Texture2D<uint4> bandTexture, float
 	int bandX = int(bandTexture.Load(int3(int2(glyphLoc.x + SLUG_INDIRECTION_SIZE + qX, glyphLoc.y), 0)).r);
 
 	// Horizontal bands -- headers at glyphLoc + 2*IS + bandY
-	float xcov = 0.0, xwgt = 0.0;
+	float xcov = 0.0;
+	float xwgt = 0.0;
 	uint2 hbandData = bandTexture.Load(int3(int2(glyphLoc.x + 2 * SLUG_INDIRECTION_SIZE + bandY, glyphLoc.y), 0)).xy;
 
 	for(int ci = 0; ci < int(hbandData.x); ci++) {
@@ -135,13 +145,20 @@ float SlugHornRender(Texture2D curveTexture, Texture2D<uint4> bandTexture, float
 		uint code = slug_CalcRootCode(p12.y, p12.w, p3.y);
 		if(code != 0u) {
 			float2 r = slug_SolveHorizPoly(p12, p3) * pixelsPerEm.x;
-			if((code & 1u) != 0u) { xcov += clamp(r.x + 0.5, 0.0, 1.0); xwgt = max(xwgt, clamp(1.0 - abs(r.x) * 2.0, 0.0, 1.0)); }
-			if(code > 1u) { xcov -= clamp(r.y + 0.5, 0.0, 1.0); xwgt = max(xwgt, clamp(1.0 - abs(r.y) * 2.0, 0.0, 1.0)); }
+			if((code & 1u) != 0u) {
+       xcov += clamp(r.x + 0.5, 0.0, 1.0);
+       xwgt = max(xwgt, clamp(1.0 - abs(r.x) * 2.0, 0.0, 1.0));
+   }
+			if(code > 1u) {
+       xcov -= clamp(r.y + 0.5, 0.0, 1.0);
+       xwgt = max(xwgt, clamp(1.0 - abs(r.y) * 2.0, 0.0, 1.0));
+   }
 		}
 	}
 
 	// Vertical bands -- headers at glyphLoc + 2*IS + numHBands + bandX
-	float ycov = 0.0, ywgt = 0.0;
+	float ycov = 0.0;
+	float ywgt = 0.0;
 	uint2 vbandData = bandTexture.Load(int3(int2(glyphLoc.x + 2 * SLUG_INDIRECTION_SIZE + bandMax.y + 1 + bandX, glyphLoc.y), 0)).xy;
 
 	for(int ci = 0; ci < int(vbandData.x); ci++) {
@@ -158,8 +175,14 @@ float SlugHornRender(Texture2D curveTexture, Texture2D<uint4> bandTexture, float
 		uint code = slug_CalcRootCode(p12.x, p12.z, p3.x);
 		if(code != 0u) {
 			float2 r = slug_SolveVertPoly(p12, p3) * pixelsPerEm.y;
-			if((code & 1u) != 0u) { ycov -= clamp(r.x + 0.5, 0.0, 1.0); ywgt = max(ywgt, clamp(1.0 - abs(r.x) * 2.0, 0.0, 1.0)); }
-			if(code > 1u) { ycov += clamp(r.y + 0.5, 0.0, 1.0); ywgt = max(ywgt, clamp(1.0 - abs(r.y) * 2.0, 0.0, 1.0)); }
+			if((code & 1u) != 0u) {
+       ycov -= clamp(r.x + 0.5, 0.0, 1.0);
+       ywgt = max(ywgt, clamp(1.0 - abs(r.x) * 2.0, 0.0, 1.0));
+   }
+			if(code > 1u) {
+       ycov += clamp(r.y + 0.5, 0.0, 1.0);
+       ywgt = max(ywgt, clamp(1.0 - abs(r.y) * 2.0, 0.0, 1.0));
+   }
 		}
 	}
 

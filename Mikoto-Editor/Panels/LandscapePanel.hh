@@ -15,14 +15,16 @@
 #ifndef MIKOTO_EDITOR_LANDSCAPE_PANEL_HH
 #define MIKOTO_EDITOR_LANDSCAPE_PANEL_HH
 
-#include <Renderer/Rhi/Texture.hh>
-#include <Renderer/Core/TerrainGeneration.hh>
+#include <EASTL/vector.h>
 
-#include <Scene/Scene.hh>
+#include <FileSystem/Path.hh>
 
 #include <Panels/Panel.hh>
 
-#include <FileSystem/Path.hh>
+#include <Renderer/Core/TerrainGeneration.hh>
+#include <Renderer/Rhi/Texture.hh>
+
+#include <Scene/Scene.hh>
 
 namespace mikoto::editor {
 
@@ -37,16 +39,16 @@ namespace mikoto::editor {
 
     class LandscapePanel final : public Panel {
     public:
-
-        explicit LandscapePanel( const LandscapePanelCreateInfo& info );
+        explicit LandscapePanel( const LandscapePanelCreateInfo &info );
 
         auto OnRender( float timeStep ) -> void override;
 
     private:
-        auto UpdateHeightmapPreview( const eastl::shared_ptr<const renderer::TerrainHeightmap>& heightmap ) -> void;
+        auto DrawBrushControls( scene::Entity &entity ) -> void;
+        auto UpdateHeightmapPreview( const eastl::shared_ptr<const renderer::TerrainHeightmap> &heightmap ) -> void;
         EditorState *mEditorState{};
 
-        const scene::Scene* mEditedScene{};
+        const scene::Scene *mEditedScene{};
         core::u64 mEditedEntity{};
 
         filesystem::Path mImportPath{};
@@ -58,7 +60,11 @@ namespace mikoto::editor {
 
         eastl::string mMapSaveMessage{};
         bool mPreviewSelected{};
+        bool mSelectGeneratedNoise{ true };
+        eastl::array<asset::AssetHandle<asset::Texture>, 3> mLayerPreviews{};
+        asset::AssetHandle<asset::Model> mGrassMeshPreview{};
+        eastl::vector<asset::AssetHandle<asset::Model>> mGrassMeshVariantPreviews{};
     };
-}
+}// namespace mikoto::editor
 
 #endif//MIKOTO_EDITOR_LANDSCAPE_PANEL_HH

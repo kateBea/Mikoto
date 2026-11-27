@@ -1,0 +1,25 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "France Flag",
+  "Material": {
+    "BaseColorFactor": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "MetallicFactor": 0,
+    "RoughnessFactor": 0.88,
+    "DoubleSided": 1,
+    "AlphaMask": 0,
+    "Textures": [
+      {
+        "Map": 1,
+        "Present": true,
+        "Used": true,
+        "TexturePath": "../Textures/Flags/fr.png"
+      }
+    ]
+  }
+}

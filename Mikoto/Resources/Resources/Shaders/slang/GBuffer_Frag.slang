@@ -12,6 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Evaluate material coverage and surface guides for screen-space effects. Outputs encode
+// material color, normals, positions and related guide channels rather than final scene
+// lighting.
+
 #pragma once
 
 #include "base/Base.slang"
@@ -22,25 +26,25 @@
 #include "base/Memory_Helpers.slang"
 
 struct FSInput {
-    float3 ViewPos : TEXCOORD0;
-    float3 WorldPos : TEXCOORD1;
-    float3 Normal : TEXCOORD2;
-    float2 Uv0 : TEXCOORD3;
-    float2 Uv1 : TEXCOORD4;
-    float4 Color : TEXCOORD5;
+    float3 mViewPos : TEXCOORD0;
+    float3 mWorldPos : TEXCOORD1;
+    float3 mNormal : TEXCOORD2;
+    float2 mUv0 : TEXCOORD3;
+    float2 mUv1 : TEXCOORD4;
+    float4 mColor : TEXCOORD5;
 
-    nointerpolation uint MaterialIndex : TEXTCOORD6;
-    nointerpolation uint FaceFlags : TEXCOORD7;
+    nointerpolation uint mMaterialIndex : TEXTCOORD6;
+    nointerpolation uint mFaceFlags : TEXCOORD7;
 
-    float4 ScreenPos : SV_Position;
+    float4 mScreenPos : SV_Position;
 };
 
 struct FSOutput {
-    float4 Position : SV_Target0;
-    float4 Normal : SV_Target1;
-    float4 Color : SV_Target2;
-    float4 Emissive : SV_Target3;
-    float4 Contour : SV_Target4;
+    float4 mPosition : SV_Target0;
+    float4 mNormal : SV_Target1;
+    float4 mColor : SV_Target2;
+    float4 mEmissive : SV_Target3;
+    float4 mContour : SV_Target4;
 };
 
 struct DrawParams {
@@ -63,93 +67,93 @@ MKT_DECLARE_PUSH_CONSTANT( DrawParams, parameters );
 [shader( "fragment" )]
 FSOutput main( FSInput input, bool frontFacing : SV_IsFrontFace ) {
     FSOutput o;
-    float3 flatNormal = SurfaceFaceNormal( ddx( input.WorldPos ), ddy( input.WorldPos ), input.Normal );
-    if ( MaterialBackfaceDiscard( input.FaceFlags, frontFacing ) ) {
+    float3 flatNormal = SurfaceFaceNormal( ddx( input.mWorldPos ), ddy( input.mWorldPos ), input.mNormal );
+    if ( MaterialBackfaceDiscard( input.mFaceFlags, frontFacing ) ) {
         discard;
     }
 
     BufferReference<MaterialParameters> materialsBuffer =
             ( BufferReference<MaterialParameters> )parameters.mMaterialsBufferID;
-    MaterialParameters materialInfo = materialsBuffer[input.MaterialIndex];
+    MaterialParameters materialInfo = materialsBuffer[input.mMaterialIndex];
     // Only visible opaque toon/cel pixels participate in crease contours.
-    o.Contour = float4( 0 );
-    if ( SurfaceStylized( uint( materialInfo.Subsurface.z ) ) && materialInfo.AlphaMask == PBR_ALPHA_OPAQUE ) {
-        o.Contour = float4( materialInfo.SubsurfaceColorOpacity.rgb, saturate( materialInfo.SubsurfaceColorOpacity.a / 12.0 ) );
+    o.mContour = float4( 0 );
+    if ( SurfaceStylized( uint( materialInfo.mSubsurface.z ) ) && materialInfo.mAlphaMask == PBR_ALPHA_OPAQUE ) {
+        o.mContour = float4( materialInfo.mSubsurfaceColorOpacity.rgb, saturate( materialInfo.mSubsurfaceColorOpacity.a / 12.0 ) );
     }
     // SSAO and other depth consumers need the same nearest opaque surface as
     // the depth prepass, including opaque pixels authored in BLEND materials.
-    if ( materialInfo.AlphaMask == PBR_ALPHA_MASK || materialInfo.AlphaMask == PBR_ALPHA_BLEND ) {
+    if ( materialInfo.mAlphaMask == PBR_ALPHA_MASK || materialInfo.mAlphaMask == PBR_ALPHA_BLEND ) {
         int textureIndex = MaterialAlphaTexture( materialInfo );
         float alpha = textureIndex == INVALID_TEXTURE_INDEX
                               ? 1.0f
                               : textures[NonUniformResourceIndex( textureIndex )]
                                         .Sample( samplers[parameters.mBasicSamplerID],
-                                                 MaterialAlphaUV( materialInfo, input.Uv0, input.Uv1 ) )
+                                                 MaterialAlphaUV( materialInfo, input.mUv0, input.mUv1 ) )
                                         .a;
-        if ( MaterialSurfaceDiscard( materialInfo, MaterialAlpha( materialInfo, alpha, input.Color.a ), false ) ) {
+        if ( MaterialSurfaceDiscard( materialInfo, MaterialAlpha( materialInfo, alpha, input.mColor.a ), false ) ) {
             discard;
         }
     }
 
-    input.Uv0 = input.Uv0 * materialInfo.UvTransform.xy + materialInfo.UvTransform.zw;
-    input.Uv1 = input.Uv1 * materialInfo.UvTransform.xy + materialInfo.UvTransform.zw;
+    input.mUv0 = input.mUv0 * materialInfo.mUvTransform.xy + materialInfo.mUvTransform.zw;
+    input.mUv1 = input.mUv1 * materialInfo.mUvTransform.xy + materialInfo.mUvTransform.zw;
 
     CameraInfo camera = ( ( BufferReference<CameraInfo> )parameters.mCameraDataID )[0];
 
     // NORMAL
-    float2 normalUvs = materialInfo.NormalTextureSet == 0 ? input.Uv0 : input.Uv1;
-    float3 N = ( uint( materialInfo.Subsurface.z ) != SURFACE_FLAT && materialInfo.NormalIndex != INVALID_TEXTURE_INDEX )
-                       ? GetNormalFromMap( textures[materialInfo.NormalIndex], samplers[parameters.mBasicSamplerID],
-                                           normalUvs, input.Normal, input.WorldPos, materialInfo.NormalScale )
-                       : normalize( input.Normal );
+    float2 normalUvs = materialInfo.mNormalTextureSet == 0 ? input.mUv0 : input.mUv1;
+    float3 N = ( uint( materialInfo.mSubsurface.z ) != SURFACE_FLAT && materialInfo.mNormalIndex != INVALID_TEXTURE_INDEX )
+                       ? GetNormalFromMap( textures[materialInfo.mNormalIndex], samplers[parameters.mBasicSamplerID],
+                                           normalUvs, input.mNormal, input.mWorldPos, materialInfo.mNormalScale )
+                       : normalize( input.mNormal );
 
-    if ( !MaterialFrontFacing( input.FaceFlags, frontFacing ) ) {
+    if ( !MaterialFrontFacing( input.mFaceFlags, frontFacing ) ) {
         N = -N;
     }
 
-    if ( uint( materialInfo.Subsurface.z ) == SURFACE_FLAT ) {
-        N = MaterialFrontFacing( input.FaceFlags, frontFacing ) ? flatNormal : -flatNormal;
+    if ( uint( materialInfo.mSubsurface.z ) == SURFACE_FLAT ) {
+        N = MaterialFrontFacing( input.mFaceFlags, frontFacing ) ? flatNormal : -flatNormal;
     }
-    o.Normal = float4( normalize( N ) * 0.5 + 0.5, 1.0 );
+    o.mNormal = float4( normalize( N ) * 0.5 + 0.5, 1.0 );
 
     // POSITION (view-space + depth)
     // SSAO needs distances in view-space units. Normalizing this vector
     // destroyed both depth and radius, and made occlusion camera-dependent.
-    o.Position = float4( input.ViewPos, -input.ViewPos.z );
+    o.mPosition = float4( input.mViewPos, -input.mViewPos.z );
 
     // ALBEDO
     // Store linear base color for the G-buffer debug view.
-    o.Color = float4( 0 );
-    if ( materialInfo.Workflow == PBR_WORKFLOW_METALLIC_ROUGHNESS ) {
-        float2 baseColorUvs = materialInfo.BaseColorTextureSet == 0 ? input.Uv0 : input.Uv1;
+    o.mColor = float4( 0 );
+    if ( materialInfo.mWorkflow == PBR_WORKFLOW_METALLIC_ROUGHNESS ) {
+        float2 baseColorUvs = materialInfo.mBaseColorTextureSet == 0 ? input.mUv0 : input.mUv1;
 
-        float4 albedo = ( materialInfo.AlbedoIndex != INVALID_TEXTURE_INDEX )
-                                ? SRGBtoLINEAR( textures[materialInfo.AlbedoIndex].Sample( samplers[parameters.mBasicSamplerID],
-                                                                                  baseColorUvs ) ) * materialInfo.BaseColorFactor
-                                : materialInfo.BaseColorFactor;
+        float4 albedo = ( materialInfo.mAlbedoIndex != INVALID_TEXTURE_INDEX )
+                                ? SRGBtoLINEAR( textures[materialInfo.mAlbedoIndex].Sample( samplers[parameters.mBasicSamplerID],
+                                                                                  baseColorUvs ) ) * materialInfo.mBaseColorFactor
+                                : materialInfo.mBaseColorFactor;
 
-        o.Color = float4( albedo.xyz * input.Color.rgb, 1.0 );
+        o.mColor = float4( albedo.xyz * input.mColor.rgb, 1.0 );
     }
 
-    if ( materialInfo.Workflow == PBR_WORKFLOW_SPECULAR_GLOSSINESS ) {
-        float2 diffuseUvs = materialInfo.BaseColorTextureSet == 0 ? input.Uv0 : input.Uv1;
+    if ( materialInfo.mWorkflow == PBR_WORKFLOW_SPECULAR_GLOSSINESS ) {
+        float2 diffuseUvs = materialInfo.mBaseColorTextureSet == 0 ? input.mUv0 : input.mUv1;
 
-        float4 diffuse = ( materialInfo.DiffuseIndex != INVALID_TEXTURE_INDEX )
-                                 ? SRGBtoLINEAR( textures[materialInfo.DiffuseIndex].Sample(
-                                                samplers[parameters.mBasicSamplerID], diffuseUvs ) ) * materialInfo.DiffuseFactor
-                                 : materialInfo.DiffuseFactor;
+        float4 diffuse = ( materialInfo.mDiffuseIndex != INVALID_TEXTURE_INDEX )
+                                 ? SRGBtoLINEAR( textures[materialInfo.mDiffuseIndex].Sample(
+                                                samplers[parameters.mBasicSamplerID], diffuseUvs ) ) * materialInfo.mDiffuseFactor
+                                 : materialInfo.mDiffuseFactor;
 
-        o.Color = float4( diffuse.xyz * input.Color.rgb, 1.0 );
+        o.mColor = float4( diffuse.xyz * input.mColor.rgb, 1.0 );
     }
 
     // Emisive
-    o.Emissive = float4( 0, 0, 0, 0 );
-    if ( materialInfo.IsBloomy == MKT_SHADER_TRUE ) {
-        float3 emissiveContrib = materialInfo.EmissiveFactor.xyz * materialInfo.EmissiveStrength;
+    o.mEmissive = float4( 0, 0, 0, 0 );
+    if ( materialInfo.mIsBloomy == MKT_SHADER_TRUE ) {
+        float3 emissiveContrib = materialInfo.mEmissiveFactor.xyz * materialInfo.mEmissiveStrength;
 
-        if ( materialInfo.EmissiveIndex != INVALID_TEXTURE_INDEX ) {
-            Texture2D emissiveMap = textures[materialInfo.EmissiveIndex];
-            float2 emissiveUvSet = materialInfo.EmissiveTextureSet == 0 ? input.Uv0 : input.Uv1;
+        if ( materialInfo.mEmissiveIndex != INVALID_TEXTURE_INDEX ) {
+            Texture2D emissiveMap = textures[materialInfo.mEmissiveIndex];
+            float2 emissiveUvSet = materialInfo.mEmissiveTextureSet == 0 ? input.mUv0 : input.mUv1;
 
             float3 emissive =
                     SRGBtoLINEAR( emissiveMap.Sample( samplers[parameters.mBasicSamplerID], emissiveUvSet ) ).rgb;
@@ -157,11 +161,11 @@ FSOutput main( FSInput input, bool frontFacing : SV_IsFrontFace ) {
             emissiveContrib *= emissive;
         }
 
-        if ( uint( materialInfo.Subsurface.z ) == SURFACE_CLEAR_COAT ) {
-            float3 view = normalize( camera.mViewPosition.xyz - input.WorldPos );
-            emissiveContrib *= 1 - materialInfo.SurfaceShading.x * SurfaceCoatFresnel( dot( N, view ) );
+        if ( uint( materialInfo.mSubsurface.z ) == SURFACE_CLEAR_COAT ) {
+            float3 view = normalize( camera.mViewPosition.xyz - input.mWorldPos );
+            emissiveContrib *= 1 - materialInfo.mSurfaceShading.x * SurfaceCoatFresnel( dot( N, view ) );
         }
-        o.Emissive = float4( emissiveContrib, 1.0f );
+        o.mEmissive = float4( emissiveContrib, 1.0f );
     }
 
     return o;

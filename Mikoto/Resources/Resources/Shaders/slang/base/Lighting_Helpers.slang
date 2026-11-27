@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Surface-lighting utilities: tangent normal maps, environment sampling and direct-light
+// attenuation. Keep roughness and coordinate conventions aligned with the material BRDF.
+
 #pragma once
 
 #include "LightInfo.slang"
@@ -21,11 +24,11 @@
 // Structures
 // ============================================================================
 struct SkyBoxParameters {
-    float Exposure;
-    float Gamma;
-    float MaxReflectionLOD;
-    float MaxMipLevel;
-    int IsSkyboxActive;
+    float mExposure;
+    float mGamma;
+    float mMaxReflectionLOD;
+    float mMaxMipLevel;
+    int mIsSkyboxActive;
 };
 
 struct DirectionalShadowMapInfo {
@@ -81,15 +84,20 @@ float3 GetNormalFromMap( Texture2D normalMap, SamplerState normalMapSampler, flo
 float3 GetClearCoatNormalFromMap( Texture2D normalMap, SamplerState mapSampler,
                                 float2 uv, float3 inNormal, float3 worldPos, float scale ) {
     float3 n = normalize( inNormal );
-    float3 dp1 = ddx( worldPos ), dp2 = ddy( worldPos );
-    float2 duv1 = ddx( uv ), duv2 = ddy( uv );
-    float3 dp2perp = cross( dp2, n ), dp1perp = cross( n, dp1 );
+    float3 dp1 = ddx( worldPos );
+    float3 dp2 = ddy( worldPos );
+    float2 duv1 = ddx( uv );
+    float2 duv2 = ddy( uv );
+    float3 dp2perp = cross( dp2, n );
+    float3 dp1perp = cross( n, dp1 );
     float3 tangent = dp2perp * duv1.x + dp1perp * duv2.x;
     float3 bitangent = dp2perp * duv1.y + dp1perp * duv2.y;
     float lengthSquared = max( dot( tangent, tangent ), dot( bitangent, bitangent ) );
     float3 mapped = normalMap.Sample( mapSampler, uv ).xyz * 2.0 - 1.0;
     mapped.xy *= scale;
-    if ( lengthSquared <= 1e-12 || scale == 0 ) { return n; }
+    if ( lengthSquared <= 1e-12 || scale == 0 ) {
+        return n;
+    }
     float3 result = ( tangent * mapped.x + bitangent * mapped.y ) * rsqrt( lengthSquared ) + n * mapped.z;
     return dot( result, result ) > 1e-12 ? normalize( result ) : n;
 }
@@ -234,10 +242,10 @@ float ComputeAttenuation( float distance, float radius ) {
 
 float3 ComputeDirectionalLight( float3 N, float3 V, float3 F0, float roughness, float metallic, float3 albedo,
                                 LightInfo lightInfo ) {
-    float3 L = normalize( -lightInfo.Direction.xyz );
+    float3 L = normalize( -lightInfo.mDirection.xyz );
     float3 H = normalize( V + L );
 
-    float3 radiance = lightInfo.Diffuse.xyz * lightInfo.Intensity;
+    float3 radiance = lightInfo.mDiffuse.xyz * lightInfo.mIntensity;
 
     // NDF, Geometry, Fresnel
     float NDF = DistributionGGX( N, H, roughness );
@@ -258,20 +266,20 @@ float3 ComputeDirectionalLight( float3 N, float3 V, float3 F0, float roughness, 
 
 float3 ComputeSpotLight( float3 N, float3 V, float3 F0, float roughness, float metallic, float3 albedo,
                          LightInfo lightInfo, float3 worldPos ) {
-    float3 L = normalize( lightInfo.Position.xyz - worldPos );
+    float3 L = normalize( lightInfo.mPosition.xyz - worldPos );
     float3 H = normalize( V + L );
 
-    float dist = length( lightInfo.Position.xyz - worldPos );
+    float dist = length( lightInfo.mPosition.xyz - worldPos );
 
-    float attenuation = pow( max( 1.0 - pow( dist / lightInfo.Radius, 4.0 ), 0.0 ), 2.0 ) / ( dist * dist + 1.0 );
+    float attenuation = pow( max( 1.0 - pow( dist / lightInfo.mRadius, 4.0 ), 0.0 ), 2.0 ) / ( dist * dist + 1.0 );
 
     // Base radiance
-    float3 radiance = lightInfo.Diffuse.xyz * attenuation * lightInfo.Intensity;
+    float3 radiance = lightInfo.mDiffuse.xyz * attenuation * lightInfo.mIntensity;
 
     // Spot angle shaping
-    float theta = dot( L, normalize( -lightInfo.Direction.xyz ) );
-    float eps = lightInfo.CutOff - lightInfo.OuterCutOff;
-    float intensity = clamp( ( theta - lightInfo.OuterCutOff ) / eps, 0.0, 1.0 );
+    float theta = dot( L, normalize( -lightInfo.mDirection.xyz ) );
+    float eps = lightInfo.mCutOff - lightInfo.mOuterCutOff;
+    float intensity = clamp( ( theta - lightInfo.mOuterCutOff ) / eps, 0.0, 1.0 );
     radiance *= intensity;
 
     // BRDF
@@ -292,15 +300,15 @@ float3 ComputeSpotLight( float3 N, float3 V, float3 F0, float roughness, float m
 
 float3 ComputePointLight( float3 N, float3 V, float3 F0, float roughness, float metallic, float3 albedo,
                           LightInfo lightInfo, float3 worldPos ) {
-    float3 L = normalize( lightInfo.Position.xyz - worldPos );
+    float3 L = normalize( lightInfo.mPosition.xyz - worldPos );
     float3 H = normalize( V + L );
 
-    float dist = length( lightInfo.Position.xyz - worldPos );
+    float dist = length( lightInfo.mPosition.xyz - worldPos );
 
     // Physically based attenuation
-    float attenuation = pow( max( 1.0 - pow( dist / lightInfo.Radius, 4.0 ), 0.0 ), 2.0 ) / ( dist * dist + 1.0 );
+    float attenuation = pow( max( 1.0 - pow( dist / lightInfo.mRadius, 4.0 ), 0.0 ), 2.0 ) / ( dist * dist + 1.0 );
 
-    float3 radiance = lightInfo.Diffuse.xyz * attenuation * lightInfo.Intensity;
+    float3 radiance = lightInfo.mDiffuse.xyz * attenuation * lightInfo.mIntensity;
 
     // BRDF
     float NDF = DistributionGGX( N, H, roughness );

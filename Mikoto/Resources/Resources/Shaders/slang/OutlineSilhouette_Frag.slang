@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Write selected-object coverage after material alpha and sidedness tests. This mask is the
+// input to outline seed generation.
+
 #pragma once
 
 #include "base/Base.slang"
@@ -34,31 +37,31 @@ MKT_DECLARE_TEXTURE_SRV( Texture2D ) textures;
 MKT_DECLARE_SAMPLERS samplers;
 
 struct FSInput {
-    nointerpolation uint MaterialIndex : TEXCOORD0;
-    nointerpolation uint FaceFlags : TEXCOORD4;
-    float2 Uv0 : TEXCOORD1;
-    float2 Uv1 : TEXCOORD2;
-    float VertexAlpha : TEXCOORD3;
-    float4 ScreenPos : SV_Position;
+    nointerpolation uint mMaterialIndex : TEXCOORD0;
+    nointerpolation uint mFaceFlags : TEXCOORD4;
+    float2 mUv0 : TEXCOORD1;
+    float2 mUv1 : TEXCOORD2;
+    float mVertexAlpha : TEXCOORD3;
+    float4 mScreenPos : SV_Position;
 };
 
 [shader( "fragment" )]
 float4 main( FSInput input, bool frontFacing : SV_IsFrontFace ) : SV_Target0 {
-    if ( MaterialBackfaceDiscard( input.FaceFlags, frontFacing ) ) {
+    if ( MaterialBackfaceDiscard( input.mFaceFlags, frontFacing ) ) {
         discard;
     }
 
     MaterialParameters material =
-            ( ( BufferReference<MaterialParameters> )parameters.mMaterialsPtr )[input.MaterialIndex];
-    if ( material.AlphaMask != PBR_ALPHA_OPAQUE ) {
+            ( ( BufferReference<MaterialParameters> )parameters.mMaterialsPtr )[input.mMaterialIndex];
+    if ( material.mAlphaMask != PBR_ALPHA_OPAQUE ) {
         int textureIndex = MaterialAlphaTexture( material );
         float alpha = textureIndex == INVALID_TEXTURE_INDEX
             ? 1.0f
             : textures[NonUniformResourceIndex( textureIndex )].Sample(
                 samplers[parameters.mBasicSamplerID],
-                MaterialAlphaUV( material, input.Uv0, input.Uv1 ) ).a;
+                MaterialAlphaUV( material, input.mUv0, input.mUv1 ) ).a;
 
-        if ( MaterialAlphaDiscard( material, MaterialAlpha( material, alpha, input.VertexAlpha ) ) ) {
+        if ( MaterialAlphaDiscard( material, MaterialAlpha( material, alpha, input.mVertexAlpha ) ) ) {
             discard;
         }
     }

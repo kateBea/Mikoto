@@ -1,0 +1,15 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Blue",
+  "Material": {
+    "BaseColorFactor": [
+      0.1,
+      0.35,
+      0.7,
+      1
+    ],
+    "MetallicFactor": 0,
+    "RoughnessFactor": 0.72
+  }
+}

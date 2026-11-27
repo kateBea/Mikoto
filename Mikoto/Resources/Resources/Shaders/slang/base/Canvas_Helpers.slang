@@ -1,27 +1,30 @@
+// Canvas quad upload layout and interpolants. Each record supplies its clip positions, UV
+// rectangle, tint and shape parameters for the canvas stages.
+
 #pragma once
 #include "Base.slang"
 #include "Memory_Helpers.slang"
 struct CanvasQuad {
-    float4 positions[4];
-    float4 color;
-    float4 uv;
-    float2 size;
-    float rounding;
-    float stroke;
-    uint textureID;
-    uint kind;
-    float distanceRange;
-    float padding;
+    float4 mPositions[kQuadCornerCount];
+    float4 mColor;
+    float4 mUv;
+    float2 mSize;
+    float mRounding;
+    float mStroke;
+    uint mTextureID;
+    uint mKind;
+    float mDistanceRange;
+    float mPadding;
 };
 struct CanvasParameters {
-    Pointer quads;
-    uint samplerID;
-    uint offset;
+    Pointer mQuads;
+    uint mSamplerID;
+    uint mOffset;
 };
 MKT_DECLARE_PUSH_CONSTANT( CanvasParameters, parameters );
 struct CanvasVaryings {
-    float4 position : SV_Position;
-    float2 uv : TEXCOORD0;
-    float2 local : TEXCOORD1;
-    nointerpolation uint index : TEXCOORD2;
+    float4 mPosition : SV_Position;
+    float2 mUv : TEXCOORD0;
+    float2 mLocal : TEXCOORD1;
+    nointerpolation uint mIndex : TEXCOORD2;
 };

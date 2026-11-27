@@ -1,9 +1,0 @@
-Version: 2
-Type: "SurfaceMaterial"
-Name: "Gold Drape"
-Material:
-  BaseColorFactor: [0.82, 0.49, 0.09, 1]
-  MetallicFactor: 0
-  RoughnessFactor: 0.88
-  DoubleSided: 1
-  AlphaMask: 0

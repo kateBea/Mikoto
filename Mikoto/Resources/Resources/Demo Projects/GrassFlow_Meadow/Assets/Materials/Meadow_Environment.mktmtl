@@ -1,0 +1,15 @@
+{
+  "Version": 2,
+  "Type": "SkyboxMaterial",
+  "Name": "Meadow HDRI environment",
+  "Material": {
+    "SkyboxType": 1,
+    "AmbientScale": 1,
+    "Images": [
+      {
+        "Face": -1,
+        "TexturePath": "../Skybox/kloppenheim_06_puresky_4k.hdr"
+      }
+    ]
+  }
+}

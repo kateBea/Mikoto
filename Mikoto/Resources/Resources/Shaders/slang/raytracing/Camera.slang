@@ -20,22 +20,26 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+// Fixed demo-camera basis and lens-ray construction for the software sphere tracer. Image size
+// determines the pixel footprint; independent pixel/lens jitter samples antialiasing and depth
+// of field.
+
 #pragma once
 #include "SoftwarePathtracer.slang"
 
 namespace swrt {
     struct Camera {
-        float3 center;
-        float3 pixel00;
-        float3 pixelDeltaU;
-        float3 pixelDeltaV;
-        float3 defocusDiskU;
-        float3 defocusDiskV;
+        float3 mCenter;
+        float3 mPixel00;
+        float3 mPixelDeltaU;
+        float3 mPixelDeltaV;
+        float3 mDefocusDiskU;
+        float3 mDefocusDiskV;
     };
 
     Camera CreateCamera( uint width, uint height ) {
         Camera camera;
-        camera.center = float3( 13, 2, 3 );
+        camera.mCenter = float3( 13, 2, 3 );
         float3 lookAt = float3( 0 );
         float3 up = float3( 0, 1, 0 );
         static const float focusDistance = 10.0;
@@ -44,18 +48,18 @@ namespace swrt {
 
         float viewportHeight = 2 * tan( radians( verticalFov ) * 0.5 ) * focusDistance;
         float viewportWidth = viewportHeight * float( width ) / float( height );
-        float3 w = normalize( camera.center - lookAt );
+        float3 w = normalize( camera.mCenter - lookAt );
         float3 u = normalize( cross( up, w ) );
         float3 v = cross( w, u );
         float3 viewportU = viewportWidth * u;
         float3 viewportV = -viewportHeight * v;
-        camera.pixelDeltaU = viewportU / float( width );
-        camera.pixelDeltaV = viewportV / float( height );
-        camera.pixel00 = camera.center - focusDistance * w - 0.5 * ( viewportU + viewportV ) +
-                         0.5 * ( camera.pixelDeltaU + camera.pixelDeltaV );
+        camera.mPixelDeltaU = viewportU / float( width );
+        camera.mPixelDeltaV = viewportV / float( height );
+        camera.mPixel00 = camera.mCenter - focusDistance * w - 0.5 * ( viewportU + viewportV ) +
+                         0.5 * ( camera.mPixelDeltaU + camera.mPixelDeltaV );
         float defocusRadius = focusDistance * tan( radians( defocusAngle ) * 0.5 );
-        camera.defocusDiskU = defocusRadius * u;
-        camera.defocusDiskV = defocusRadius * v;
+        camera.mDefocusDiskU = defocusRadius * u;
+        camera.mDefocusDiskV = defocusRadius * v;
         return camera;
     }
 
@@ -63,14 +67,14 @@ namespace swrt {
         float2 jitter;
         jitter.x = Random( state ) - 0.5;
         jitter.y = Random( state ) - 0.5;
-        float3 sample = camera.pixel00 + ( float( pixel.x ) + jitter.x ) * camera.pixelDeltaU +
-                        ( float( pixel.y ) + jitter.y ) * camera.pixelDeltaV;
+        float3 sample = camera.mPixel00 + ( float( pixel.x ) + jitter.x ) * camera.mPixelDeltaU +
+                        ( float( pixel.y ) + jitter.y ) * camera.mPixelDeltaV;
 
         // Jitter the image sample and the lens independently for depth of field.
         float2 disk = RandomInUnitDisk( state );
         Ray ray;
-        ray.origin = camera.center + disk.x * camera.defocusDiskU + disk.y * camera.defocusDiskV;
-        ray.direction = sample - ray.origin;
+        ray.mOrigin = camera.mCenter + disk.x * camera.mDefocusDiskU + disk.y * camera.mDefocusDiskV;
+        ray.mDirection = sample - ray.mOrigin;
         return ray;
     }
 }

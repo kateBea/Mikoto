@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Present the selected ambient-occlusion texture as a grayscale viewport output. It exposes the
+// AO signal independently of scene lighting.
+
 #include "base/Base.slang"
 #include "base/Memory_Helpers.slang"
 

@@ -1,0 +1,2805 @@
+{
+  "Version": 5,
+  "RelativeAssetPaths": true,
+  "Scene": "Cloth and Soft Bodies Playground",
+  "EnvironmentLightingSource": 2,
+  "ToneMapping": 0,
+  "Atmosphere": {
+    "PlanetRadius": 6360,
+    "AtmosphereHeight": 100,
+    "WorldUnitsPerKilometer": 1000,
+    "GroundHeight": -0.4,
+    "RayleighScale": 1,
+    "MieScale": 1,
+    "OzoneScale": 1,
+    "MieAnisotropy": 0.8,
+    "GroundAlbedo": 0.1,
+    "SunElevation": 26,
+    "SunAzimuth": 135,
+    "SunIlluminance": 8,
+    "SunAngularRadius": 0.266,
+    "AerialDistance": 80,
+    "UseDirectionalLight": true,
+    "AerialPerspective": true
+  },
+  "Objects": [
+    {
+      "Type": 5,
+      "ID": 1,
+      "TagComponent": {
+        "Name": "Ground",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0.1,
+          0
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1000,
+          1,
+          1000
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Ground.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 0
+      },
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          18,
+          0.2,
+          13
+        ],
+        "Offset": [
+          0,
+          -0.2,
+          0
+        ],
+        "Trigger": false
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 7,
+      "TagComponent": {
+        "Name": "Drape collision sphere",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -6,
+          1.22,
+          1.5
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1.12,
+          1.12,
+          1.12
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Sphere.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 6
+      },
+      "SphereColliderComponent": {
+        "Radius": 1,
+        "Offset": [
+          0,
+          0,
+          0
+        ],
+        "Trigger": false
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 8,
+      "TagComponent": {
+        "Name": "cotton drape over sphere 4",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -6,
+          2.365,
+          1.5
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Sphere_Fabric.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 4
+      },
+      "ClothComponent": {
+        "VertexMass": 0.0010224073302790503,
+        "GravityFactor": 1,
+        "LinearDamping": 0.35,
+        "Pressure": 0,
+        "EdgeCompliance": 0,
+        "BendCompliance": 5e-05,
+        "PinnedVertices": [],
+        "Enabled": true,
+        "Drag": 0.05,
+        "Lift": 0,
+        "WindVelocity": [
+          0,
+          0,
+          0
+        ],
+        "WindGustStrength": 0
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 9,
+      "TagComponent": {
+        "Name": "Drape collision sphere",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          1.22,
+          1.5
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1.12,
+          1.12,
+          1.12
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Sphere.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 6
+      },
+      "SphereColliderComponent": {
+        "Radius": 1,
+        "Offset": [
+          0,
+          0,
+          0
+        ],
+        "Trigger": false
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 10,
+      "TagComponent": {
+        "Name": "cotton drape over sphere 5",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          2.365,
+          1.5
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Sphere_Fabric.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 5
+      },
+      "ClothComponent": {
+        "VertexMass": 0.0010224073302790503,
+        "GravityFactor": 1,
+        "LinearDamping": 0.35,
+        "Pressure": 0,
+        "EdgeCompliance": 0,
+        "BendCompliance": 5e-05,
+        "PinnedVertices": [],
+        "Enabled": true,
+        "Drag": 0.05,
+        "Lift": 0,
+        "WindVelocity": [
+          0,
+          0,
+          0
+        ],
+        "WindGustStrength": 0
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 11,
+      "TagComponent": {
+        "Name": "Soft-body landing slab",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          6.4,
+          0.3,
+          3.85
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          2.6,
+          0.2,
+          2.3
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 1
+      },
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          1,
+          1,
+          1
+        ],
+        "Offset": [
+          0,
+          0,
+          0
+        ],
+        "Trigger": false
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 12,
+      "TagComponent": {
+        "Name": "Soft sphere - low pressure",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          5.25,
+          3.0,
+          3.9
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.92,
+          0.92,
+          0.92
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Sphere.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 7
+      },
+      "SoftBodyComponent": {
+        "VertexMass": 0.15,
+        "GravityFactor": 1,
+        "LinearDamping": 0.22,
+        "Pressure": 90,
+        "EdgeCompliance": 8e-05,
+        "PinnedVertices": [],
+        "Enabled": true
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 13,
+      "TagComponent": {
+        "Name": "Soft sphere - high pressure",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          7.55,
+          3.0,
+          3.9
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.92,
+          0.92,
+          0.92
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Sphere.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 8
+      },
+      "SoftBodyComponent": {
+        "VertexMass": 0.15,
+        "GravityFactor": 1,
+        "LinearDamping": 0.22,
+        "Pressure": 1600,
+        "EdgeCompliance": 8e-05,
+        "PinnedVertices": [],
+        "Enabled": true
+      }
+    },
+    {
+      "Type": 6,
+      "ID": 14,
+      "TagComponent": {
+        "Name": "Camera",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          32,
+          20.1,
+          43
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            0.8022332212740245,
+            0.0,
+            -0.5970107693202042,
+            0
+          ],
+          [
+            -0.16089135811733096,
+            0.963001816398108,
+            -0.2161977624701635,
+            0
+          ],
+          [
+            0.5749224552645885,
+            0.2694949009052759,
+            0.7725520492617909,
+            0
+          ],
+          [
+            32,
+            20.1,
+            43,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "CameraComponent": {
+        "Projection": 1,
+        "Fov": 50,
+        "Near": 0.1,
+        "Far": 60000,
+        "Main": true,
+        "FixedAspect": false,
+        "ClearFlags": 2,
+        "ClearColor": [
+          0.02,
+          0.025,
+          0.035,
+          1
+        ],
+        "Gamma": 2.2,
+        "Exposure": 1
+      }
+    },
+    {
+      "Type": 3,
+      "ID": 15,
+      "TagComponent": {
+        "Name": "Sun",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0.1,
+          0
+        ],
+        "Rotation": [
+          0,
+          0,
+          -34
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "LightComponent": {
+        "Type": 0,
+        "Directional": {
+          "Color": [
+            1,
+            0.95,
+            0.85
+          ],
+          "Direction": [
+            -0.65,
+            -0.44,
+            -0.62
+          ],
+          "Intensity": 8,
+          "CastShadows": true,
+          "AngularRadius": 0.266
+        }
+      }
+    },
+    {
+      "ID": 40,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Plaza wind - gentle traveling gusts",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          11.1,
+          -9
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": true
+      },
+      "Children": [],
+      "WindAreaComponent": {
+        "Shape": 1,
+        "Velocity": [
+          5,
+          0.1,
+          1.0
+        ],
+        "Dimensions": [
+          90,
+          20,
+          10
+        ],
+        "Falloff": 0.3,
+        "GustStrength": 0.18,
+        "GustFrequency": 0.23,
+        "GustWavelength": 28,
+        "Turbulence": 0.18,
+        "Seed": 31,
+        "Enabled": true
+      }
+    },
+    {
+      "ID": 100,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Table 1 — Ivory cotton",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -12,
+          0.1,
+          8.5
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 101,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Tabletop",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              0,
+              1.42,
+              0
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1.4,
+              0.08,
+              0.9
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 9
+          },
+          "BoxColliderComponent": {
+            "HalfExtents": [
+              1,
+              1,
+              1
+            ],
+            "Offset": [
+              0,
+              0,
+              0
+            ],
+            "Trigger": false
+          },
+          "RigidBodyComponent": {
+            "BodyType": 0,
+            "Mass": 1,
+            "UseGravity": false,
+            "Friction": 0.65,
+            "Restitution": 0
+          }
+        },
+        {
+          "ID": 102,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Leg 1",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -1.18,
+              0.67,
+              -0.68
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              0.09,
+              0.67,
+              0.09
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 9
+          },
+          "BoxColliderComponent": {
+            "HalfExtents": [
+              1,
+              1,
+              1
+            ],
+            "Offset": [
+              0,
+              0,
+              0
+            ],
+            "Trigger": false
+          },
+          "RigidBodyComponent": {
+            "BodyType": 0,
+            "Mass": 1,
+            "UseGravity": false,
+            "Friction": 0.65,
+            "Restitution": 0
+          }
+        },
+        {
+          "ID": 103,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Leg 2",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              1.18,
+              0.67,
+              -0.68
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              0.09,
+              0.67,
+              0.09
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 9
+          },
+          "BoxColliderComponent": {
+            "HalfExtents": [
+              1,
+              1,
+              1
+            ],
+            "Offset": [
+              0,
+              0,
+              0
+            ],
+            "Trigger": false
+          },
+          "RigidBodyComponent": {
+            "BodyType": 0,
+            "Mass": 1,
+            "UseGravity": false,
+            "Friction": 0.65,
+            "Restitution": 0
+          }
+        },
+        {
+          "ID": 104,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Leg 3",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -1.18,
+              0.67,
+              0.68
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              0.09,
+              0.67,
+              0.09
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 9
+          },
+          "BoxColliderComponent": {
+            "HalfExtents": [
+              1,
+              1,
+              1
+            ],
+            "Offset": [
+              0,
+              0,
+              0
+            ],
+            "Trigger": false
+          },
+          "RigidBodyComponent": {
+            "BodyType": 0,
+            "Mass": 1,
+            "UseGravity": false,
+            "Friction": 0.65,
+            "Restitution": 0
+          }
+        },
+        {
+          "ID": 105,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Leg 4",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              1.18,
+              0.67,
+              0.68
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              0.09,
+              0.67,
+              0.09
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 9
+          },
+          "BoxColliderComponent": {
+            "HalfExtents": [
+              1,
+              1,
+              1
+            ],
+            "Offset": [
+              0,
+              0,
+              0
+            ],
+            "Trigger": false
+          },
+          "RigidBodyComponent": {
+            "BodyType": 0,
+            "Mass": 1,
+            "UseGravity": false,
+            "Friction": 0.65,
+            "Restitution": 0
+          }
+        },
+        {
+          "ID": 106,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Ivory cotton tablecloth",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              0.02,
+              1.515,
+              -0.01
+            ],
+            "Rotation": [
+              0,
+              5,
+              0
+            ],
+            "Scale": [
+              1.0,
+              1,
+              1.0
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Tablecloth_Fabric.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 10
+          },
+          "ClothComponent": {
+            "VertexMass": 0.000488615664845173,
+            "GravityFactor": 1,
+            "LinearDamping": 0.35,
+            "Pressure": 0,
+            "EdgeCompliance": 0,
+            "BendCompliance": 0.0003,
+            "PinnedVertices": [],
+            "Enabled": true,
+            "Drag": 0.05,
+            "Lift": 0,
+            "WindVelocity": [
+              0,
+              0,
+              0
+            ],
+            "WindGustStrength": 0
+          }
+        }
+      ]
+    },
+    {
+      "ID": 110,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Table 2 — Blue linen",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -4,
+          0.1,
+          8.5
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 111,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Tabletop",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              0,
+              1.42,
+              0
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1.7,
+              0.08,
+              1.0
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 9
+          },
+          "BoxColliderComponent": {
+            "HalfExtents": [
+              1,
+              1,
+              1
+            ],
+            "Offset": [
+              0,
+              0,
+              0
+            ],
+            "Trigger": false
+          },
+          "RigidBodyComponent": {
+            "BodyType": 0,
+            "Mass": 1,
+            "UseGravity": false,
+            "Friction": 0.65,
+            "Restitution": 0
+          }
+        },
+        {
+          "ID": 112,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Leg 1",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -1.48,
+              0.67,
+              -0.78
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              0.09,
+              0.67,
+              0.09
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 9
+          },
+          "BoxColliderComponent": {
+            "HalfExtents": [
+              1,
+              1,
+              1
+            ],
+            "Offset": [
+              0,
+              0,
+              0
+            ],
+            "Trigger": false
+          },
+          "RigidBodyComponent": {
+            "BodyType": 0,
+            "Mass": 1,
+            "UseGravity": false,
+            "Friction": 0.65,
+            "Restitution": 0
+          }
+        },
+        {
+          "ID": 113,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Leg 2",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              1.48,
+              0.67,
+              -0.78
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              0.09,
+              0.67,
+              0.09
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 9
+          },
+          "BoxColliderComponent": {
+            "HalfExtents": [
+              1,
+              1,
+              1
+            ],
+            "Offset": [
+              0,
+              0,
+              0
+            ],
+            "Trigger": false
+          },
+          "RigidBodyComponent": {
+            "BodyType": 0,
+            "Mass": 1,
+            "UseGravity": false,
+            "Friction": 0.65,
+            "Restitution": 0
+          }
+        },
+        {
+          "ID": 114,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Leg 3",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -1.48,
+              0.67,
+              0.78
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              0.09,
+              0.67,
+              0.09
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 9
+          },
+          "BoxColliderComponent": {
+            "HalfExtents": [
+              1,
+              1,
+              1
+            ],
+            "Offset": [
+              0,
+              0,
+              0
+            ],
+            "Trigger": false
+          },
+          "RigidBodyComponent": {
+            "BodyType": 0,
+            "Mass": 1,
+            "UseGravity": false,
+            "Friction": 0.65,
+            "Restitution": 0
+          }
+        },
+        {
+          "ID": 115,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Leg 4",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              1.48,
+              0.67,
+              0.78
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              0.09,
+              0.67,
+              0.09
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 9
+          },
+          "BoxColliderComponent": {
+            "HalfExtents": [
+              1,
+              1,
+              1
+            ],
+            "Offset": [
+              0,
+              0,
+              0
+            ],
+            "Trigger": false
+          },
+          "RigidBodyComponent": {
+            "BodyType": 0,
+            "Mass": 1,
+            "UseGravity": false,
+            "Friction": 0.65,
+            "Restitution": 0
+          }
+        },
+        {
+          "ID": 116,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Blue linen tablecloth",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              0.02,
+              1.515,
+              -0.01
+            ],
+            "Rotation": [
+              0,
+              -7,
+              0
+            ],
+            "Scale": [
+              1.1428571428571428,
+              1,
+              1.0625
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Tablecloth_Fabric.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 11
+          },
+          "ClothComponent": {
+            "VertexMass": 0.0006645173041894352,
+            "GravityFactor": 1,
+            "LinearDamping": 0.35,
+            "Pressure": 0,
+            "EdgeCompliance": 0,
+            "BendCompliance": 0.00015,
+            "PinnedVertices": [],
+            "Enabled": true,
+            "Drag": 0.05,
+            "Lift": 0,
+            "WindVelocity": [
+              0,
+              0,
+              0
+            ],
+            "WindGustStrength": 0
+          }
+        }
+      ]
+    },
+    {
+      "ID": 120,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Table 3 — Coral square",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          4,
+          0.1,
+          8.5
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 121,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Tabletop",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              0,
+              1.42,
+              0
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1.05,
+              0.08,
+              1.05
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 9
+          },
+          "BoxColliderComponent": {
+            "HalfExtents": [
+              1,
+              1,
+              1
+            ],
+            "Offset": [
+              0,
+              0,
+              0
+            ],
+            "Trigger": false
+          },
+          "RigidBodyComponent": {
+            "BodyType": 0,
+            "Mass": 1,
+            "UseGravity": false,
+            "Friction": 0.65,
+            "Restitution": 0
+          }
+        },
+        {
+          "ID": 122,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Leg 1",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -0.8300000000000001,
+              0.67,
+              -0.8300000000000001
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              0.09,
+              0.67,
+              0.09
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 9
+          },
+          "BoxColliderComponent": {
+            "HalfExtents": [
+              1,
+              1,
+              1
+            ],
+            "Offset": [
+              0,
+              0,
+              0
+            ],
+            "Trigger": false
+          },
+          "RigidBodyComponent": {
+            "BodyType": 0,
+            "Mass": 1,
+            "UseGravity": false,
+            "Friction": 0.65,
+            "Restitution": 0
+          }
+        },
+        {
+          "ID": 123,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Leg 2",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              0.8300000000000001,
+              0.67,
+              -0.8300000000000001
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              0.09,
+              0.67,
+              0.09
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 9
+          },
+          "BoxColliderComponent": {
+            "HalfExtents": [
+              1,
+              1,
+              1
+            ],
+            "Offset": [
+              0,
+              0,
+              0
+            ],
+            "Trigger": false
+          },
+          "RigidBodyComponent": {
+            "BodyType": 0,
+            "Mass": 1,
+            "UseGravity": false,
+            "Friction": 0.65,
+            "Restitution": 0
+          }
+        },
+        {
+          "ID": 124,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Leg 3",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -0.8300000000000001,
+              0.67,
+              0.8300000000000001
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              0.09,
+              0.67,
+              0.09
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 9
+          },
+          "BoxColliderComponent": {
+            "HalfExtents": [
+              1,
+              1,
+              1
+            ],
+            "Offset": [
+              0,
+              0,
+              0
+            ],
+            "Trigger": false
+          },
+          "RigidBodyComponent": {
+            "BodyType": 0,
+            "Mass": 1,
+            "UseGravity": false,
+            "Friction": 0.65,
+            "Restitution": 0
+          }
+        },
+        {
+          "ID": 125,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Leg 4",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              0.8300000000000001,
+              0.67,
+              0.8300000000000001
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              0.09,
+              0.67,
+              0.09
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 9
+          },
+          "BoxColliderComponent": {
+            "HalfExtents": [
+              1,
+              1,
+              1
+            ],
+            "Offset": [
+              0,
+              0,
+              0
+            ],
+            "Trigger": false
+          },
+          "RigidBodyComponent": {
+            "BodyType": 0,
+            "Mass": 1,
+            "UseGravity": false,
+            "Friction": 0.65,
+            "Restitution": 0
+          }
+        },
+        {
+          "ID": 126,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Coral square tablecloth",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              0.02,
+              1.515,
+              -0.01
+            ],
+            "Rotation": [
+              0,
+              9,
+              0
+            ],
+            "Scale": [
+              0.8809523809523809,
+              1,
+              1.15625
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Tablecloth_Fabric.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 12
+          },
+          "ClothComponent": {
+            "VertexMass": 0.0004379799581490155,
+            "GravityFactor": 1,
+            "LinearDamping": 0.35,
+            "Pressure": 0,
+            "EdgeCompliance": 0,
+            "BendCompliance": 0.0005,
+            "PinnedVertices": [],
+            "Enabled": true,
+            "Drag": 0.05,
+            "Lift": 0,
+            "WindVelocity": [
+              0,
+              0,
+              0
+            ],
+            "WindGustStrength": 0
+          }
+        }
+      ]
+    },
+    {
+      "ID": 130,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Table 4 — Teal soft cloth",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          12,
+          0.1,
+          8.5
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 131,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Tabletop",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              0,
+              1.42,
+              0
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1.3,
+              0.08,
+              0.8
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 9
+          },
+          "BoxColliderComponent": {
+            "HalfExtents": [
+              1,
+              1,
+              1
+            ],
+            "Offset": [
+              0,
+              0,
+              0
+            ],
+            "Trigger": false
+          },
+          "RigidBodyComponent": {
+            "BodyType": 0,
+            "Mass": 1,
+            "UseGravity": false,
+            "Friction": 0.65,
+            "Restitution": 0
+          }
+        },
+        {
+          "ID": 132,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Leg 1",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -1.08,
+              0.67,
+              -0.5800000000000001
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              0.09,
+              0.67,
+              0.09
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 9
+          },
+          "BoxColliderComponent": {
+            "HalfExtents": [
+              1,
+              1,
+              1
+            ],
+            "Offset": [
+              0,
+              0,
+              0
+            ],
+            "Trigger": false
+          },
+          "RigidBodyComponent": {
+            "BodyType": 0,
+            "Mass": 1,
+            "UseGravity": false,
+            "Friction": 0.65,
+            "Restitution": 0
+          }
+        },
+        {
+          "ID": 133,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Leg 2",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              1.08,
+              0.67,
+              -0.5800000000000001
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              0.09,
+              0.67,
+              0.09
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 9
+          },
+          "BoxColliderComponent": {
+            "HalfExtents": [
+              1,
+              1,
+              1
+            ],
+            "Offset": [
+              0,
+              0,
+              0
+            ],
+            "Trigger": false
+          },
+          "RigidBodyComponent": {
+            "BodyType": 0,
+            "Mass": 1,
+            "UseGravity": false,
+            "Friction": 0.65,
+            "Restitution": 0
+          }
+        },
+        {
+          "ID": 134,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Leg 3",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -1.08,
+              0.67,
+              0.5800000000000001
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              0.09,
+              0.67,
+              0.09
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 9
+          },
+          "BoxColliderComponent": {
+            "HalfExtents": [
+              1,
+              1,
+              1
+            ],
+            "Offset": [
+              0,
+              0,
+              0
+            ],
+            "Trigger": false
+          },
+          "RigidBodyComponent": {
+            "BodyType": 0,
+            "Mass": 1,
+            "UseGravity": false,
+            "Friction": 0.65,
+            "Restitution": 0
+          }
+        },
+        {
+          "ID": 135,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Leg 4",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              1.08,
+              0.67,
+              0.5800000000000001
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              0.09,
+              0.67,
+              0.09
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Box.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 9
+          },
+          "BoxColliderComponent": {
+            "HalfExtents": [
+              1,
+              1,
+              1
+            ],
+            "Offset": [
+              0,
+              0,
+              0
+            ],
+            "Trigger": false
+          },
+          "RigidBodyComponent": {
+            "BodyType": 0,
+            "Mass": 1,
+            "UseGravity": false,
+            "Friction": 0.65,
+            "Restitution": 0
+          }
+        },
+        {
+          "ID": 136,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Teal soft cloth tablecloth",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              0.02,
+              1.515,
+              -0.01
+            ],
+            "Rotation": [
+              0,
+              -4,
+              0
+            ],
+            "Scale": [
+              0.9523809523809523,
+              1,
+              0.9375
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../Assets/Models/Tablecloth_Fabric.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 13
+          },
+          "ClothComponent": {
+            "VertexMass": 0.0002792089513400989,
+            "GravityFactor": 1,
+            "LinearDamping": 0.35,
+            "Pressure": 0,
+            "EdgeCompliance": 0,
+            "BendCompliance": 0.0008,
+            "PinnedVertices": [],
+            "Enabled": true,
+            "Drag": 0.05,
+            "Lift": 0,
+            "WindVelocity": [
+              0,
+              0,
+              0
+            ],
+            "WindGustStrength": 0
+          }
+        }
+      ]
+    },
+    {
+      "Type": 5,
+      "ID": 200,
+      "TagComponent": {
+        "Name": "Spain plaza flagpole - 14 m",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -27,
+          7.1,
+          -9
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.12,
+          7,
+          0.12
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 1
+      },
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          1,
+          1,
+          1
+        ],
+        "Offset": [
+          0,
+          0,
+          0
+        ],
+        "Trigger": false
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 201,
+      "TagComponent": {
+        "Name": "Spain flag - 6 x 4 m",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -26.86,
+          13.5,
+          -9
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Plaza_Flag.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 14
+      },
+      "ClothComponent": {
+        "VertexMass": 0.0015353858456617353,
+        "GravityFactor": 1,
+        "LinearDamping": 0.28,
+        "Pressure": 0,
+        "EdgeCompliance": 0,
+        "BendCompliance": 0.00015,
+        "PinnedVertices": [
+          0,
+          1,
+          5,
+          8,
+          19,
+          20,
+          42,
+          43,
+          48,
+          49,
+          56,
+          57,
+          62,
+          63,
+          69,
+          71,
+          77,
+          79,
+          85,
+          87,
+          93,
+          95,
+          101,
+          103,
+          109,
+          111,
+          117,
+          119,
+          125,
+          127,
+          133,
+          135,
+          141,
+          143,
+          149,
+          151,
+          157,
+          159,
+          165,
+          167,
+          172
+        ],
+        "Enabled": true,
+        "Drag": 0.65,
+        "Lift": 0.02,
+        "WindVelocity": [
+          0,
+          0,
+          0
+        ],
+        "WindGustStrength": 0
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 202,
+      "TagComponent": {
+        "Name": "Japan plaza flagpole - 14 m",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -15,
+          7.1,
+          -9
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.12,
+          7,
+          0.12
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 1
+      },
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          1,
+          1,
+          1
+        ],
+        "Offset": [
+          0,
+          0,
+          0
+        ],
+        "Trigger": false
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 203,
+      "TagComponent": {
+        "Name": "Japan flag - 6 x 4 m",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -14.86,
+          13.5,
+          -9
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Plaza_Flag.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 15
+      },
+      "ClothComponent": {
+        "VertexMass": 0.0015353858456617353,
+        "GravityFactor": 1,
+        "LinearDamping": 0.28,
+        "Pressure": 0,
+        "EdgeCompliance": 0,
+        "BendCompliance": 0.00015,
+        "PinnedVertices": [
+          0,
+          1,
+          5,
+          8,
+          19,
+          20,
+          42,
+          43,
+          48,
+          49,
+          56,
+          57,
+          62,
+          63,
+          69,
+          71,
+          77,
+          79,
+          85,
+          87,
+          93,
+          95,
+          101,
+          103,
+          109,
+          111,
+          117,
+          119,
+          125,
+          127,
+          133,
+          135,
+          141,
+          143,
+          149,
+          151,
+          157,
+          159,
+          165,
+          167,
+          172
+        ],
+        "Enabled": true,
+        "Drag": 0.65,
+        "Lift": 0.02,
+        "WindVelocity": [
+          0,
+          0,
+          0
+        ],
+        "WindGustStrength": 0
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 204,
+      "TagComponent": {
+        "Name": "France plaza flagpole - 14 m",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -3,
+          7.1,
+          -9
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.12,
+          7,
+          0.12
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 1
+      },
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          1,
+          1,
+          1
+        ],
+        "Offset": [
+          0,
+          0,
+          0
+        ],
+        "Trigger": false
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 205,
+      "TagComponent": {
+        "Name": "France flag - 6 x 4 m",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -2.86,
+          13.5,
+          -9
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Plaza_Flag.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 16
+      },
+      "ClothComponent": {
+        "VertexMass": 0.0015353858456617353,
+        "GravityFactor": 1,
+        "LinearDamping": 0.28,
+        "Pressure": 0,
+        "EdgeCompliance": 0,
+        "BendCompliance": 0.00015,
+        "PinnedVertices": [
+          0,
+          1,
+          5,
+          8,
+          19,
+          20,
+          42,
+          43,
+          48,
+          49,
+          56,
+          57,
+          62,
+          63,
+          69,
+          71,
+          77,
+          79,
+          85,
+          87,
+          93,
+          95,
+          101,
+          103,
+          109,
+          111,
+          117,
+          119,
+          125,
+          127,
+          133,
+          135,
+          141,
+          143,
+          149,
+          151,
+          157,
+          159,
+          165,
+          167,
+          172
+        ],
+        "Enabled": true,
+        "Drag": 0.65,
+        "Lift": 0.02,
+        "WindVelocity": [
+          0,
+          0,
+          0
+        ],
+        "WindGustStrength": 0
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 206,
+      "TagComponent": {
+        "Name": "Germany plaza flagpole - 14 m",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          9,
+          7.1,
+          -9
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.12,
+          7,
+          0.12
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 1
+      },
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          1,
+          1,
+          1
+        ],
+        "Offset": [
+          0,
+          0,
+          0
+        ],
+        "Trigger": false
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 207,
+      "TagComponent": {
+        "Name": "Germany flag - 6 x 4 m",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          9.14,
+          13.5,
+          -9
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1.1111111111111112,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Plaza_Flag.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 17
+      },
+      "ClothComponent": {
+        "VertexMass": 0.0017059842729574837,
+        "GravityFactor": 1,
+        "LinearDamping": 0.28,
+        "Pressure": 0,
+        "EdgeCompliance": 0,
+        "BendCompliance": 0.00015,
+        "PinnedVertices": [
+          0,
+          1,
+          5,
+          8,
+          19,
+          20,
+          42,
+          43,
+          48,
+          49,
+          56,
+          57,
+          62,
+          63,
+          69,
+          71,
+          77,
+          79,
+          85,
+          87,
+          93,
+          95,
+          101,
+          103,
+          109,
+          111,
+          117,
+          119,
+          125,
+          127,
+          133,
+          135,
+          141,
+          143,
+          149,
+          151,
+          157,
+          159,
+          165,
+          167,
+          172
+        ],
+        "Enabled": true,
+        "Drag": 0.65,
+        "Lift": 0.02,
+        "WindVelocity": [
+          0,
+          0,
+          0
+        ],
+        "WindGustStrength": 0
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 208,
+      "TagComponent": {
+        "Name": "Italy plaza flagpole - 14 m",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          21,
+          7.1,
+          -9
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.12,
+          7,
+          0.12
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 1
+      },
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          1,
+          1,
+          1
+        ],
+        "Offset": [
+          0,
+          0,
+          0
+        ],
+        "Trigger": false
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 209,
+      "TagComponent": {
+        "Name": "Italy flag - 6 x 4 m",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          21.14,
+          13.5,
+          -9
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Plaza_Flag.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 18
+      },
+      "ClothComponent": {
+        "VertexMass": 0.0015353858456617353,
+        "GravityFactor": 1,
+        "LinearDamping": 0.28,
+        "Pressure": 0,
+        "EdgeCompliance": 0,
+        "BendCompliance": 0.00015,
+        "PinnedVertices": [
+          0,
+          1,
+          5,
+          8,
+          19,
+          20,
+          42,
+          43,
+          48,
+          49,
+          56,
+          57,
+          62,
+          63,
+          69,
+          71,
+          77,
+          79,
+          85,
+          87,
+          93,
+          95,
+          101,
+          103,
+          109,
+          111,
+          117,
+          119,
+          125,
+          127,
+          133,
+          135,
+          141,
+          143,
+          149,
+          151,
+          157,
+          159,
+          165,
+          167,
+          172
+        ],
+        "Enabled": true,
+        "Drag": 0.65,
+        "Lift": 0.02,
+        "WindVelocity": [
+          0,
+          0,
+          0
+        ],
+        "WindGustStrength": 0
+      }
+    },
+    {
+      "ID": 210,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Procedural cumulus sky - wide coverage",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0.1,
+          0
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "CloudComponent": {
+        "Shape": 0,
+        "Dimensions": [
+          100,
+          100,
+          100
+        ],
+        "HorizonRadius": 9000,
+        "MaterialPath": "../Assets/Materials/Cumulus_Sky.mktmtl",
+        "DensityMultiplier": 1,
+        "CastShadows": true,
+        "ReceiveShadows": true,
+        "BottomAltitude": 2200.1,
+        "LayerThickness": 2800,
+        "WindDirection": [
+          1,
+          0.2
+        ],
+        "WindSpeed": 18
+      }
+    },
+    {
+      "ID": 211,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Sky light - atmosphere IBL",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0.1,
+          0
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "SkyLightComponent": {
+        "Enabled": true,
+        "Source": 0,
+        "Intensity": 1,
+        "OcclusionEnabled": true,
+        "OcclusionDistance": 50,
+        "OcclusionSamplesPerFrame": 2
+      }
+    }
+  ],
+  "Materials": [
+    {
+      "MaterialPath": "../Assets/Materials/Ground.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Fixture.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Coral Flag.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Blue Flag.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Gold Drape.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Teal Drape.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Stone Sphere.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Low Pressure.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/High Pressure.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Table Wood.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Ivory cotton Tablecloth.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Blue linen Tablecloth.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Coral square Tablecloth.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Teal soft cloth Tablecloth.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Spain Flag.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Japan Flag.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/France Flag.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Germany Flag.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Italy Flag.mktmtl"
+    }
+  ]
+}

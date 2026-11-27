@@ -1,0 +1,974 @@
+{
+  "Version": 5,
+  "RelativeAssetPaths": true,
+  "EnvironmentLightingSource": 0,
+  "ToneMapping": 0,
+  "Atmosphere": {
+    "PlanetRadius": 6360,
+    "AtmosphereHeight": 100,
+    "WorldUnitsPerKilometer": 1000,
+    "GroundHeight": 0.1,
+    "SunElevation": 35,
+    "SunAzimuth": 135,
+    "SunIlluminance": 1,
+    "UseDirectionalLight": true,
+    "AerialPerspective": true,
+    "AerialDistance": 160
+  },
+  "Scene": "GrassFlow_Meadow",
+  "Objects": [
+    {
+      "ID": 1,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Dense custom meadow / mixed tufts",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0,
+          0
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "LandscapeComponent": {
+        "Origin": [
+          -64,
+          -64
+        ],
+        "QuadsPerSection": 64,
+        "SectionsPerComponent": 1,
+        "ComponentsX": 2,
+        "ComponentsY": 2,
+        "VertexSpacing": 1.0,
+        "HeightScale": 4,
+        "BaseElevation": 0.1,
+        "TexturePath": "../Assets/Textures/Meadow_Height.png",
+        "LowColor": [
+          0.12,
+          0.2,
+          0.04
+        ],
+        "MiddleColor": [
+          0.12,
+          0.2,
+          0.04
+        ],
+        "HighColor": [
+          0.12,
+          0.2,
+          0.04
+        ],
+        "EnableEditLayers": true,
+        "ShowGrid": false,
+        "ShowVertices": false,
+        "Surface": {
+          "BlendWidth": 0.02,
+          "HeightBlend": false,
+          "HeightBlendWidth": 0.1,
+          "ElevationDebug": false,
+          "Layers": [
+            {
+              "Name": "Earth",
+              "Tint": [
+                0.1,
+                0.09,
+                0.035
+              ],
+              "Roughness": 0.9,
+              "NormalStrength": 0,
+              "UVScale": [
+                0.25,
+                0.25
+              ],
+              "HeightRange": [
+                3,
+                4
+              ],
+              "SlopeInfluence": 0
+            },
+            {
+              "Name": "Meadow",
+              "Tint": [
+                0.1,
+                0.18,
+                0.035
+              ],
+              "Roughness": 0.9,
+              "NormalStrength": 0,
+              "UVScale": [
+                0.25,
+                0.25
+              ],
+              "HeightRange": [
+                -1,
+                2
+              ],
+              "SlopeInfluence": 0
+            },
+            {
+              "Name": "Rock",
+              "Tint": [
+                0.24,
+                0.24,
+                0.2
+              ],
+              "Roughness": 0.9,
+              "NormalStrength": 0,
+              "UVScale": [
+                0.25,
+                0.25
+              ],
+              "HeightRange": [
+                3,
+                4
+              ],
+              "SlopeInfluence": 0
+            },
+            {
+              "Name": "Dry grass",
+              "Tint": [
+                0.18,
+                0.16,
+                0.06
+              ],
+              "Roughness": 0.9,
+              "NormalStrength": 0,
+              "UVScale": [
+                0.25,
+                0.25
+              ],
+              "HeightRange": [
+                3,
+                4
+              ],
+              "SlopeInfluence": 0
+            }
+          ],
+          "Grass": {
+            "Enabled": true,
+            "Density": 26,
+            "Height": 1.25,
+            "Width": 0.75,
+            "Bend": 0.3,
+            "ClumpSize": 3,
+            "ClumpStrength": 0.25,
+            "HeightVariation": 0.85,
+            "ViewDistance": 300,
+            "LodDistance": 35,
+            "FarLodDistance": 95,
+            "MinDensity": 0.4,
+            "WidthCompensation": 0.85,
+            "WindSpeed": 3,
+            "WindStrength": 0.48,
+            "WindFrequency": 0.035,
+            "WindFlutter": 0.08,
+            "WindDistance": 300,
+            "AmbientOcclusion": 0.8,
+            "SelfShadow": 0.4,
+            "Roughness": 0.7,
+            "Translucency": 0.6,
+            "TranslucencyPower": 3,
+            "NormalRounding": 0.3,
+            "DryAmount": 0.08,
+            "ColorVariation": 0.2,
+            "RootColor": [
+              0.035,
+              0.075,
+              0.018
+            ],
+            "MidColor": [
+              0.13,
+              0.31,
+              0.06
+            ],
+            "TipColor": [
+              0.4,
+              0.52,
+              0.13
+            ],
+            "DryColor": [
+              0.4,
+              0.35,
+              0.15
+            ],
+            "OcclusionEnabled": true,
+            "Layer": 1,
+            "Seed": 721,
+            "MinElevation": -10,
+            "MaxElevation": 100,
+            "MaxSlope": 55,
+            "UseCustomMesh": true,
+            "ModelPath": "../Assets/Models/Meadow_Tuft.gltf",
+            "MeshIndex": 0,
+            "MeshWeight": 2,
+            "MeshVariants": [
+              {
+                "ModelPath": "../Assets/Models/Meadow_Tuft_Wide.gltf",
+                "MeshIndex": 0,
+                "Weight": 1
+              },
+              {
+                "ModelPath": "../Assets/Models/Wildflower_Patch.gltf",
+                "MeshIndex": 0,
+                "Weight": 0.025,
+                "HeightScale": 0.85,
+                "WidthScale": 1.4
+              }
+            ]
+          }
+        }
+      },
+      "HeightFieldColliderComponent": {
+        "HeightmapPath": "../Assets/Textures/Meadow_Height.png",
+        "SampleSpacing": [
+          1.0,
+          1.0
+        ],
+        "HeightScale": 4,
+        "BaseElevation": 0.1,
+        "Offset": [
+          -64,
+          0,
+          -64
+        ],
+        "LandscapeEntityID": 0,
+        "Trigger": false
+      }
+    },
+    {
+      "ID": 2,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Tall custom meadow / mixed tufts",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0,
+          0
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "LandscapeComponent": {
+        "Origin": [
+          64,
+          -32
+        ],
+        "QuadsPerSection": 64,
+        "SectionsPerComponent": 1,
+        "ComponentsX": 1,
+        "ComponentsY": 1,
+        "VertexSpacing": 1.0,
+        "HeightScale": 4,
+        "BaseElevation": 0.1,
+        "TexturePath": "../Assets/Textures/Tuft_Height.png",
+        "LowColor": [
+          0.12,
+          0.2,
+          0.04
+        ],
+        "MiddleColor": [
+          0.12,
+          0.2,
+          0.04
+        ],
+        "HighColor": [
+          0.12,
+          0.2,
+          0.04
+        ],
+        "EnableEditLayers": true,
+        "ShowGrid": false,
+        "ShowVertices": false,
+        "Surface": {
+          "BlendWidth": 0.02,
+          "HeightBlend": false,
+          "HeightBlendWidth": 0.1,
+          "ElevationDebug": false,
+          "Layers": [
+            {
+              "Name": "Earth",
+              "Tint": [
+                0.1,
+                0.09,
+                0.035
+              ],
+              "Roughness": 0.9,
+              "NormalStrength": 0,
+              "UVScale": [
+                0.25,
+                0.25
+              ],
+              "HeightRange": [
+                3,
+                4
+              ],
+              "SlopeInfluence": 0
+            },
+            {
+              "Name": "Meadow",
+              "Tint": [
+                0.1,
+                0.18,
+                0.035
+              ],
+              "Roughness": 0.9,
+              "NormalStrength": 0,
+              "UVScale": [
+                0.25,
+                0.25
+              ],
+              "HeightRange": [
+                -1,
+                2
+              ],
+              "SlopeInfluence": 0
+            },
+            {
+              "Name": "Rock",
+              "Tint": [
+                0.24,
+                0.24,
+                0.2
+              ],
+              "Roughness": 0.9,
+              "NormalStrength": 0,
+              "UVScale": [
+                0.25,
+                0.25
+              ],
+              "HeightRange": [
+                3,
+                4
+              ],
+              "SlopeInfluence": 0
+            },
+            {
+              "Name": "Dry grass",
+              "Tint": [
+                0.18,
+                0.16,
+                0.06
+              ],
+              "Roughness": 0.9,
+              "NormalStrength": 0,
+              "UVScale": [
+                0.25,
+                0.25
+              ],
+              "HeightRange": [
+                3,
+                4
+              ],
+              "SlopeInfluence": 0
+            }
+          ],
+          "Grass": {
+            "Enabled": true,
+            "Density": 28,
+            "Height": 1.35,
+            "Width": 0.75,
+            "Bend": 0.3,
+            "ClumpSize": 3,
+            "ClumpStrength": 0.25,
+            "HeightVariation": 0.85,
+            "ViewDistance": 300,
+            "LodDistance": 35,
+            "FarLodDistance": 95,
+            "MinDensity": 0.4,
+            "WidthCompensation": 0.85,
+            "WindSpeed": 3,
+            "WindStrength": 0.48,
+            "WindFrequency": 0.035,
+            "WindFlutter": 0.08,
+            "WindDistance": 300,
+            "AmbientOcclusion": 0.8,
+            "SelfShadow": 0.4,
+            "Roughness": 0.7,
+            "Translucency": 0.6,
+            "TranslucencyPower": 3,
+            "NormalRounding": 0.3,
+            "DryAmount": 0.08,
+            "ColorVariation": 0.2,
+            "RootColor": [
+              0.035,
+              0.075,
+              0.018
+            ],
+            "MidColor": [
+              0.13,
+              0.31,
+              0.06
+            ],
+            "TipColor": [
+              0.4,
+              0.52,
+              0.13
+            ],
+            "DryColor": [
+              0.4,
+              0.35,
+              0.15
+            ],
+            "OcclusionEnabled": true,
+            "Layer": 1,
+            "Seed": 721,
+            "MinElevation": -10,
+            "MaxElevation": 100,
+            "MaxSlope": 55,
+            "UseCustomMesh": true,
+            "ModelPath": "../Assets/Models/Meadow_Tuft.gltf",
+            "MeshIndex": 0,
+            "MeshWeight": 2,
+            "MeshVariants": [
+              {
+                "ModelPath": "../Assets/Models/Meadow_Tuft_Wide.gltf",
+                "MeshIndex": 0,
+                "Weight": 1
+              },
+              {
+                "ModelPath": "../Assets/Models/Wildflower_Patch.gltf",
+                "MeshIndex": 0,
+                "Weight": 0.025,
+                "HeightScale": 0.85,
+                "WidthScale": 1.4
+              }
+            ]
+          }
+        }
+      },
+      "HeightFieldColliderComponent": {
+        "HeightmapPath": "../Assets/Textures/Tuft_Height.png",
+        "SampleSpacing": [
+          1.0,
+          1.0
+        ],
+        "HeightScale": 4,
+        "BaseElevation": 0.1,
+        "Offset": [
+          64,
+          0,
+          -32
+        ],
+        "LandscapeEntityID": 0,
+        "Trigger": false
+      }
+    },
+    {
+      "ID": 3,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Player",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0.6619607843137255,
+          50
+        ],
+        "Rotation": [
+          0,
+          180,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 4,
+          "Type": 0,
+          "TagComponent": {
+            "Name": "Player visual",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              0,
+              0,
+              0
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": true
+          },
+          "Children": [
+            {
+              "ID": 5,
+              "Type": 5,
+              "TagComponent": {
+                "Name": "Player / Object_6",
+                "Visibility": true
+              },
+              "TransformComponent": {
+                "Local Transform": [
+                  [
+                    0.009948707500316236,
+                    0,
+                    0,
+                    0
+                  ],
+                  [
+                    0,
+                    0.009948707500316236,
+                    2.2090568264224143e-18,
+                    0
+                  ],
+                  [
+                    0,
+                    -2.2090568264224143e-18,
+                    0.009948707500316236,
+                    0
+                  ],
+                  [
+                    -2.6655413112378242e-08,
+                    0.0032145593396110607,
+                    -0.016524171460887357,
+                    1
+                  ]
+                ],
+                "Uniform Scale": false
+              },
+              "Children": [],
+              "MeshComponent": {
+                "MeshIndex": 0,
+                "ModelPath": "../../Animation_Playground/Assets/Models/PlayerXbot.gltf"
+              },
+              "SkinnedMeshRenderer": {
+                "AnimatorID": 4
+              }
+            },
+            {
+              "ID": 6,
+              "Type": 5,
+              "TagComponent": {
+                "Name": "Player / Object_7",
+                "Visibility": true
+              },
+              "TransformComponent": {
+                "Local Transform": [
+                  [
+                    0.009948707500316236,
+                    0,
+                    0,
+                    0
+                  ],
+                  [
+                    0,
+                    0.009948707500316236,
+                    2.2090568264224143e-18,
+                    0
+                  ],
+                  [
+                    0,
+                    -2.2090568264224143e-18,
+                    0.009948707500316236,
+                    0
+                  ],
+                  [
+                    -2.6655413112378242e-08,
+                    0.0032145593396110607,
+                    -0.016524171460887357,
+                    1
+                  ]
+                ],
+                "Uniform Scale": false
+              },
+              "Children": [],
+              "MeshComponent": {
+                "MeshIndex": 1,
+                "ModelPath": "../../Animation_Playground/Assets/Models/PlayerXbot.gltf"
+              },
+              "SkinnedMeshRenderer": {
+                "AnimatorID": 4
+              }
+            }
+          ],
+          "AnimatorComponent": {
+            "ID": 4,
+            "ModelPath": "../../Animation_Playground/Assets/Models/PlayerXbot.gltf",
+            "Clip": "Idle",
+            "Playing": true,
+            "ControllerPlaying": false
+          }
+        }
+      ],
+      "CharacterControllerComponent": {
+        "ControllerType": 0,
+        "Radius": 0.26,
+        "HalfHeight": 0.62,
+        "MaxSlopeAngle": 0.85,
+        "MaxStepHeight": 0.3,
+        "MaxStrength": 120,
+        "GravityFactor": 1,
+        "StickToFloor": true,
+        "Enabled": true
+      },
+      "ScriptComponent": {
+        "Language": "CSharp",
+        "ScriptPath": "../Assets/Scripts/CSharp/PlaygroundCharacterController.cs",
+        "ClassName": "PlaygroundCharacterController",
+        "Properties": "{}"
+      }
+    },
+    {
+      "ID": 7,
+      "Type": 6,
+      "TagComponent": {
+        "Name": "Orbit camera",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          5,
+          60
+        ],
+        "Rotation": [
+          -20,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "CameraComponent": {
+        "Projection": 1,
+        "Fov": 60,
+        "Near": 0.05,
+        "Far": 1000,
+        "Main": true,
+        "FixedAspect": false,
+        "ClearFlags": 2,
+        "ClearColor": [
+          0.025,
+          0.04,
+          0.07,
+          1
+        ],
+        "Gamma": 2.2,
+        "Exposure": 1
+      }
+    },
+    {
+      "ID": 8,
+      "Type": 3,
+      "TagComponent": {
+        "Name": "Sun",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0,
+          0
+        ],
+        "Rotation": [
+          0,
+          123.4,
+          106.4
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "LightComponent": {
+        "Type": 0,
+        "Directional": {
+          "Color": [
+            1,
+            0.9686274509803922,
+            0.9019607843137255
+          ],
+          "Direction": [
+            -0.45,
+            -0.8,
+            -0.4
+          ],
+          "Intensity": 1.5,
+          "CastShadows": true,
+          "AngularRadius": 0.266
+        }
+      }
+    },
+    {
+      "ID": 9,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Sky light",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0,
+          0
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "SkyLightComponent": {
+        "Enabled": true,
+        "Source": 1,
+        "Intensity": 0.417,
+        "OcclusionEnabled": true,
+        "OcclusionDistance": 45,
+        "OcclusionSamplesPerFrame": 2,
+        "MaterialPath": "../Assets/Materials/Meadow_Environment.mktmtl"
+      }
+    },
+    {
+      "ID": 10,
+      "Type": 4,
+      "TagComponent": {
+        "Name": "Meadow controls",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0,
+          0
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "TextComponent": {
+        "Contents": "GRASSFLOW MEADOW | WASD walk · Shift run · Space jump",
+        "FontPath": "../../../Fonts/Inter/static/Inter-Regular.ttf",
+        "IsWorldText": false,
+        "Size": 17,
+        "WorldSize": 1,
+        "ScreenSize": 17,
+        "Spacing": 0,
+        "WorldSpacing": 0,
+        "ScreenSpacing": 0,
+        "ScreenPosition": [
+          12,
+          12,
+          0
+        ],
+        "ScreenScale": [
+          1,
+          1,
+          1
+        ],
+        "ScreenRotation": 0,
+        "LineSpacing": 1.2,
+        "Alignment": 0,
+        "Backend": 1,
+        "Color": [
+          0.95,
+          0.98,
+          1,
+          1
+        ],
+        "OutlineWidth": 0.04,
+        "OutlineColor": [
+          0.005,
+          0.01,
+          0.015,
+          1
+        ]
+      }
+    },
+    {
+      "ID": 11,
+      "Type": 4,
+      "TagComponent": {
+        "Name": "Meadow camera controls",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0,
+          0
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "TextComponent": {
+        "Contents": "RMB orbit · Wheel zoom · F foot IK · R reset",
+        "FontPath": "../../../Fonts/Inter/static/Inter-Regular.ttf",
+        "IsWorldText": false,
+        "Size": 17,
+        "WorldSize": 1,
+        "ScreenSize": 17,
+        "Spacing": 0,
+        "WorldSpacing": 0,
+        "ScreenSpacing": 0,
+        "ScreenPosition": [
+          12,
+          43,
+          0
+        ],
+        "ScreenScale": [
+          1,
+          1,
+          1
+        ],
+        "ScreenRotation": 0,
+        "LineSpacing": 1.2,
+        "Alignment": 0,
+        "Backend": 1,
+        "Color": [
+          0.95,
+          0.98,
+          1,
+          1
+        ],
+        "OutlineWidth": 0.04,
+        "OutlineColor": [
+          0.005,
+          0.01,
+          0.015,
+          1
+        ]
+      }
+    },
+    {
+      "ID": 12,
+      "Type": 4,
+      "TagComponent": {
+        "Name": "Custom mesh directions",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0,
+          0
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "TextComponent": {
+        "Contents": "Mixed custom tufts | Landscape > Grass: height, density and model weights",
+        "FontPath": "../../../Fonts/Inter/static/Inter-Regular.ttf",
+        "IsWorldText": false,
+        "Size": 17,
+        "WorldSize": 1,
+        "ScreenSize": 17,
+        "Spacing": 0,
+        "WorldSpacing": 0,
+        "ScreenSpacing": 0,
+        "ScreenPosition": [
+          12,
+          71,
+          0
+        ],
+        "ScreenScale": [
+          1,
+          1,
+          1
+        ],
+        "ScreenRotation": 0,
+        "LineSpacing": 1.2,
+        "Alignment": 0,
+        "Backend": 1,
+        "Color": [
+          0.95,
+          0.98,
+          1,
+          1
+        ],
+        "OutlineWidth": 0.04,
+        "OutlineColor": [
+          0.005,
+          0.01,
+          0.015,
+          1
+        ]
+      }
+    }
+  ],
+  "Materials": []
+}

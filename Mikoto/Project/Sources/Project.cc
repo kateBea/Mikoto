@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <tuple>
-#include <fstream>
 #include <filesystem>
+#include <fstream>
+#include <tuple>
 
 #include <glm/glm.hpp>
 #include <glm/gtx/compatibility.hpp>
@@ -22,24 +22,23 @@
 #include <yaml-cpp/yaml.h>
 
 #include <Core/Core.hh>
-#include <Core/Types.hh>
+#include <Core/Exception.hh>
 #include <Core/Platform.hh>
 #include <Core/Profiler.hh>
-#include <Core/Exception.hh>
+#include <Core/Types.hh>
 
 #include <Filesystem/File.hh>
 #include <Filesystem/FileService.hh>
 
+#include <Project/Project.hh>
 
 #include <Scene/SceneCamera.hh>
-
-#include <Project/Project.hh>
 
 namespace mikoto::project {
 
     using namespace mikoto::filesystem;
 
-    MKT_NODISCARD static auto SerializeCameraSettings( const scene::SceneCamera& camera ) -> YAML::Node {
+    MKT_NODISCARD static auto SerializeCameraSettings( const scene::SceneCamera &camera ) -> YAML::Node {
         YAML::Node node;
         node["NavigationMode"] = camera.GetNavigationMode() == scene::CameraNavigationMode::eOrbit ? "Orbit" : "Fly";
         node["OrbitDistance"] = camera.GetOrbitDistance();
@@ -64,15 +63,15 @@ namespace mikoto::project {
         return node;
     }
 
-    MKT_NODISCARD static auto CaptureCameraSettings( const scene::Camera* camera ) -> eastl::string {
-        if ( const auto* sceneCamera{ dynamic_cast<const scene::SceneCamera*>( camera ) } ) {
+    MKT_NODISCARD static auto CaptureCameraSettings( const scene::Camera *camera ) -> eastl::string {
+        if ( const auto *sceneCamera{ dynamic_cast<const scene::SceneCamera *>( camera ) } ) {
             return YAML::Dump( SerializeCameraSettings( *sceneCamera ) ).c_str();
         }
 
         return {};
     }
 
-    static auto DeserializeCameraSettings( scene::SceneCamera& camera, const YAML::Node& node ) -> void {
+    static auto DeserializeCameraSettings( scene::SceneCamera &camera, const YAML::Node &node ) -> void {
         camera.ResetSettings();
         camera.ResetView();
         // Older projects have no camera mapping. The viewport and input window stay live.
@@ -84,7 +83,7 @@ namespace mikoto::project {
             const auto value{ node[key].as<core::f32>( fallback ) };
             return glm::clamp( value, minimum, maximum );
         } };
-        const auto vector{ [&]( core::cstr key, const core::float3& fallback ) -> core::float3 {
+        const auto vector{ [&]( core::cstr key, const core::float3 &fallback ) -> core::float3 {
             const auto value{ node[key] };
 
             if ( !value || !value.IsSequence() || value.size() != 3 ) {
@@ -121,7 +120,7 @@ namespace mikoto::project {
         camera.SetOrbitDistance( scalar( "OrbitDistance", camera.GetOrbitDistance(), 0.01f, 1000000.0f ) );
     }
 
-    static auto WriteRendererSettings( YAML::Emitter& out, renderer::SceneRenderSettings settings ) -> void {
+    static auto WriteRendererSettings( YAML::Emitter &out, renderer::SceneRenderSettings settings ) -> void {
         settings.Sanitize();
         out << YAML::Key << "Renderer" << YAML::Value << YAML::BeginMap;
         out << YAML::Key << "Version" << YAML::Value << 1;
@@ -140,11 +139,28 @@ namespace mikoto::project {
         out << YAML::Key << "AoCosineSampling" << YAML::Value << settings.mRayTracing.mUseCosineWeightedAoSampling;
         out << YAML::Key << "AoSamplesPerFrame" << YAML::Value << settings.mRayTracing.mAoSamplesPerFrame;
         out << YAML::Key << "AoMaxDistance" << YAML::Value << settings.mRayTracing.mAoMaxDistance;
+        out << YAML::Key << "ShadowSamplesPerFrame" << YAML::Value << settings.mRayTracing.mShadowSamplesPerFrame;
+        out << YAML::Key << "ReflectionMaxBounces" << YAML::Value << settings.mRayTracing.mReflectionMaxBounces;
         out << YAML::Key << "RayGiSamplesPerFrame" << YAML::Value << settings.mRayTracing.mRayGiSamplesPerFrame;
         out << YAML::Key << "RayGiMaxBounces" << YAML::Value << settings.mRayTracing.mRayGiMaxBounces;
         out << YAML::Key << "PathSamplesPerFrame" << YAML::Value << settings.mRayTracing.mPathSamplesPerFrame;
         out << YAML::Key << "PathMaxBounces" << YAML::Value << settings.mRayTracing.mPathMaxBounces;
         out << YAML::Key << "PathMaxSamples" << YAML::Value << settings.mRayTracing.mPathMaxSamples;
+
+        out << YAML::Key << "Denoiser" << YAML::Value << YAML::BeginMap;
+        out << YAML::Key << "Enabled" << YAML::Value << settings.mDenoiser.mEnabled;
+        out << YAML::Key << "Type" << YAML::Value << static_cast<unsigned>( settings.mDenoiser.mType );
+        out << YAML::Key << "Backend" << YAML::Value << static_cast<unsigned>( settings.mDenoiser.mBackend );
+        out << YAML::Key << "OidnQuality" << YAML::Value << static_cast<unsigned>( settings.mDenoiser.mOidnQuality );
+        out << YAML::Key << "HistoryFrames" << YAML::Value << settings.mDenoiser.mHistoryFrames;
+        out << YAML::Key << "FastHistoryFrames" << YAML::Value << settings.mDenoiser.mFastHistoryFrames;
+        out << YAML::Key << "AtrousIterations" << YAML::Value << settings.mDenoiser.mAtrousIterations;
+        out << YAML::Key << "DisocclusionThreshold" << YAML::Value << settings.mDenoiser.mDisocclusionThreshold;
+        out << YAML::Key << "SplitScreen" << YAML::Value << settings.mDenoiser.mSplitScreen;
+        out << YAML::Key << "AdaptiveSampling" << YAML::Value << settings.mDenoiser.mAdaptiveSampling;
+        out << YAML::Key << "ResponsiveHistory" << YAML::Value << settings.mDenoiser.mResponsiveHistory;
+        out << YAML::Key << "AntiFirefly" << YAML::Value << settings.mDenoiser.mAntiFirefly;
+        out << YAML::EndMap;
 
         out << YAML::Key << "ScreenSpaceReflections" << YAML::Value << YAML::BeginMap;
         out << YAML::Key << "Enabled" << YAML::Value << settings.mScreenSpaceReflections.mEnabled;
@@ -157,6 +173,37 @@ namespace mikoto::project {
         out << YAML::Key << "HistoryWeight" << YAML::Value << settings.mScreenSpaceReflections.mHistoryWeight;
         out << YAML::Key << "SamplingBias" << YAML::Value << settings.mScreenSpaceReflections.mSamplingBias;
         out << YAML::Key << "Intensity" << YAML::Value << settings.mScreenSpaceReflections.mIntensity;
+        out << YAML::EndMap;
+
+        out << YAML::Key << "InfiniteGrid" << YAML::Value << YAML::BeginMap;
+        out << YAML::Key << "CellSize" << YAML::Value << settings.mInfiniteGrid.mCellSize;
+        out << YAML::Key << "Opacity" << YAML::Value << settings.mInfiniteGrid.mOpacity;
+        out << YAML::Key << "LineWidth" << YAML::Value << settings.mInfiniteGrid.mLineWidth;
+        out << YAML::Key << "AxisWidth" << YAML::Value << settings.mInfiniteGrid.mAxisWidth;
+        out << YAML::Key << "ShowXAxis" << YAML::Value << settings.mInfiniteGrid.mShowXAxis;
+        out << YAML::Key << "ShowYAxis" << YAML::Value << settings.mInfiniteGrid.mShowYAxis;
+        out << YAML::Key << "ShowZAxis" << YAML::Value << settings.mInfiniteGrid.mShowZAxis;
+        out << YAML::EndMap;
+
+        out << YAML::Key << "Clouds" << YAML::Value << YAML::BeginMap;
+        out << YAML::Key << "Enabled" << YAML::Value << settings.mClouds.mEnabled;
+        out << YAML::Key << "HalfResolution" << YAML::Value << settings.mClouds.mHalfResolution;
+        out << YAML::Key << "CastSurfaceShadows" << YAML::Value << settings.mClouds.mCastSurfaceShadows;
+        out << YAML::Key << "FieldResolution" << YAML::Value << settings.mClouds.mFieldResolution;
+        out << YAML::Key << "MaxSteps" << YAML::Value << settings.mClouds.mMaxSteps;
+        out << YAML::Key << "SunSteps" << YAML::Value << settings.mClouds.mSunSteps;
+        out << YAML::Key << "StepLength" << YAML::Value << settings.mClouds.mStepLength;
+        out << YAML::Key << "MaxDistance" << YAML::Value << settings.mClouds.mMaxDistance;
+        out << YAML::Key << "DetailStrength" << YAML::Value << settings.mClouds.mDetailStrength;
+        out << YAML::Key << "DistanceFieldEnabled" << YAML::Value << settings.mClouds.mDistanceFieldEnabled;
+        out << YAML::Key << "EdgeDarkening" << YAML::Value << settings.mClouds.mEdgeDarkening;
+        out << YAML::Key << "InnerGlow" << YAML::Value << settings.mClouds.mInnerGlow;
+        out << YAML::Key << "DetailMipBias" << YAML::Value << settings.mClouds.mDetailMipBias;
+        out << YAML::Key << "AnimatedJitterDistance" << YAML::Value << settings.mClouds.mAnimatedJitterDistance;
+        out << YAML::Key << "MultipleScattering" << YAML::Value << settings.mClouds.mMultipleScattering;
+        out << YAML::Key << "AmbientIntensity" << YAML::Value << settings.mClouds.mAmbientIntensity;
+        out << YAML::Key << "HistoryWeight" << YAML::Value << settings.mClouds.mHistoryWeight;
+        out << YAML::Key << "DebugView" << YAML::Value << core::as<unsigned>( settings.mClouds.mDebugView );
         out << YAML::EndMap;
 
         // Persist display effects independently of the lighting technique.
@@ -181,7 +228,7 @@ namespace mikoto::project {
         out << YAML::EndMap;
     }
 
-    MKT_NODISCARD static auto ReadRendererSettings( const YAML::Node& node ) -> renderer::SceneRenderSettings {
+    MKT_NODISCARD static auto ReadRendererSettings( const YAML::Node &node ) -> renderer::SceneRenderSettings {
         renderer::SceneRenderSettings settings{};
 
         if ( !node || !node.IsMap() ) {
@@ -215,11 +262,29 @@ namespace mikoto::project {
         settings.mRayTracing.mRayGiMaxBounces = node["RayGiMaxBounces"].as<unsigned>( settings.mRayTracing.mRayGiMaxBounces );
         settings.mRayTracing.mPathSamplesPerFrame = node["PathSamplesPerFrame"].as<unsigned>( settings.mRayTracing.mPathSamplesPerFrame );
         settings.mRayTracing.mPathMaxBounces = node["PathMaxBounces"].as<unsigned>( settings.mRayTracing.mPathMaxBounces );
+        settings.mRayTracing.mShadowSamplesPerFrame = node["ShadowSamplesPerFrame"].as<unsigned>( settings.mRayTracing.mShadowSamplesPerFrame );
+        // Older projects used the path-tracing depth for reflections, capped at four.
+        settings.mRayTracing.mReflectionMaxBounces = node["ReflectionMaxBounces"].as<unsigned>( glm::min( settings.mRayTracing.mPathMaxBounces, 4u ) );
         settings.mRayTracing.mPathMaxSamples = node["PathMaxSamples"].as<unsigned>( settings.mRayTracing.mPathMaxSamples );
+        if ( const auto denoiser{ node["Denoiser"] } ) {
+            settings.mDenoiser.mEnabled = denoiser["Enabled"].as<bool>( settings.mDenoiser.mEnabled );
+            settings.mDenoiser.mBackend = static_cast<renderer::DenoiserBackend>( denoiser["Backend"].as<unsigned>( static_cast<unsigned>( settings.mDenoiser.mBackend ) ) );
+            settings.mDenoiser.mOidnQuality = static_cast<renderer::OidnQuality>( denoiser["OidnQuality"].as<unsigned>( static_cast<unsigned>( settings.mDenoiser.mOidnQuality ) ) );
+            settings.mDenoiser.mType = static_cast<renderer::DenoiserType>( denoiser["Type"].as<unsigned>( static_cast<unsigned>( settings.mDenoiser.mType ) ) );
+            settings.mDenoiser.mHistoryFrames = denoiser["HistoryFrames"].as<unsigned>( settings.mDenoiser.mHistoryFrames );
+            settings.mDenoiser.mFastHistoryFrames = denoiser["FastHistoryFrames"].as<unsigned>( settings.mDenoiser.mFastHistoryFrames );
+            settings.mDenoiser.mAtrousIterations = denoiser["AtrousIterations"].as<unsigned>( settings.mDenoiser.mAtrousIterations );
+            settings.mDenoiser.mDisocclusionThreshold = denoiser["DisocclusionThreshold"].as<float>( settings.mDenoiser.mDisocclusionThreshold );
+            settings.mDenoiser.mSplitScreen = denoiser["SplitScreen"].as<float>( settings.mDenoiser.mSplitScreen );
+            settings.mDenoiser.mAdaptiveSampling = denoiser["AdaptiveSampling"].as<bool>( settings.mDenoiser.mAdaptiveSampling );
+            settings.mDenoiser.mResponsiveHistory = denoiser["ResponsiveHistory"].as<bool>( settings.mDenoiser.mResponsiveHistory );
+            settings.mDenoiser.mAntiFirefly = denoiser["AntiFirefly"].as<bool>( settings.mDenoiser.mAntiFirefly );
+        }
+
 
         // Optional for existing projects; hardware RT and path tracing retain precedence.
         if ( const auto reflections{ node["ScreenSpaceReflections"] }; reflections && reflections.IsMap() ) {
-            auto& values{ settings.mScreenSpaceReflections };
+            auto &values{ settings.mScreenSpaceReflections };
             values.mEnabled = reflections["Enabled"].as<bool>( values.mEnabled );
             values.mHalfResolution = reflections["HalfResolution"].as<bool>( values.mHalfResolution );
             values.mMaxSteps = reflections["MaxSteps"].as<unsigned>( values.mMaxSteps );
@@ -230,6 +295,39 @@ namespace mikoto::project {
             values.mHistoryWeight = reflections["HistoryWeight"].as<float>( values.mHistoryWeight );
             values.mSamplingBias = reflections["SamplingBias"].as<float>( values.mSamplingBias );
             values.mIntensity = reflections["Intensity"].as<float>( values.mIntensity );
+        }
+
+        if ( const auto grid{ node["InfiniteGrid"] }; grid && grid.IsMap() ) {
+            auto &values{ settings.mInfiniteGrid };
+            values.mCellSize = grid["CellSize"].as<float>( values.mCellSize );
+            values.mOpacity = grid["Opacity"].as<float>( values.mOpacity );
+            values.mLineWidth = grid["LineWidth"].as<float>( values.mLineWidth );
+            values.mAxisWidth = grid["AxisWidth"].as<float>( values.mAxisWidth );
+            values.mShowXAxis = grid["ShowXAxis"].as<bool>( values.mShowXAxis );
+            values.mShowYAxis = grid["ShowYAxis"].as<bool>( values.mShowYAxis );
+            values.mShowZAxis = grid["ShowZAxis"].as<bool>( values.mShowZAxis );
+        }
+
+        if ( const auto clouds{ node["Clouds"] }; clouds && clouds.IsMap() ) {
+            auto &values{ settings.mClouds };
+            values.mEnabled = clouds["Enabled"].as<bool>( values.mEnabled );
+            values.mHalfResolution = clouds["HalfResolution"].as<bool>( values.mHalfResolution );
+            values.mCastSurfaceShadows = clouds["CastSurfaceShadows"].as<bool>( values.mCastSurfaceShadows );
+            values.mFieldResolution = clouds["FieldResolution"].as<unsigned>( values.mFieldResolution );
+            values.mMaxSteps = clouds["MaxSteps"].as<unsigned>( values.mMaxSteps );
+            values.mSunSteps = clouds["SunSteps"].as<unsigned>( values.mSunSteps );
+            values.mStepLength = clouds["StepLength"].as<float>( values.mStepLength );
+            values.mMaxDistance = clouds["MaxDistance"].as<float>( values.mMaxDistance );
+            values.mDetailStrength = clouds["DetailStrength"].as<float>( values.mDetailStrength );
+            values.mDistanceFieldEnabled = clouds["DistanceFieldEnabled"].as<bool>( values.mDistanceFieldEnabled );
+            values.mEdgeDarkening = clouds["EdgeDarkening"].as<float>( values.mEdgeDarkening );
+            values.mInnerGlow = clouds["InnerGlow"].as<float>( values.mInnerGlow );
+            values.mDetailMipBias = clouds["DetailMipBias"].as<float>( values.mDetailMipBias );
+            values.mAnimatedJitterDistance = clouds["AnimatedJitterDistance"].as<float>( values.mAnimatedJitterDistance );
+            values.mMultipleScattering = clouds["MultipleScattering"].as<float>( values.mMultipleScattering );
+            values.mAmbientIntensity = clouds["AmbientIntensity"].as<float>( values.mAmbientIntensity );
+            values.mHistoryWeight = clouds["HistoryWeight"].as<float>( values.mHistoryWeight );
+            values.mDebugView = static_cast<renderer::CloudsDebugView>( glm::min( clouds["DebugView"].as<unsigned>( 0 ), 3u ) );
         }
 
         settings.mSsaoEnabled = node["SsaoEnabled"].as<bool>( settings.mSsaoEnabled );
@@ -267,14 +365,14 @@ namespace mikoto::project {
         : mName{ name } {
     }
 
-    Project::Project( const ProjectCreateDescription& desc )
+    Project::Project( const ProjectCreateDescription &desc )
         : mName{ desc.mName },
           mAssetsRootDirectory{ desc.mAssetsRootDirectory },
           mAssetsRegistryDirectory{ desc.mAssetsRegistryDirectory },
           mCurrentScene{ desc.mCurrentScene } {
     }
 
-    auto Project::SetLocation( const filesystem::Path& file ) -> void {
+    auto Project::SetLocation( const filesystem::Path &file ) -> void {
         MKT_BEGIN_PROFILER();
         const auto location{ file.ToAbsolute() };
 
@@ -289,7 +387,7 @@ namespace mikoto::project {
         BumpRevision();
     }
 
-    auto Project::SetScenePath( const filesystem::Path& file ) -> void {
+    auto Project::SetScenePath( const filesystem::Path &file ) -> void {
         MKT_BEGIN_PROFILER();
         const auto path{ file.IsEmpty() ? filesystem::Path{} : file.ToAbsolute() };
 
@@ -299,27 +397,27 @@ namespace mikoto::project {
         }
     }
 
-    auto Project::GetLocation() const -> const filesystem::Path& {
+    auto Project::GetLocation() const -> const filesystem::Path & {
         MKT_BEGIN_PROFILER();
         return mLocation;
     }
 
-    auto Project::GetAssetsDirectory() const -> const filesystem::Path& {
+    auto Project::GetAssetsDirectory() const -> const filesystem::Path & {
         MKT_BEGIN_PROFILER();
         return mAssetsRootDirectory;
     }
 
-    auto Project::GetCacheDirectory() const -> const filesystem::Path& {
+    auto Project::GetCacheDirectory() const -> const filesystem::Path & {
         MKT_BEGIN_PROFILER();
         return mAssetsRegistryDirectory;
     }
 
-    auto Project::GetScenePath() const -> const filesystem::Path& {
+    auto Project::GetScenePath() const -> const filesystem::Path & {
         MKT_BEGIN_PROFILER();
         return mScenePath;
     }
 
-    auto Project::SetMainCamera( const scene::Camera* camera ) -> void {
+    auto Project::SetMainCamera( const scene::Camera *camera ) -> void {
         // Attachment follows RestoreMainCamera; establish the loaded view's baseline.
         if ( !mMainCamera ) {
             mSerializedCameraSettings = CaptureCameraSettings( camera );
@@ -333,8 +431,8 @@ namespace mikoto::project {
                ( mMainCamera && CaptureCameraSettings( mMainCamera ) != mSerializedCameraSettings );
     }
 
-    auto Project::RestoreMainCamera( scene::Camera& camera ) const -> void {
-        if ( auto* sceneCamera{ dynamic_cast<scene::SceneCamera*>( &camera ) } ) {
+    auto Project::RestoreMainCamera( scene::Camera &camera ) const -> void {
+        if ( auto *sceneCamera{ dynamic_cast<scene::SceneCamera *>( &camera ) } ) {
             std::ifstream input{ mLocation.GetPathTyped<std::filesystem::path>(), std::ios::binary };
 
             if ( !input ) {
@@ -346,11 +444,11 @@ namespace mikoto::project {
         }
     }
 
-    auto Project::Serialize( const filesystem::Path& filename ) const -> void {
+    auto Project::Serialize( const filesystem::Path &filename ) const -> void {
         MKT_BEGIN_PROFILER();
         const auto cameraSettings{ CaptureCameraSettings( mMainCamera ) };
         const auto directory{ filename.ToAbsolute().GetPathTyped<std::filesystem::path>().parent_path() };
-        const auto relative = [&]( const filesystem::Path& path ) {
+        const auto relative = [&]( const filesystem::Path &path ) {
             if ( path.IsEmpty() ) {
                 return std::string{};
             }
@@ -371,7 +469,7 @@ namespace mikoto::project {
         out << YAML::Key << "AutoSave" << YAML::Value << mIsAutoSaveEnabled;
         out << YAML::Key << "AutoSaveIntervalMs" << YAML::Value << mAutoSaveInterval;
 
-        if ( const auto* camera{ dynamic_cast<const scene::SceneCamera*>( mMainCamera ) } ) {
+        if ( const auto *camera{ dynamic_cast<const scene::SceneCamera *>( mMainCamera ) } ) {
             out << YAML::Key << "EditorCamera" << YAML::Value << SerializeCameraSettings( *camera );
         }
 
@@ -389,7 +487,7 @@ namespace mikoto::project {
         mSerializedRevision = GetRevision();
     }
 
-    auto Project::Deserialize( const filesystem::Path& filename ) -> void {
+    auto Project::Deserialize( const filesystem::Path &filename ) -> void {
         MKT_BEGIN_PROFILER();
         std::ifstream input{ filename.GetPathTyped<std::filesystem::path>(), std::ios::binary };
 
@@ -431,7 +529,7 @@ namespace mikoto::project {
 
         // Commit only validated fields, so a
         // malformed project never partially replaces the current workspace.
-        auto& project{ *this };
+        auto &project{ *this };
         project.mName = eastl::move( loaded.mName );
         project.mLocation = eastl::move( loaded.mLocation );
         project.mAssetsRootDirectory = eastl::move( loaded.mAssetsRootDirectory );
@@ -516,14 +614,14 @@ namespace mikoto::project {
         const auto assets{ mAssetsRootDirectory.GetPathTyped<std::filesystem::path>() };
         const auto directory{ assets / "Scripts" / "CSharp" };
         // Existing project files and their references remain user-owned.
-        for ( const auto& root: { directory, assets } ) {
+        for ( const auto &root: { directory, assets } ) {
             if ( !std::filesystem::exists( root ) ) {
                 continue;
             }
 
             filesystem::Path project{};
 
-            for ( const auto& entry: std::filesystem::directory_iterator{ root } ) {
+            for ( const auto &entry: std::filesystem::directory_iterator{ root } ) {
                 if ( entry.is_regular_file() && entry.path().extension() == ".csproj" ) {
                     if ( !project.IsEmpty() ) {
                         MKT_THROW_RUNTIME_ERROR( "Keep each C# project in a separate directory." );
@@ -541,14 +639,14 @@ namespace mikoto::project {
         return filesystem::Path{ directory / "Mikoto.Scripts.csproj" };
     }
 
-    auto Project::EnsureScriptProject( const filesystem::Path& scriptCore ) const -> filesystem::Path {
+    auto Project::EnsureScriptProject( const filesystem::Path &scriptCore ) const -> filesystem::Path {
         if ( mLocation.IsEmpty() ) {
             return {};
         }
 
         const auto assets{ mAssetsRootDirectory.GetPathTyped<std::filesystem::path>() };
 
-        for ( const auto* language: { "Native", "Lua", "CSharp" } ) {
+        for ( const auto *language: { "Native", "Lua", "CSharp" } ) {
             std::filesystem::create_directories( assets / "Scripts" / language );
         }
 
@@ -593,7 +691,7 @@ namespace mikoto::project {
             const filesystem::Path path{ templateDirectory / name };
             return filesystem::FileHandle::New( path )->GetContentsString();
         } };
-        const auto substitute{ []( eastl::string& text, eastl::string_view token, eastl::string_view value ) {
+        const auto substitute{ []( eastl::string &text, eastl::string_view token, eastl::string_view value ) {
             core::usize offset{};
 
             while ( ( offset = text.find( token.data(), offset, token.size() ) ) != eastl::string::npos ) {
@@ -654,12 +752,13 @@ namespace mikoto::project {
         settings.Sanitize();
         // Compare the fields written by WriteRendererSettings, excluding transient
         // renderer diagnostics. Reapplying unchanged settings must not dirty a project.
-        const auto persistentFields{ []( const renderer::SceneRenderSettings& value ) {
+        const auto persistentFields{ []( const renderer::SceneRenderSettings &value ) {
             return std::tie( value.mResolution, value.mMultisampling, value.mShadowQuality,
                 value.mShadowDistance, value.mCascadedShadowsEnabled, value.mSoftShadowsEnabled, value.mRayTracing.mPathTracingEnabled,
                 value.mRayTracing.mShadowsEnabled, value.mRayTracing.mReflectionsEnabled,
                 value.mRayTracing.mGlobalIlluminationEnabled, value.mRayTracing.mAmbientOcclusionEnabled,
                 value.mRayTracing.mUseCosineWeightedAoSampling, value.mRayTracing.mAoSamplesPerFrame, value.mRayTracing.mAoMaxDistance,
+                value.mRayTracing.mShadowSamplesPerFrame, value.mRayTracing.mReflectionMaxBounces,
                 value.mRayTracing.mRayGiSamplesPerFrame,
                 value.mRayTracing.mRayGiMaxBounces, value.mRayTracing.mPathSamplesPerFrame,
                 value.mRayTracing.mPathMaxBounces, value.mRayTracing.mPathMaxSamples,
@@ -668,7 +767,12 @@ namespace mikoto::project {
                 value.mBloom.mScatter, value.mBloom.mRadius, value.mChromaticAberration.mEnabled,
                 value.mChromaticAberration.mIntensity, value.mChromaticAberration.mDirection,
                 value.mVisualizeCascades, value.mSelectionOutlineWidth, value.mSelectionOutlineColor,
-                value.mVisualizeFrustum, value.mScreenSpaceReflections );
+                value.mVisualizeFrustum, value.mScreenSpaceReflections, value.mClouds, value.mInfiniteGrid,
+                value.mDenoiser.mEnabled, value.mDenoiser.mBackend, value.mDenoiser.mOidnQuality, value.mDenoiser.mType, value.mDenoiser.mHistoryFrames,
+                value.mDenoiser.mFastHistoryFrames, value.mDenoiser.mAtrousIterations,
+                value.mDenoiser.mDisocclusionThreshold, value.mDenoiser.mSplitScreen,
+                value.mDenoiser.mAntiFirefly,
+                value.mDenoiser.mAdaptiveSampling, value.mDenoiser.mResponsiveHistory );
         } };
 
         if ( persistentFields( mSceneRendererSettings ) != persistentFields( settings ) ) {
@@ -678,7 +782,7 @@ namespace mikoto::project {
         mSceneRendererSettings = settings;
     }
 
-    auto Project::GetSceneRendererSettings() const -> const renderer::SceneRenderSettings& {
+    auto Project::GetSceneRendererSettings() const -> const renderer::SceneRenderSettings & {
         return mSceneRendererSettings;
     }
 }// namespace mikoto::project

@@ -121,6 +121,9 @@ namespace mikoto::imgui {
          * @param faceIndex Index of the face within a font collection.
          */
         auto QueueInterfaceFont( const filesystem::Path& path, core::u32 faceIndex = 0 ) -> void;
+        /** Console owns a separate atlas face, even when it follows the interface family. */
+        auto QueueConsoleFont( const filesystem::Path &path, core::u32 faceIndex = 0 ) -> void;
+        auto SetConsoleFontScale( core::f32 scale ) -> void;
 
         auto SetThemeDarkModeDefault() -> void;
         auto SetThemeDarkModeAlt() -> void;
@@ -136,6 +139,7 @@ namespace mikoto::imgui {
         MKT_NODISCARD auto GetBackend() const -> const ImGuiBackend*;
 
         auto PushFont( eastl::string_view str ) -> ImGuiScopedTextFont;
+        MKT_NODISCARD auto PushConsoleFont() -> ImGuiScopedTextFont;
 
     private:
         struct InterfaceFontRequest {
@@ -146,6 +150,7 @@ namespace mikoto::imgui {
     private:
         auto InitImplementation() -> void;
         auto ApplyInterfaceFont() -> void;
+        auto ApplyConsoleFont() -> void;
 
         auto AddFont( const filesystem::Path& path ) -> void;
         auto AddInterfaceFont( const filesystem::Path& path, core::u32 faceIndex ) -> ImFont*;
@@ -166,6 +171,9 @@ namespace mikoto::imgui {
 
         eastl::optional<InterfaceFontRequest> mPendingInterfaceFont{};
         ImFont* mSelectedInterfaceFont{};
+        eastl::optional<InterfaceFontRequest> mPendingConsoleFont{};
+        ImFont *mConsoleFont{};
+        core::f32 mConsoleFontScale{ 0.95f };
         ankerl::unordered_dense::map<filesystem::Path, ImFont*> mImGuiFonts{};
 
         renderer::rhi::GraphicsAPI mBackendApi{ renderer::rhi::GraphicsAPI::eInvalid };

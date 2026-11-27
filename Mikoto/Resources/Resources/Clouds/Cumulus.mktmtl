@@ -1,0 +1,35 @@
+{
+  "Version": 1,
+  "Type": "VolumeMaterial",
+  "Name": "Cumulus sky",
+  "Material": {
+    "DensityModel": 2,
+    "Absorption": [
+      0,
+      0,
+      0
+    ],
+    "Scattering": [
+      0.009,
+      0.009,
+      0.009
+    ],
+    "Anisotropy": 0.65,
+    "Density": 1.6,
+    "HeightFalloff": 0.1,
+    "NoiseScale": 0.003,
+    "ErosionScale": 0.0015,
+    "Erosion": 0.5,
+    "Coverage": 0.58,
+    "Octaves": 5,
+    "CloudForm": 2,
+    "WeatherScale": 5e-05,
+    "CoverageVariation": 0.65,
+    "CloudTypeVariation": 0.25,
+    "CloudHeightVariation": 0.65,
+    "WindShear": 200,
+    "CloudDetailType": 0.75,
+    "CloudProfileDepth": 0.08,
+    "CloudSeed": 21
+  }
+}

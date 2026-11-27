@@ -12,9 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Construct the tangent-space height footprint for bump and parallax mapping. Height gradients
+// perturb shading normals while view direction controls the UV displacement.
+
 #pragma once
 // PBRT: displace differential tangents, then reconstruct the shading normal.
 // https://pbr-book.org/4ed/Textures_and_Materials/Material_Interface_and_Implementations#BumpMapping
+// Recover world-space surface tangents from position and UV derivatives. Degenerate UV mappings
+// cannot provide a stable frame for parallax or bump evaluation.
 bool HeightTangents( float3 dp1, float3 dp2, float2 duv1, float2 duv2, out float3 dpdu, out float3 dpdv ) {
     float determinant = duv1.x * duv2.y - duv1.y * duv2.x;
     dpdu = dpdv = 0;
@@ -25,9 +30,12 @@ bool HeightTangents( float3 dp1, float3 dp2, float2 duv1, float2 duv2, out float
     dpdv = ( dp2 * duv1.x - dp1 * duv2.x ) / determinant;
     return dot( dpdu, dpdu ) > 1e-12 && dot( dpdv, dpdv ) > 1e-12;
 }
+// Convert height texture gradients into a perturbed world-space normal. The derivative frame
+// determines the physical direction of each texture-space slope.
 float3 HeightBumpNormal( Texture2D map, SamplerState sampler, float2 uv,
     float3 normal, float3 dpdu, float3 dpdv, float scale ) {
-    uint width, height;
+    uint width;
+    uint height;
     map.GetDimensions( width, height );
     float2 step = 1.0 / float2( width, height );
     float h = map.SampleLevel( sampler, uv, 0 ).r;
@@ -41,6 +49,8 @@ float3 HeightBumpNormal( Texture2D map, SamplerState sampler, float2 uv,
 }
 // ATI's bounded height-field march, then interpolate the crossing interval.
 // https://advances.realtimerendering.com/s2006/Tatarchuk-POM.pdf
+// Offset the material UV along the view direction through the height field. This changes
+// sampling coordinates while leaving rasterized geometry/depth unchanged.
 float2 HeightParallax( Texture2D map, SamplerState sampler, float2 uv, float3 toEye,
     float3 normal, float3 dpdu, float3 dpdv, float scale, float midlevel, uint maximumSteps ) {
     float3 t = normalize( dpdu - normal * dot( dpdu, normal ) );

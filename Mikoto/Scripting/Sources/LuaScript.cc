@@ -30,6 +30,8 @@
 #include <Scene/Entity.hh>
 #include <Scene/Component.hh>
 
+#include <Physics/ContactEvents.hh>
+
 #include <Scripting/Lua/LuaScript.hh>
 
 #define MKT_SOL_CALL( fn, ... )                                                    \
@@ -293,7 +295,13 @@ namespace mikoto::scripting {
             for ( const auto& [key, definition]: *properties ) {
                 const auto name{ key.as<std::string>() };
 
-                if ( name == "Entity" || name == "Properties" || name == "OnCreate" || name == "OnUpdate" || name == "OnDestroy" ) {
+                if ( name == "Entity" || name == "Properties" || name == "OnCreate" || name == "OnUpdate" || name == "OnDestroy" ||
+                     name == "OnCollisionEnter" ||
+                     name == "OnCollisionStay" ||
+                     name == "OnCollisionExit" ||
+                     name == "OnTriggerEnter" ||
+                     name == "OnTriggerStay" ||
+                     name == "OnTriggerExit" ) {
                     MKT_THROW_RUNTIME_ERROR( "Lua property names cannot replace Entity, Properties or lifecycle methods." );
                 }
 
@@ -378,6 +386,21 @@ namespace mikoto::scripting {
 
         auto callback{ mLua->mTable.get<sol::protected_function>( "OnUpdate" ) };
         MKT_SOL_CALL( callback, mLua->mTable, timeStep );
+    }
+
+    auto LuaScript::OnPhysicsEvent( const physics::ContactEvent &event, scene::Entity &other ) -> void {
+        if ( !mRunning || mFailed ) {
+            return;
+        }
+        auto callback{ mLua->mTable.get<sol::protected_function>( event.GetCallbackName() ) };
+        if ( callback.valid() ) {
+            const sol::protected_function_result result{ callback( mLua->mTable, &other ) };
+            if ( !result.valid() ) {
+                const sol::error error = result;
+                mFailed = true;
+                MKT_CORE_LOGGER_ERROR( "Lua {} failed in '{}': {}", event.GetCallbackName(), mFile->GetPath().GetC_Str(), error.what() );
+            }
+        }
     }
 
     auto LuaScript::ReloadScript() -> void {

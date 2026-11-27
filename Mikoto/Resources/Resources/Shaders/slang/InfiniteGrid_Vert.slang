@@ -12,14 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Generate the fullscreen primitive used to reconstruct editor-grid rays. Grid position and
+// visibility are evaluated analytically in the fragment stage.
+
 #pragma once
 
 #include "base/Base.slang"
 
 struct VSOutput {
-    float2 TexCoord : TEXCOORD0;
+    float2 mTexCoord : TEXCOORD0;
 
-    float4 PositionH : SV_Position;
+    float4 mPositionH : SV_Position;
 };
 
 [shader( "vertex" )]
@@ -28,8 +31,8 @@ VSOutput main( uint vertexIndex : SV_VertexID ) {
 
     // https://www.saschawillems.de/blog/2016/08/13/vulkan-tutorial-on-rendering-a-fullscreen-quad-without-buffers/
     // vkCmdDraw(cb, 3, 1, 0, 0);
-    o.TexCoord = float2( float( ( vertexIndex << 1 ) & 2 ), float( vertexIndex & 2 ) );
-    o.PositionH = float4( o.TexCoord * 2.0f - 1.0f, 0.0f, 1.0f );
+    o.mTexCoord = float2( float( ( vertexIndex << 1 ) & 2 ), float( vertexIndex & 2 ) );
+    o.mPositionH = float4( o.mTexCoord * 2.0f - 1.0f, 0.0f, 1.0f );
 
     return o;
 }

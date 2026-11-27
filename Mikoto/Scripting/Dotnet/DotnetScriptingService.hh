@@ -144,7 +144,7 @@ namespace mikoto::scripting {
         static auto Clear() -> void;
         static auto Report( const ManagedCompilationReport& report ) -> void;
 
-        MKT_NODISCARD static auto Snapshot() -> eastl::vector<CompilationRecord>;
+        MKT_NODISCARD static auto GetSnapshot() -> eastl::vector<CompilationRecord>;
     };
 }
 

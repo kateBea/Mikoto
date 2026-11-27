@@ -16,6 +16,9 @@
 // Constants
 // ============================================================================
 
+// GGX/Fresnel math and matrix utilities used by surface and environment shading. Inputs are
+// normalized directions and the roughness convention selected by each caller.
+
 #pragma once
 
 static const float2 invAtan = float2( 0.1591f, 0.3183f );

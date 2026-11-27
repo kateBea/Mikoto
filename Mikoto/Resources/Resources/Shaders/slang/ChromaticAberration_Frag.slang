@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Offset red and blue sampling relative to green to model chromatic fringing. Sampling offsets
+// vary across the image according to the supplied effect settings.
+
 #pragma once
 
 #include "base/Base.slang"
@@ -19,7 +22,7 @@
 #include "base/ChromaticAberration_Helpers.slang"
 
 struct FSInput {
-    float2 UV : TEXCOORD0;
+    float2 mUV : TEXCOORD0;
 };
 
 struct DrawParams {
@@ -48,5 +51,5 @@ float4 mainImage( float2 uv ) {
 
 [shader( "fragment" )]
 float4 main( FSInput input ) : SV_Target0 {
-    return mainImage( input.UV );
+    return mainImage( input.mUV );
 }

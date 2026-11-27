@@ -20,12 +20,12 @@
 #include <Core/Core.hh>
 #include <Core/Types.hh>
 
-#include <Renderer/Rhi/Types.hh>
-#include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Core/CommandContext.hh>
+#include <Renderer/Core/FrameGraph.hh>
+#include <Renderer/Rhi/Types.hh>
 
-#include <Scene/Scene.hh>
 #include <Scene/Camera.hh>
+#include <Scene/Scene.hh>
 
 namespace mikoto::renderer {
 
@@ -38,6 +38,8 @@ namespace mikoto::renderer {
         FGBufferHandle mIndices{};
         FGBufferHandle mWaves{};
         FGBufferHandle mSurfaces{};
+        FGBufferHandle mCoast{};
+        FGBufferHandle mCoastHistory{};
         FGBufferHandle mFftInitialSpectrum{};
         FGBufferHandle mFftSpectrum{};
         FGBufferHandle mFftRows{};
@@ -54,22 +56,24 @@ namespace mikoto::renderer {
     public:
         explicit WaterSimulationModule( rhi::RenderResolution resolution );
 
-        auto RegisterWaterSimulation( FrameGraph& graph, bool hdr = false ) -> void;
+        auto RegisterWaterSimulation( FrameGraph &graph, bool hdr = false ) -> void;
 
-        auto SetCamera( const scene::Camera* camera ) -> void;
-        auto SetScene( const scene::Scene* scene ) -> void;
+        auto SetCamera( const scene::Camera *camera ) -> void;
+        auto SetScene( const scene::Scene *scene ) -> void;
 
     private:
+        auto FilterWaterSimulators( CommandContext &ctx, core::Blackboard &blackboard ) -> void;
+        auto RegisterUnderwaterPass( FrameGraph &graph ) -> void;
+        auto RegisterCoastPass( FrameGraph &graph ) -> void;
+        MKT_NODISCARD auto IsCameraUnderwater() const -> bool;
 
-        auto FilterWaterSimulators( CommandContext& ctx, core::Blackboard& blackboard ) -> void;
-
-        auto RegisterFftSpectrumPass( FrameGraph& graph ) -> void;
-        auto RegisterFftRowsPass( FrameGraph& graph ) -> void;
-        auto RegisterFftColumnsPass( FrameGraph& graph ) -> void;
-        auto RegisterFftTransformPass( FrameGraph& graph, core::cstr name, FGPipelineHandle pipeline,
+        auto RegisterFftSpectrumPass( FrameGraph &graph ) -> void;
+        auto RegisterFftRowsPass( FrameGraph &graph ) -> void;
+        auto RegisterFftColumnsPass( FrameGraph &graph ) -> void;
+        auto RegisterFftTransformPass( FrameGraph &graph, core::cstr name, FGPipelineHandle pipeline,
             FGBufferHandle input, FGBufferHandle output, bool columns ) -> void;
-        auto RegisterFftGradientsPass( FrameGraph& graph ) -> void;
-        auto PrepareFftInputs( CommandContext& ctx, const WaterSimulationModuleInfo& info ) -> void;
+        auto RegisterFftGradientsPass( FrameGraph &graph ) -> void;
+        auto PrepareFftInputs( CommandContext &ctx, const WaterSimulationModuleInfo &info ) -> void;
 
     private:
         struct Plane {
@@ -80,6 +84,10 @@ namespace mikoto::renderer {
             core::u32 mIndexCount{};
             core::float2 mDimensions{};
             core::float2 mResolution{};
+            core::float2 mCoastOrigin{};
+            core::float4x4 mCoastWorld{ 1.0f };
+            core::f64 mCoastTime{};
+            bool mCoastInitialized{};
         };
 
     private:
@@ -94,8 +102,8 @@ namespace mikoto::renderer {
         eastl::vector<FftPatch> mFftPatches{};
         eastl::vector<scene::WaterSimulationComponent::FftSettings> mUploadedSpectra{};
 
-        const scene::Scene* mScene{ nullptr };
-        const scene::Camera* mCamera{ nullptr };
+        const scene::Scene *mScene{ nullptr };
+        const scene::Camera *mCamera{ nullptr };
         rhi::RenderResolution mResolution{ rhi::RenderResolution::e1080P };
     };
 }// namespace mikoto::renderer

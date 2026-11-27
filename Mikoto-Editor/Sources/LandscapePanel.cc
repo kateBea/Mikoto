@@ -12,36 +12,42 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cstdio>
+
 #include <imgui.h>
 
 #include <EASTL/vector.h>
 
 #include <glm/glm.hpp>
 
+#include <Application/PropertyWidgets.hh>
+#include <Application/TerrainProperties.hh>
+
+#include <Assets/AssetRegistryService.hh>
+#include <Assets/ImageProcessing.hh>
+#include <Assets/Utility.hh>
+
 #include <Core/Core.hh>
-#include <Core/Types.hh>
-#include <Core/Profiler.hh>
 #include <Core/LocalizationService.hh>
+#include <Core/Profiler.hh>
+#include <Core/Types.hh>
 
 #include <Filesystem/FileSystem.hh>
 
-#include <Assets/Utility.hh>
-#include <Assets/ImageProcessing.hh>
-
-#include <Renderer/Core/RenderSystem.hh>
-
-#include <ImGui/Utility.hh>
-#include <ImGui/ImGuiWidget.hh>
-#include <ImGui/ImGuiService.hh>
 #include <ImGui/IconsMaterialDesign.h>
-
-#include <Panels/LandscapePanel.hh>
+#include <ImGui/ImGuiService.hh>
+#include <ImGui/ImGuiWidget.hh>
+#include <ImGui/Utility.hh>
 
 #include <Layers/EditorLayer.hh>
 
+#include <Panels/LandscapePanel.hh>
+
+#include <Renderer/Core/RenderSystem.hh>
+
 namespace mikoto::editor {
 
-    static auto TerrainRow( const char* label ) -> void {
+    static auto TerrainRow( const char *label ) -> void {
         ImGui::TableNextRow();
         ImGui::TableSetColumnIndex( 0 );
         ImGui::AlignTextToFramePadding();
@@ -50,7 +56,7 @@ namespace mikoto::editor {
         ImGui::SetNextItemWidth( -1.0f );
     }
 
-    static auto FitTerrainToHeightmap( scene::LandscapeComponent& landscape ) -> bool {
+    static auto FitTerrainToHeightmap( scene::LandscapeComponent &landscape ) -> bool {
         const auto heightmap{ landscape.GetHeightmap() };
 
         if ( !heightmap ) {
@@ -86,7 +92,7 @@ namespace mikoto::editor {
         return false;
     }
 
-    LandscapePanel::LandscapePanel( const LandscapePanelCreateInfo& info )
+    LandscapePanel::LandscapePanel( const LandscapePanelCreateInfo &info )
         : Panel{ "Landscape", "Panel", info.mGroup, info.mIsToggleable },
           mEditorState{ info.mState } {
         MKT_BEGIN_PROFILER();
@@ -97,7 +103,7 @@ namespace mikoto::editor {
         mPanelIsVisible = false;
     }
 
-    auto LandscapePanel::UpdateHeightmapPreview( const eastl::shared_ptr<const renderer::TerrainHeightmap>& heightmap ) -> void {
+    auto LandscapePanel::UpdateHeightmapPreview( const eastl::shared_ptr<const renderer::TerrainHeightmap> &heightmap ) -> void {
         if ( mPreviewSource == heightmap ) {
             return;
         }
@@ -145,9 +151,293 @@ namespace mikoto::editor {
                     .SetDimensions( renderer::rhi::TextureDimension::eTexture2D )
                     .SetUsage( renderer::rhi::TextureUsageFlagsBits::ShaderResource )
                     .SetFormat( renderer::rhi::Format::eRGBA8_UNORM ) );
-        } catch ( const std::exception& error ) {
+        } catch ( const std::exception &error ) {
             mPreviewError = error.what();
         }
+    }
+
+    auto LandscapePanel::DrawBrushControls( scene::Entity &entity ) -> void {
+        auto &landscape{ entity.GetComponent<scene::LandscapeComponent>() };
+        auto &tool{ mEditorState->mTerrainTool };
+        tool.SetTarget( mEditorState->mActiveScene, entity.GetComponent<scene::TagComponent>().GetGuid() );
+        const bool runtime{ mEditorState->mActiveScene->IsPlaying() || mEditorState->mActiveScene->IsSimulating() };
+        ImGui::BeginDisabled( runtime );
+        if ( ImGui::BeginTable( "TerrainBrushSettings", 2, ImGuiTableFlags_SizingStretchProp ) ) {
+            ImGui::TableSetupColumn( "Label", ImGuiTableColumnFlags_WidthStretch, .42f );
+            ImGui::TableSetupColumn( "Value", ImGuiTableColumnFlags_WidthStretch, .58f );
+            TerrainRow( MKT_LOC( "terrain_brush_active" ).c_str() );
+            imgui::CheckBox( "##TerrainBrushActive", tool.mEnabled );
+            TerrainRow( MKT_LOC( "terrain_brush_radius" ).c_str() );
+            imgui::Slider( "##TerrainRadius", tool.mBrush.mRadius, { .1f, 500.0f }, "%.2f m" );
+            TerrainRow( MKT_LOC( "terrain_brush_strength" ).c_str() );
+            imgui::Slider( "##TerrainStrength", tool.mBrush.mStrength, { 0.0f, 1.0f }, "%.3f" );
+            TerrainRow( MKT_LOC( "terrain_brush_falloff" ).c_str() );
+            imgui::Slider( "##TerrainFalloff", tool.mBrush.mFalloff, { .01f, 1.0f }, "%.3f" );
+            if ( tool.mBrush.mMode == TerrainEditMode::eSculpt ) {
+                int operation{ core::as<int>( tool.mBrush.mSculptTool ) };
+                TerrainRow( MKT_LOC( "terrain_sculpt_tool" ).c_str() );
+                if ( ImGui::Combo( "##TerrainSculptTool", &operation, MKT_LOC( "terrain_sculpt_options" ).c_str() ) ) {
+                    tool.mBrush.mSculptTool = static_cast<TerrainSculptTool>( operation );
+                }
+            }
+            ImGui::EndTable();
+        }
+        ImGui::TextWrapped( "%s", MKT_LOC( "terrain_brush_help" ).c_str() );
+        ImGui::BeginDisabled( tool.mHistoryIndex == 0 );
+        if ( ImGui::Button( MKT_LOC( "terrain_undo_stroke" ).c_str() ) ) {
+            tool.Undo( landscape );
+        }
+        ImGui::EndDisabled();
+        ImGui::SameLine();
+        ImGui::BeginDisabled( tool.mHistoryIndex >= tool.mHistory.size() );
+        if ( ImGui::Button( MKT_LOC( "terrain_redo_stroke" ).c_str() ) ) {
+            tool.Redo( landscape );
+        }
+        ImGui::EndDisabled();
+        const auto heights{ landscape.GetHeightmap() };
+        if ( heights && ( heights->mWidth > 2049 || heights->mHeight > 2049 ) ) {
+            ImGui::TextWrapped( "%s", MKT_LOC( "terrain_edit_budget" ).c_str() );
+        }
+        if ( tool.mBrush.mMode == TerrainEditMode::ePaint ) {
+            DrawTerrainSurfaceLayers( landscape, tool.mBrush.mLayer, mLayerPreviews );
+        }
+        if ( ImGui::CollapsingHeader( MKT_LOC( "terrain_grass" ).c_str() ) ) {
+            auto surface{ landscape.GetSurfaceSettings() };
+            auto &grass{ surface.mGrass };
+            bool changed{};
+            if ( ImGui::BeginTable( "TerrainGrassSettings", 2, ImGuiTableFlags_SizingStretchProp ) ) {
+                ImGui::TableSetupColumn( "Label", ImGuiTableColumnFlags_WidthStretch, .42f );
+                ImGui::TableSetupColumn( "Value", ImGuiTableColumnFlags_WidthStretch, .58f );
+                TerrainRow( MKT_LOC( "terrain_grass_enabled" ).c_str() );
+                changed |= imgui::CheckBox( "##GrassEnabled", grass.mEnabled );
+                TerrainRow( MKT_LOC( "terrain_grass_mesh_mode" ).c_str() );
+                changed |= imgui::CheckBox( "##GrassCustomMesh", grass.mUseCustomMesh );
+                if ( grass.mUseCustomMesh ) {
+                    TerrainRow( MKT_LOC( "terrain_grass_mesh" ).c_str() );
+                    const auto label{ grass.mMesh.GetPath().IsEmpty() ? MKT_LOC( "terrain_grass_choose_mesh" ) : eastl::string{ grass.mMesh.GetPath().GetStem() } };
+                    bool choose{ ImGui::Button( label.c_str(), ImVec2{ -ImGui::GetFrameHeight() - 4, 0 } ) };
+                    if ( ImGui::IsItemHovered() && !grass.mMesh.GetPath().IsEmpty() ) {
+                        ImGui::SetTooltip( "%s", grass.mMesh.GetPath().GetC_Str() );
+                    }
+                    filesystem::Path path{};
+                    if ( ImGui::BeginDragDropTarget() ) {
+                        if ( const auto *payload{ ImGui::AcceptDragDropPayload( "CONTENT_BROWSER_TEXT_MODEL" ) } ) {
+                            path = filesystem::Path{ static_cast<const char *>( payload->Data ) };
+                        }
+                        ImGui::EndDragDropTarget();
+                    }
+                    ImGui::SameLine();
+                    if ( imgui::widget::IconButton( "##ClearGrassMesh", ICON_MD_CLOSE, { ImGui::GetFrameHeight(), ImGui::GetFrameHeight() } ) ) {
+                        grass.mMesh = {};
+                        grass.mMeshIndex = 0;
+                        changed = true;
+                    }
+                    if ( choose ) {
+                        path = filesystem::OpenFileDialog( { { "Model", "gltf,glb,fbx,obj" } } );
+                    }
+                    if ( !path.IsEmpty() ) {
+                        grass.mMesh = asset::AssetRef<asset::Model>{ path };
+                        grass.mMeshIndex = 0;
+                        changed = true;
+                    }
+                    if ( mGrassMeshPreview.GetRef().GetID() != grass.mMesh.GetID() ) {
+                        mGrassMeshPreview = grass.mMesh.GetID() ? asset::AssetRegistryService::Get()->Request<asset::Model>( grass.mMesh ) : asset::AssetHandle<asset::Model>{};
+                    }
+                    TerrainRow( MKT_LOC( "terrain_grass_mesh_index" ).c_str() );
+                    const auto model{ mGrassMeshPreview.GetIfReady() };
+                    const int maximum{ model ? glm::max( 0, static_cast<int>( model->GetMeshNodeCount() ) - 1 ) : 8191 };
+                    int meshIndex{ static_cast<int>( glm::min( grass.mMeshIndex, static_cast<core::u32>( maximum ) ) ) };
+                    if ( ImGui::DragInt( "##GrassMeshIndex", &meshIndex, 1, 0, maximum ) ) {
+                        grass.mMeshIndex = static_cast<core::u32>( meshIndex );
+                        changed = true;
+                    }
+                    TerrainRow( MKT_LOC( "terrain_grass_mesh_weight" ).c_str() );
+                    changed |= DrawFloatProperty( "##GrassMeshWeight", &grass.mMeshWeight, { 0.0f, 10.0f }, "%.3f", false );
+                }
+                TerrainRow( MKT_LOC( "terrain_grass_occlusion" ).c_str() );
+                changed |= imgui::CheckBox( "##GrassOcclusion", grass.mOcclusionEnabled );
+                TerrainRow( MKT_LOC( "terrain_grass_layer" ).c_str() );
+                if ( ImGui::BeginCombo( "##GrassLayer", surface.mLayers[grass.mLayer].mName.c_str() ) ) {
+                    for ( core::u32 layer{}; layer < renderer::kTerrainSurfaceLayerCount; ++layer ) {
+                        ImGui::PushID( core::as<int>( layer ) );
+                        if ( ImGui::Selectable( surface.mLayers[layer].mName.c_str(), grass.mLayer == layer ) ) {
+                            grass.mLayer = layer;
+                            changed = true;
+                        }
+                        ImGui::PopID();
+                    }
+                    ImGui::EndCombo();
+                }
+                TerrainRow( MKT_LOC( grass.mUseCustomMesh ? "terrain_grass_instance_density" : "terrain_grass_density" ).c_str() );
+                changed |= DrawFloatProperty( "##GrassDensity", &grass.mDensity, { .1f, 100.0f }, "%.3f", false );
+                TerrainRow( MKT_LOC( grass.mUseCustomMesh ? "terrain_grass_instance_height" : "terrain_grass_height" ).c_str() );
+                changed |= DrawFloatProperty( "##GrassHeight", &grass.mHeight, { .05f, 4.0f }, "%.3f", false );
+                TerrainRow( MKT_LOC( grass.mUseCustomMesh ? "terrain_grass_instance_width" : "terrain_grass_width" ).c_str() );
+                changed |= DrawFloatProperty( "##GrassWidth", &grass.mWidth, { .002f, grass.mUseCustomMesh ? 4.0f : .3f }, "%.3f", false );
+                TerrainRow( MKT_LOC( "terrain_grass_bend" ).c_str() );
+                changed |= DrawFloatProperty( "##GrassBend", &grass.mBend, { 0.0f, 1.5f }, "%.3f", false );
+                TerrainRow( MKT_LOC( "terrain_grass_clump" ).c_str() );
+                changed |= DrawFloatProperty( "##GrassClumpSize", &grass.mClumpSize, { .2f, 20.0f }, "%.3f", false );
+                TerrainRow( MKT_LOC( "terrain_grass_distance" ).c_str() );
+                changed |= DrawFloatProperty( "##GrassViewDistance", &grass.mViewDistance, { 5.0f, renderer::kMaxGrassViewDistance }, "%.3f", false );
+                TerrainRow( MKT_LOC( "terrain_grass_lod" ).c_str() );
+                changed |= DrawFloatProperty( "##GrassLodDistance", &grass.mLodDistance, { 1.0f, grass.mViewDistance }, "%.3f", false );
+                TerrainRow( MKT_LOC( "terrain_grass_slope" ).c_str() );
+                changed |= DrawFloatProperty( "##GrassMaxSlope", &grass.mMaxSlope, { 0.0f, 80.0f }, "%.3f", false );
+                TerrainRow( MKT_LOC( "terrain_grass_min_elevation" ).c_str() );
+                changed |= DrawFloatProperty( "##GrassMinElevation", &grass.mMinElevation, { -1000.0f, 1000.0f }, "%.3f", false );
+                TerrainRow( MKT_LOC( "terrain_grass_max_elevation" ).c_str() );
+                changed |= DrawFloatProperty( "##GrassMaxElevation", &grass.mMaxElevation, { -1000.0f, 10000.0f }, "%.3f", false );
+                TerrainRow( MKT_LOC( "terrain_grass_wind_speed" ).c_str() );
+                changed |= DrawFloatProperty( "##GrassWindSpeed", &grass.mWindSpeed, { 0.0f, 30.0f }, "%.3f", false );
+                TerrainRow( MKT_LOC( "terrain_grass_wind_strength" ).c_str() );
+                changed |= DrawFloatProperty( "##GrassWindStrength", &grass.mWindStrength, { 0.0f, 1.5f }, "%.3f", false );
+                TerrainRow( MKT_LOC( "terrain_grass_wind_x" ).c_str() );
+                changed |= DrawFloatProperty( "##GrassWindDirection.x", &grass.mWindDirection.x, { -1.0f, 1.0f }, "%.3f", false );
+                TerrainRow( MKT_LOC( "terrain_grass_wind_z" ).c_str() );
+                changed |= DrawFloatProperty( "##GrassWindDirection.y", &grass.mWindDirection.y, { -1.0f, 1.0f }, "%.3f", false );
+                TerrainRow( MKT_LOC( "terrain_grass_ao" ).c_str() );
+                changed |= DrawFloatProperty( "##GrassAO", &grass.mAmbientOcclusion, { 0, 1 }, "%.2f", false );
+                TerrainRow( MKT_LOC( "terrain_grass_cast_shadows" ).c_str() );
+                changed |= imgui::CheckBox( "##GrassCastShadows", grass.mCastShadows );
+                TerrainRow( MKT_LOC( "terrain_grass_contact_shadows" ).c_str() );
+                changed |= imgui::CheckBox( "##GrassContactShadows", grass.mContactShadows );
+                TerrainRow( MKT_LOC( "terrain_grass_shadow_density" ).c_str() );
+                changed |= DrawFloatProperty( "##GrassShadowDensity", &grass.mShadowDensity, { 0, 2 }, "%.2f", false );
+                TerrainRow( MKT_LOC( "terrain_grass_self_shadow" ).c_str() );
+                changed |= DrawFloatProperty( "##GrassSelfShadow", &grass.mSelfShadow, { 0, 1 }, "%.2f", false );
+                TerrainRow( MKT_LOC( "terrain_grass_roughness" ).c_str() );
+                changed |= DrawFloatProperty( "##GrassRoughness", &grass.mRoughness, { .25f, 1 }, "%.2f", false );
+                TerrainRow( MKT_LOC( "terrain_grass_clump_strength" ).c_str() );
+                changed |= DrawFloatProperty( "##GrassClumpStrength", &grass.mClumpStrength, { 0.0f, 4.0f }, "%.3f", false );
+                TerrainRow( MKT_LOC( "terrain_grass_height_variation" ).c_str() );
+                changed |= DrawFloatProperty( "##GrassHeightVariation", &grass.mHeightVariation, { 0.0f, 1.0f }, "%.3f", false );
+                TerrainRow( MKT_LOC( "terrain_grass_far_lod" ).c_str() );
+                changed |= DrawFloatProperty( "##GrassFarLodDistance", &grass.mFarLodDistance, { grass.mLodDistance, grass.mViewDistance }, "%.3f", false );
+                TerrainRow( MKT_LOC( "terrain_grass_min_density" ).c_str() );
+                changed |= DrawFloatProperty( "##GrassMinDensity", &grass.mMinDensity, { .01f, 1.0f }, "%.3f", false );
+                TerrainRow( MKT_LOC( "terrain_grass_width_compensation" ).c_str() );
+                changed |= DrawFloatProperty( "##GrassWidthCompensation", &grass.mWidthCompensation, { 0.0f, 1.0f }, "%.3f", false );
+                TerrainRow( MKT_LOC( "terrain_grass_wind_frequency" ).c_str() );
+                changed |= DrawFloatProperty( "##GrassWindFrequency", &grass.mWindFrequency, { .001f, 1.0f }, "%.3f", false );
+                TerrainRow( MKT_LOC( "terrain_grass_flutter" ).c_str() );
+                changed |= DrawFloatProperty( "##GrassWindFlutter", &grass.mWindFlutter, { 0.0f, 1.0f }, "%.3f", false );
+                TerrainRow( MKT_LOC( "terrain_grass_wind_distance" ).c_str() );
+                changed |= DrawFloatProperty( "##GrassWindDistance", &grass.mWindDistance, { 1.0f, renderer::kMaxGrassViewDistance }, "%.3f", false );
+                TerrainRow( MKT_LOC( "terrain_grass_translucency" ).c_str() );
+                changed |= DrawFloatProperty( "##GrassTranslucency", &grass.mTranslucency, { 0.0f, 1.0f }, "%.3f", false );
+                TerrainRow( MKT_LOC( "terrain_grass_translucency_power" ).c_str() );
+                changed |= DrawFloatProperty( "##GrassTranslucencyPower", &grass.mTranslucencyPower, { 1.0f, 8.0f }, "%.3f", false );
+                TerrainRow( MKT_LOC( "terrain_grass_rounding" ).c_str() );
+                changed |= DrawFloatProperty( "##GrassNormalRounding", &grass.mNormalRounding, { 0.0f, .5f }, "%.3f", false );
+                TerrainRow( MKT_LOC( "terrain_grass_dryness" ).c_str() );
+                changed |= DrawFloatProperty( "##GrassDryAmount", &grass.mDryAmount, { 0.0f, 1.0f }, "%.3f", false );
+                TerrainRow( MKT_LOC( "terrain_grass_color_variation" ).c_str() );
+                changed |= DrawFloatProperty( "##GrassColorVariation", &grass.mColorVariation, { 0.0f, 1.0f }, "%.3f", false );
+                TerrainRow( MKT_LOC( "terrain_grass_root" ).c_str() );
+                changed |= ImGui::ColorEdit3( "##GrassRoot", &grass.mRootColor.x );
+                TerrainRow( MKT_LOC( "terrain_grass_tip" ).c_str() );
+                changed |= ImGui::ColorEdit3( "##GrassTip", &grass.mTipColor.x );
+                TerrainRow( MKT_LOC( "terrain_grass_mid" ).c_str() );
+                changed |= ImGui::ColorEdit3( "##GrassMid", &grass.mMidColor.x );
+                TerrainRow( MKT_LOC( "terrain_grass_dry" ).c_str() );
+                changed |= ImGui::ColorEdit3( "##GrassDry", &grass.mDryColor.x );
+
+                // Each entry shares the placement grid; weights select a model
+                // for each root rather than adding overlapping full fields.
+                if ( grass.mUseCustomMesh ) {
+                    mGrassMeshVariantPreviews.resize( grass.mMeshVariants.size() );
+                    for ( core::usize index{}; index < grass.mMeshVariants.size(); ) {
+                        ImGui::PushID( static_cast<int>( index ) );
+                        auto &variant{ grass.mMeshVariants[index] };
+                        auto &preview{ mGrassMeshVariantPreviews[index] };
+                        TerrainRow( MKT_LOC( "terrain_grass_mesh_variety" ).c_str() );
+                        const auto label{ variant.mMesh.GetPath().IsEmpty() ? MKT_LOC( "terrain_grass_choose_mesh" ) : eastl::string{ variant.mMesh.GetPath().GetStem() } };
+                        const bool choose{ ImGui::Button( label.c_str(), ImVec2{ -ImGui::GetFrameHeight() - 4, 0 } ) };
+                        if ( ImGui::IsItemHovered() && !variant.mMesh.GetPath().IsEmpty() ) {
+                            ImGui::SetTooltip( "%s", variant.mMesh.GetPath().GetC_Str() );
+                        }
+                        filesystem::Path path{};
+                        if ( ImGui::BeginDragDropTarget() ) {
+                            if ( const auto *payload{ ImGui::AcceptDragDropPayload( "CONTENT_BROWSER_TEXT_MODEL" ) } ) {
+                                path = filesystem::Path{ static_cast<const char *>( payload->Data ) };
+                            }
+                            ImGui::EndDragDropTarget();
+                        }
+                        ImGui::SameLine();
+                        if ( imgui::widget::IconButton( "##RemoveGrassVariety", ICON_MD_CLOSE, { ImGui::GetFrameHeight(), ImGui::GetFrameHeight() } ) ) {
+                            grass.mMeshVariants.erase( grass.mMeshVariants.begin() + index );
+                            mGrassMeshVariantPreviews.erase( mGrassMeshVariantPreviews.begin() + index );
+                            changed = true;
+                            ImGui::PopID();
+                            continue;
+                        }
+                        if ( choose ) {
+                            path = filesystem::OpenFileDialog( { { "Model", "gltf,glb,fbx,obj" } } );
+                        }
+                        if ( !path.IsEmpty() ) {
+                            variant.mMesh = asset::AssetRef<asset::Model>{ path };
+                            variant.mMeshIndex = 0;
+                            changed = true;
+                        }
+                        if ( preview.GetRef().GetID() != variant.mMesh.GetID() ) {
+                            preview = variant.mMesh.GetID() ? asset::AssetRegistryService::Get()->Request<asset::Model>( variant.mMesh ) : asset::AssetHandle<asset::Model>{};
+                        }
+                        TerrainRow( MKT_LOC( "terrain_grass_mesh_index" ).c_str() );
+                        const auto model{ preview.GetIfReady() };
+                        const int maximum{ model ? glm::max( 0, static_cast<int>( model->GetMeshNodeCount() ) - 1 ) : 8191 };
+                        int meshIndex{ static_cast<int>( glm::min( variant.mMeshIndex, static_cast<core::u32>( maximum ) ) ) };
+                        if ( ImGui::DragInt( "##GrassVariantIndex", &meshIndex, 1, 0, maximum ) ) {
+                            variant.mMeshIndex = static_cast<core::u32>( meshIndex );
+                            changed = true;
+                        }
+                        TerrainRow( MKT_LOC( "terrain_grass_mesh_weight" ).c_str() );
+                        changed |= DrawFloatProperty( "##GrassVariantWeight", &variant.mWeight, { 0.0f, 10.0f }, "%.3f", false );
+                        TerrainRow( MKT_LOC( "terrain_grass_mesh_height_scale" ).c_str() );
+                        changed |= DrawFloatProperty( "##GrassVariantHeight", &variant.mHeightScale, { .1f, 4.0f }, "%.2f", false );
+                        TerrainRow( MKT_LOC( "terrain_grass_mesh_width_scale" ).c_str() );
+                        changed |= DrawFloatProperty( "##GrassVariantWidth", &variant.mWidthScale, { .1f, 4.0f }, "%.2f", false );
+                        if ( !preview.GetError().empty() ) {
+                            ImGui::TextWrapped( "%s", preview.GetError().c_str() );
+                        }
+                        if ( model && variant.mMeshIndex < model->GetMeshNodeCount() ) {
+                            const auto &mesh{ model->GetMeshNode( variant.mMeshIndex ).GetRenderData() };
+                            if ( model->IsSkinned() || !mesh || mesh->GetIndices().size() > 8192 ) {
+                                ImGui::TextWrapped( "%s", MKT_LOC( "terrain_grass_mesh_invalid" ).c_str() );
+                            }
+                        }
+                        ImGui::PopID();
+                        ++index;
+                    }
+                    TerrainRow( MKT_LOC( "terrain_grass_mesh_variety" ).c_str() );
+                    ImGui::BeginDisabled( grass.mMeshVariants.size() >= 7 );
+                    if ( ImGui::Button( MKT_LOC( "terrain_grass_add_mesh" ).c_str() ) ) {
+                        grass.mMeshVariants.push_back( {} );
+                        changed = true;
+                    }
+                    ImGui::EndDisabled();
+                }
+                ImGui::EndTable();
+            }
+            if ( changed ) {
+                landscape.SetSurfaceSettings( surface );
+            }
+            ImGui::TextWrapped( "%s", MKT_LOC( "terrain_grass_help" ).c_str() );
+            if ( grass.mUseCustomMesh ) {
+                ImGui::TextWrapped( "%s", MKT_LOC( "terrain_grass_mesh_help" ).c_str() );
+                ImGui::TextWrapped( "%s", MKT_LOC( "terrain_grass_mesh_mix_help" ).c_str() );
+                if ( !mGrassMeshPreview.GetError().empty() ) {
+                    ImGui::TextWrapped( "%s", mGrassMeshPreview.GetError().c_str() );
+                }
+                if ( const auto model{ mGrassMeshPreview.GetIfReady() }; model && grass.mMeshIndex < model->GetMeshNodeCount() ) {
+                    const auto &mesh{ model->GetMeshNode( grass.mMeshIndex ).GetRenderData() };
+                    if ( model->IsSkinned() || !mesh || mesh->GetIndices().size() > 8192 ) {
+                        ImGui::TextWrapped( "%s", MKT_LOC( "terrain_grass_mesh_invalid" ).c_str() );
+                    }
+                }
+            }
+        }
+        ImGui::EndDisabled();
     }
 
     auto LandscapePanel::OnRender( float ) -> void {
@@ -164,8 +454,8 @@ namespace mikoto::editor {
             return;
         }
 
-        auto* scene{ mEditorState->mActiveScene };
-        auto* entity{ mEditorState->mSelectedEntity };
+        auto *scene{ mEditorState->mActiveScene };
+        auto *entity{ mEditorState->mSelectedEntity };
 
         if ( !scene || !entity || !entity->HasComponent<scene::LandscapeComponent>() ) {
             UpdateHeightmapPreview( {} );
@@ -173,9 +463,9 @@ namespace mikoto::editor {
             ImGui::BeginDisabled( !scene );
 
             if ( ImGui::Button( "Create terrain", { -1.0f, 0.0f } ) ) {
-                if ( auto* terrain{ scene->CreateEntity( scene::EntityCreateInfo{
-                    .mName = "Terrain",
-                    .mEntityType = scene::EntityType::eTerrain } ) } ) {
+                if ( auto *terrain{ scene->CreateEntity( scene::EntityCreateInfo{
+                         .mName = "Terrain",
+                         .mEntityType = scene::EntityType::eTerrain } ) } ) {
                     mEditorState->SelectEntity( terrain );
                 }
             }
@@ -185,7 +475,7 @@ namespace mikoto::editor {
             return;
         }
 
-        auto& landscape{ entity->GetComponent<scene::LandscapeComponent>() };
+        auto &landscape{ entity->GetComponent<scene::LandscapeComponent>() };
         const auto id{ entity->GetComponent<scene::TagComponent>().GetGuid() };
 
         if ( mEditedScene != scene || mEditedEntity != id ) {
@@ -197,6 +487,28 @@ namespace mikoto::editor {
         }
 
         ImGui::Text( "Landscape: %s", entity->GetComponent<scene::TagComponent>().GetTag().data() );
+        auto &tool{ mEditorState->mTerrainTool };
+        if ( ImGui::BeginTable( "TerrainMode", 2, ImGuiTableFlags_SizingStretchProp ) ) {
+            ImGui::TableSetupColumn( "Label", ImGuiTableColumnFlags_WidthStretch, .42f );
+            ImGui::TableSetupColumn( "Value", ImGuiTableColumnFlags_WidthStretch, .58f );
+            TerrainRow( MKT_LOC( "terrain_edit_mode" ).c_str() );
+            const core::cstr modes[]{ MKT_LOC( "terrain_mode_generate" ).c_str(),
+                MKT_LOC( "terrain_mode_sculpt" ).c_str(), MKT_LOC( "terrain_mode_paint" ).c_str() };
+            int selected{ core::as<int>( tool.mBrush.mMode ) };
+            if ( ImGui::Combo( "##TerrainEditMode", &selected, modes, 3 ) ) {
+                tool.EndStroke( landscape );
+                tool.mBrush.mMode = static_cast<TerrainEditMode>( selected );
+                tool.mEnabled = tool.mBrush.mMode != TerrainEditMode::eGenerate;
+                mSelectGeneratedNoise = tool.mBrush.mMode == TerrainEditMode::eGenerate;
+            }
+            ImGui::EndTable();
+        }
+        if ( tool.mBrush.mMode != TerrainEditMode::eGenerate ) {
+            DrawBrushControls( *entity );
+            ImGui::End();
+            return;
+        }
+
 
         if ( !ImGui::BeginTable( "##LandscapeLayout", 2, ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV ) ) {
             ImGui::End();
@@ -247,12 +559,12 @@ namespace mikoto::editor {
                         else {
                             // Export the complete GPU-generated float image, not
                             // the reduced 8-bit texture used by the preview button.
-                            const auto& image{ heightmap->mImage };
+                            const auto &image{ heightmap->mImage };
 
                             try {
                                 asset::WriteImage( path, image->mBufferSpan->GetData(), image->mWidth, image->mHeight, image->mFormat );
                                 mMapSaveMessage = string::Format( "Saved: {}", path.GetAbsolute() );
-                            } catch ( const std::exception& error ) {
+                            } catch ( const std::exception &error ) {
                                 mPreviewError = error.what();
                             }
                         }
@@ -303,23 +615,7 @@ namespace mikoto::editor {
         ImGui::Text( "%u triangles", ( grid.GetResolutionX() - 1 ) * ( grid.GetResolutionY() - 1 ) * 2 );
 
         ImGui::TableSetColumnIndex( 1 );
-        const auto manageLabel{ MKT_LOC( "landscape_manage" ) };
-        ImGui::AlignTextToFramePadding();
-        ImGui::TextUnformatted( manageLabel.c_str() );
-        ImGui::SameLine();
-        ImGui::SetNextItemWidth( glm::max( 1.0f, ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x ) );
-
-        if ( ImGui::BeginCombo( "##LandscapeManageType", manageLabel.c_str() ) ) {
-            ImGui::Selectable( manageLabel.c_str(), true );
-            ImGui::SetItemDefaultFocus();
-            ImGui::BeginDisabled();
-            ImGui::Selectable( MKT_LOC( "landscape_sculpt" ).c_str() );
-            ImGui::Selectable( MKT_LOC( "landscape_paint" ).c_str() );
-            ImGui::EndDisabled();
-            ImGui::EndCombo();
-        }
-
-        ImGui::Separator();
+        ImGui::SeparatorText( MKT_LOC( "terrain_height_source" ).c_str() );
 
         bool importTab{};
         bool generatedTab{};
@@ -338,13 +634,14 @@ namespace mikoto::editor {
                 ImGui::EndTabItem();
             }
 
-            if ( ImGui::BeginTabItem( "Generated Noise" ) ) {
+            if ( ImGui::BeginTabItem( "Generated Noise", nullptr, mSelectGeneratedNoise ? ImGuiTabItemFlags_SetSelected : ImGuiTabItemFlags_None ) ) {
                 generatedTab = true;
                 ImGui::TextWrapped( "Generate a height texture from fBm and Perlin. Editing parameters updates the terrain and the preview automatically." );
                 ImGui::EndTabItem();
             }
 
             ImGui::EndTabBar();
+            mSelectGeneratedNoise = false;
         }
 
         const auto accept{ [this]( bool success ) {
@@ -399,7 +696,7 @@ namespace mikoto::editor {
             ImGui::EndDisabled();
 
             if ( ImGui::IsItemHovered( ImGuiHoveredFlags_AllowWhenDisabled ) ) {
-                ImGui::SetTooltip( "Edit layers and brushing are not implemented yet." );
+                ImGui::SetTooltip( "%s", MKT_LOC( "terrain_edit_layers_pending" ).c_str() );
             }
 
             if ( importTab ) {
@@ -425,7 +722,7 @@ namespace mikoto::editor {
                 }
             }
 
-            auto& transform{ entity->GetComponent<scene::TransformComponent>() };
+            auto &transform{ entity->GetComponent<scene::TransformComponent>() };
             auto location{ transform.GetTranslation() };
             auto rotation{ transform.GetRotation() };
             auto scale{ transform.GetScale() };
@@ -596,7 +893,7 @@ namespace mikoto::editor {
             ImGui::TextWrapped( "%s", landscape.GetHeightmapError().c_str() );
         }
 
-        ImGui::TextDisabled( "Preview: unlit height colors. Brushing and materials are not active." );
+        ImGui::TextWrapped( "%s", MKT_LOC( "terrain_manage_help" ).c_str() );
         ImGui::EndTable();
         ImGui::End();
     }

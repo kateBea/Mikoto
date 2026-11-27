@@ -170,6 +170,10 @@ namespace mikoto::physics {
         return mPhysicsDebugRendererSimple.get();
     }
 
+    auto PhysicSystem::GetSimulationTarget() const -> scene::Scene * {
+        return mActiveWorld ? mActiveWorld->GetScene() : nullptr;
+    }
+
     auto PhysicSystem::GetPhysicsBackend() const -> const PhysicsBackend& {
         return mPhysicsBackend;
     }

@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Project uploaded physics debug vertices with the scene camera. The simple line path forwards
+// vertex colors directly to the fragment stage.
+
 #pragma once
 
 #include "base/Base.slang"

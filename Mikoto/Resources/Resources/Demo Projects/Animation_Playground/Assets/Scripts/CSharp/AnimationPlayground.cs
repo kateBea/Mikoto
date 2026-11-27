@@ -144,7 +144,9 @@ public sealed class AnimationPlaygroundPlayer : EntityScript
         {
             Vector2 delta = mouse - _previousMouse;
             _yaw = MathF.IEEERemainder(_yaw - delta.X * 0.16f, 360.0f);
-            _pitch = Math.Clamp(_pitch - delta.Y * 0.12f, -65.0f, -6.0f);
+            // Allow looking above and below the horizon; the orbit raycast
+            // still stops the camera at solid floors and walls.
+            _pitch = Math.Clamp(_pitch - delta.Y * 0.12f, -80.0f, 80.0f);
         }
         _trackingMouse = rotating;
         _previousMouse = mouse;

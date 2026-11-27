@@ -1,0 +1,32 @@
+TANEGASHIMA HEIGHTMAP — DATA PROVENANCE
+
+Derived from Mapzen Terrain Tiles / Tilezen Joerd elevation products.
+https://registry.opendata.aws/terrain-tiles/
+https://github.com/tilezen/joerd/blob/master/docs/attribution.md
+
+Global SRTM and GMTED2010 terrain data courtesy of the U.S. Geological Survey.
+Global ETOPO1 terrain data: DOC/NOAA/NESDIS/NCEI, U.S. Department of Commerce.
+These credits apply to the
+global elevation products used here. US government source datasets are
+public-domain data; this provenance notice is retained with the derivative.
+No Google satellite imagery is redistributed in this project.
+
+Changes: bilinear DEM resampling into a metre-based local grid; horizontal
+scale 0.2876; vertical scale 0.4314; removal of neighbouring disconnected
+land; synthetic bathymetry; a small authored inland lake. The result is not
+survey-grade geographic data. Height encoding: unsigned 16-bit greyscale,
+world elevation = -80 + (sample / 65535) * 280 metres.
+
+Source downloads and SHA-256 hashes (raw source tiles are not bundled):
+[
+  {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/skadi/N30/N30E130.hgt.gz",
+    "sha256": "8bc03725b3798983e0b4e1669c485b7e99908aa4bb44093034a297aaa7005280",
+    "samples": 3601
+  },
+  {
+    "url": "https://s3.amazonaws.com/elevation-tiles-prod/skadi/N30/N30E131.hgt.gz",
+    "sha256": "d0ed11004f3d393745cd477fc741b686d9cca1b22ad18a9b97b2504679174ebe",
+    "samples": 3601
+  }
+]

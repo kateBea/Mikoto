@@ -12,8 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <EASTL/utility.h>
+
+#include <cstring>
+
 #include <EASTL/algorithm.h>
+#include <EASTL/utility.h>
 
 #include <glm/glm.hpp>
 
@@ -25,7 +28,7 @@
 namespace mikoto::renderer::opengl {
 
     Texture::Texture( const renderer::rhi::TextureCreateDescription &desc, eastl::shared_ptr<DeviceState> state, GLuint native )
-        : mWidth{ desc.mWidth }, mHeight{ desc.mHeight }, mMipCount{ desc.mMipCount }, mImageData{ desc.mImageHandle }, mBufferSpan{ desc.mBufferSpan }, mFormat{ desc.mFormat }, mDimension{ desc.mDimension }, mTextureUsage{ desc.mUsage }, mMultisampling{ desc.mMultisampling }, mInitialState{ desc.mInitialState }, mSubResources{ desc.mSubresourceSet }, mState{ eastl::move( state ) }, mName{ native }, mOwned{ native == 0 }, mKeepInitializers{ desc.mKeepInitializerResources } {
+        : mWidth{ desc.mWidth }, mHeight{ desc.mHeight }, mDepth{ desc.mDimension == rhi::TextureDimension::eTexture3D ? desc.mDepth : 1u }, mMipCount{ desc.mMipCount }, mImageData{ desc.mImageHandle }, mBufferSpan{ desc.mBufferSpan }, mFormat{ desc.mFormat }, mDimension{ desc.mDimension }, mTextureUsage{ desc.mUsage }, mMultisampling{ desc.mMultisampling }, mInitialState{ desc.mInitialState }, mSubResources{ desc.mSubresourceSet }, mState{ eastl::move( state ) }, mName{ native }, mOwned{ native == 0 }, mKeepInitializers{ desc.mKeepInitializerResources } {
         mHeapType = desc.mHeapType;
         mResourceType = desc.mResourceType;
     }
@@ -37,7 +40,7 @@ namespace mikoto::renderer::opengl {
     auto Texture::Initialize() -> void {
         mState->RequireOwner();
 
-        if ( !mWidth || !mHeight || !mMipCount ) {
+        if ( !mWidth || !mHeight || !mDepth || !mMipCount ) {
             MKT_THROW_INVALID_ARGUMENT( "Invalid texture dimensions." );
         }
 
@@ -51,6 +54,10 @@ namespace mikoto::renderer::opengl {
         switch ( mDimension ) {
             case renderer::rhi::TextureDimension::eTexture2D:
                 mTarget = GL_TEXTURE_2D;
+                mLayers = 1;
+                break;
+            case renderer::rhi::TextureDimension::eTexture3D:
+                mTarget = GL_TEXTURE_3D;
                 mLayers = 1;
                 break;
             case renderer::rhi::TextureDimension::eTexture2DArray:
@@ -76,7 +83,7 @@ namespace mikoto::renderer::opengl {
                 mTarget = GL_TEXTURE_2D_MULTISAMPLE_ARRAY;
                 break;
             default:
-                Unsupported( "1D and 3D texture descriptions" );
+                Unsupported( "1D texture descriptions" );
         }
 
         const core::u32 samples{ 1u << static_cast<core::u32>( mMultisampling ) };
@@ -108,13 +115,13 @@ namespace mikoto::renderer::opengl {
             glTextureStorage2D( mName, mMipCount, format.mInternal, mWidth, mHeight );
         }
         else {
-            glTextureStorage3D( mName, mMipCount, format.mInternal, mWidth, mHeight, mLayers );
+            glTextureStorage3D( mName, mMipCount, format.mInternal, mWidth, mHeight, mTarget == GL_TEXTURE_3D ? mDepth : mLayers );
         }
 
         CheckError( "texture allocation" );
 
         for ( core::u32 mip{}; mip < mMipCount; ++mip ) {
-            mAllocationBytes += core::usize{ glm::max( 1u, mWidth >> mip ) } * glm::max( 1u, mHeight >> mip ) * mLayers * samples * format.mBytes;
+            mAllocationBytes += core::usize{ glm::max( 1u, mWidth >> mip ) } * glm::max( 1u, mHeight >> mip ) * glm::max( 1u, mDepth >> mip ) * mLayers * samples * format.mBytes;
         }
 
         mState->mAllocatedBytes += mAllocationBytes;
@@ -150,26 +157,23 @@ namespace mikoto::renderer::opengl {
             Unsupported( "uploading multisampled textures" );
         }
 
-        const core::usize expected{ core::usize{ mWidth } * mHeight * mLayers * format.mBytes };
-
-        if ( size < expected ) {
-            MKT_THROW_INVALID_ARGUMENT( "Texture upload is too small for mip zero and all layers." );
-        }
-
         GLint alignment{};
         glGetIntegerv( GL_UNPACK_ALIGNMENT, &alignment );
         glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
-
-        if ( mTarget == GL_TEXTURE_2D ) {
-            glTextureSubImage2D( mName, 0, 0, 0, mWidth, mHeight, format.mExternal, format.mType, data );
+        const auto regions{ rhi::GetTextureUploadRegions( *this, size ) };
+        for ( const auto &r: regions ) {
+            // A null data pointer denotes offset zero in a bound unpack buffer.
+            const auto pointer{ reinterpret_cast<const void *>( reinterpret_cast<uintptr_t>( data ) + r.mOffset ) };
+            if ( mTarget == GL_TEXTURE_2D ) {
+                glTextureSubImage2D( mName, r.mMip, 0, 0, r.mWidth, r.mHeight, format.mExternal, format.mType, pointer );
+            }
+            else {
+                glTextureSubImage3D( mName, r.mMip, 0, 0, r.mLayer, r.mWidth, r.mHeight,
+                    mTarget == GL_TEXTURE_3D ? r.mDepth : 1, format.mExternal, format.mType, pointer );
+            }
         }
-        else {
-            glTextureSubImage3D( mName, 0, 0, 0, 0, mWidth, mHeight, mLayers, format.mExternal, format.mType, data );
-        }
-
         glPixelStorei( GL_UNPACK_ALIGNMENT, alignment );
-
-        if ( mMipCount > 1 && !format.mInteger && !format.mDepth ) {
+        if ( regions.size() == mLayers && mMipCount > 1 && !format.mInteger && !format.mDepth ) {
             glGenerateTextureMipmap( mName );
         }
 
@@ -310,12 +314,14 @@ namespace mikoto::renderer::opengl {
         const core::usize block{ eastl::max<core::usize>( 1, format.mBlockSize ) };
         core::usize width{ mWidth };
         core::usize height{ mHeight };
+        core::usize depth{ mDepth };
         core::usize result{};
 
         for ( core::u32 mip{}; mip < mMipCount; ++mip ) {
-            result += ( ( width + block - 1 ) / block ) * ( ( height + block - 1 ) / block ) * format.mBytesPerBlock;
+            result += ( ( width + block - 1 ) / block ) * ( ( height + block - 1 ) / block ) * depth * format.mBytesPerBlock;
             width = eastl::max<core::usize>( 1, width / 2 );
             height = eastl::max<core::usize>( 1, height / 2 );
+            depth = eastl::max<core::usize>( 1, depth / 2 );
         }
 
         return result * ( mDimension == rhi::TextureDimension::eTextureCube ? 6 : 1 );
@@ -331,6 +337,10 @@ namespace mikoto::renderer::opengl {
 
     auto Texture::GetHeight() const -> core::u32 {
         return mHeight;
+    }
+
+    auto Texture::GetDepth() const -> core::u32 {
+        return mDepth;
     }
 
     auto Texture::GetTextureUsage() const -> rhi::TextureUsageFlags {
@@ -391,6 +401,20 @@ namespace mikoto::renderer::opengl {
         glSamplerParameteri( mName, GL_TEXTURE_WRAP_R, opengl::GetSamplerWrap( mDesc.mWrapW ) );
         glSamplerParameterf( mName, GL_TEXTURE_MIN_LOD, 0 );
         glSamplerParameterf( mName, GL_TEXTURE_MAX_LOD, glm::max( 0.0f, mDesc.mMipLevels - 1.0f ) );
+        if ( mDesc.mMaxAnisotropy > 1 && mDesc.mMinFilter == rhi::SamplerFilter::eLinear && mDesc.mMagFilter == rhi::SamplerFilter::eLinear ) {
+            GLint extensions{};
+            glGetIntegerv( GL_NUM_EXTENSIONS, &extensions );
+            for ( GLint index{}; index < extensions; ++index ) {
+                const auto *name{ reinterpret_cast<const char *>( glGetStringi( GL_EXTENSIONS, index ) ) };
+                if ( std::strcmp( name, "GL_EXT_texture_filter_anisotropic" ) == 0 || std::strcmp( name, "GL_ARB_texture_filter_anisotropic" ) == 0 ) {
+                    constexpr GLenum maxAnisotropy{ 0x84FF }, textureAnisotropy{ 0x84FE };
+                    GLfloat limit{};
+                    glGetFloatv( maxAnisotropy, &limit );
+                    glSamplerParameterf( mName, textureAnisotropy, glm::min( limit, mDesc.mMaxAnisotropy ) );
+                    break;
+                }
+            }
+        }
         glSamplerParameterfv( mName, GL_TEXTURE_BORDER_COLOR, &mDesc.mBorderColor.mR );
         glSamplerParameteri( mName, GL_TEXTURE_COMPARE_MODE, mDesc.mCompareOp == renderer::rhi::CompareOp::eNever ? GL_NONE : GL_COMPARE_REF_TO_TEXTURE );
         glSamplerParameteri( mName, GL_TEXTURE_COMPARE_FUNC, opengl::GetCompareOp( mDesc.mCompareOp ) );

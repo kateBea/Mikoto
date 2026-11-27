@@ -14,6 +14,9 @@
 
 // Limit bloom colours to the RGBA16F target range.
 
+// Shared HDR bloom filtering, thresholding and composition. Highlight limiting keeps very
+// bright samples from dominating the downsample pyramid.
+
 #pragma once
 
 float3 BloomClampColor( float3 value ) {
@@ -23,6 +26,8 @@ float3 BloomClampColor( float3 value ) {
 // Extract the colour that contributes to bloom using the brightest RGB channel.
 // A soft knee fades in the contribution around the threshold; scaling all channels
 // equally preserves the input colour. Apply before combining taps.
+// Extract the highlight contribution using the configured threshold/soft knee. Clamp to the
+// finite HDR target range before the downsample combines neighboring highlights.
 float3 BloomPrefilter( float3 value, float threshold ) {
     value = BloomClampColor( value );
     float brightness = max( value.x, max( value.y, value.z ) );
@@ -41,8 +46,11 @@ float3 BloomSample( Texture2D source, SamplerState sampler, float2 uv, float thr
     return prefilter ? BloomPrefilter( color, threshold ) : color;
 }
 
+// Combine a multi-tap neighborhood into the next bloom level. The wider filter footprint
+// reduces aliasing when bright structures shrink below one destination texel.
 float3 BloomDownsample( Texture2D source, SamplerState sampler, float2 uv, float threshold, bool prefilter ) {
-    uint width, height;
+    uint width;
+    uint height;
     source.GetDimensions( width, height );
 
     float2 srcTexelSize = 1.0 / float2( max( width, 1u ), max( height, 1u ) );
@@ -86,8 +94,11 @@ float3 BloomDownsample( Texture2D source, SamplerState sampler, float2 uv, float
     return BloomClampColor( result );
 }
 
+// Filter the smaller bloom level back into the current image scale. Reconstruction spreads the
+// glow while retaining the accumulated larger-radius contribution.
 float3 BloomUpsample( Texture2D lower, Texture2D detail, SamplerState sampler, float2 uv, float scatter, float radius ) {
-    uint width, height;
+    uint width;
+    uint height;
     lower.GetDimensions( width, height );
 
     // Radius remains in source texels, matching the renderer's radius control.

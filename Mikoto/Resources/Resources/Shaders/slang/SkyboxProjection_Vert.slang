@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Pull the environment cube geometry and project the requested capture view. The interpolated
+// local direction identifies the cubemap sample evaluated by the fragment stage.
+
 #pragma once
 
 #include "base/Base.slang"
@@ -19,22 +22,22 @@
 #include "base/Memory_Helpers.slang"
 
 struct SkyboxRenderConstants {
-    float4x4 MVP;
+    float4x4 mMVP;
 };
 
 struct VSInput {
-    uint vID : SV_VertexID;
+    uint mVID : SV_VertexID;
 };
 
 struct VSOutput {
-    float3 Pos : TEXCOORD0;
-    float4 PositionH : SV_Position;
+    float3 mPos : TEXCOORD0;
+    float4 mPositionH : SV_Position;
 };
 
 struct DrawParams {
-    PushConstantMatrix4x4 Mvp;
-    uint BasicSamplerID;
-    uint EquirectangularID;
+    PushConstantMatrix4x4 mMvp;
+    uint mBasicSamplerID;
+    uint mEquirectangularID;
 
     uint mVertexBufferID;
     uint mIndexBufferID;
@@ -50,12 +53,12 @@ VSOutput main( VSInput input ) {
     ByteAddressBuffer vertexBuffer = buffers[parameters.mVertexBufferID];
     ByteAddressBuffer indexBuffer = buffers[parameters.mIndexBufferID];
 
-    uint index = indexBuffer.Read<uint>( 0, input.vID );
+    uint index = indexBuffer.Read<uint>( 0, input.mVID );
     VertexDescription vertex = vertexBuffer.Read<VertexDescription>( 0, index );
 
-    o.Pos = vertex.position;
+    o.mPos = vertex.mPosition;
 
-    o.PositionH = mul( parameters.Mvp.Load(), float4( vertex.position, 1.0 ) );
+    o.mPositionH = mul( parameters.mMvp.Load(), float4( vertex.mPosition, 1.0 ) );
 
     return o;
 }

@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Convolve the environment over a diffuse hemisphere for each cubemap direction. The result
+// provides low-frequency ambient illumination for material shading.
+
 #pragma once
 
 #include "base/Base.slang"
@@ -19,9 +22,9 @@
 #include "base/Memory_Helpers.slang"
 
 struct DrawParams {
-    PushConstantMatrix4x4 MVP;
-    float DeltaPhi;
-    float DeltaTheta;
+    PushConstantMatrix4x4 mMVP;
+    float mDeltaPhi;
+    float mDeltaTheta;
 
     uint mCubeID;
     uint mSamplerID;
@@ -31,11 +34,11 @@ struct DrawParams {
 };
 
 struct FSInput {
-    float3 Pos : TEXCOORD0;
+    float3 mPos : TEXCOORD0;
 };
 
 struct FSOutput {
-    float4 Color : SV_Target0;
+    float4 mColor : SV_Target0;
 };
 
 MKT_DECLARE_PUSH_CONSTANT( DrawParams, parameters );
@@ -47,7 +50,7 @@ MKT_DECLARE_SAMPLERS samplers;
 FSOutput main( FSInput input ) {
     FSOutput o;
 
-    float3 N = normalize( input.Pos );
+    float3 N = normalize( input.mPos );
     float3 up = float3( 0.0, 1.0, 0.0 );
 
     float3 right = normalize( cross( up, N ) );
@@ -60,8 +63,8 @@ FSOutput main( FSInput input ) {
     uint sampleCount = 0;
 
     // Hemisphere sampling for irradiance
-    for ( float phi = 0.0; phi < twoPi; phi += parameters.DeltaPhi ) {
-        for ( float theta = 0.0; theta < haldPi; theta += parameters.DeltaTheta ) {
+    for ( float phi = 0.0; phi < twoPi; phi += parameters.mDeltaPhi ) {
+        for ( float theta = 0.0; theta < haldPi; theta += parameters.mDeltaTheta ) {
             float3 tempVec = cos( phi ) * right + sin( phi ) * up;
 
             float3 sampleVector = cos( theta ) * N + sin( theta ) * tempVec;
@@ -74,6 +77,6 @@ FSOutput main( FSInput input ) {
         }
     }
 
-    o.Color = float4( PI_Value * color / float( sampleCount ), 1.0 );
+    o.mColor = float4( PI_Value * color / float( sampleCount ), 1.0 );
     return o;
 }

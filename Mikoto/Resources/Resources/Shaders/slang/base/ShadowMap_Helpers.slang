@@ -12,53 +12,64 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// CPU-mirrored shadow records and receiver-depth conventions. Directional/local projections and
+// grass-contact lookup must compare depths in the corresponding map or camera space.
+
 #pragma once
 
+// CPU ShadowRecord has six slots; directional lights use four cascades plus two screen-space signals.
+static const uint kShadowFaceCapacity = 6;
+static const uint kDirectionalVisibilitySlot = 4;
+static const uint kDirectionalReceiverSlot = 5;
+
+// The fixed 3x3 PCF kernel spans one texel on either side of the center.
+static const int kShadowPcfRadius = 1;
+
 struct ShadowRecord {
-    float4x4 ViewProjection[6];
-    float4 CascadeSplits;
-    float4 PositionRange;
-    uint TextureIDs[6]; // Directional: cascades 0..3, filtered visibility 4, camera receiver depth 5.
-    uint FaceCount;
-    int LightType;
+    float4x4 mViewProjection[kShadowFaceCapacity];
+    float4 mCascadeSplits;
+    float4 mPositionRange;
+    uint mTextureIDs[kShadowFaceCapacity]; // Directional: cascades 0..3, filtered visibility 4, receiver data (opaque depth in R) 5.
+    uint mFaceCount;
+    int mLightType;
     // xy: constant/slope bias; directional meters, local normalized radius.
-    float4 Bias;
+    float4 mBias;
 };
 
 // The 80-byte tail of ShadowRecord. Load this first, then fetch only the
 // selected matrix from the buffer. Copying the six-matrix array into a local
 // record forces dynamically indexed temporary arrays into the pixel shader.
 struct ShadowMetadata {
-    float4 CascadeSplits;
-    float4 PositionRange;
-    uint4 TextureIDs0;
-    uint2 TextureIDs1;
-    uint FaceCount;
-    int LightType;
+    float4 mCascadeSplits;
+    float4 mPositionRange;
+    uint4 mTextureIDs0;
+    uint2 mTextureIDs1;
+    uint mFaceCount;
+    int mLightType;
     // xy: constant/slope bias; directional meters, local normalized radius.
-    float4 Bias;
+    float4 mBias;
 
     uint TextureID( uint face ) {
         // Scalar selection also avoids materializing a dynamically indexed
         // texture-ID array in the generated shader.
         switch ( face ) {
             case 0: {
-                return TextureIDs0.x;
+                return mTextureIDs0.x;
             }
             case 1: {
-                return TextureIDs0.y;
+                return mTextureIDs0.y;
             }
             case 2: {
-                return TextureIDs0.z;
+                return mTextureIDs0.z;
             }
             case 3: {
-                return TextureIDs0.w;
+                return mTextureIDs0.w;
             }
             case 4: {
-                return TextureIDs1.x;
+                return mTextureIDs1.x;
             }
             case 5: {
-                return TextureIDs1.y;
+                return mTextureIDs1.y;
             }
             default: {
                 return 0xffffffffu;
@@ -67,30 +78,30 @@ struct ShadowMetadata {
     }
 };
 
-static const uint ShadowMetadataOffset = 6 * sizeof( float4x4 );
+static const uint ShadowMetadataOffset = kShadowFaceCapacity * sizeof( float4x4 );
 struct ShadowDrawParams {
-    uint64_t Geometry;
-    uint64_t Skinning;
-    uint64_t Allocation;
-    uint64_t Records;
-    uint64_t Materials;
-    uint Sampler;
-    uint Record;
-    uint Face;
-    uint Padding;
+    uint64_t mGeometry;
+    uint64_t mSkinning;
+    uint64_t mAllocation;
+    uint64_t mRecords;
+    uint64_t mMaterials;
+    uint mSampler;
+    uint mRecord;
+    uint mFace;
+    uint mPadding;
 };
 
 struct ShadowVertexOutput {
-    float4 Position : SV_Position;
-    nointerpolation uint MaterialIndex : TEXCOORD0;
-    float2 Uv0 : TEXCOORD1;
-    float2 Uv1 : TEXCOORD2;
-    float VertexAlpha : TEXCOORD3;
-    float3 WorldPosition : TEXCOORD4;
-    nointerpolation float4 LightPositionRange : TEXCOORD5;
-    nointerpolation int LightType : TEXCOORD6;
-    nointerpolation uint AlphaMode : TEXCOORD7;
-    nointerpolation uint FaceFlags : TEXCOORD8;
+    float4 mPosition : SV_Position;
+    nointerpolation uint mMaterialIndex : TEXCOORD0;
+    float2 mUv0 : TEXCOORD1;
+    float2 mUv1 : TEXCOORD2;
+    float mVertexAlpha : TEXCOORD3;
+    float3 mWorldPosition : TEXCOORD4;
+    nointerpolation float4 mLightPositionRange : TEXCOORD5;
+    nointerpolation int mLightType : TEXCOORD6;
+    nointerpolation uint mAlphaMode : TEXCOORD7;
+    nointerpolation uint mFaceFlags : TEXCOORD8;
 };
 
 // Perspective z compresses most of a local light's range near 1. A fixed
@@ -155,6 +166,8 @@ float LocalShadowReceiverDepth( float4x4 viewProjection, float2 texelUV, float3 
     return length( ray ) * t / max( positionRange.w, 0.000001 );
 }
 
+// Select the cubemap face with the largest absolute direction component. Its sign determines
+// the positive or negative face.
 uint PointShadowFace( float3 direction ) {
     float3 a = abs( direction );
     if ( a.x >= a.y && a.x >= a.z ) {
@@ -164,4 +177,23 @@ uint PointShadowFace( float3 direction ) {
         return direction.y >= 0 ? 2 : 3;
     }
     return direction.z >= 0 ? 4 : 5;
+}
+
+
+// Receiver data keeps contact visibility separate from filtered map visibility.
+// Match exact hardware depth before applying it: a transparent layer or hidden
+// blade must not inherit the nearest opaque/grass surface's contact shadow.
+// Load the screen-space contact layer only when its stored device depth matches this receiver.
+// Unmatched transparent or hidden surfaces receive neutral contact visibility.
+float GrassContactVisibility( Texture2D<float4> receivers, float3 screenPosition, bool grassReceiver ) {
+    uint width;
+    uint height;
+    receivers.GetDimensions( width, height );
+    int2 pixel = clamp( int2( screenPosition.xy ), 0, int2( width, height ) - 1 );
+    float4 data = receivers.Load( int3( pixel, 0 ) );
+    float receiverDepth = grassReceiver ? data.a : data.r;
+    if ( abs( receiverDepth - screenPosition.z ) > 2e-6 ) {
+        return 1;
+    }
+    return grassReceiver ? data.b : data.g;
 }

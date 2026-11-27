@@ -12,17 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Reconstruct the sharp, slightly defocused, background and foreground layers at full
+// resolution. Signed CoC and coverage determine their ordering and blend weights.
+
 #include "base/DepthOfField_Helpers.slang"
+
+// Maximum full-resolution gather radius in pixels; wider blur is resolved by the half-
+// resolution bokeh layers.
+static const int kDoFSmallGatherRadius = 4;
 
 MKT_DECLARE_PUSH_CONSTANT( DepthOfFieldParameters, parameters );
 
 // Background upsampling is CoC-aware; foreground coverage must be allowed to cross silhouettes.
+// Reconstruct the half-resolution far layer with CoC-sensitive weights. The full-resolution
+// radius keeps sharp foreground pixels from importing blurred background indiscriminately.
 float4 UpsampleBackground( float2 halfPixel, float fullCoC ) {
     int2 origin = int2( floor( halfPixel ) );
     float2 fraction = frac( halfPixel );
     float4 sum = 0.0;
     float weightSum = 0.0;
-    for ( uint i = 0; i < 4; ++i ) {
+    for ( uint i = 0; i < kBilinearTapCount; ++i ) {
         int2 delta = int2( i & 1, i >> 1 );
         float2 axisWeight = lerp( 1.0 - fraction, fraction, float2( delta ) );
         float coc = DoFLoad( parameters.mInputs[7], origin + delta ).a * 2.0;
@@ -34,6 +43,8 @@ float4 UpsampleBackground( float2 halfPixel, float fullCoC ) {
     return sum / max( weightSum, 1e-5 );
 }
 
+// Gather the small-defocus transition from the full-resolution source. This bridges sharp focus
+// and the separately gathered wide bokeh layers.
 float3 GatherFullResolutionFocus( int2 pixel, float4 original, float centerCoC ) {
     if ( abs( centerCoC ) < 0.5 || abs( centerCoC ) >= 4.0 ) { return original.rgb; }
 
@@ -41,8 +52,8 @@ float3 GatherFullResolutionFocus( int2 pixel, float4 original, float centerCoC )
     float sum = 0.0;
     // Fixed samples replace the presentation's stochastic sampling plus main TAA.
     // Pixel centers and the soft aperture intersection retain subpixel blur radii.
-    for ( int y = -4; y <= 4; ++y ) {
-        for ( int x = -4; x <= 4; ++x ) {
+    for ( int y = -kDoFSmallGatherRadius; y <= kDoFSmallGatherRadius; ++y ) {
+        for ( int x = -kDoFSmallGatherRadius; x <= kDoFSmallGatherRadius; ++x ) {
             float2 offset = float2( x, y );
             if ( dot( offset, offset ) > 16.0 ) { continue; }
             float sampleCoC = DoFLoad( parameters.mInputs[1], pixel + int2( x, y ) ).x;
@@ -65,7 +76,7 @@ float3 GatherFullResolutionFocus( int2 pixel, float4 original, float centerCoC )
     int2 origin = int2( floor( halfPixel ) );
     float3 low = original.rgb;
     float3 high = original.rgb;
-    for ( uint i = 0; i < 4; ++i ) {
+    for ( uint i = 0; i < kBilinearTapCount; ++i ) {
         float4 focus = DoFLoad( parameters.mInputs[5], origin + int2( i & 1, i >> 1 ) );
         if ( focus.a > 0.0 ) {
             low = min( low, focus.rgb );
@@ -76,7 +87,7 @@ float3 GatherFullResolutionFocus( int2 pixel, float4 original, float centerCoC )
 }
 
 [shader( "compute" )]
-[numthreads( 8, 8, 1 )]
+[numthreads( kImageGroupWidth, kImageGroupHeight, 1 )]
 void main( uint3 thread : SV_DispatchThreadID ) {
     uint2 pixel = thread.xy;
     if ( any( pixel >= uint2( parameters.mWidth, parameters.mHeight ) ) ) { return; }
@@ -98,7 +109,7 @@ void main( uint3 thread : SV_DispatchThreadID ) {
     float2 halfUV = ( halfPixel + 0.5 ) / float2( DoFHalfSize( parameters ) );
     float4 foreground = DoFSample( parameters.mInputs[2], parameters.mSampler, halfUV );
     float4 background = UpsampleBackground( halfPixel, coc );
-    float4 fill = DoFSample( parameters.mInputs[4], parameters.mSampler, halfUV );
+    float4 fill = DoFSample( parameters.mInputs[kDoFTileBoundsInput], parameters.mSampler, halfUV );
     float3 focus = GatherFullResolutionFocus( int2( pixel ), original, coc );
 
     float backgroundOpacity = saturate( background.a );

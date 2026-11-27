@@ -610,6 +610,7 @@ namespace mikoto::asset {
 
         auto textureDescription{ renderer::rhi::TextureCreateDescription{}
             .SetImageData( image )
+            .SetMipCount( image->mMipCount )
             .SetWidth( core::as<core::i32>( image->mWidth ) )
             .SetHeight( core::as<core::i32>( image->mHeight ) )
             .SetDimensions( renderer::rhi::TextureDimension::eTexture2D )

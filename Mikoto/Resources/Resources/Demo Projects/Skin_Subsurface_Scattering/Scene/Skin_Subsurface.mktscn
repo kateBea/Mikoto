@@ -1,0 +1,465 @@
+# The demo's merged OBJ preserves the full shared scan as one mesh.
+# Matching scale, albedo and roughness isolate the effect of subsurface scattering.
+# The warm rear emitter emphasizes transmission around thin areas such as the ears.
+
+{
+  "Version": 5,
+  "RelativeAssetPaths": true,
+  "Scene": "Skin Subsurface Scattering",
+  "EnvironmentLightingSource": 1,
+  "ToneMapping": 0,
+  "Objects": [
+    {
+      "ID": 1,
+      "Type": 6,
+      "TagComponent": {
+        "Name": "Game camera",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Local Transform": [
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.99963985,
+            -0.02683597,
+            0
+          ],
+          [
+            0,
+            0.02683597,
+            0.99963985,
+            0
+          ],
+          [
+            0,
+            0.305,
+            0.72,
+            1
+          ]
+        ],
+        "Uniform Scale": true
+      },
+      "Children": [],
+      "CameraComponent": {
+        "Projection": 1,
+        "Fov": 42,
+        "Near": 0.005,
+        "Far": 8,
+        "Main": true,
+        "FixedAspect": false,
+        "ClearFlags": 0,
+        "ClearColor": [
+          0.014,
+          0.018,
+          0.024,
+          1
+        ],
+        "Gamma": 2.2,
+        "Exposure": 1,
+        "Vignette": {
+          "Enabled": false
+        }
+      }
+    },
+    {
+      "ID": 2,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "Studio floor",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Local Transform": [
+          [
+            2.2,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.054,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            2,
+            0
+          ],
+          [
+            0,
+            0.073,
+            0,
+            1
+          ]
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../../../Prefabs/box/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 1
+      }
+    },
+    {
+      "ID": 3,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "Studio background",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Local Transform": [
+          [
+            2.2,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1.1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.05,
+            0
+          ],
+          [
+            0,
+            0.65,
+            -0.53,
+            1
+          ]
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../../../Prefabs/box/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 1
+      }
+    },
+    {
+      "ID": 4,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "Left pedestal",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Local Transform": [
+          [
+            0.27,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.076,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.22,
+            0
+          ],
+          [
+            -0.177,
+            0.138,
+            0,
+            1
+          ]
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../../../Prefabs/box/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 0
+      }
+    },
+    {
+      "ID": 5,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "Right pedestal",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Local Transform": [
+          [
+            0.27,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.076,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.22,
+            0
+          ],
+          [
+            0.177,
+            0.138,
+            0,
+            1
+          ]
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../../../Prefabs/box/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 0
+      }
+    },
+    {
+      "ID": 6,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "Left: Standard Lit control",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Local Transform": [
+          [
+            0.53,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.53,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.53,
+            0
+          ],
+          [
+            -0.177,
+            0.338,
+            0,
+            1
+          ]
+        ],
+        "Uniform Scale": true
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Lee_Perry_Smith_Head.obj"
+      },
+      "MaterialComponent": {
+        "Reference": 2
+      }
+    },
+    {
+      "ID": 7,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "Right: Skin 2 subsurface scattering",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Local Transform": [
+          [
+            0.53,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.53,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0.53,
+            0
+          ],
+          [
+            0.177,
+            0.338,
+            0,
+            1
+          ]
+        ],
+        "Uniform Scale": true
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Lee_Perry_Smith_Head.obj"
+      },
+      "MaterialComponent": {
+        "Reference": 3
+      }
+    },
+    {
+      "ID": 8,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Shared soft key",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Local Transform": [
+          [
+            -1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.78488277,
+            -0.61964429,
+            0
+          ],
+          [
+            0,
+            -0.61964429,
+            -0.78488277,
+            0
+          ],
+          [
+            0,
+            0.59,
+            0.38,
+            1
+          ]
+        ],
+        "Uniform Scale": true
+      },
+      "Children": [],
+      "LightComponent": {
+        "Type": 3,
+        "Area": {
+          "Shape": 0,
+          "Color": [
+            1,
+            0.94,
+            0.88
+          ],
+          "Intensity": 3.2,
+          "Size": [
+            0.79,
+            0.24
+          ],
+          "TwoSided": false
+        }
+      }
+    },
+    {
+      "ID": 9,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Shared warm rim",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Local Transform": [
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.60667332,
+            0.79495125,
+            0
+          ],
+          [
+            0,
+            -0.79495125,
+            0.60667332,
+            0
+          ],
+          [
+            0,
+            0.69,
+            -0.29,
+            1
+          ]
+        ],
+        "Uniform Scale": true
+      },
+      "Children": [],
+      "LightComponent": {
+        "Type": 3,
+        "Area": {
+          "Shape": 0,
+          "Color": [
+            1,
+            0.67,
+            0.47
+          ],
+          "Intensity": 5.5,
+          "Size": [
+            0.93,
+            0.15
+          ],
+          "TwoSided": false
+        }
+      }
+    }
+  ],
+  "Materials": [
+    {
+      "MaterialPath": "../Assets/Materials/Studio_Slate.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Studio_Backdrop.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Skin_Control.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Skin_SSS.mktmtl"
+    }
+  ]
+}

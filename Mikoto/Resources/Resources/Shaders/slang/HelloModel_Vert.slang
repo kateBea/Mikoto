@@ -20,50 +20,50 @@
 using namespace mikoto;
 
 struct VSInput {
-    uint VertexID : SV_VertexID;
-    uint InstanceIndex : SV_InstanceID;
-    uint BaseInstanceIndex : SV_StartInstanceLocation;
+    uint mVertexID : SV_VertexID;
+    uint mInstanceIndex : SV_InstanceID;
+    uint mBaseInstanceIndex : SV_StartInstanceLocation;
 };
 
 struct VertexDescription {
-    float3 position : POSITION;
-    float3 normal : NORMAL;
-    float4 color : COLOR;
+    float3 mPosition : POSITION;
+    float3 mNormal : NORMAL;
+    float4 mColor : COLOR;
 
-    float2 uv0 : TEXCOORD0;
-    float2 uv1 : TEXCOORD1;
+    float2 mUv0 : TEXCOORD0;
+    float2 mUv1 : TEXCOORD1;
 
-    float4 joints0 : BLENDINDICES0;
-    float4 weights0 : BLENDWEIGHT0;
+    float4 mJoints0 : BLENDINDICES0;
+    float4 mWeights0 : BLENDWEIGHT0;
 
-    float4 joints1 : BLENDINDICES1;
-    float4 weights1 : BLENDWEIGHT1;
+    float4 mJoints1 : BLENDINDICES1;
+    float4 mWeights1 : BLENDWEIGHT1;
 };
 
 struct VSOutput {
-    float4 position : SV_POSITION;
-    float2 uv : ATTRIBUTE3;
+    float4 mPosition : SV_POSITION;
+    float2 mUv : ATTRIBUTE3;
 };
 
 struct DrawParams {
-    uint VertexID;
-    uint IndexID;
-    uint OffsetsID;
+    uint mVertexID;
+    uint mIndexID;
+    uint mOffsetsID;
 
-    uint SamplerID;
+    uint mSamplerID;
 
-    uint TextureID;
+    uint mTextureID;
 
-    uint IndexOffsetID;
-    uint VertexOffsetID;
+    uint mIndexOffsetID;
+    uint mVertexOffsetID;
 
-    uint TransformID;
+    uint mTransformID;
 };
 
 struct GeometryTransformation {
-    float4x4 Model;
-    float4x4 View;
-    float4x4 Projection;
+    float4x4 mModel;
+    float4x4 mView;
+    float4x4 mProjection;
 };
 
 MKT_DECLARE_STRUCTURED_SRV Buffers;
@@ -74,21 +74,21 @@ MKT_DECLARE_PUSH_CONSTANT( DrawParams, Parameters );
 VSOutput main( VSInput input ) {
     VSOutput o;
 
-    ByteAddressBuffer Vertices = Buffers[Parameters.VertexID];
-    ByteAddressBuffer Indices = Buffers[Parameters.IndexID];
-    ByteAddressBuffer Offsets = Buffers[Parameters.OffsetsID];
+    ByteAddressBuffer Vertices = Buffers[Parameters.mVertexID];
+    ByteAddressBuffer Indices = Buffers[Parameters.mIndexID];
+    ByteAddressBuffer Offsets = Buffers[Parameters.mOffsetsID];
 
-    uint indexOffset = Offsets.Read<uint>( Parameters.IndexOffsetID, 0 );
-    uint vertexOffset = Offsets.Read<uint>( Parameters.VertexOffsetID, 0 );
+    uint indexOffset = Offsets.Read<uint>( Parameters.mIndexOffsetID, 0 );
+    uint vertexOffset = Offsets.Read<uint>( Parameters.mVertexOffsetID, 0 );
 
-    uint index = Indices.Read<uint>( indexOffset, input.VertexID );
+    uint index = Indices.Read<uint>( indexOffset, input.mVertexID );
     VertexDescription vertex = Vertices.Read<VertexDescription>( vertexOffset, index );
 
-    ByteAddressBuffer cBuff = Buffers[Parameters.TransformID];
+    ByteAddressBuffer cBuff = Buffers[Parameters.mTransformID];
     GeometryTransformation tg = cBuff.Read<GeometryTransformation>( 0, 0 );
 
-    o.position = tg.Projection * tg.View * tg.Model * float4( vertex.position, 1.0 );
-    o.uv = vertex.uv0;
+    o.mPosition = tg.mProjection * tg.mView * tg.mModel * float4( vertex.mPosition, 1.0 );
+    o.mUv = vertex.mUv0;
 
     return o;
 }

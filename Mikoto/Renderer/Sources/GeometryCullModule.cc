@@ -12,40 +12,39 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <utility>
 #include <cmath>
+#include <utility>
 
+#include <EASTL/algorithm.h>
 #include <EASTL/bit.h>
 #include <EASTL/sort.h>
-#include <EASTL/algorithm.h>
 #include <EASTL/unique_ptr.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtx/compatibility.hpp>
 
+#include <Animation/AnimationSystem.hh>
+#include <Animation/Utility.hh>
+
+#include <Core/Blackboard.hh>
 #include <Core/Core.hh>
+#include <Core/Exception.hh>
+#include <Core/Profiler.hh>
 #include <Core/Timer.hh>
 #include <Core/Types.hh>
-#include <Core/Profiler.hh>
-#include <Core/Exception.hh>
-#include <Core/Blackboard.hh>
 
 #include <Logging/Logger.hh>
 
-#include <Math/Math.hh>
-
 #include <Material/SurfaceMaterial.hh>
 
-#include <Animation/Utility.hh>
-#include <Animation/AnimationSystem.hh>
-
-#include <Renderer/Video/Video.hh>
+#include <Math/Math.hh>
 
 #include <Renderer/Core/CommandContext.hh>
 #include <Renderer/ForwardRenderer/Passes/GeometryCullModule.hh>
+#include <Renderer/Video/Video.hh>
 
-#include <Scene/Scene.hh>
 #include <Scene/Component.hh>
+#include <Scene/Scene.hh>
 
 namespace mikoto::renderer {
 
@@ -56,13 +55,13 @@ namespace mikoto::renderer {
 
     // Independent implementation of the discrete near/far Gaussian model described at:
     // https://bentobaux.github.io/posts/separable-subsurface-scattering-in-unity-6/
-    // 
+    //
     // Reference shader: Assets/Shaders/Library/SSS Util/ArtistFriendlyKernel.shader
     // https://github.com/bentoBAUX/Separable-Subsurface-Scattering-in-Unity-6
     // Underlying separable model: https://iryoku.com/separable-sss/
 
     /** @brief Builds the reference's discrete Gaussian mixture on material edits. */
-    MKT_NODISCARD static auto BuildSubsurfaceKernel( const material::SubsurfaceSettings& settings ) -> material::SubsurfaceKernel {
+    MKT_NODISCARD static auto BuildSubsurfaceKernel( const material::SubsurfaceSettings &settings ) -> material::SubsurfaceKernel {
         SubsurfaceKernel result{};
         const core::i32 count{ eastl::clamp( settings.mSamples, 7, 65 ) | 1 };
 
@@ -81,7 +80,7 @@ namespace mikoto::renderer {
         for ( core::i32 tap{}; tap < count; ++tap ) {
             // Center, -1, +1, -2, +2, ...; 65 taps match reference stepCount=32.
             const core::i32 offset{ tap == 0 ? 0 : ( tap % 2 ? -( tap + 1 ) / 2 : tap / 2 ) };
-            auto& sample{ result.mSamples[tap] };
+            auto &sample{ result.mSamples[tap] };
             sample.w = core::as<core::f32>( offset );
 
             for ( core::i32 channel{}; channel < 3; ++channel ) {
@@ -105,7 +104,7 @@ namespace mikoto::renderer {
     }
 
     /** @brief Beer-Lambert attenuation from the same near/far profile; no shadow-depth approximation. */
-    MKT_NODISCARD static auto BuildSubsurfaceTransmission( const material::SubsurfaceSettings& settings ) -> core::float3 {
+    MKT_NODISCARD static auto BuildSubsurfaceTransmission( const material::SubsurfaceSettings &settings ) -> core::float3 {
         // Artist-authored thickness, as in the reference's SSSSTransmission.hlsl.
         // This is independent of mesh dimensions; it is not inferred from shadow maps.
         const core::float3 distance{ glm::mix( settings.mFar, settings.mNear, settings.mNearWeight ) * settings.mScatterScale };
@@ -118,13 +117,13 @@ namespace mikoto::renderer {
         return result * settings.mTranslucency * glm::clamp( settings.mScatterScale / 10.0f, 0.0f, 1.0f );
     }
 
-    auto GeometryAllocator::Get( core::u32 index ) const -> const GeometryAllocation& {
+    auto GeometryAllocator::Get( core::u32 index ) const -> const GeometryAllocation & {
         MKT_ASSERT( index <= mAllocations.size(), "Index out of bounds for allocations." );
 
         return mAllocations[index];
     }
 
-    auto GeometryAllocator::GetOrAllocate( const MeshRenderDataHandle& mesh ) -> const GeometryAllocation& {
+    auto GeometryAllocator::GetOrAllocate( const MeshRenderDataHandle &mesh ) -> const GeometryAllocation & {
         MKT_BEGIN_PROFILER();
         const auto found{ mAllocationIndices.find( mesh.GetPtr() ) };
 
@@ -212,14 +211,14 @@ namespace mikoto::renderer {
         }
     }
 
-    auto GeometryAllocator::Prepare( CommandContext& ctx, core::Blackboard& blackboard ) -> void {
+    auto GeometryAllocator::Prepare( CommandContext &ctx, core::Blackboard &blackboard ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( mUploadedCount == mAllocations.size() && !mRepack ) {
             return;
         }
 
-        const auto& info{ blackboard.Get<GeometryCullModuleInfo>() };
+        const auto &info{ blackboard.Get<GeometryCullModuleInfo>() };
         const auto repack{ [&] {
             mAttributeBytes = 0;
             mIndexCount = 0;
@@ -229,8 +228,8 @@ namespace mikoto::renderer {
                     continue;
                 }
 
-                const auto& source{ mSources[index] };
-                auto& allocation{ mAllocations[index] };
+                const auto &source{ mSources[index] };
+                auto &allocation{ mAllocations[index] };
                 allocation.mFirstIndex = core::as<core::u32>( mIndexCount );
                 const core::usize streams{ source->IsSkinned() ? kMeshStreamCount : core::as<core::usize>( MeshStream::Joints0 ) };
 
@@ -270,8 +269,8 @@ namespace mikoto::renderer {
                 continue;
             }
 
-            const auto& source{ mSources[index] };
-            auto& allocation{ mAllocations[index] };
+            const auto &source{ mSources[index] };
+            auto &allocation{ mAllocations[index] };
             allocation.mIndexBuffer = indexAddress + core::usize{ allocation.mFirstIndex } * sizeof( core::u32 );
             const core::usize streams{ source->IsSkinned() ? kMeshStreamCount : core::as<core::usize>( MeshStream::Joints0 ) };
 
@@ -283,14 +282,14 @@ namespace mikoto::renderer {
         mRepack = false;
     }
 
-    auto GeometryAllocator::Flush( CommandContext& ctx, core::Blackboard& blackboard ) -> void {
+    auto GeometryAllocator::Flush( CommandContext &ctx, core::Blackboard &blackboard ) -> void {
         MKT_BEGIN_PROFILER();
-        const auto& info{ blackboard.Get<GeometryCullModuleInfo>() };
+        const auto &info{ blackboard.Get<GeometryCullModuleInfo>() };
         // Deformable instances reuse their ranges. The existing upload pass declares these transfer writes.
         const auto baseAddress{ ctx.GetDeviceBufferAddress( info.mAttributeBuffer ) };
 
         for ( core::usize index{}; index < mUploadedCount; ++index ) {
-            const auto& source{ mSources[index] };
+            const auto &source{ mSources[index] };
 
             if ( !source || mUploadedRevisions[index] == source->GetRevision() ) {
                 continue;
@@ -304,7 +303,7 @@ namespace mikoto::renderer {
         }
 
         for ( core::usize index{ mUploadedCount }; index < mAllocations.size(); ++index ) {
-            const auto& source{ mSources[index] };
+            const auto &source{ mSources[index] };
 
             if ( !source ) {
                 continue;
@@ -312,11 +311,11 @@ namespace mikoto::renderer {
 
             const auto attributes{ source->GetAttributes() };
             const auto indices{ source->GetIndices() };
-            const auto& allocation{ mAllocations[index] };
+            const auto &allocation{ mAllocations[index] };
 
             ctx.CopyBuffer( info.mAttributeBuffer, mUploadedAttributeBytes, attributes.data(), attributes.size() );
             ctx.CopyBuffer( info.mIndexBuffer, core::usize{ allocation.mFirstIndex } * sizeof( core::u32 ), indices.data(), indices.size() * sizeof( core::u32 ) );
-            
+
             mUploadedAttributeBytes += attributes.size();
             mUploadedRevisions[index] = source->GetRevision();
         }
@@ -329,14 +328,14 @@ namespace mikoto::renderer {
         mUploadedCount = mAllocations.size();
     }
 
-    auto SceneGeometryCache::Resolve( entt::entity entity ) -> Entry& {
+    auto SceneGeometryCache::Resolve( entt::entity entity ) -> Entry & {
         const auto index{ entt::to_entity( entity ) };
 
         if ( index >= mEntries.size() ) {
             mEntries.resize( core::usize{ index } + 1 );
         }
 
-        auto& entry{ mEntries[index] };
+        auto &entry{ mEntries[index] };
 
         if ( entry.mEntity != entity ) {
             entry = {};
@@ -388,12 +387,17 @@ namespace mikoto::renderer {
         mHadCullingDebugCamera = false;
     }
 
-    auto GeometryCullModule::SetScene( const scene::Scene* scene ) -> void {
+    auto GeometryCullModule::SetFoliageWindEnabled( bool enabled ) -> void {
+        // Path tracing still builds acceleration structures from undeformed meshes.
+        mFoliageWindEnabled = enabled;
+    }
+
+    auto GeometryCullModule::SetScene( const scene::Scene *scene ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
         eastl::shared_ptr<SceneGeometryCache> cache{};
 
         if ( scene ) {
-            auto& shared{ scene->GetGeometryCache() };
+            auto &shared{ scene->GetGeometryCache() };
 
             if ( !shared ) {
                 shared = eastl::make_shared<SceneGeometryCache>();
@@ -412,12 +416,12 @@ namespace mikoto::renderer {
         mSharedCache = eastl::move( cache );
     }
 
-    auto GeometryCullModule::SetCamera( const scene::Camera* camera ) -> void {
+    auto GeometryCullModule::SetCamera( const scene::Camera *camera ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
         mCamera = camera;
     }
 
-    auto GeometryCullModule::SetCullingDebugCamera( const scene::Camera* camera ) -> void {
+    auto GeometryCullModule::SetCullingDebugCamera( const scene::Camera *camera ) -> void {
         mCullingDebugCamera = camera;
     }
 
@@ -425,15 +429,20 @@ namespace mikoto::renderer {
         mFrustumCullingEnabled = enabled;
     }
 
+    auto GeometryCullModule::GetShadowCasterRevision() const -> core::u64 {
+        return mShadowCasterRevision;
+    }
+
     auto GeometryCullModule::SetMeshesVisible( bool visible ) -> void {
+        mShadowCasterRevision += mMeshesVisible != visible ? 1 : 0;
         mMeshesVisible = visible;
     }
 
-    auto GeometryCullModule::GetInstanceUploadStatistics() const -> const SceneUploadStatistics& {
+    auto GeometryCullModule::GetInstanceUploadStatistics() const -> const SceneUploadStatistics & {
         return mInstanceUpload.GetStatistics();
     }
 
-    auto GeometryCullModule::GetMaterialUploadStatistics() const -> const SceneUploadStatistics& {
+    auto GeometryCullModule::GetMaterialUploadStatistics() const -> const SceneUploadStatistics & {
         return mMaterialUpload.GetStatistics();
     }
 
@@ -441,18 +450,18 @@ namespace mikoto::renderer {
         return mMaterialSlots.size();
     }
 
-    auto GeometryCullModule::RegisterGeometryFilterPass( FrameGraph& graph ) -> void {
+    auto GeometryCullModule::RegisterGeometryFilterPass( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         // Create the resources
-        auto& geometryFilterInfo{ graph.GetOrCreate<GeometryCullModuleInfo>() };
+        auto &geometryFilterInfo{ graph.GetOrCreate<GeometryCullModuleInfo>() };
 
         auto indirectCommandsDesc{ FGBufferDescription{}
             .SetName( "GeometryUnculledCommands_Buffer" )
             .SetUsage( renderer::rhi::BufferUsageFlagsBits::Structured |
-                renderer::rhi::BufferUsageFlagsBits::IndirectDraw |
-                renderer::rhi::BufferUsageFlagsBits::CopySource |
-                renderer::rhi::BufferUsageFlagsBits::CopyDest )
+                           renderer::rhi::BufferUsageFlagsBits::IndirectDraw |
+                           renderer::rhi::BufferUsageFlagsBits::CopySource |
+                           renderer::rhi::BufferUsageFlagsBits::CopyDest )
             .SetSizeBytes( 65536 )
             .SetHeapType( renderer::rhi::HeapType::eDeviceLocal ) };
         mUnculledIndirectBuffer = graph.Create( indirectCommandsDesc );
@@ -461,8 +470,8 @@ namespace mikoto::renderer {
         geometryFilterInfo.mDrawBoundsBuffer = graph.Create( FGBufferDescription{}
             .SetName( "GeometryDrawBounds" )
             .SetUsage( renderer::rhi::BufferUsageFlagsBits::Structured |
-                renderer::rhi::BufferUsageFlagsBits::CopySource |
-                renderer::rhi::BufferUsageFlagsBits::CopyDest )
+                           renderer::rhi::BufferUsageFlagsBits::CopySource |
+                           renderer::rhi::BufferUsageFlagsBits::CopyDest )
             .SetSizeBytes( 65536 ) );
 
         auto samplerDes{ FGSamplerDescription{}
@@ -477,6 +486,8 @@ namespace mikoto::renderer {
         // an opaque occluder. Retain the basic sampler for debug presentation.
         geometryFilterInfo.mMaterialSampler = graph.Create( FGSamplerDescription{}
             .SetName( "Geometry_MaterialSampler" )
+            .SetMipLevels( 32.0f )
+            .SetMaxAnisotropy( 8.0f )
             .SetFilter( rhi::SamplerFilter::eLinear )
             .SetWrap( renderer::rhi::SamplerWrapMode::eRepeat )
             .SetBorderColor( renderer::rhi::kColorWhite ) );
@@ -490,14 +501,14 @@ namespace mikoto::renderer {
         geometryFilterInfo.mAttributeBuffer = graph.Create( FGBufferDescription{}
             .SetName( "GeometryAttributeArena" )
             .SetUsage( renderer::rhi::BufferUsageFlagsBits::Structured |
-                renderer::rhi::BufferUsageFlagsBits::CopySource |
-                renderer::rhi::BufferUsageFlagsBits::CopyDest )
+                           renderer::rhi::BufferUsageFlagsBits::CopySource |
+                           renderer::rhi::BufferUsageFlagsBits::CopyDest )
             .SetSizeBytes( 1024 * 1024 ) );
         geometryFilterInfo.mIndexBuffer = graph.Create( FGBufferDescription{}
             .SetName( "GeometryIndexArena" )
             .SetUsage( renderer::rhi::BufferUsageFlagsBits::Structured |
-                renderer::rhi::BufferUsageFlagsBits::CopySource |
-                renderer::rhi::BufferUsageFlagsBits::CopyDest )
+                           renderer::rhi::BufferUsageFlagsBits::CopySource |
+                           renderer::rhi::BufferUsageFlagsBits::CopyDest )
             .SetSizeBytes( 1024 * 1024 ) );
 
         ResetGeometryData();
@@ -505,8 +516,8 @@ namespace mikoto::renderer {
         auto vertexDesc{ FGBufferDescription{}
             .SetName( "GeometryDescription_Buffer01" )
             .SetUsage( renderer::rhi::BufferUsageFlagsBits::Structured |
-                renderer::rhi::BufferUsageFlagsBits::CopySource |
-                renderer::rhi::BufferUsageFlagsBits::CopyDest )
+                           renderer::rhi::BufferUsageFlagsBits::CopySource |
+                           renderer::rhi::BufferUsageFlagsBits::CopyDest )
             .SetSizeBytes( 65536 )
             .SetHeapType( renderer::rhi::HeapType::eDeviceLocal ) };
         geometryFilterInfo.mGeometryAllocBuffer = graph.Create( vertexDesc );
@@ -514,23 +525,23 @@ namespace mikoto::renderer {
         auto materialsDesc{ FGBufferDescription{}
             .SetName( "GeometryMaterials_Buffer01" )
             .SetUsage( renderer::rhi::BufferUsageFlagsBits::Structured |
-                renderer::rhi::BufferUsageFlagsBits::CopySource |
-                renderer::rhi::BufferUsageFlagsBits::CopyDest )
+                           renderer::rhi::BufferUsageFlagsBits::CopySource |
+                           renderer::rhi::BufferUsageFlagsBits::CopyDest )
             .SetSizeBytes( 65536 )
             .SetHeapType( renderer::rhi::HeapType::eDeviceLocal ) };
         geometryFilterInfo.mMaterialsBuffer = graph.Create( materialsDesc );
         geometryFilterInfo.mSubsurfaceKernels = graph.Create( FGBufferDescription{}
             .SetName( "SubsurfaceKernels" )
-            .SetUsage( renderer::rhi::BufferUsageFlagsBits::Structured | 
-                renderer::rhi::BufferUsageFlagsBits::CopySource | 
-                renderer::rhi::BufferUsageFlagsBits::CopyDest )
+            .SetUsage( renderer::rhi::BufferUsageFlagsBits::Structured |
+                           renderer::rhi::BufferUsageFlagsBits::CopySource |
+                           renderer::rhi::BufferUsageFlagsBits::CopyDest )
             .SetSizeBytes( sizeof( material::SubsurfaceKernel ) ) );
 
         auto geometryDesc{ FGBufferDescription{}
             .SetName( "GeometryRender_Buffer01" )
             .SetUsage( renderer::rhi::BufferUsageFlagsBits::Structured |
-                renderer::rhi::BufferUsageFlagsBits::CopySource |
-                renderer::rhi::BufferUsageFlagsBits::CopyDest )
+                           renderer::rhi::BufferUsageFlagsBits::CopySource |
+                           renderer::rhi::BufferUsageFlagsBits::CopyDest )
             .SetSizeBytes( 65536 )
             .SetHeapType( renderer::rhi::HeapType::eDeviceLocal ) };
         geometryFilterInfo.mInstanceBuffer = graph.Create( geometryDesc );
@@ -538,22 +549,23 @@ namespace mikoto::renderer {
         geometryFilterInfo.mGeometryBuffer = graph.Create( FGBufferDescription{}
             .SetName( "SceneGeometryView" )
             .SetUsage( renderer::rhi::BufferUsageFlagsBits::Structured |
-                renderer::rhi::BufferUsageFlagsBits::CopySource |
-                renderer::rhi::BufferUsageFlagsBits::CopyDest )
+                           renderer::rhi::BufferUsageFlagsBits::CopySource |
+                           renderer::rhi::BufferUsageFlagsBits::CopyDest )
             .SetSizeBytes( 16 ) );
 
         geometryFilterInfo.mDrawInstanceBuffer = graph.Create( FGBufferDescription{}
             .SetName( "SceneDrawInstances" )
             .SetUsage( renderer::rhi::BufferUsageFlagsBits::Structured |
-                renderer::rhi::BufferUsageFlagsBits::CopySource |
-                renderer::rhi::BufferUsageFlagsBits::CopyDest )
+                           renderer::rhi::BufferUsageFlagsBits::CopySource |
+                           renderer::rhi::BufferUsageFlagsBits::CopyDest )
             .SetSizeBytes( 65536 ) );
 
-        const auto scratch = [&]( const char* name, core::usize size ) {
-            return graph.Create( FGBufferDescription{}.SetName( name )
+        const auto scratch = [&]( const char *name, core::usize size ) {
+            return graph.Create( FGBufferDescription{}
+                .SetName( name )
                 .SetUsage( renderer::rhi::BufferUsageFlagsBits::Structured |
-                    renderer::rhi::BufferUsageFlagsBits::CopySource |
-                    renderer::rhi::BufferUsageFlagsBits::CopyDest )
+                               renderer::rhi::BufferUsageFlagsBits::CopySource |
+                               renderer::rhi::BufferUsageFlagsBits::CopyDest )
                 .SetSizeBytes( size ) );
         };
 
@@ -565,15 +577,15 @@ namespace mikoto::renderer {
         auto skinningDesc{ FGBufferDescription{}
             .SetName( "Geometry_SkinningBuffer01" )
             .SetUsage( renderer::rhi::BufferUsageFlagsBits::Structured |
-                renderer::rhi::BufferUsageFlagsBits::CopySource |
-                renderer::rhi::BufferUsageFlagsBits::CopyDest )
+                           renderer::rhi::BufferUsageFlagsBits::CopySource |
+                           renderer::rhi::BufferUsageFlagsBits::CopyDest )
             .SetSizeBytes( 65536 )
             .SetHeapType( renderer::rhi::HeapType::eDeviceLocal ) };
         geometryFilterInfo.mSkinningBuffer = graph.Create( skinningDesc );
 
         // This CPU preparation pass publishes new storage without recording GPU
         // work. The upload pass then transitions the actual replacement buffers.
-        const auto declareWrites{ [this]( FGNodeBuilder& builder, GeometryCullModuleInfo& data ) -> void {
+        const auto declareWrites{ [this]( FGNodeBuilder &builder, GeometryCullModuleInfo &data ) -> void {
             builder.UseResource( data.mAttributeBuffer, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
             builder.UseResource( data.mIndexBuffer, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
             builder.UseResource( data.mGeometryAllocBuffer, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
@@ -595,10 +607,10 @@ namespace mikoto::renderer {
             "GeometryPrepare",
             FGPassType::eTransfer,
             declareWrites,
-            [this]( CommandContext& ctx, core::Blackboard& b ) {
+            [this]( CommandContext &ctx, core::Blackboard &b ) {
                 InitGeometryData( ctx, b );
-                const auto& info{ b.Get<GeometryCullModuleInfo>() };
-                const auto grow{ [&]( FGBufferHandle handle, const auto& values, auto& upload ) {
+                const auto &info{ b.Get<GeometryCullModuleInfo>() };
+                const auto grow{ [&]( FGBufferHandle handle, const auto &values, auto &upload ) {
                     if ( ctx.EnsureBufferCapacity( handle, values.size() * sizeof( values[0] ) ) ) {
                         for ( core::u32 slot{}; slot < values.size(); ++slot ) {
                             upload.MarkDirty( slot );
@@ -614,14 +626,13 @@ namespace mikoto::renderer {
                 ctx.EnsureBufferCapacity(
                     mSubsurfaceScratch,
                     eastl::max<core::usize>( 1, eastl::min<core::usize>( mSubsurfaceKernels.size(), 65536 ) ) *
-                    ( sizeof( material::SubsurfaceKernel ) + 4 ) );
-
+                        ( sizeof( material::SubsurfaceKernel ) + 4 ) );
             } );
 
         graph.RegisterPass<GeometryCullModuleInfo>(
             "GeometryFilter", FGPassType::eTransfer, declareWrites,
-            [this]( CommandContext& ctx, core::Blackboard& b ) {
-                const auto& info{ b.Get<GeometryCullModuleInfo>() };
+            [this]( CommandContext &ctx, core::Blackboard &b ) {
+                const auto &info{ b.Get<GeometryCullModuleInfo>() };
 
                 mGeometryAllocator.Flush( ctx, b );
 
@@ -645,14 +656,17 @@ namespace mikoto::renderer {
             } );
     }
 
-    auto GeometryCullModule::RegisterSceneUploadPass( FrameGraph& graph ) -> void {
-        const auto pipeline{ graph.Create( FGPipelineDescription{}.SetName( "SceneScatterUpload" ).SetPipelineType( renderer::rhi::PipelineType::eCompute ).PushShader( "SceneScatterUpload_Comp.slang", FGStageType::eCompute ) ) };
+    auto GeometryCullModule::RegisterSceneUploadPass( FrameGraph &graph ) -> void {
+        const auto pipeline{ graph.Create( FGPipelineDescription{}
+            .SetName( "SceneScatterUpload" )
+            .SetPipelineType( renderer::rhi::PipelineType::eCompute )
+            .PushShader( "SceneScatterUpload_Comp.slang", FGStageType::eCompute ) ) };
 
         graph.RegisterPass(
             "SceneScatterUpload",
             FGPassType::eCompute,
-            [this]( FGNodeBuilder& builder, core::Blackboard& b ) {
-                const auto& info{ b.Get<GeometryCullModuleInfo>() };
+            [this]( FGNodeBuilder &builder, core::Blackboard &b ) {
+                const auto &info{ b.Get<GeometryCullModuleInfo>() };
 
                 for ( auto handle: { info.mInstanceBuffer, info.mMaterialsBuffer, info.mDrawInstanceBuffer, info.mSubsurfaceKernels } ) {
                     builder.UseResource( handle, FGPipelineStage::eComputeShader, FGResourceAccess::eWrite );
@@ -662,8 +676,8 @@ namespace mikoto::renderer {
                     builder.UseResource( handle, FGPipelineStage::eComputeShader, FGResourceAccess::eRead );
                 }
             },
-            [this, pipeline]( CommandContext& ctx, core::Blackboard& b ) {
-                const auto& info{ b.Get<GeometryCullModuleInfo>() };
+            [this, pipeline]( CommandContext &ctx, core::Blackboard &b ) {
+                const auto &info{ b.Get<GeometryCullModuleInfo>() };
 
                 mInstanceUpload.Scatter( ctx, info.mInstanceBuffer, mInstanceScratch, pipeline );
                 mMaterialUpload.Scatter( ctx, info.mMaterialsBuffer, mMaterialScratch, pipeline );
@@ -672,13 +686,13 @@ namespace mikoto::renderer {
             } );
     }
 
-    auto GeometryCullModule::RegisterSkinningPass( FrameGraph& graph ) -> void {
-        auto& info{ graph.GetOrCreate<GeometryCullModuleInfo>() };
+    auto GeometryCullModule::RegisterSkinningPass( FrameGraph &graph ) -> void {
+        auto &info{ graph.GetOrCreate<GeometryCullModuleInfo>() };
         info.mSkinningCacheBuffer = graph.Create( FGBufferDescription{}
             .SetName( "GeometrySkinningCache" )
             .SetUsage( renderer::rhi::BufferUsageFlagsBits::Structured |
-                renderer::rhi::BufferUsageFlagsBits::CopySource |
-                renderer::rhi::BufferUsageFlagsBits::CopyDest )
+                           renderer::rhi::BufferUsageFlagsBits::CopySource |
+                           renderer::rhi::BufferUsageFlagsBits::CopyDest )
             .SetSizeBytes( 65536 ) );
 
         const auto pipeline{ graph.Create( FGPipelineDescription{}
@@ -689,18 +703,18 @@ namespace mikoto::renderer {
         graph.RegisterPass<GeometryCullModuleInfo>(
             "GeometrySkinning",
             FGPassType::eCompute,
-            []( FGNodeBuilder& builder, GeometryCullModuleInfo& data ) {
+            []( FGNodeBuilder &builder, GeometryCullModuleInfo &data ) {
                 builder.UseResource( data.mAttributeBuffer, FGPipelineStage::eComputeShader, FGResourceAccess::eRead );
                 builder.UseResource( data.mSkinningBuffer, FGPipelineStage::eComputeShader, FGResourceAccess::eRead );
                 builder.UseResource( data.mMaterialsBuffer, FGPipelineStage::eComputeShader, FGResourceAccess::eRead );
                 builder.UseResource( data.mSkinningCacheBuffer, FGPipelineStage::eComputeShader, FGResourceAccess::eWrite );
             },
-            [this, pipeline]( CommandContext& ctx, core::Blackboard& blackboard ) {
+            [this, pipeline]( CommandContext &ctx, core::Blackboard &blackboard ) {
                 if ( mSkinningJobs.empty() ) {
                     return;
                 }
 
-                const auto& data{ blackboard.Get<GeometryCullModuleInfo>() };
+                const auto &data{ blackboard.Get<GeometryCullModuleInfo>() };
                 struct Parameters {
                     core::u64 mSourcePositions{};
                     core::u64 mSourceNormals{};
@@ -713,18 +727,21 @@ namespace mikoto::renderer {
                     core::u64 mNormals{};
                     core::u32 mVertexCount{};
                     core::u32 mHasPalette{};
-                    core::u64 mUV0{}, mUV1{}, mMaterials{};
-                    core::u32 mMaterialIndex{}, mSampler{};
+                    core::u64 mUV0{};
+                    core::u64 mUV1{};
+                    core::u64 mMaterials{};
+                    core::u32 mMaterialIndex{};
+                    core::u32 mSampler{};
                 };
 
                 const auto palettes{ ctx.GetDeviceBufferAddress( data.mSkinningBuffer ) };
 
                 ctx.BindPipeline( pipeline );
 
-                for ( const auto& job: mSkinningJobs ) {
+                for ( const auto &job: mSkinningJobs ) {
                     // Resolve mesh metadata once on the CPU, rather than
                     // chasing the allocation table for every GPU vertex.
-                    const auto& streams{ mGeometryAllocator.Get( job.mGeometryIndex ).mStreams };
+                    const auto &streams{ mGeometryAllocator.Get( job.mGeometryIndex ).mStreams };
                     const Parameters parameters{
                         .mSourcePositions = streams[core::as<core::usize>( MeshStream::Position )],
                         .mSourceNormals = streams[core::as<core::usize>( MeshStream::Normal )],
@@ -766,9 +783,9 @@ namespace mikoto::renderer {
         }
     }
 
-    auto GeometryCullModule::ResolveSkinningPalette( core::u64 animatorID, const asset::MeshNode& mesh, core::RefConst<asset::Model> model ) -> core::i32 {
-        const auto* animator{ animation::AnimationSystem::Get()->GetAnimator( animatorID ) };
-        const auto& binding{ mesh.GetSkinBinding() };
+    auto GeometryCullModule::ResolveSkinningPalette( core::u64 animatorID, const asset::MeshNode &mesh, core::RefConst<asset::Model> model ) -> core::i32 {
+        const auto *animator{ animation::AnimationSystem::Get()->GetAnimator( animatorID ) };
+        const auto &binding{ mesh.GetSkinBinding() };
 
         if ( !animator || binding.mJoints.empty() || animator->GetJointModelMatrices( binding.mRigIndex ).empty() ) {
             return -1;
@@ -801,12 +818,13 @@ namespace mikoto::renderer {
         }
 
         const auto slot{ found->second };
-        auto& state{ mSkinningStates[slot] };
+        auto &state{ mSkinningStates[slot] };
         const auto revision{ animator->GetPoseRevision( binding.mRigIndex ) };
 
         if ( !state.mValid || state.mRevision != revision ) {
-            const auto& pose{ animator->GetJointModelMatrices( binding.mRigIndex ) };
-            auto& palette{ mSkinningInfo[slot].mBoneTransforms };
+            ++mShadowCasterRevision;
+            const auto &pose{ animator->GetJointModelMatrices( binding.mRigIndex ) };
+            auto &palette{ mSkinningInfo[slot].mBoneTransforms };
             state.mValid = animation::BuildSkinningPalette( binding, { pose.data(), pose.size() }, { palette.data(), palette.size() } );
             state.mRevision = revision;
 
@@ -819,11 +837,11 @@ namespace mikoto::renderer {
         return state.mValid ? static_cast<core::i32>( slot + 1 ) : -1;
     }
 
-    auto GeometryCullModule::CacheSkinning( MeshGeometryInfo& geometry, const MeshRenderData& mesh ) -> void {
+    auto GeometryCullModule::CacheSkinning( MeshGeometryInfo &geometry, const MeshRenderData &mesh ) -> void {
         geometry.mSkinnedPositions = 0;
         geometry.mSkinnedNormals = 0;
 
-        const auto* surface{ dynamic_cast<const material::SurfaceMaterial*>( mMaterialStates[geometry.mMaterialIndex].mSource.GetPtr() ) };
+        const auto *surface{ dynamic_cast<const material::SurfaceMaterial *>( mMaterialStates[geometry.mMaterialIndex].mSource.GetPtr() ) };
         const bool displaced{ surface && surface->GetHeightMapping().mMode == material::HeightMappingMode::eDisplacement &&
                               !surface->GetTexturePath( material::MapType::eHeight ).IsEmpty() && surface->IsTextureUsed( material::MapType::eHeight ) };
         const bool skinned{ geometry.mSkinningMatricesID > 0 && mesh.IsSkinned() };
@@ -861,18 +879,18 @@ namespace mikoto::renderer {
             found = mSkinningJobIndices.emplace( key, jobIndex ).first;
         }
 
-        const auto& job{ mSkinningJobs[found->second] };
+        const auto &job{ mSkinningJobs[found->second] };
         geometry.mSkinnedPositions = job.mPositions;
         geometry.mSkinnedNormals = job.mNormals;
     }
 
-    auto GeometryCullModule::PrepareSkinningData( CommandContext& context, core::Blackboard& b ) -> void {
+    auto GeometryCullModule::PrepareSkinningData( CommandContext &context, core::Blackboard &b ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         const auto cacheAddress{ mSkinningCacheAddress };
-        
+
         RetireSkinningSlots();
-        const auto& info{ b.Get<GeometryCullModuleInfo>() };
+        const auto &info{ b.Get<GeometryCullModuleInfo>() };
 
         if ( context.EnsureBufferCapacity( info.mSkinningBuffer, mSkinningInfo.size() * MKT_SIZEOF( SkinningPalette ) ) ) {
             mDirtySkinningSlots.clear();
@@ -885,7 +903,7 @@ namespace mikoto::renderer {
         if ( context.EnsureBufferCapacity( info.mSkinningCacheBuffer, mSkinningCacheBytes ) ) {
             const auto address{ context.GetDeviceBufferAddress( info.mSkinningCacheBuffer ) };
 
-            for ( auto& job: mSkinningJobs ) {
+            for ( auto &job: mSkinningJobs ) {
                 job.mPositions = address + ( job.mPositions - mSkinningCacheAddress );
                 job.mNormals = address + ( job.mNormals - mSkinningCacheAddress );
             }
@@ -897,7 +915,7 @@ namespace mikoto::renderer {
 
         if ( address != cacheAddress ) {
             for ( core::u32 slot{}; slot < mInstanceStates.size(); ++slot ) {
-                auto& geometry{ mGeometryList[slot] };
+                auto &geometry{ mGeometryList[slot] };
 
                 if ( mInstanceStates[slot].mLastSeen == mFrame && geometry.mSkinnedPositions ) {
                     geometry.mSkinnedPositions = address + ( geometry.mSkinnedPositions - cacheAddress );
@@ -908,10 +926,10 @@ namespace mikoto::renderer {
         }
     }
 
-    auto GeometryCullModule::UploadSkinningData( CommandContext& context, core::Blackboard& b ) -> void {
+    auto GeometryCullModule::UploadSkinningData( CommandContext &context, core::Blackboard &b ) -> void {
         MKT_BEGIN_PROFILER();
 
-        const auto& info{ b.Get<GeometryCullModuleInfo>() };
+        const auto &info{ b.Get<GeometryCullModuleInfo>() };
         eastl::sort( mDirtySkinningSlots.begin(), mDirtySkinningSlots.end() );
 
         // Transfer only changed contiguous ranges into the graph's persistent
@@ -933,10 +951,10 @@ namespace mikoto::renderer {
         mDirtySkinningSlots.clear();
     }
 
-    auto GeometryCullModule::RegisterFrustumCullPass( FrameGraph& graph ) -> void {
+    auto GeometryCullModule::RegisterFrustumCullPass( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER();
 
-        auto& info{ graph.GetOrCreate<GeometryCullModuleInfo>() };
+        auto &info{ graph.GetOrCreate<GeometryCullModuleInfo>() };
         auto indirectCommandsDesc{ FGBufferDescription{}
             .SetName( "GeometryIndirectCommands_Buffer" )
             .SetUsage( renderer::rhi::BufferUsageFlagsBits::Structured |
@@ -956,20 +974,20 @@ namespace mikoto::renderer {
         graph.RegisterPass<GeometryCullModuleInfo>(
             "GeometryFrustumCull",
             FGPassType::eCompute,
-            []( FGNodeBuilder& builder, GeometryCullModuleInfo& data ) {
+            []( FGNodeBuilder &builder, GeometryCullModuleInfo &data ) {
                 builder.UseResource( data.mUnculledIndirectBuffer, FGPipelineStage::eComputeShader, FGResourceAccess::eRead );
                 builder.UseResource( data.mDrawBoundsBuffer, FGPipelineStage::eComputeShader, FGResourceAccess::eRead );
                 builder.UseResource( data.mIndirectBuffer, FGPipelineStage::eComputeShader, FGResourceAccess::eWrite );
             },
 
-            [this, pipeline]( CommandContext& ctx, core::Blackboard& blackboard ) {
+            [this, pipeline]( CommandContext &ctx, core::Blackboard &blackboard ) {
                 const auto drawCount{ core::as<core::u32>( mIndirectCmds.size() ) };
 
                 if ( !mCamera || drawCount == 0 ) {
                     return;
                 }
 
-                const auto& data{ blackboard.Get<GeometryCullModuleInfo>() };
+                const auto &data{ blackboard.Get<GeometryCullModuleInfo>() };
                 const auto rows{ glm::transpose( mCamera->GetViewProjection() ) };
                 struct Parameters {
                     eastl::array<core::float4, 6> mPlanes{};
@@ -1052,15 +1070,15 @@ namespace mikoto::renderer {
         return slot;
     }
 
-    auto GeometryCullModule::ResolveMesh( core::u32 instanceSlot, const MeshRenderDataHandle& mesh ) -> void {
-        auto& instance{ mInstanceStates[instanceSlot] };
+    auto GeometryCullModule::ResolveMesh( core::u32 instanceSlot, const MeshRenderDataHandle &mesh ) -> void {
+        auto &instance{ mInstanceStates[instanceSlot] };
 
         if ( instance.mMesh == mesh.GetPtr() ) {
             mGeometryAllocator.Touch( instance.mGeometryIndex, mFrame );
             return;
         }
 
-        const auto& allocation{ mGeometryAllocator.GetOrAllocate( mesh ) };
+        const auto &allocation{ mGeometryAllocator.GetOrAllocate( mesh ) };
         const core::u32 index{ allocation.mAllocationIndex };
         mGeometryAllocator.Touch( index, mFrame );
 
@@ -1068,13 +1086,13 @@ namespace mikoto::renderer {
             mMeshBatchInfos.resize( core::usize{ index } + 1 );
         }
 
-        auto& batch{ mMeshBatchInfos[index] };
+        auto &batch{ mMeshBatchInfos[index] };
         batch.mGeometryIndex = index;
         instance.mMesh = mesh.GetPtr();
         instance.mGeometryIndex = index;
     }
 
-    auto GeometryCullModule::ResolveMaterial( const material::MaterialHandle& source, core::u32 cachedSlot ) -> core::u32 {
+    auto GeometryCullModule::ResolveMaterial( const material::MaterialHandle &source, core::u32 cachedSlot ) -> core::u32 {
         if ( cachedSlot < mMaterialStates.size() && mMaterialStates[cachedSlot].mSource == source ) {
             if ( mMaterialStates[cachedSlot].mLastSeen != mFrame ) {
                 UpdateMaterialClassification( cachedSlot );
@@ -1121,8 +1139,8 @@ namespace mikoto::renderer {
     }
 
     auto GeometryCullModule::UpdateMaterialClassification( core::u32 slot ) -> void {
-        auto& state{ mMaterialStates[slot] };
-        const auto* source{ core::checked_cast<const material::SurfaceMaterial*>( state.mSource.GetPtr() ) };
+        auto &state{ mMaterialStates[slot] };
+        const auto *source{ core::checked_cast<const material::SurfaceMaterial *>( state.mSource.GetPtr() ) };
         const auto revision{ source->GetRevision() };
 
         if ( !state.mClassificationValid || state.mClassificationRevision != revision ) {
@@ -1133,18 +1151,18 @@ namespace mikoto::renderer {
         }
     }
 
-    auto GeometryCullModule::UpdateMaterials( CommandContext& ctx ) -> void {
+    auto GeometryCullModule::UpdateMaterials( CommandContext &ctx ) -> void {
         mHasStylizedContours = false;
         // All instances have marked their slots. Inspect each active material
         // once per view/frame, including edits that leave its identity unchanged.
         for ( core::u32 slot{}; slot < mMaterialStates.size(); ++slot ) {
-            auto& state{ mMaterialStates[slot] };
+            auto &state{ mMaterialStates[slot] };
 
             if ( !state.mSource || state.mLastSeen != mFrame ) {
                 continue;
             }
 
-            auto* pSurfaceMaterial{ core::checked_cast<material::SurfaceMaterial*>( state.mSource.GetPtr() ) };
+            auto *pSurfaceMaterial{ core::checked_cast<material::SurfaceMaterial *>( state.mSource.GetPtr() ) };
             pSurfaceMaterial->UpdateTextureResidency();
             const auto textureIndex{ [&]( material::MapType type ) -> core::i32 {
                 // Disabled slots retain their texture but declare no shader dependency.
@@ -1182,12 +1200,12 @@ namespace mikoto::renderer {
             material.mClearCoatNormalScale = pSurfaceMaterial->GetClearCoatNormalScale();
             material.mNormalScale = pSurfaceMaterial->GetNormalScale();
             material.mUvTransform = pSurfaceMaterial->GetUvTransform();
-            const auto& height{pSurfaceMaterial->GetHeightMapping()};
-            material.mHeightMapping = {height.mScale,height.mMidlevel,core::as<float>(height.mMode),core::as<float>(height.mSteps)};
-            material.mHeightIndex = textureIndex(material::MapType::eHeight);
+            const auto &height{ pSurfaceMaterial->GetHeightMapping() };
+            material.mHeightMapping = { height.mScale, height.mMidlevel, core::as<float>( height.mMode ), core::as<float>( height.mSteps ) };
+            material.mHeightIndex = textureIndex( material::MapType::eHeight );
             material.mHeightUVSet = height.mUVSet;
 
-            const auto& checker{ pSurfaceMaterial->GetCheckerboard() };
+            const auto &checker{ pSurfaceMaterial->GetCheckerboard() };
             material.mCheckerboardColorA = { checker.mColorA, checker.mEnabled ? 1.0f : 0.0f };
             material.mCheckerboardColorB = { checker.mColorB, checker.mCellSize };
             material.mCheckerboardOffset = { checker.mOffset, 0.0f };
@@ -1207,7 +1225,7 @@ namespace mikoto::renderer {
             material.mSpecularGlossinessIndex = textureIndex( material::MapType::eSpecularGlossiness );
 
             material.mIsBloomy = pSurfaceMaterial->IsBloomy();
-            const auto& subsurface{ pSurfaceMaterial->GetSubsurface() };
+            const auto &subsurface{ pSurfaceMaterial->GetSubsurface() };
             material.mSubsurfaceColorOpacity = { subsurface.mColor, subsurface.mOpacity };
             material.mSubsurface = {
                 subsurface.mScatterScale, subsurface.mStrength,
@@ -1215,7 +1233,7 @@ namespace mikoto::renderer {
                 core::as<core::f32>( pSurfaceMaterial->GetSurfaceShading().mCellBands )
             };
 
-            const auto& shading{ pSurfaceMaterial->GetSurfaceShading() };
+            const auto &shading{ pSurfaceMaterial->GetSurfaceShading() };
             material.mSurfaceShading = {
                 shading.mCoatWeight,
                 shading.mCoatRoughness,
@@ -1224,7 +1242,7 @@ namespace mikoto::renderer {
             };
 
             if ( pSurfaceMaterial->GetShadingModel() == material::ShadingModel::eDielectric ) {
-                const auto& dielectric{ pSurfaceMaterial->GetDielectric() };
+                const auto &dielectric{ pSurfaceMaterial->GetDielectric() };
                 material.mSurfaceShading = {
                     dielectric.mIndexOfRefraction,
                     dielectric.mTransmission,
@@ -1254,7 +1272,7 @@ namespace mikoto::renderer {
             // A resumed pass may receive new descriptors even though the material
             // itself is unchanged. Declare dependencies every execution, and only
             // skip the GPU upload when both content and resolved indices match.
-            const auto& previous{ mMaterialsList[slot] };
+            const auto &previous{ mMaterialsList[slot] };
 
             if ( state.mUploaded && state.mRevision == pSurfaceMaterial->GetRevision() &&
                  material.mAlbedoIndex == previous.mAlbedoIndex &&
@@ -1270,6 +1288,7 @@ namespace mikoto::renderer {
                 continue;
             }
 
+            ++mShadowCasterRevision;
             state.mRevision = pSurfaceMaterial->GetRevision();
             state.mUploaded = true;
             mMaterialsList[slot] = material;
@@ -1290,7 +1309,7 @@ namespace mikoto::renderer {
         // Reuse records an ordered GPU write, never a host overwrite of memory
         // still being read. Frame-graph history orders it after prior consumers.
         for ( core::u32 slot{}; slot < mInstanceStates.size(); ++slot ) {
-            auto& instance{ mInstanceStates[slot] };
+            auto &instance{ mInstanceStates[slot] };
 
             if ( instance.mEntity != entt::null && instance.mLastSeen != mFrame ) {
                 mInstanceSlots[entt::to_entity( instance.mEntity )] = kInvalidSlot;
@@ -1311,7 +1330,7 @@ namespace mikoto::renderer {
         }
 
         if ( mSharedCache && mScene ) {
-            for ( auto& entry: mSharedCache->mEntries ) {
+            for ( auto &entry: mSharedCache->mEntries ) {
                 if ( entry.mEntity != entt::null && ( !mScene->GetRegistry().valid( entry.mEntity ) ||
                                                         !mScene->GetRegistry().all_of<scene::MeshComponent>( entry.mEntity ) ||
                                                         !mScene->GetRegistry().get<scene::MeshComponent>( entry.mEntity ).HasMesh() ) ) {
@@ -1321,14 +1340,34 @@ namespace mikoto::renderer {
         }
     }
 
-    auto GeometryCullModule::UpdateInstance( core::u32 slot, const SceneGeometryCache::Entry& derived,
+    auto GeometryCullModule::UpdateInstance( core::u32 slot, const SceneGeometryCache::Entry &derived,
         core::u32 objectID, bool highlighted, core::i32 skinningPalette ) -> void {
-        auto& instance{ mInstanceStates[slot] };
-        auto& geometry{ mGeometryList[slot] };
-        const auto& material{ mMaterialStates[instance.mMaterialSlot] };
+        auto &instance{ mInstanceStates[slot] };
+        auto &geometry{ mGeometryList[slot] };
+        const auto &material{ mMaterialStates[instance.mMaterialSlot] };
         const core::u32 faceFlags{ material.mFaceFlags | derived.mMirrored };
         const core::u32 highlight{ highlighted ? MKT_SHADER_TRUE : MKT_SHADER_FALSE };
 
+        core::float4 foliageMotion{};
+        core::float4 foliageShape{};
+        core::float4 foliageWind{};
+        const auto *surfaceMaterial{ dynamic_cast<const material::SurfaceMaterial *>( material.mSource.GetPtr() ) };
+
+        if ( mFoliageWindEnabled && surfaceMaterial && surfaceMaterial->GetFoliageWind().mEnabled && !instance.mMesh->IsSkinned() ) {
+            const auto &settings{ surfaceMaterial->GetFoliageWind() };
+            foliageMotion = { glm::clamp( settings.mHeight, .01f, 100.0f ), glm::clamp( settings.mTrunkBend, 0.0f, .25f ),
+                glm::clamp( settings.mBranchMotion, 0.0f, 2.0f ), glm::clamp( settings.mLeafFlutter, 0.0f, .5f ) };
+            foliageShape = { settings.mRootHeight, glm::clamp( settings.mFrequency, 0.0f, 10.0f ), 0.0f, 0.0f };
+            const auto root{ core::float3{ derived.mTransform * core::float4{ 0, settings.mRootHeight, 0, 1 } } };
+            const auto &field{ mFoliageWindField };
+            foliageWind = { scene::SampleWind( field, root ), field.mTime };
+        }
+
+        const bool foliageSettingsChanged{ geometry.mFoliageMotion != foliageMotion || geometry.mFoliageShape != foliageShape };
+        const bool foliageChanged{ foliageSettingsChanged || geometry.mFoliageWind != foliageWind };
+        if ( foliageChanged ) {
+            ++mShadowCasterRevision;
+        }
         const bool transformChanged{ !instance.mUploaded || instance.mDerivedRevision != derived.mRevision };
         const bool drawChanged{ !instance.mUploaded || geometry.mGeometryIndex != instance.mGeometryIndex ||
                                 geometry.mObjectID != objectID || geometry.mAlphaMode != material.mAlphaMode };
@@ -1337,14 +1376,20 @@ namespace mikoto::renderer {
                                     geometry.mSkinningMatricesID != skinningPalette };
 
         if ( transformChanged ) {
+            ++mShadowCasterRevision;
             geometry.mTransform = derived.mTransform;
             instance.mDerivedRevision = derived.mRevision;
         }
 
-        if ( transformChanged || drawChanged ) {
-            auto& bounds{ instance.mBounds };
+        if ( transformChanged || drawChanged || foliageSettingsChanged ) {
+            auto &bounds{ instance.mBounds };
             bounds.mCenter = derived.mCenter;
             bounds.mExtent = derived.mExtent;
+            // Cull against the full motion envelope, including shadow views.
+            const float worldScale{ glm::max( glm::length( core::float3{ derived.mTransform[0] } ),
+                glm::max( glm::length( core::float3{ derived.mTransform[1] } ), glm::length( core::float3{ derived.mTransform[2] } ) ) ) };
+            const float motionExtent{ ( foliageMotion.x * foliageMotion.y * 2.0f + foliageMotion.z * 2.0f + foliageMotion.w * 2.0f ) * worldScale };
+            bounds.mExtent += core::float3{ motionExtent };
             // Bind-pose bounds do not safely contain arbitrary animation or IK.
             bounds.mCullable = !instance.mMesh->IsSkinned() &&
                                geometry.mTransform[0].w == 0.0f && geometry.mTransform[1].w == 0.0f &&
@@ -1363,6 +1408,9 @@ namespace mikoto::renderer {
         geometry.mMaterialIndex = instance.mMaterialSlot;
         geometry.mAlphaMode = material.mAlphaMode;
         geometry.mFaceFlags = faceFlags;
+        geometry.mFoliageMotion = foliageMotion;
+        geometry.mFoliageShape = foliageShape;
+        geometry.mFoliageWind = foliageWind;
         geometry.mSkinningMatricesID = skinningPalette;
 
         // Palette assignments and compute-cache offsets can change independently
@@ -1370,13 +1418,13 @@ namespace mikoto::renderer {
         const auto previousPositions{ geometry.mSkinnedPositions };
         const auto previousNormals{ geometry.mSkinnedNormals };
         CacheSkinning( geometry, *instance.mMesh );
-        const auto* heightMaterial{ dynamic_cast<const material::SurfaceMaterial*>( material.mSource.GetPtr() ) };
+        const auto *heightMaterial{ dynamic_cast<const material::SurfaceMaterial *>( material.mSource.GetPtr() ) };
         if ( heightMaterial && heightMaterial->GetHeightMapping().mMode == material::HeightMappingMode::eDisplacement ) {
             instance.mBounds.mCullable = false;
             mMeshBatchInfos[instance.mGeometryIndex].mBoundsDirty = true;
         }
 
-        if ( instanceChanged || previousPositions != geometry.mSkinnedPositions || previousNormals != geometry.mSkinnedNormals ) {
+        if ( instanceChanged || foliageChanged || previousPositions != geometry.mSkinnedPositions || previousNormals != geometry.mSkinnedNormals ) {
             mInstanceUpload.MarkDirty( slot );
             instance.mUploaded = true;
         }
@@ -1384,9 +1432,10 @@ namespace mikoto::renderer {
         mCommandsDirty |= drawChanged;
     }
 
-    auto GeometryCullModule::InitGeometryData( CommandContext& ctx, core::Blackboard& b ) -> void {
+    auto GeometryCullModule::InitGeometryData( CommandContext &ctx, core::Blackboard &b ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        mFoliageWindField = mScene && mFoliageWindEnabled ? mScene->GetWindField() : scene::WindField{};
         ++mFrame;
         mSkinningJobs.clear();
         mSkinningJobIndices.clear();
@@ -1402,7 +1451,7 @@ namespace mikoto::renderer {
                 // Only near capacity, reclaim departed bindings first so replacements
                 // can reuse slots without evicting live meshes we have not visited yet.
                 // size_hint is an upper bound, so it cannot underestimate new demand.
-                for ( const auto& [entity, skinned, mesh, tag, material, transform]:
+                for ( const auto &[entity, skinned, mesh, tag, material, transform]:
                     skinnedView.each() ) {
                     if ( tag.IsActive() && mesh.HasMesh() && material.HasMaterial() && animation::AnimationSystem::Get()->GetAnimator( skinned.GetAnimatorID() ) ) {
                         const auto found{ mSkinningSlots.find( std::make_pair( skinned.GetAnimatorID(), mesh.GetMesh() ) ) };
@@ -1425,14 +1474,14 @@ namespace mikoto::renderer {
             return;
         }
 
-        auto& registry{ mScene->GetRegistry() };
+        auto &registry{ mScene->GetRegistry() };
         const auto renderables{ registry.view<scene::TagComponent, scene::TransformComponent, scene::MaterialComponent, scene::MeshComponent>() };
         // Reclaim removed/reassigned records before allocation when the table
         // is full. Replacing an entity must not require a spare GPU slot.
         if ( mInstanceStates.size() >= kMaxRenderableEntities || mMaterialStates.size() >= kMaxRenderableEntities ) {
             core::usize retained{};
 
-            for ( const auto& [entity, tag, transform, material, mesh]: renderables.each() ) {
+            for ( const auto &[entity, tag, transform, material, mesh]: renderables.each() ) {
                 if ( !tag.IsActive() || !mesh.HasMesh() || !material.HasMaterial() ) {
                     continue;
                 }
@@ -1445,12 +1494,13 @@ namespace mikoto::renderer {
                     mInstanceStates[slot].mLastSeen = mFrame;
                 }
 
-                const auto* videoComponent{ registry.try_get<scene::VideoComponent>( entity ) };
+                const auto *videoComponent{ registry.try_get<scene::VideoComponent>( entity ) };
                 const auto videoData{ videoComponent ? videoComponent->GetRenderData() : VideoRenderDataHandle{} };
                 const auto videoMaterial{ videoData ? videoData->GetMaterial() : material::MaterialHandle{} };
-                const auto* capture{ registry.try_get<scene::TextureRenderComponent>( entity ) };
+                const auto *capture{ registry.try_get<scene::TextureRenderComponent>( entity ) };
                 const auto capturedMaterial{ capture ? capture->GetMaterial() : material::MaterialHandle{} };
-                const auto renderMaterial{ capturedMaterial ? capturedMaterial : videoMaterial ? videoMaterial : material.GetMaterialReference() };
+                const auto renderMaterial{ capturedMaterial ? capturedMaterial : videoMaterial ? videoMaterial
+                                                                                               : material.GetMaterialReference() };
 
                 if ( const auto found{ mMaterialSlots.find( renderMaterial.GetPtr() ) }; found != mMaterialSlots.end() ) {
                     if ( mMaterialStates[found->second].mLastSeen != mFrame ) {
@@ -1466,11 +1516,11 @@ namespace mikoto::renderer {
 
         core::usize acceptedInstances{};
 
-        for ( auto& batch: mMeshBatchInfos ) {
+        for ( auto &batch: mMeshBatchInfos ) {
             batch.mInstanceCount = 0;
         }
 
-        for ( const auto& [entity,
+        for ( const auto &[entity,
                   tagComponent,
                   transformComponent,
                   materialComponent,
@@ -1491,9 +1541,9 @@ namespace mikoto::renderer {
 
             ++acceptedInstances;
 
-            const asset::MeshNode* pMeshNode{ meshComponent.GetMesh() };
+            const asset::MeshNode *pMeshNode{ meshComponent.GetMesh() };
 
-            const auto* deformed{ registry.try_get<scene::DeformedMeshComponent>( entity ) };
+            const auto *deformed{ registry.try_get<scene::DeformedMeshComponent>( entity ) };
             const MeshRenderDataHandle renderData{ deformed && deformed->mMesh ? MeshRenderDataHandle{ deformed->mMesh } : pMeshNode->GetRenderData() };
 
             if ( !renderData ) {
@@ -1502,8 +1552,8 @@ namespace mikoto::renderer {
 
             const auto instanceSlot{ ResolveInstance( entity ) };
             ResolveMesh( instanceSlot, renderData );
-            auto& instance{ mInstanceStates[instanceSlot] };
-            auto& meshBatchDrawInfo{ mMeshBatchInfos[instance.mGeometryIndex] };
+            auto &instance{ mInstanceStates[instanceSlot] };
+            auto &meshBatchDrawInfo{ mMeshBatchInfos[instance.mGeometryIndex] };
             const auto batchIndex{ meshBatchDrawInfo.mInstanceCount };
 
             if ( batchIndex == meshBatchDrawInfo.mSlots.size() ) {
@@ -1517,11 +1567,11 @@ namespace mikoto::renderer {
 
             core::i32 skinningPalette{ -1 };
 
-            if ( const auto* sm{ registry.try_get<scene::SkinnedMeshRenderer>( entity ) }; sm && meshComponent.HasMesh() ) {
+            if ( const auto *sm{ registry.try_get<scene::SkinnedMeshRenderer>( entity ) }; sm && meshComponent.HasMesh() ) {
                 skinningPalette = ResolveSkinningPalette( sm->GetAnimatorID(), *pMeshNode, meshComponent.GetModel() );
             }
 
-            auto& derived{ mSharedCache->Resolve( entity ) };
+            auto &derived{ mSharedCache->Resolve( entity ) };
             const bool posed{ skinningPalette > 0 };
 
             if ( derived.mRevision == 0 || derived.mWorldRevision != transformComponent.GetWorldRevision() ||
@@ -1543,21 +1593,22 @@ namespace mikoto::renderer {
             }
 
             // Dynamic presentations override rendering while leaving authored material bindings intact.
-            const auto* videoComponent{ registry.try_get<scene::VideoComponent>( entity ) };
+            const auto *videoComponent{ registry.try_get<scene::VideoComponent>( entity ) };
             const auto videoData{ videoComponent ? videoComponent->GetRenderData() : VideoRenderDataHandle{} };
             const auto videoMaterial{ videoData ? videoData->GetMaterial() : material::MaterialHandle{} };
-            const auto* capture{ registry.try_get<scene::TextureRenderComponent>( entity ) };
+            const auto *capture{ registry.try_get<scene::TextureRenderComponent>( entity ) };
             const auto capturedMaterial{ capture ? capture->GetMaterial() : material::MaterialHandle{} };
-            const auto renderMaterial{ capturedMaterial ? capturedMaterial : videoMaterial ? videoMaterial : materialComponent.GetMaterialReference() };
+            const auto renderMaterial{ capturedMaterial ? capturedMaterial : videoMaterial ? videoMaterial
+                                                                                           : materialComponent.GetMaterialReference() };
             instance.mMaterialSlot = ResolveMaterial( renderMaterial, instance.mMaterialSlot );
-            const auto* highlight{ registry.try_get<HighlightComponent>( entity ) };
+            const auto *highlight{ registry.try_get<HighlightComponent>( entity ) };
             UpdateInstance( instanceSlot, derived, tagComponent.GetGuid(), highlight && highlight->IsHighlighted(),
                 skinningPalette );
 
             meshBatchDrawInfo.mInstanceCount += 1;
         }
 
-        for ( auto& batch: mMeshBatchInfos ) {
+        for ( auto &batch: mMeshBatchInfos ) {
             if ( batch.mSlots.size() != batch.mInstanceCount ) {
                 batch.mSlots.resize( batch.mInstanceCount );
                 mCommandsDirty = true;
@@ -1576,11 +1627,12 @@ namespace mikoto::renderer {
     }
 
     auto GeometryCullModule::BuildDrawCommands() -> void {
+        ++mShadowCasterRevision;
         core::u32 packed{};
         mIndirectCmds.clear();
         mTransparentDraws.clear();
 
-        for ( const auto& batch: mMeshBatchInfos ) {
+        for ( const auto &batch: mMeshBatchInfos ) {
             if ( batch.mSlots.empty() ) {
                 continue;
             }
@@ -1623,16 +1675,16 @@ namespace mikoto::renderer {
         mOpaqueDrawCount = core::as<core::u32>( mIndirectCmds.size() );
         mDrawInstances.resize( packed );
 
-        for ( const auto& draw: mTransparentDraws ) {
+        for ( const auto &draw: mTransparentDraws ) {
             mIndirectCmds.push_back( draw.mCommand );
         }
     }
 
     auto GeometryCullModule::SortTransparentDraws( bool force ) -> core::u32 {
-        const auto& view{ mCamera->GetViewMatrix() };
+        const auto &view{ mCamera->GetViewMatrix() };
         bool changed{ force };
 
-        for ( auto& draw: mTransparentDraws ) {
+        for ( auto &draw: mTransparentDraws ) {
             const auto instance{ draw.mCommand.mFirstInstance };
             const auto center{ view * core::float4{ GetInstanceBounds( instance ).mCenter, 1.0f } };
             const core::f32 depth{ center.z != 0.0f ? -center.z : 0.0f };
@@ -1650,14 +1702,14 @@ namespace mikoto::renderer {
             return firstChanged;
         }
 
-        eastl::sort( mTransparentDraws.begin(), mTransparentDraws.end(), []( const TransparentDraw& left, const TransparentDraw& right ) {
+        eastl::sort( mTransparentDraws.begin(), mTransparentDraws.end(), []( const TransparentDraw &left, const TransparentDraw &right ) {
             return left.mKey != right.mKey ? left.mKey < right.mKey
                                            : left.mCommand.mFirstInstance < right.mCommand.mFirstInstance;
         } );
 
         for ( core::u32 index{}; index < mTransparentDraws.size(); ++index ) {
             const auto draw{ mOpaqueDrawCount + index };
-            const auto& command{ mTransparentDraws[index].mCommand };
+            const auto &command{ mTransparentDraws[index].mCommand };
 
             if ( mIndirectCmds[draw].mFirstInstance != command.mFirstInstance ) {
                 firstChanged = eastl::min( firstChanged, draw );
@@ -1668,11 +1720,11 @@ namespace mikoto::renderer {
         return firstChanged;
     }
 
-    auto GeometryCullModule::GetInstanceBounds( core::u32 drawInstance ) const -> const InstanceBounds& {
+    auto GeometryCullModule::GetInstanceBounds( core::u32 drawInstance ) const -> const InstanceBounds & {
         return mInstanceStates[mDrawInstances[drawInstance].mSlot].mBounds;
     }
 
-    auto GeometryCullModule::UpdateDrawBounds( CommandContext& context, FGBufferHandle buffer, core::u32 firstReordered ) -> void {
+    auto GeometryCullModule::UpdateDrawBounds( CommandContext &context, FGBufferHandle buffer, core::u32 firstReordered ) -> void {
         // Camera culling tests one union per draw; shadows use the instance bounds.
         mDirtyDrawBounds.clear();
         mDrawBounds.resize( mIndirectCmds.size() );
@@ -1686,20 +1738,20 @@ namespace mikoto::renderer {
         }
 
         for ( core::usize draw{}; draw < mIndirectCmds.size(); ++draw ) {
-            const auto& command{ mIndirectCmds[draw] };
+            const auto &command{ mIndirectCmds[draw] };
             const auto slot{ mDrawInstances[command.mFirstInstance].mSlot };
 
             if ( draw < firstReordered && !mMeshBatchInfos[mGeometryList[slot].mGeometryIndex].mBoundsDirty ) {
                 continue;
             }
 
-            const auto& first{ GetInstanceBounds( command.mFirstInstance ) };
+            const auto &first{ GetInstanceBounds( command.mFirstInstance ) };
             auto minimum{ first.mCenter - first.mExtent };
             auto maximum{ first.mCenter + first.mExtent };
             bool cullable{ first.mCullable };
 
             for ( core::u32 index{ 1 }; index < command.mInstanceCount; ++index ) {
-                const auto& bounds{ GetInstanceBounds( command.mFirstInstance + index ) };
+                const auto &bounds{ GetInstanceBounds( command.mFirstInstance + index ) };
                 minimum = glm::min( minimum, bounds.mCenter - bounds.mExtent );
                 maximum = glm::max( maximum, bounds.mCenter + bounds.mExtent );
                 cullable &= bounds.mCullable;
@@ -1719,7 +1771,7 @@ namespace mikoto::renderer {
         };
 
         for ( core::usize draw{}; draw < mIndirectCmds.size(); ++draw ) {
-            const auto& command{ mIndirectCmds[draw] };
+            const auto &command{ mIndirectCmds[draw] };
             core::u32 flags{};
 
             if ( mCullingDebugCamera ) {
@@ -1729,7 +1781,7 @@ namespace mikoto::renderer {
                 core::u32 classification{ cullable ? 1u : 3u };
 
                 if ( cullable ) {
-                    for ( const auto& plane: planes ) {
+                    for ( const auto &plane: planes ) {
                         const core::float3 normal{ plane };
                         const float distance{ glm::dot( normal, center ) + plane.w };
                         const float radius{ glm::dot( glm::abs( normal ), extent ) };
@@ -1747,7 +1799,7 @@ namespace mikoto::renderer {
 
             for ( core::u32 index{}; index < command.mInstanceCount; ++index ) {
                 const auto packed{ command.mFirstInstance + index };
-                auto& instance{ mDrawInstances[packed] };
+                auto &instance{ mDrawInstances[packed] };
 
                 if ( instance.mDebugFlags != flags ) {
                     instance.mDebugFlags = flags;
@@ -1757,7 +1809,7 @@ namespace mikoto::renderer {
         }
     }
 
-    auto GeometryCullModule::PrepareIndirectDraw( CommandContext& context, core::Blackboard& b ) -> void {
+    auto GeometryCullModule::PrepareIndirectDraw( CommandContext &context, core::Blackboard &b ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
         const bool rebuild{ mCommandsDirty };
         const bool updateDebug{ rebuild || mCullingDebugCamera || mHadCullingDebugCamera };
@@ -1768,7 +1820,7 @@ namespace mikoto::renderer {
 
         const auto reordered{ SortTransparentDraws( rebuild ) };
         const auto firstChanged{ rebuild ? 0u : reordered };
-        auto& info{ b.Get<GeometryCullModuleInfo>() };
+        auto &info{ b.Get<GeometryCullModuleInfo>() };
         mFirstChangedDraw = firstChanged;
 
         if ( firstChanged < mIndirectCmds.size() ) {
@@ -1786,7 +1838,7 @@ namespace mikoto::renderer {
             UpdateDrawDebugFlags();
         }
 
-        for ( auto& batch: mMeshBatchInfos ) {
+        for ( auto &batch: mMeshBatchInfos ) {
             batch.mBoundsDirty = false;
         }
 
@@ -1794,7 +1846,7 @@ namespace mikoto::renderer {
         mCommandsDirty = false;
     }
 
-    auto GeometryCullModule::UploadIndirectDraw( CommandContext& context, core::Blackboard& b ) -> void {
+    auto GeometryCullModule::UploadIndirectDraw( CommandContext &context, core::Blackboard &b ) -> void {
         if ( mFirstChangedDraw < mIndirectCmds.size() ) {
             context.CopyBuffer( mUnculledIndirectBuffer, core::usize{ mFirstChangedDraw } * sizeof( DrawIndirectCommand ),
                 mIndirectCmds.data() + mFirstChangedDraw, ( mIndirectCmds.size() - mFirstChangedDraw ) * sizeof( DrawIndirectCommand ) );
@@ -1817,9 +1869,9 @@ namespace mikoto::renderer {
         mDirtyDrawBounds.clear();
     }
 
-    auto GeometryCullModule::AppendShadowDraws( const core::float4x4& viewProjection,
-        eastl::vector<DrawIndirectCommand>& commands, core::usize capacity,
-        core::u32& testedInstances, core::u32& culledInstances ) const -> bool {
+    auto GeometryCullModule::AppendShadowDraws( const core::float4x4 &viewProjection,
+        eastl::vector<DrawIndirectCommand> &commands, core::usize capacity,
+        core::u32 &testedInstances, core::u32 &culledInstances ) const -> bool {
         MKT_BEGIN_PROFILER();
         const core::usize first{ commands.size() };
         testedInstances = 0;
@@ -1837,17 +1889,17 @@ namespace mikoto::renderer {
         };
 
         for ( core::u32 draw{}; draw < mIndirectCmds.size(); ++draw ) {
-            const auto& source{ mIndirectCmds[draw] };
+            const auto &source{ mIndirectCmds[draw] };
             bool continuing{};
 
             for ( core::u32 offset{}; offset < source.mInstanceCount; ++offset ) {
                 const core::u32 instance{ source.mFirstInstance + offset };
-                const auto& bounds{ GetInstanceBounds( instance ) };
+                const auto &bounds{ GetInstanceBounds( instance ) };
                 ++testedInstances;
                 bool visible{ true };
 
                 if ( bounds.mCullable ) {
-                    for ( const auto& plane: planes ) {
+                    for ( const auto &plane: planes ) {
                         const core::float3 normal{ plane };
                         const core::f32 distance{ glm::dot( normal, bounds.mCenter ) + plane.w };
                         const core::f32 radius{ glm::dot( glm::abs( normal ), bounds.mExtent ) };
@@ -1898,14 +1950,14 @@ namespace mikoto::renderer {
         return true;
     }
 
-    auto GeometryCullModule::AppendHighlightedDraws( eastl::vector<DrawIndirectCommand>& commands ) const -> void {
+    auto GeometryCullModule::AppendHighlightedDraws( eastl::vector<DrawIndirectCommand> &commands ) const -> void {
         MKT_BEGIN_PROFILER();
 
         if ( !mMeshesVisible ) {
             return;
         }
 
-        for ( const auto& source: mIndirectCmds ) {
+        for ( const auto &source: mIndirectCmds ) {
             bool continuing{};
 
             for ( core::u32 offset{}; offset < source.mInstanceCount; ++offset ) {
@@ -1936,7 +1988,7 @@ namespace mikoto::renderer {
         return core::as<core::u32>( mIndirectCmds.size() );
     }
 
-    auto GeometryCullModule::PushTextureID( CommandContext& ctx, renderer::rhi::TextureHandle handle ) -> core::i32 {
+    auto GeometryCullModule::PushTextureID( CommandContext &ctx, renderer::rhi::TextureHandle handle ) -> core::i32 {
         MKT_BEGIN_PROFILER();
 
         if ( handle.IsEmpty() ) {
@@ -1947,7 +1999,7 @@ namespace mikoto::renderer {
         return core::as<core::i32>( ctx.UseImportedTexture( texture ) );
     }
 
-    auto GeometryCullModule::DrawInstancesIndirect( CommandContext& context, GeometryDrawGroup group, bool cameraCulled ) -> void {
+    auto GeometryCullModule::DrawInstancesIndirect( CommandContext &context, GeometryDrawGroup group, bool cameraCulled ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         if ( !mMeshesVisible ) {
@@ -1956,9 +2008,9 @@ namespace mikoto::renderer {
         const auto first{ group == GeometryDrawGroup::eTransparent ? mOpaqueDrawCount : 0 };
         const auto count{ group == GeometryDrawGroup::eOpaqueAndMasked ? mOpaqueDrawCount : core::as<core::u32>( mIndirectCmds.size() ) - first };
         context.DrawIndirect( DrawIndirectState{}
-            .SetFirstDraw( first )
-            .SetDrawCount( count )
-            .SetBuffer( cameraCulled ? mIndirectBuffer : mUnculledIndirectBuffer ) );
+                .SetFirstDraw( first )
+                .SetDrawCount( count )
+                .SetBuffer( cameraCulled ? mIndirectBuffer : mUnculledIndirectBuffer ) );
     }
 
     auto GeometryCullModule::HasStylizedContours() const -> bool {

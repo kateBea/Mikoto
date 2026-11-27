@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// CPU-mirrored direct-light records. Color, direction, shape and range fields are shared by
+// clustered surface lighting and participating-media lighting.
+
 #pragma once
 
 static const int LIGHT_TYPE_POINT = 1;
@@ -29,22 +32,24 @@ enum class RasterAreaShape : uint {
 };
 
 struct LightInfo {
-    float4 Position;
-    float4 Direction; // w marks the directional light used as the atmospheric sun.
-    float4 Diffuse;
+    float4 mPosition;
+    float4 mDirection;// w marks the directional light used as the atmospheric sun.
+    float4 mDiffuse;
 
-    float CutOff;
-    float OuterCutOff;
+    float mCutOff;
+    float mOuterCutOff;
 
-    float Intensity;
-    float Radius;
+    float mIntensity;
+    float mRadius;
 
-    int ActiveLightType;
+    int mActiveLightType;
 
-    int ShadowIndex;
-    uint ShadowSlot;
-    float Padding;
+    int mShadowIndex;
+    uint mShadowSlot;
+    float mPadding;
 
-    float4 AreaAxisX; // Unit right, half width or tube half length.
-    float4 AreaAxisY; // Unit up, half height. Padding stores the sphere/tube source radius.
+    float4 mAreaAxisX;     // Unit right, half width or tube half length.
+    float4 mAreaAxisY;     // Unit up, half height. Padding stores the sphere/tube source radius.
+    uint4 mAreaEmission;   // Texture, sampler, manual sRGB decode, mip count. Invalid texture = flat colour.
+    float4 mAreaEmissionUv;// Source material's UV scale and offset.
 };

@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Reconstruct the visible cluster and map its light count to a debug color. Composition
+// supports a standalone heatmap and an overlay on existing scene radiance.
+
 #pragma once
 
 #include "Camera_Helpers.slang"

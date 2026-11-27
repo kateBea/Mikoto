@@ -17,41 +17,41 @@
 
 #include <imgui.h>
 
+#include <ankerl/unordered_dense.h>
+
 #include <EASTL/array.h>
 #include <EASTL/vector.h>
 
-#include <ankerl/unordered_dense.h>
+#include <Assets/AssetLoadRegistry.hh>
+#include <Assets/AssetMaterial.hh>
+#include <Assets/AssetModel.hh>
+#include <Assets/AssetTexture.hh>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
 
-#include <Math/Math.hh>
-
-#include <Assets/AssetModel.hh>
-#include <Assets/AssetTexture.hh>
-#include <Assets/AssetMaterial.hh>
-#include <Assets/AssetLoadRegistry.hh>
-
-#include <Renderer/Rhi/Types.hh>
-#include <Renderer/Rhi/Texture.hh>
-#include <Renderer/Rhi/GpuDevice.hh>
-#include <Renderer/ForwardRenderer/Passes/MousePickingModule.hh>
-
-#include <Scene/Scene.hh>
-
 #include <ImGui/Utility.hh>
 
+#include <Math/Math.hh>
+
 #include <Panels/Panel.hh>
+
+#include <Renderer/ForwardRenderer/Passes/MousePickingModule.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
+#include <Renderer/Rhi/Texture.hh>
+#include <Renderer/Rhi/Types.hh>
+
+#include <Scene/Scene.hh>
 
 namespace mikoto::editor {
 
     struct EditorState;
 
     struct ViewportPanelCreateInfo {
-        EditorState* mState{};
+        EditorState *mState{};
 
         core::u32 mInstanceId{ 1 };
-        renderer::rhi::IGpuDevice* mGpuDevice{};
+        renderer::rhi::IGpuDevice *mGpuDevice{};
 
         eastl::string mGroup{ "Other" };
         bool mIsToggleable{ true };
@@ -59,9 +59,9 @@ namespace mikoto::editor {
 
     class ViewportPanel final : public Panel {
     public:
-        explicit ViewportPanel(const ViewportPanelCreateInfo& createInfo);
+        explicit ViewportPanel( const ViewportPanelCreateInfo &createInfo );
 
-        auto OnRender(float ts) -> void override;
+        auto OnRender( float ts ) -> void override;
 
         auto SuspendInput() -> void;
 
@@ -83,7 +83,8 @@ namespace mikoto::editor {
     private:
         enum class CursorTool : core::u8 {
             eSelect,
-            eGrabSoftBody
+            eGrabSoftBody,
+            eLandscape
         };
 
         enum class RightMouseGesture : core::u8 {
@@ -93,7 +94,13 @@ namespace mikoto::editor {
         };
 
         enum class OverlayIcon : core::usize {
-            eCamera, eLight, eSun, eText, eCanvas, eAudio, eCount
+            eCamera,
+            eLight,
+            eSun,
+            eText,
+            eCanvas,
+            eAudio,
+            eCount
         };
 
         struct CachedMeshBounds {
@@ -118,7 +125,7 @@ namespace mikoto::editor {
     private:
         auto DrawOrientationAxis() -> void;
 
-        auto AddEntityWithModel( const asset::AssetRef<asset::Model>& model, scene::Entity* root ) -> void;
+        auto AddEntityWithModel( const asset::AssetRef<asset::Model> &model, scene::Entity *root ) -> void;
 
         auto InitOverlayIcons() -> void;
         auto DrawFinalImage() -> void;
@@ -127,6 +134,9 @@ namespace mikoto::editor {
         auto SetCursorTool( CursorTool tool ) -> void;
         auto UpdateCursorTool() -> void;
         auto UpdateSoftBodyTool() -> void;
+        auto DrawSoftBodyVertices( entt::entity hovered, core::u32 hoveredParticle ) -> void;
+        auto UpdateTerrainTool() -> void;
+        auto ReleaseTerrainStroke() -> void;
         auto ReleaseSoftBodyGrab() -> void;
         auto UpdateTextureDrop() -> void;
         auto UpdateMaterialDrop() -> void;
@@ -154,8 +164,8 @@ namespace mikoto::editor {
         static constexpr core::f32 kToolbarButtonWidth{ 34.0f };
         static constexpr core::f32 kToolbarInset{ 6.0f };
 
-        EditorState* mEditorState{};
-        renderer::rhi::IGpuDevice* mGpuDevice{};
+        EditorState *mEditorState{};
+        renderer::rhi::IGpuDevice *mGpuDevice{};
 
         core::u32 mInstanceId{ 1 };
 
@@ -164,10 +174,10 @@ namespace mikoto::editor {
 
         core::f32 mViewportWidth{ 1920 };
         core::f32 mViewportHeight{ 1080 };
-        core::f32 mAspectRatio{}; // Zero fills the panel; fixed ratios fit inside it.
+        core::f32 mAspectRatio{};// Zero fills the panel; fixed ratios fit inside it.
         ViewportInfo mContentViewport{};
 
-        ImGuiViewport* mPanelViewport{};
+        ImGuiViewport *mPanelViewport{};
         ImVec2 mStartWindowPos{ 0.0f, 0.0f };
         ImVec2 mStartCursorPos{ 0.0f, 0.0f };
         ImVec2 mStartWindowSize{ 0.0f, 0.0f };
@@ -183,6 +193,7 @@ namespace mikoto::editor {
         bool mPickingBlockedByOverlay{};
         bool mOrientationDragged{};
 
+        ImGuiID mTerrainBrushInputID{};
         CursorTool mCursorTool{ CursorTool::eSelect };
         SoftBodyDrag mSoftBodyDrag{};
 
@@ -193,11 +204,11 @@ namespace mikoto::editor {
         core::RevisionTracked::Revision mGizmoDragRevision{};
 
         ankerl::unordered_dense::map<core::u64, CachedMeshBounds> mGizmoMeshBounds{};
-        const scene::Scene* mGizmoBoundsScene{};
+        const scene::Scene *mGizmoBoundsScene{};
         core::RevisionTracked::Revision mGizmoBoundsRevision{};
         core::u64 mGizmoBoundsFrame{};
 
-        const scene::Scene* mPickScene{};
+        const scene::Scene *mPickScene{};
         core::RevisionTracked::Revision mPickRevision{};
         bool mPickParent{};
         bool mPickAppend{};
@@ -206,7 +217,7 @@ namespace mikoto::editor {
         renderer::ReadPixelViewportInfo mPendingRectangleFirst{};
         renderer::ReadPixelViewportInfo mPendingRectangleLast{};
 
-        const scene::Scene* mBoxScene{};
+        const scene::Scene *mBoxScene{};
         ImVec2 mBoxStart{};
         ImVec2 mBoxEnd{};
         float mBoxOpacity{};
@@ -215,14 +226,14 @@ namespace mikoto::editor {
         bool mBoxAppend{};
 
         RightMouseGesture mRightMouseGesture{ RightMouseGesture::eIdle };
-        const scene::Scene* mRightClickScene{};
-        const scene::Scene* mContextScene{};
+        const scene::Scene *mRightClickScene{};
+        const scene::Scene *mContextScene{};
         core::u64 mContextEntityID{};
         ImVec2 mContextPopupPosition{};
         bool mContextReady{};
 
         filesystem::Path mTextureDropPath{};
-        const scene::Scene* mTextureDropScene{};
+        const scene::Scene *mTextureDropScene{};
         core::u32 mTextureTargetID{};
         bool mTexturePickPending{};
         bool mPickForTexture{};
@@ -238,7 +249,7 @@ namespace mikoto::editor {
         eastl::string mTextureError{};
 
         filesystem::Path mMaterialDropPath{};
-        const scene::Scene* mMaterialDropScene{};
+        const scene::Scene *mMaterialDropScene{};
         asset::AssetHandle<asset::Material> mMaterialRequest{};
         renderer::ReadPixelViewportInfo mMaterialDropViewport{};
         core::u32 mMaterialTargetID{};
@@ -248,7 +259,6 @@ namespace mikoto::editor {
         bool mOpenMaterialPopup{};
         bool mMaterialUnique{};
     };
-}
+}// namespace mikoto::editor
 
 #endif// MIKOTO_PANELS_VIEWPORT_PANEL_HH
-

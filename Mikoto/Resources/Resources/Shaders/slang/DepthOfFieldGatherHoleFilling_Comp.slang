@@ -12,16 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Gather a replacement layer where foreground blur only partially covers a pixel. This supplies
+// color behind the blurred silhouette during recombination.
+
 #include "base/DepthOfField_Helpers.slang"
 
 MKT_DECLARE_PUSH_CONSTANT( DepthOfFieldParameters, parameters );
 
 [shader( "compute" )]
-[numthreads( 8, 8, 1 )]
+[numthreads( kImageGroupWidth, kImageGroupHeight, 1 )]
 void main( uint3 thread : SV_DispatchThreadID ) {
     if ( any( thread.xy >= uint2( parameters.mTargetWidth, parameters.mTargetHeight ) ) ) { return; }
     float coverage = DoFLoad( parameters.mInputs[6], int2( thread.xy ) ).a;
-    float4 bounds = DoFLoad( parameters.mInputs[4], int2( thread.xy / 8 ) );
+    float4 bounds = DoFLoad( parameters.mInputs[kDoFTileBoundsInput], int2( thread.xy / kDoFTileSize ) );
     if ( coverage <= 0.001 || coverage >= 0.999 || bounds.x >= -0.25 ) {
         dofOutputs[parameters.mOutputs[0]][thread.xy] = 0.0;
         return;

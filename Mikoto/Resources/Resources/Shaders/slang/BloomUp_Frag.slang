@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Reconstruct bloom from the smaller level and combine it with the current level. The final
+// composition can add the reconstructed glow to the original scene.
+
 #pragma once
 
 #include "base/Base.slang"
@@ -19,11 +22,11 @@
 #include "base/Memory_Helpers.slang"
 
 struct FSInput {
-    float2 UV : TEXCOORD0;
+    float2 mUV : TEXCOORD0;
 };
 
 struct FSOutput {
-    float4 Color : SV_Target0;
+    float4 mColor : SV_Target0;
 };
 
 struct DrawParams {
@@ -49,10 +52,10 @@ FSOutput main( FSInput input ) {
     Texture2D detailTexture = textures[parameters.mDetailImageID];
 
     float3 color = BloomUpsample(
-        srcTexture, detailTexture, sampler, input.UV,
+        srcTexture, detailTexture, sampler, input.mUV,
         parameters.mScatter, parameters.mRadius );
 
-    output.Color = float4( color, 1.0 );
+    output.mColor = float4( color, 1.0 );
 
     return output;
 }

@@ -12,16 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Analytic-text bindings and shared glyph/style layouts. Curve and band buffer addresses
+// identify the glyph data consumed by coverage evaluation.
+
 #pragma once
 
 struct SlugHornTextOutput {
-    float4 position : SV_Position;
-    float2 texcoord : TEXCOORD0;
-    nointerpolation float4 color : TEXCOORD1;
-    nointerpolation float4 banding : TEXCOORD2;
-    nointerpolation int4 glyph : TEXCOORD3;
-    nointerpolation uint2 textures : TEXCOORD4;
-    nointerpolation float outline : TEXCOORD7;
-    nointerpolation float4 outlineColor : TEXCOORD8;
-    nointerpolation uint3 stroke : TEXCOORD9;
+    float4 mPosition : SV_Position;
+    float2 mTexcoord : TEXCOORD0;
+    nointerpolation float4 mColor : TEXCOORD1;
+    nointerpolation float4 mBanding : TEXCOORD2;
+    nointerpolation int4 mGlyph : TEXCOORD3;
+    nointerpolation uint2 mTextures : TEXCOORD4;
+    nointerpolation float mOutline : TEXCOORD7;
+    nointerpolation float4 mOutlineColor : TEXCOORD8;
+    nointerpolation uint3 mStroke : TEXCOORD9;
 };

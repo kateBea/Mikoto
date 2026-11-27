@@ -1,0 +1,36 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Flowers foliage",
+  "Material": {
+    "BaseColorFactor": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "MetallicFactor": 0,
+    "RoughnessFactor": 0.8211145618000169,
+    "AlphaMask": 1,
+    "AlphaMaskCutoff": 0.4,
+    "DoubleSided": 1,
+    "ShadingModel": 0,
+    "Textures": [
+      {
+        "Map": 1,
+        "Present": true,
+        "Used": true,
+        "TexturePath": "../../Models/IslandVegetation/textures/flowers_00.png"
+      }
+    ],
+    "FoliageWind": {
+      "Enabled": true,
+      "Height": 2.0000000427936637,
+      "RootHeight": 0,
+      "TrunkBend": 0.05,
+      "BranchMotion": 0.06,
+      "LeafFlutter": 0.025,
+      "Frequency": 1
+    }
+  }
+}

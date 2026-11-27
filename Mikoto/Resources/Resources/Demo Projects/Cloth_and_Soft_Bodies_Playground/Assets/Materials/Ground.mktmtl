@@ -1,0 +1,36 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Plaza checkerboard",
+  "Material": {
+    "BaseColorFactor": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "MetallicFactor": 0,
+    "RoughnessFactor": 0.9,
+    "DoubleSided": 0,
+    "AlphaMask": 0,
+    "Checkerboard": {
+      "Enabled": true,
+      "CellSize": 2,
+      "ColorA": [
+        0.0392156862745098,
+        0.043137254901960784,
+        0.043137254901960784
+      ],
+      "ColorB": [
+        0.4117647058823529,
+        0.4588235294117647,
+        0.49019607843137253
+      ],
+      "Offset": [
+        0,
+        0,
+        0
+      ]
+    }
+  }
+}

@@ -239,8 +239,11 @@ namespace mikoto::renderer {
                     SPointer mVertices{};
                     SPointer mBones{};
                     SPointer mCamera{};
-                } params{ ctx.GetDeviceBufferAddress( vertices ), ctx.GetDeviceBufferAddress( bones ),
-                    ctx.GetDeviceBufferAddress( b.Get<CameraModuleInfo>().mCameraData ) };
+                } params{
+                    .mVertices = ctx.GetDeviceBufferAddress( vertices ),
+                    .mBones = ctx.GetDeviceBufferAddress( bones ),
+                    .mCamera = ctx.GetDeviceBufferAddress( b.Get<CameraModuleInfo>().mCameraData ),
+                };
 
                 const auto [width, height]{ InferDimensions( mResolution ) };
 

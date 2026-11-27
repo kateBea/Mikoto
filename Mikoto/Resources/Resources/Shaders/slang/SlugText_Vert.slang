@@ -26,33 +26,33 @@ MKT_DECLARE_PUSH_CONSTANT( TextDrawParams, parameters );
 [shader( "vertex" )]
 SlugTextOutput main( uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID ) {
     FontRenderParams p =
-            buffers[parameters.TextParametersID].Read<FontRenderParams>( 0, parameters.GlyphOffset + instanceID );
+            buffers[parameters.mTextParametersID].Read<FontRenderParams>( 0, parameters.mGlyphOffset + instanceID );
 
     float2 corner = kTextVertices[kTextIndices[vertexID]];
-    float2 local = corner * p.Size.xy + p.Position.xy;
-    float2 em = lerp( p.GlyphPlaneBounds.xy, p.GlyphPlaneBounds.zw,
-                      float2( corner.x, p.Size.z > 0 ? corner.y : 1 - corner.y ) );
+    float2 local = corner * p.mSize.xy + p.mPosition.xy;
+    float2 em = lerp( p.mGlyphPlaneBounds.xy, p.mGlyphPlaneBounds.zw,
+                      float2( corner.x, p.mSize.z > 0 ? corner.y : 1 - corner.y ) );
     // Extend geometry along with the stroke; screen-space Slug dilation below
     // then provides the extra antialiasing pixel, including under perspective.
-    float2 strokeExpansion = ( corner * 2 - 1 ) * p.OutlineWidth;
-    local += strokeExpansion * p.Size.w;
-    em += strokeExpansion * float2( 1, p.Size.z );
-    float4x4 mvp = mul( p.Projection, mul( p.View, p.Model ) );
+    float2 strokeExpansion = ( corner * 2 - 1 ) * p.mOutlineWidth;
+    local += strokeExpansion * p.mSize.w;
+    em += strokeExpansion * float2( 1, p.mSize.z );
+    float4x4 mvp = mul( p.mProjection, mul( p.mView, p.mModel ) );
 
     float2 dilated;
     float2 expandedEm = SlugDilate( float4( local, corner * 2 - 1 ), float4( em, 0, 0 ),
-                                    float4( 1 / p.Size.w, 0, 0, p.Size.z / p.Size.w ), mvp[0], mvp[1], mvp[3],
-                                    p.Viewport, dilated );
+                                    float4( 1 / p.mSize.w, 0, 0, p.mSize.z / p.mSize.w ), mvp[0], mvp[1], mvp[3],
+                                    p.mViewport, dilated );
 
     SlugTextOutput o;
 
-    o.position = mul( mvp, float4( dilated, 0, 1 ) );
-    o.texcoord = expandedEm;
-    o.color = p.Color;
-    o.banding = p.BandTransform;
-    o.glyph = int4( p.GlyphBands );
-    o.textures = uint2( p.CurveTextureID, p.BandTextureID );
-    o.outline = p.OutlineWidth;
-    o.outlineColor = p.OutlineColor;
+    o.mPosition = mul( mvp, float4( dilated, 0, 1 ) );
+    o.mTexcoord = expandedEm;
+    o.mColor = p.mColor;
+    o.mBanding = p.mBandTransform;
+    o.mGlyph = int4( p.mGlyphBands );
+    o.mTextures = uint2( p.mCurveTextureID, p.mBandTextureID );
+    o.mOutline = p.mOutlineWidth;
+    o.mOutlineColor = p.mOutlineColor;
     return o;
 }

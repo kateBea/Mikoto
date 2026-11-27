@@ -12,15 +12,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Depth-of-field parameters, signed CoC conversion and aperture sampling. Gather buffers use
+// negative CoC for foreground and positive CoC for background layers.
+
 #pragma once
 
 #include "Base.slang"
 #include "Memory_Helpers.slang"
 
 // Matches the 112-byte scalar layout in DisplayEffectsModule.cc.
+// Tile layout and slots mirror DisplayEffectsModule; the radiance limit is the largest finite binary16.
+static const uint kDoFTileSize = 8;
+static const uint kDoFTileLaneCount = 64;
+static const uint kDoFApertureAreaSamples = 64;
+static const uint kDoFMedianSampleCount = 9;
+static const int kDoFMedianCenter = 4;
+static const int kDoFApertureInput = 5;
+static const int kDoFTileBoundsInput = 4;
+static const float kDoFMaxHalfFloat = 65504.0;
+
+// Matches the fixed texture-slot arrays in the CPU DepthOfFieldParameters record.
+static const uint kDoFInputSlotCount = 8;
+static const uint kDoFOutputSlotCount = 2;
+
 struct DepthOfFieldParameters {
-    uint mInputs[8];
-    uint mOutputs[2];
+    uint mInputs[kDoFInputSlotCount];
+    uint mOutputs[kDoFOutputSlotCount];
     uint mSampler;
     uint mWidth;
     uint mHeight;
@@ -55,7 +72,8 @@ uint2 DoFHalfSize( DepthOfFieldParameters p ) {
 }
 
 float4 DoFLoad( uint image, int2 pixel ) {
-    uint width, height;
+    uint width;
+    uint height;
     dofImages[image].GetDimensions( width, height );
     return dofImages[image].Load( int3( clamp( pixel, int2( 0 ), int2( width, height ) - 1 ), 0 ) );
 }
@@ -65,13 +83,15 @@ float4 DoFSample( uint image, uint samplerID, float2 uv ) {
 }
 
 float3 DoFClampColor( float3 color ) {
-    return clamp( color, 0.0, 65504.0 );
+    return clamp( color, 0.0, kDoFMaxHalfFloat );
 }
 
 float DoFLuminance( float3 color ) {
     return dot( max( color, 0.0 ), float3( 0.2126, 0.7152, 0.0722 ) );
 }
 
+// Convert view depth and lens parameters into a signed blur radius in pixels. Its sign selects
+// foreground/background handling and its magnitude selects the gather footprint.
 float DoFCoC( float depth, DepthOfFieldParameters p ) {
     // Perspective RH_ZO depth: 0 is the near plane, 1 is the far plane.
     float distance = p.mNearPlane * p.mFarPlane /
@@ -80,6 +100,8 @@ float DoFCoC( float depth, DepthOfFieldParameters p ) {
                   -p.mMaxRadius, p.mMaxRadius );
 }
 
+// Find the aperture boundary at this polar angle. Blade count and roundness change the bokeh
+// silhouette while retaining the shared radius convention.
 float DoFApertureRadius( float angle, DepthOfFieldParameters p ) {
     float sector = 2.0 * kDoFPi / max( p.mBladeCount, 3.0 );
     float localAngle = angle - p.mBladeRotation;
@@ -88,19 +110,23 @@ float DoFApertureRadius( float angle, DepthOfFieldParameters p ) {
     return lerp( polygon, 1.0, saturate( p.mBladeCurvature ) );
 }
 
+// Estimate aperture area by angular integration. Coverage normalization must use the same
+// aperture shape as sample placement.
 float DoFApertureArea( DepthOfFieldParameters p ) {
     float sum = 0.0;
-    for ( uint i = 0; i < 64; ++i ) {
-        float radius = DoFApertureRadius( ( i + 0.5 ) * ( 2.0 * kDoFPi / 64.0 ), p );
+    for ( uint i = 0; i < kDoFApertureAreaSamples; ++i ) {
+        float radius = DoFApertureRadius( ( i + 0.5 ) * ( 2.0 * kDoFPi / float( kDoFApertureAreaSamples ) ), p );
         sum += radius * radius;
     }
-    return sum / 64.0; // Fraction of the enclosing disk's area.
+    return sum / float( kDoFApertureAreaSamples ); // Fraction of the enclosing disk's area.
 }
 
 float2 DoFApertureSample( float2 disk, DepthOfFieldParameters p ) {
-    return DoFSample( p.mInputs[5], p.mSampler, disk * 0.5 + 0.5 ).xy;
+    return DoFSample( p.mInputs[kDoFApertureInput], p.mSampler, disk * 0.5 + 0.5 ).xy;
 }
 
+// Choose a gather source level from blur footprint and CoC variation. Strong near/far variation
+// limits how much detail may be reduced.
 uint DoFGatherMip( float radius, float4 bounds, DepthOfFieldParameters p ) {
     // Coarse bilateral mips are safe only when the layer's CoC is nearly uniform.
     bool foreground = bounds.x < -0.25;
@@ -117,9 +143,11 @@ float4 DoFLoadMip( float2 halfPixel, uint mip, DepthOfFieldParameters p ) {
     return DoFLoad( p.mInputs[mip], int2( floor( ( halfPixel + 0.5 ) / float( 1u << mip ) ) ) );
 }
 
-float4 DoFMedian9( float4 values[9] ) {
+// Take the componentwise median of nine gathered values. Sorting the small neighborhood
+// suppresses isolated bright/coverage samples without another wide blur.
+float4 DoFMedian9( float4 values[kDoFMedianSampleCount] ) {
     // Sort each RGBA component independently; the middle value rejects isolated gather noise.
-    for ( uint i = 1; i < 9; ++i ) {
+    for ( uint i = 1; i < kDoFMedianSampleCount; ++i ) {
         for ( uint j = i; j > 0; --j ) {
             float4 low = min( values[j - 1], values[j] );
             float4 high = max( values[j - 1], values[j] );
@@ -127,5 +155,5 @@ float4 DoFMedian9( float4 values[9] ) {
             values[j] = high;
         }
     }
-    return values[4];
+    return values[kDoFMedianCenter];
 }

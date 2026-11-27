@@ -15,74 +15,75 @@
 #ifndef MIKOTO_RENDERER_FORWARD_RENDERER_HH
 #define MIKOTO_RENDERER_FORWARD_RENDERER_HH
 
+#include <future>
+
 #include <EASTL/array.h>
-#include <EASTL/string.h>
 #include <EASTL/optional.h>
 #include <EASTL/shared_ptr.h>
-#include <EASTL/unique_ptr.h>
+#include <EASTL/string.h>
 #include <EASTL/string_view.h>
+#include <EASTL/unique_ptr.h>
 
-#include <Renderer/Rhi/Types.hh>
-#include <Renderer/Rhi/GpuDevice.hh>
-#include <Renderer/Core/Renderer.hh>
 #include <Renderer/Core/FrameGraph.hh>
-#include <Renderer/ForwardRenderer/Passes/GuiModule.hh>
-#include <Renderer/ForwardRenderer/Passes/DebugModule.hh>
-#include <Renderer/ForwardRenderer/Passes/VideoModule.hh>
+#include <Renderer/Core/Renderer.hh>
 #include <Renderer/Core/SceneRenderer.hh>
+#include <Renderer/ForwardRenderer/Passes/AtmosphericScatteringModule.hh>
 #include <Renderer/ForwardRenderer/Passes/CameraModule.hh>
+#include <Renderer/ForwardRenderer/Passes/CloudsModule.hh>
+#include <Renderer/ForwardRenderer/Passes/CpuPathTraceModule.hh>
+#include <Renderer/ForwardRenderer/Passes/DebugModule.hh>
+#include <Renderer/ForwardRenderer/Passes/DebugOverlayModule.hh>
+#include <Renderer/ForwardRenderer/Passes/DenoiserModule.hh>
+#include <Renderer/ForwardRenderer/Passes/DisplayEffectsModule.hh>
+#include <Renderer/ForwardRenderer/Passes/GeometryCullModule.hh>
+#include <Renderer/ForwardRenderer/Passes/GeometryShadingModule.hh>
+#include <Renderer/ForwardRenderer/Passes/GuiModule.hh>
 #include <Renderer/ForwardRenderer/Passes/HelperModule.hh>
-#include <Renderer/ForwardRenderer/Passes/VolumeModule.hh>
-#include <Renderer/ForwardRenderer/Passes/PrepassModule.hh>
-#include <Renderer/ForwardRenderer/Passes/OutlineModule.hh>
-#include <Renderer/ForwardRenderer/Passes/WeatherModule.hh>
-#include <Renderer/ForwardRenderer/Passes/TonemapModule.hh>
+#include <Renderer/ForwardRenderer/Passes/IndirectLightingModule.hh>
 #include <Renderer/ForwardRenderer/Passes/MaterialModule.hh>
-#include <Renderer/ForwardRenderer/Passes/ShaderToyModule.hh>
-#include <Renderer/ForwardRenderer/Passes/RayTracingModule.hh>
-#include <Renderer/ForwardRenderer/Passes/TextRenderModule.hh>
+#include <Renderer/ForwardRenderer/Passes/MousePickingModule.hh>
+#include <Renderer/ForwardRenderer/Passes/OutlineModule.hh>
+#include <Renderer/ForwardRenderer/Passes/ParticleSimulationModule.hh>
 #include <Renderer/ForwardRenderer/Passes/PathTracingModule.hh>
 #include <Renderer/ForwardRenderer/Passes/PostProcessModule.hh>
-#include <Renderer/ForwardRenderer/Passes/CpuPathTraceModule.hh>
-#include <Renderer/ForwardRenderer/Passes/GeometryCullModule.hh>
-#include <Renderer/ForwardRenderer/Passes/DebugOverlayModule.hh>
+#include <Renderer/ForwardRenderer/Passes/PrepassModule.hh>
 #include <Renderer/ForwardRenderer/Passes/PresentationModule.hh>
-#include <Renderer/ForwardRenderer/Passes/MousePickingModule.hh>
+#include <Renderer/ForwardRenderer/Passes/RayTracingModule.hh>
+#include <Renderer/ForwardRenderer/Passes/ShaderToyModule.hh>
 #include <Renderer/ForwardRenderer/Passes/ShadowMappingModule.hh>
-#include <Renderer/ForwardRenderer/Passes/DisplayEffectsModule.hh>
-#include <Renderer/ForwardRenderer/Passes/GeometryShadingModule.hh>
-#include <Renderer/ForwardRenderer/Passes/WaterSimulationModule.hh>
-#include <Renderer/ForwardRenderer/Passes/IndirectLightingModule.hh>
-#include <Renderer/ForwardRenderer/Passes/TerrainGenerationModule.hh>
-#include <Renderer/ForwardRenderer/Passes/ParticleSimulationModule.hh>
 #include <Renderer/ForwardRenderer/Passes/SubsurfaceScatteringModule.hh>
-#include <Renderer/ForwardRenderer/Passes/AtmosphericScatteringModule.hh>
+#include <Renderer/ForwardRenderer/Passes/TerrainGenerationModule.hh>
+#include <Renderer/ForwardRenderer/Passes/TextRenderModule.hh>
+#include <Renderer/ForwardRenderer/Passes/TonemapModule.hh>
+#include <Renderer/ForwardRenderer/Passes/VideoModule.hh>
+#include <Renderer/ForwardRenderer/Passes/VolumeModule.hh>
+#include <Renderer/ForwardRenderer/Passes/WaterSimulationModule.hh>
+#include <Renderer/ForwardRenderer/Passes/WeatherModule.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
+#include <Renderer/Rhi/Types.hh>
 
 // Frame analysis reference: https://www.adriancourreges.com/blog/
 namespace mikoto::renderer {
 
     class ForwardRenderer final : public ISceneRenderer {
     public:
-        explicit ForwardRenderer( const SceneRendererCreateInfo& createInfo );
+        explicit ForwardRenderer( const SceneRendererCreateInfo &createInfo );
 
         auto Initialize() -> void override;
         auto Shutdown() -> void override;
 
-        auto Render( const scene::Scene* scene ) -> void override;
+        auto Render( const scene::Scene *scene ) -> void override;
 
-        auto SetMainCamera( const scene::SceneCamera* camera ) -> void override;
-        auto SetCullingDebugCamera( const scene::Camera* camera ) -> void override;
+        auto SetMainCamera( const scene::SceneCamera *camera ) -> void override;
+        auto SetCullingDebugCamera( const scene::Camera *camera ) -> void override;
         auto SetEditorOverlaysEnabled( bool enabled ) -> void override;
         auto SetInfoOverlayEnabled( bool enabled ) -> void override;
-        MKT_NODISCARD auto GetStatistics() const -> FrameGraphStatistics override;
-        auto SetClearColor( const rhi::Color& color ) -> void override;
+        auto SetClearColor( const rhi::Color &color ) -> void override;
 
         auto SetTonemapType( ToneMapper type ) -> void override;
 
         auto SetGamma( core::f32 gamma ) -> void override;
         auto SetExposure( core::f32 exposure ) -> void override;
-
-        auto GetBloomSettings() -> BloomSettings& override;
 
         auto SetEnableSsao( bool enabled ) -> void override;
         auto SetSsaoIntensity( core::f32 intensity ) -> void;
@@ -99,9 +100,6 @@ namespace mikoto::renderer {
 
         auto SetRenderBackground( SceneBackgroundType bg ) -> void override;
 
-        auto ResetPathAccumulation() -> void override;
-        auto ApplySettings( SceneRenderSettings settings ) -> void override;
-
         /** @brief Selects the highest supported scene sample count at or below the request.
          * Construction and settings changes use the same device capability check.
          */
@@ -115,20 +113,30 @@ namespace mikoto::renderer {
          * Pass nullopt to follow ParticleSystem again. Changing mode rebuilds the graph.
          */
         auto SetParticleSimulationMode( eastl::optional<ParticleSimulationMode> mode ) -> void override;
-
-        auto GetPhysicsDebugSettings() -> physics::PhysicsDebugDrawSettings& override;
-        auto GetSceneVolumeSettings() -> SceneVolumeSettings& override;
         auto SetArmatureDebugMode( ArmatureDebugMode mode ) -> void override;
+        auto SetOutlineStyle( const core::float4 &color, core::f32 width ) -> void;
+        auto SetTextureDropHover( core::u32 id ) -> void override;
+        MKT_NODISCARD auto GetStatistics() const -> FrameGraphStatistics override;
+
+        MKT_NODISCARD auto GetBloomSettings() -> BloomSettings & override;
+
+        auto ResetPathAccumulation() -> void override;
+        auto InvalidateSceneOutput() -> void override;
+        auto ApplySettings( SceneRenderSettings settings ) -> void override;
+
+        MKT_NODISCARD auto GetPhysicsDebugSettings() -> physics::PhysicsDebugDrawSettings & override;
+        MKT_NODISCARD auto GetSceneVolumeSettings() -> SceneVolumeSettings & override;
 
         auto DisablePass( eastl::string_view passName ) -> void;
         auto EnablePass( eastl::string_view passName ) -> void;
 
         auto CancelPick() -> void override;
-        auto SetOutlineStyle( const core::float4& color, core::f32 width ) -> void;
 
         MKT_NODISCARD auto GetSettings() const -> SceneRenderSettings override;
         MKT_NODISCARD auto GetPathSampleCount() const -> core::u32 override;
-        MKT_NODISCARD auto GetRayTracingError() const -> const eastl::string& override;
+        MKT_NODISCARD auto IsDenoiserActive() const -> bool override;
+        MKT_NODISCARD auto IsPreparing() const -> bool override;
+        MKT_NODISCARD auto GetRayTracingError() const -> const eastl::string & override;
 
         MKT_NODISCARD auto IsSsaoEnabled() const -> bool;
         MKT_NODISCARD auto GetSsaoIntensity() const -> core::f32;
@@ -136,37 +144,39 @@ namespace mikoto::renderer {
         MKT_NODISCARD auto GetFinalImage( FinalImageType type ) -> rhi::TextureHandle override;
         MKT_NODISCARD auto GetFinalImage() -> rhi::TextureHandle override;
 
-        MKT_NODISCARD auto RequestPick( const ReadPixelViewportInfo& viewport ) -> bool override;
+        MKT_NODISCARD auto RequestPick( const ReadPixelViewportInfo &viewport ) -> bool override;
 
         MKT_NODISCARD auto GetRenderResolution() const -> rhi::RenderResolution override;
 
         MKT_NODISCARD auto GetPickResult() -> eastl::optional<core::u32> override;
-        MKT_NODISCARD auto ReadSelectionRectangle( const ReadPixelViewportInfo& first, const ReadPixelViewportInfo& last ) const -> eastl::vector<core::u32> override;
-        auto SetTextureDropHover( core::u32 id ) -> void override;
+        MKT_NODISCARD auto ReadSelectionRectangle( const ReadPixelViewportInfo &first, const ReadPixelViewportInfo &last ) const -> eastl::vector<core::u32> override;
 
         MKT_NODISCARD auto GetPhysicsDebugLineCount() const -> core::u32 override;
         MKT_NODISCARD auto GetDroppedPhysicsDebugLineCount() const -> core::usize override;
 
-        MKT_NODISCARD auto GetInstanceUploadStatistics() const -> const SceneUploadStatistics& override;
-        MKT_NODISCARD auto GetMaterialUploadStatistics() const -> const SceneUploadStatistics& override;
+        MKT_NODISCARD auto GetInstanceUploadStatistics() const -> const SceneUploadStatistics & override;
+        MKT_NODISCARD auto GetMaterialUploadStatistics() const -> const SceneUploadStatistics & override;
         MKT_NODISCARD auto GetSharedMaterialCount() const -> core::usize override;
 
-        MKT_NODISCARD auto GetShadowDiagnostics() const -> const ShadowDiagnostics& override;
+        MKT_NODISCARD auto GetShadowDiagnostics() const -> const ShadowDiagnostics & override;
 
-        MKT_NODISCARD auto ReadPixel( core::u32 x, core::u32 y) const -> core::u32;
+        MKT_NODISCARD auto ReadPixel( core::u32 x, core::u32 y ) const -> core::u32;
 
-        MKT_NODISCARD auto ReadPixel( const ReadPixelViewportInfo& ínfo ) const -> core::u32;
+        MKT_NODISCARD auto ReadPixel( const ReadPixelViewportInfo &ínfo ) const -> core::u32;
 
-        MKT_NODISCARD auto GetNodeControl() const -> const FGNodeControl& override;
+        MKT_NODISCARD auto GetNodeControl() const -> const FGNodeControl & override;
         MKT_NODISCARD auto HasFrameGraph() const -> bool override;
 
-        MKT_NODISCARD auto GetPassList() const -> const ankerl::unordered_dense::map<eastl::string, FrameGraphPass>&;
-        MKT_NODISCARD auto GetPassStatistics() const -> const ankerl::unordered_dense::map<eastl::string, FGNodeStatistics>& override;
-        MKT_NODISCARD auto GetGpuProfiler() const -> GpuQueryProfiler* override;
+        MKT_NODISCARD auto GetPassList() const -> const ankerl::unordered_dense::map<eastl::string, FrameGraphPass> &;
+        MKT_NODISCARD auto GetPassStatistics() const -> const ankerl::unordered_dense::map<eastl::string, FGNodeStatistics> & override;
+        MKT_NODISCARD auto GetGpuProfiler() const -> GpuQueryProfiler * override;
 
     private:
         // Graph construction: configure modules, register one rendering path, then bind resources.
         auto ConfigureRenderState() -> void;
+        auto RegisterRenderState() -> void;
+        auto CompleteRenderState() -> void;
+        auto RestoreRenderStateSettings() -> void;
 
         auto RegisterPathTracingPasses() -> void;
 
@@ -176,21 +186,21 @@ namespace mikoto::renderer {
 
         auto ConfigureRasterExecutionPolicies() -> void;
 
-        auto UpdateRenderRequirements( const scene::Scene* scene ) -> void;
-        auto RebuildRenderState() -> void;
-        auto BindSceneToPasses( const scene::Scene* scene ) -> bool;
-        auto GetEnvironmentFaces() const -> eastl::array<rhi::TextureHandle, 6>;
-        auto PreparePathTracingFrame( const scene::Scene* scene, const rhi::TextureHandle& environment, core::f32 environmentScale ) -> bool;
-        auto PrepareRasterFrame( const scene::Scene* scene, const rhi::TextureHandle& environment, core::f32 environmentScale ) -> void;
+        auto UpdateRenderRequirements( const scene::Scene *scene ) -> void;
+        MKT_NODISCARD auto RebuildRenderState() -> bool;
+        auto BindSceneToPasses( const scene::Scene *scene ) -> bool;
+        MKT_NODISCARD auto GetEnvironmentFaces() const -> eastl::array<rhi::TextureHandle, 6>;
+        auto PreparePathTracingFrame( const scene::Scene *scene, const rhi::TextureHandle &environment, core::f32 environmentScale ) -> bool;
+        auto PrepareRasterFrame( const scene::Scene *scene, const rhi::TextureHandle &environment, core::f32 environmentScale ) -> void;
 
         // Settings that can change without rebuilding graph resources.
         auto ApplyFrameSettings() -> void;
 
     private:
-        rhi::IGpuDevice* mDevice{};
-        const scene::Scene* mLastRenderedScene{};
+        rhi::IGpuDevice *mDevice{};
+        const scene::Scene *mLastRenderedScene{};
         core::u64 mVideoRevision{};
-        asset::ShaderLibrary* mShaderLibrary{};
+        asset::ShaderLibrary *mShaderLibrary{};
 
         rhi::RenderResolution mTargetResolution{ rhi::RenderResolution::e1080P };
         rhi::ViewportConvention mViewportConvention{ rhi::ViewportConvention::eRightHanded_OriginBottomLeft };
@@ -202,6 +212,7 @@ namespace mikoto::renderer {
             rhi::Multisampling mMultisampling{ rhi::Multisampling::eMsaaX1 };
             ShadowMapQuality mShadowQuality{ ShadowMapQuality::eMedium };
             bool mCascadedShadowsEnabled{ true };
+            DenoiserSettings mDenoiserSettings{};
 
             // Scene prepass
             GeometryCullModule mGeometryManagement{};
@@ -212,6 +223,7 @@ namespace mikoto::renderer {
             MousePickingModule mMousePickingModule{ mTargetResolution };
             OutlineModule mOutlineModule{ mTargetResolution };
             IndirectLightingModule mIndirectIlluminationModule{ mTargetResolution };
+            DenoiserModule mDenoiserModule{ mTargetResolution };
 
             // Simulations
             WeatherModule mWeatherModule{ mTargetResolution };
@@ -221,6 +233,7 @@ namespace mikoto::renderer {
             // Scene shading
             AtmosphericScatteringModule mAtmosModule{ mTargetResolution };
             VolumeModule mVolumeModule{ mTargetResolution };
+            CloudsModule mCloudsModule{ mTargetResolution };
             VideoModule mVideoModule{};
             GeometryShadingModule mGeometryShading{ mTargetResolution };
             SubsurfaceScatteringModule mSubsurfaceScattering{};
@@ -244,7 +257,7 @@ namespace mikoto::renderer {
             bool mPathMode{};
             PathTracingModule mPathTracing{ mTargetResolution };
             RayTracingModule mRayTracingPass{ mTargetResolution };
-            CpuPathTraceModule mCpuPathTraceModule{ rhi::RenderResolution::e720P }; // For now, it uses its own resolution this is very expensive
+            CpuPathTraceModule mCpuPathTraceModule{ rhi::RenderResolution::e720P };// For now, it uses its own resolution this is very expensive
 
             // Debug Passes
             bool mArmatureMeshesHidden{};
@@ -256,13 +269,27 @@ namespace mikoto::renderer {
             eastl::unique_ptr<FrameGraph> mFrameGraph{};
         };
 
+        // Only graph compilation runs on the worker. Registration, scene access
+        // and publication stay on the render thread; the active graph is untouched.
+        struct PendingRenderState {
+            eastl::shared_ptr<RenderState> mState{};
+            SceneRenderSettings mSettings{};
+            bool mEnvironmentAllocated{};
+            bool mSubsurfaceAllocated{};
+            bool mFogAllocated{};
+            core::u32 mCloudVolumeCapacity{};
+            ParticleSimulationMode mParticleMode{};
+            std::future<void> mCompilation{};
+        };
+
         rhi::Color mClearColor{ rhi::kColorBlue };
 
         SceneRenderSettings mSettings{};
         eastl::shared_ptr<RenderState> mState{};
+        eastl::unique_ptr<PendingRenderState> mPendingRenderState{};
 
-        const scene::SceneCamera* mMainCamera{};
-        const scene::Camera* mCullingDebugCamera{};
+        const scene::SceneCamera *mMainCamera{};
+        const scene::Camera *mCullingDebugCamera{};
 
         core::f32 mGamma{ 1.0f };
         core::f32 mExposure{ 1.0f };
@@ -274,6 +301,7 @@ namespace mikoto::renderer {
         bool mEnvironmentAllocated{};
         bool mSubsurfaceAllocated{};
         bool mFogAllocated{};
+        core::u32 mCloudVolumeCapacity{};
         bool mRebuildPending{ false };
         bool mOverlaysEnabled{ true };
         bool mInfoOverlayEnabled{};

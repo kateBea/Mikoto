@@ -30,7 +30,7 @@ namespace mikoto::renderer::vulkan {
     // Adapt session setup and H.264 parameter conversion to Mikoto resource ownership.
     // https://github.com/turanszkij/WickedEngine/blob/master/WickedEngine/wiGraphicsDevice_Vulkan.cpp
     // https://docs.vulkan.org/spec/latest/chapters/videocoding.html
-    static auto FindVideoMemory( const PhysicalDevice& device, u32 bits, VkMemoryPropertyFlags properties ) -> u32 {
+    static auto FindVideoMemory( const PhysicalDevice &device, u32 bits, VkMemoryPropertyFlags properties ) -> u32 {
         for ( u32 index{}; index < device.mMemoryProperties.memoryTypeCount; ++index ) {
             if ( ( bits & ( 1u << index ) ) &&
                  ( device.mMemoryProperties.memoryTypes[index].propertyFlags & properties ) == properties ) {
@@ -53,7 +53,7 @@ namespace mikoto::renderer::vulkan {
         MKT_THROW_RUNTIME_ERROR( "Unsupported H.264 level." );
     }
 
-    static auto MakeSequenceParameters( const h264::SPS& source, StdVideoH264ScalingLists& scaling ) -> StdVideoH264SequenceParameterSet {
+    static auto MakeSequenceParameters( const h264::SPS &source, StdVideoH264ScalingLists &scaling ) -> StdVideoH264SequenceParameterSet {
         StdVideoH264SequenceParameterSet result{};
         result.flags.constraint_set0_flag = source.constraint_set0_flag;
         result.flags.constraint_set1_flag = source.constraint_set1_flag;
@@ -94,8 +94,8 @@ namespace mikoto::renderer::vulkan {
         return result;
     }
 
-    static auto MakePictureParameters( const h264::SPS& sps, const h264::PPS& source,
-                                       StdVideoH264ScalingLists& scaling ) -> StdVideoH264PictureParameterSet {
+    static auto MakePictureParameters( const h264::SPS &sps, const h264::PPS &source,
+        StdVideoH264ScalingLists &scaling ) -> StdVideoH264PictureParameterSet {
         StdVideoH264PictureParameterSet result{};
         result.flags.transform_8x8_mode_flag = source.transform_8x8_mode_flag;
         result.flags.redundant_pic_cnt_present_flag = source.redundant_pic_cnt_present_flag;
@@ -124,7 +124,7 @@ namespace mikoto::renderer::vulkan {
         return result;
     }
 
-    static auto RequireVideoFormat( Device& device, const VkVideoProfileInfoKHR& profile, VkImageUsageFlags usage ) -> void {
+    static auto RequireVideoFormat( Device &device, const VkVideoProfileInfoKHR &profile, VkImageUsageFlags usage ) -> void {
         auto profiles{ initializers::VideoProfileListInfoKHR() };
         profiles.profileCount = 1;
         profiles.pProfiles = &profile;
@@ -139,15 +139,15 @@ namespace mikoto::renderer::vulkan {
         eastl::vector<VkVideoFormatPropertiesKHR> formats( count, initializers::VideoFormatPropertiesKHR() );
         MKT_VK_CHECK( vkGetPhysicalDeviceVideoFormatPropertiesKHR( device.GetPhysicalDevice()->mPhysicalDevice, &info, &count, formats.data() ) );
 
-        if ( eastl::none_of( formats.begin(), formats.end(), []( const VkVideoFormatPropertiesKHR& format ) {
-            return format.format == VK_FORMAT_G8_B8R8_2PLANE_420_UNORM && format.imageTiling == VK_IMAGE_TILING_OPTIMAL;
-        } ) ) {
+        if ( eastl::none_of( formats.begin(), formats.end(), []( const VkVideoFormatPropertiesKHR &format ) {
+                 return format.format == VK_FORMAT_G8_B8R8_2PLANE_420_UNORM && format.imageTiling == VK_IMAGE_TILING_OPTIMAL;
+             } ) ) {
             MKT_THROW_RUNTIME_ERROR( "Device cannot decode this H.264 profile into sampleable NV12 images." );
         }
     }
 
-    VideoImageStorage::VideoImageStorage( const VkVideoProfileInfoKHR& profile, VkExtent2D extent, VkImageUsageFlags usage )
-        : mH264Profile{ *static_cast<const VkVideoDecodeH264ProfileInfoKHR*>( profile.pNext ) }, mProfile{ profile } {
+    VideoImageStorage::VideoImageStorage( const VkVideoProfileInfoKHR &profile, VkExtent2D extent, VkImageUsageFlags usage )
+        : mH264Profile{ *static_cast<const VkVideoDecodeH264ProfileInfoKHR *>( profile.pNext ) }, mProfile{ profile } {
         mH264Profile.pNext = nullptr;
         mProfile.pNext = &mH264Profile;
         mImageInfo = initializers::ImageCreateInfo();
@@ -169,7 +169,7 @@ namespace mikoto::renderer::vulkan {
         profiles.profileCount = 1;
         profiles.pProfiles = &mProfile;
 
-        const VkFormat planeFormats[] {
+        const VkFormat planeFormats[]{
             VK_FORMAT_G8_B8R8_2PLANE_420_UNORM,
             VK_FORMAT_R8_UNORM, VK_FORMAT_R8G8_UNORM
         };
@@ -178,11 +178,11 @@ namespace mikoto::renderer::vulkan {
         formats.pNext = &profiles;
         formats.viewFormatCount = 3;
         formats.pViewFormats = planeFormats;
-        mImageInfo.pNext = mImageInfo.flags ? static_cast<const void*>( &formats ) : &profiles;
+        mImageInfo.pNext = mImageInfo.flags ? static_cast<const void *>( &formats ) : &profiles;
 
         // Query the actual video image before binding its memory, as in the Vulkan samples.
         // https://github.com/KhronosGroup/Vulkan-Tutorial/blob/main/attachments/24_texture_image.cpp
-        auto* device{ core::checked_cast<Device*>( mDevice ) };
+        auto *device{ core::checked_cast<Device *>( mDevice ) };
 
         MKT_VK_CHECK( vkCreateImage( device->GetDevice(), &mImageInfo, nullptr, &mImage ) );
 
@@ -206,7 +206,7 @@ namespace mikoto::renderer::vulkan {
 
     auto VideoImageStorage::Destroy() -> void {
         if ( mImage ) {
-            auto device{ core::checked_cast<Device*>( mDevice )->GetDevice() };
+            auto device{ core::checked_cast<Device *>( mDevice )->GetDevice() };
             vkDestroyImage( device, mImage, nullptr );
             vkFreeMemory( device, mMemory, nullptr );
             mMemory = VK_NULL_HANDLE;
@@ -223,7 +223,7 @@ namespace mikoto::renderer::vulkan {
     }
 
 
-    VideoSurface::VideoSurface( const VkVideoProfileInfoKHR& profile, VkExtent2D extent, bool reference, bool coincident )
+    VideoSurface::VideoSurface( const VkVideoProfileInfoKHR &profile, VkExtent2D extent, bool reference, bool coincident )
         : mExtent{ extent }, mSampled{ !reference || coincident } {
         mUsage = reference ? VK_IMAGE_USAGE_VIDEO_DECODE_DPB_BIT_KHR : VK_IMAGE_USAGE_VIDEO_DECODE_DST_BIT_KHR;
 
@@ -235,8 +235,8 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto VideoSurface::Initialize() -> void {
-        static_cast<DeviceObject*>( mStorage.GetPtr() )->Initialize( mDevice );
-        auto* device{ core::checked_cast<Device*>( mDevice ) };
+        static_cast<DeviceObject *>( mStorage.GetPtr() )->Initialize( mDevice );
+        auto *device{ core::checked_cast<Device *>( mDevice ) };
         auto usage{ initializers::ImageViewUsageCreateInfo() };
         usage.usage = mUsage & ~VK_IMAGE_USAGE_SAMPLED_BIT;
 
@@ -246,10 +246,16 @@ namespace mikoto::renderer::vulkan {
         view.viewType = VK_IMAGE_VIEW_TYPE_2D;
         view.format = VK_FORMAT_G8_B8R8_2PLANE_420_UNORM;
         view.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+
         ExternalTextureDescription description{
-            .mWidth = mExtent.width, .mHeight = mExtent.height,
-            .mSurfaceFormat = Format::eNV12, .mImageViewCreateInfo = view,
-            .mUsage = TextureUsageFlagsBits::None, .mOwner = mStorage };
+            .mWidth = mExtent.width,
+            .mHeight = mExtent.height,
+            .mSurfaceFormat = Format::eNV12,
+            .mImageViewCreateInfo = view,
+            .mUsage = TextureUsageFlagsBits::None,
+            .mOwner = mStorage
+        };
+
         mImage = device->CreateTexture( description );
 
         // Plane-compatible views use ordinary sampled-image descriptors and shared samplers.
@@ -296,13 +302,13 @@ namespace mikoto::renderer::vulkan {
         return mChromaImage;
     }
 
-    VideoDecoder::VideoDecoder( const VideoDecoderDescription& description )
+    VideoDecoder::VideoDecoder( const VideoDecoderDescription &description )
         : mConfiguration{ description.mConfiguration } {
     }
 
     auto VideoDecoder::Initialize() -> void {
-        auto* device{ core::checked_cast<Device*>( mDevice ) };
-        const auto& source{ mConfiguration->GetSps() };
+        auto *device{ core::checked_cast<Device *>( mDevice ) };
+        const auto &source{ mConfiguration->GetSps() };
 
         if ( source.vui.colour_description_present_flag && source.vui.transfer_characteristics != 1 &&
              source.vui.transfer_characteristics != 2 && source.vui.transfer_characteristics != 6 && source.vui.transfer_characteristics != 13 ) {
@@ -360,12 +366,11 @@ namespace mikoto::renderer::vulkan {
             MKT_THROW_RUNTIME_ERROR( "H.264 profile, extent or independently allocated reference images are not supported by this device." );
         }
 
-        RequireVideoFormat( *device, mProfile, VK_IMAGE_USAGE_VIDEO_DECODE_DST_BIT_KHR | VK_IMAGE_USAGE_SAMPLED_BIT |
-            ( mIsCoincident ? VK_IMAGE_USAGE_VIDEO_DECODE_DPB_BIT_KHR : 0 ) );
+        RequireVideoFormat( *device, mProfile, VK_IMAGE_USAGE_VIDEO_DECODE_DST_BIT_KHR | VK_IMAGE_USAGE_SAMPLED_BIT | ( mIsCoincident ? VK_IMAGE_USAGE_VIDEO_DECODE_DPB_BIT_KHR : 0 ) );
         RequireVideoFormat( *device, mProfile, VK_IMAGE_USAGE_VIDEO_DECODE_DPB_BIT_KHR );
 
         auto session{ initializers::VideoSessionCreateInfoKHR() };
-        session.queueFamilyIndex = core::checked_cast<Queue*>( device->GetQueue( QueueType::eVideoDecode ) )->GetFamilyIndex();
+        session.queueFamilyIndex = core::checked_cast<Queue *>( device->GetQueue( QueueType::eVideoDecode ) )->GetFamilyIndex();
         session.pVideoProfile = &mProfile;
         session.pictureFormat = session.referencePictureFormat = VK_FORMAT_G8_B8R8_2PLANE_420_UNORM;
         session.maxCodedExtent = mExtent;
@@ -383,12 +388,12 @@ namespace mikoto::renderer::vulkan {
         mSessionMemory.resize( count );
 
         // Prefer device-local storage while respecting each binding's memory requirements.
-        auto* allocator{ device->GetAllocator() };
+        auto *allocator{ device->GetAllocator() };
         VmaAllocationCreateInfo allocation{};
         allocation.preferredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 
         for ( u32 index{}; index < count; ++index ) {
-            const auto& requirement{ requirements[index] };
+            const auto &requirement{ requirements[index] };
             VmaAllocationInfo info{};
 
             MKT_VK_CHECK( allocator->AllocateMemory( requirement.memoryRequirements, allocation, mSessionMemory[index], info ) );
@@ -430,11 +435,11 @@ namespace mikoto::renderer::vulkan {
             return;
         }
 
-        const auto device{ core::checked_cast<Device*>( mDevice )->GetDevice() };
+        const auto device{ core::checked_cast<Device *>( mDevice )->GetDevice() };
         vkDestroyVideoSessionParametersKHR( device, mParameters, nullptr );
         vkDestroyVideoSessionKHR( device, mSession, nullptr );
 
-        auto* allocator{ core::checked_cast<Device*>( mDevice )->GetAllocator() };
+        auto *allocator{ core::checked_cast<Device *>( mDevice )->GetAllocator() };
 
         for ( const auto allocation: mSessionMemory ) {
             allocator->FreeMemory( allocation );
@@ -454,15 +459,16 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto VideoDecoder::CreateBitstream( eastl::span<const ubyte> bytes ) -> BufferHandle {
-        auto* device{ core::checked_cast<Device*>( mDevice ) };
+        auto *device{ core::checked_cast<Device *>( mDevice ) };
         auto buffer{ device->CreateBuffer( BufferCreateDescription{}
             .SetName( "Video clip bitstream" )
             .SetByteSize( bytes.size() )
             .SetHeapType( HeapType::eUpload )
             .SetCpuAccessType( AccessType::eWrite )
             .SetResourceType( ResourceType::eRawBuffer_SRV )
-            .SetBufferUsage( BufferUsageFlagsBits::VideoDecodeSource ), mProfile ) };
-        auto* mapped{ mDevice->Map( buffer.GetPtr() ) };
+            .SetBufferUsage( BufferUsageFlagsBits::VideoDecodeSource ),
+            mProfile ) };
+        auto *mapped{ mDevice->Map( buffer.GetPtr() ) };
 
         if ( !mapped ) {
             MKT_THROW_RUNTIME_ERROR( "Cannot map the video bitstream upload buffer." );
@@ -481,7 +487,7 @@ namespace mikoto::renderer::vulkan {
         };
     }
 
-    auto VideoDecoder::MatchesConfiguration( const video::H264Picture& picture ) const -> bool {
+    auto VideoDecoder::MatchesConfiguration( const video::H264Picture &picture ) const -> bool {
         return std::memcmp( &picture.GetSps(), &mConfiguration->GetSps(), sizeof( h264::SPS ) ) == 0 &&
                std::memcmp( &picture.GetPps(), &mConfiguration->GetPps(), sizeof( h264::PPS ) ) == 0;
     }
@@ -509,4 +515,4 @@ namespace mikoto::renderer::vulkan {
     auto VideoDecoder::GetExtent() const -> VkExtent2D {
         return mExtent;
     }
-}
+}// namespace mikoto::renderer::vulkan

@@ -18,69 +18,71 @@
 #include <array>
 #include <string>
 
-#include <EASTL/utility.h>
-#include <EASTL/span.h>
 #include <EASTL/array.h>
-#include <EASTL/string.h>
-#include <EASTL/vector.h>
 #include <EASTL/shared_ptr.h>
+#include <EASTL/span.h>
+#include <EASTL/string.h>
 #include <EASTL/unique_ptr.h>
+#include <EASTL/utility.h>
+#include <EASTL/vector.h>
 
 #include <glm/glm.hpp>
-#include <glm/gtx/quaternion.hpp>
-#include <glm/gtx/compatibility.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/compatibility.hpp>
+#include <glm/gtx/quaternion.hpp>
+
+#include <Animation/KeyframeClip.hh>
+
+#include <Assets/AssetModel.hh>
+#include <Assets/AssetParticleEffect.hh>
+#include <Assets/AssetRegistryService.hh>
+#include <Assets/AssetSkeleton.hh>
+#include <Assets/AssetTexture.hh>
+#include <Assets/AssetVideo.hh>
+
+#include <Audio/AudioClip.hh>
+#include <Audio/AudioDevice.hh>
+#include <Audio/AudioListener.hh>
+#include <Audio/AudioMixer.hh>
 
 #include <Core/Core.hh>
-#include <Core/Types.hh>
 #include <Core/Profiler.hh>
+#include <Core/Types.hh>
+
+#include <Filesystem/FileService.hh>
+
+#include <Material/Material.hh>
+#include <Material/MaterialGraph.hh>
+#include <Material/SurfaceMaterial.hh>
+#include <Material/TerrainMaterial.hh>
+#include <Material/TextMaterial.hh>
+#include <Material/VolumeMaterial.hh>
 
 #include <Math/Math.hh>
 #include <Math/Random.hh>
 
-#include <Filesystem/FileService.hh>
-
-#include <Assets/AssetModel.hh>
-#include <Assets/AssetVideo.hh>
-#include <Assets/AssetTexture.hh>
-#include <Assets/AssetSkeleton.hh>
-#include <Assets/AssetParticleEffect.hh>
-#include <Assets/AssetRegistryService.hh>
-
-#include <Material/Material.hh>
-#include <Material/TextMaterial.hh>
-#include <Material/MaterialGraph.hh>
-#include <Material/VolumeMaterial.hh>
-#include <Material/SurfaceMaterial.hh>
-#include <Material/TerrainMaterial.hh>
-
-#include <Animation/KeyframeClip.hh>
-
-#include <Audio/AudioClip.hh>
-#include <Audio/AudioMixer.hh>
-#include <Audio/AudioDevice.hh>
-#include <Audio/AudioListener.hh>
-
 #include <Physics/Shape.hh>
 
-#include <Text/Utility.hh>
-#include <Text/TextLayout.hh>
-#include <Text/UnicodeString.hh>
-
-#include <Renderer/Video/Video.hh>
-#include <Renderer/Text/Font.hh>
 #include <Renderer/Core/Light.hh>
-#include <Renderer/Gui/Canvas.hh>
 #include <Renderer/Core/TerrainGeneration.hh>
+#include <Renderer/Gui/Canvas.hh>
 #include <Renderer/Particle/ParticleEmitter.hh>
+#include <Renderer/Text/Font.hh>
+#include <Renderer/Video/Video.hh>
 
 #include <Scene/SceneCamera.hh>
 
 #include <Scripting/Script.hh>
 
+#include <Text/TextLayout.hh>
+#include <Text/UnicodeString.hh>
+#include <Text/Utility.hh>
+
 namespace mikoto::renderer {
     class ISceneRenderer;
 }
+
+#include <Scene/Wind.hh>
 
 namespace mikoto::scene {
 
@@ -93,23 +95,23 @@ namespace mikoto::scene {
         explicit TagComponent() = default;
         explicit TagComponent( eastl::string_view tag, bool active = true );
 
-        TagComponent( const TagComponent& other );
-        TagComponent( TagComponent&& other ) noexcept;
-        auto operator=( const TagComponent& other ) -> TagComponent&;
-        auto operator=( TagComponent&& other ) noexcept -> TagComponent&;
-
-        MKT_NODISCARD auto GetGuid() const -> core::u32;
-        MKT_NODISCARD auto GetGuidObject() -> math::random::Guid&;
-        MKT_NODISCARD auto IsActive() const -> bool;
-        MKT_NODISCARD auto GetTag() const -> const eastl::string&;
+        TagComponent( const TagComponent &other );
+        TagComponent( TagComponent &&other ) noexcept;
+        auto operator=( const TagComponent &other ) -> TagComponent &;
+        auto operator=( TagComponent &&other ) noexcept -> TagComponent &;
 
         auto SetActive( bool value ) -> void;
         auto SetTag( eastl::string_view newName ) -> void;
 
+        MKT_NODISCARD auto GetGuid() const -> core::u32;
+        MKT_NODISCARD auto GetGuidObject() -> math::random::Guid &;
+        MKT_NODISCARD auto IsActive() const -> bool;
+        MKT_NODISCARD auto GetTag() const -> const eastl::string &;
+
     private:
         friend class Scene;
         friend class Entity;
-        Scene* mScene{};
+        Scene *mScene{};
 
         eastl::string mTag{};
         math::random::Guid mGuid{};
@@ -135,37 +137,37 @@ namespace mikoto::scene {
         explicit TransformComponent();
 
         TransformComponent(
-            const core::float3& position,
-            const core::float3& size,
-            const core::float3& angles,
-            const core::float4x4& worldTransform = math::constants::Identity<core::float4x4>() );
+            const core::float3 &position,
+            const core::float3 &size,
+            const core::float3 &angles,
+            const core::float4x4 &worldTransform = math::constants::Identity<core::float4x4>() );
 
-        TransformComponent( const TransformComponent& other );
-        TransformComponent( TransformComponent&& other ) noexcept;
-        auto operator=( const TransformComponent& other ) -> TransformComponent&;
-        auto operator=( TransformComponent&& other ) noexcept -> TransformComponent&;
+        TransformComponent( const TransformComponent &other );
+        TransformComponent( TransformComponent &&other ) noexcept;
+        auto operator=( const TransformComponent &other ) -> TransformComponent &;
+        auto operator=( TransformComponent &&other ) noexcept -> TransformComponent &;
 
-        MKT_NODISCARD auto GetTranslation() const -> const core::float3&;
-        MKT_NODISCARD auto GetRotation() const -> const core::float3&;
-        MKT_NODISCARD auto GetScale() const -> const core::float3&;
-        MKT_NODISCARD auto GetTransform() const -> const core::float4x4&;
+        auto SetRotation( const core::float3 &value ) -> void;
+        auto SetTranslation( const core::float3 &value ) -> void;
+        auto SetTransform( const core::float4x4 &transform ) -> void;
+        auto SetRotation( const core::quat &quaternion ) -> void;
+
+        auto SetWorldTransform( const core::float4x4 &worldTransform ) -> void;
+
+        auto SetScale( const core::float3 &value ) -> void;
+        auto SetUniformSale( const bool value ) -> void;
+
+        MKT_NODISCARD auto GetTranslation() const -> const core::float3 &;
+        MKT_NODISCARD auto GetRotation() const -> const core::float3 &;
+        MKT_NODISCARD auto GetScale() const -> const core::float3 &;
+        MKT_NODISCARD auto GetTransform() const -> const core::float4x4 &;
         MKT_NODISCARD auto HasUniformScale() const -> bool;
 
         MKT_NODISCARD auto GetRotationQuat() const -> core::quat;
-        MKT_NODISCARD auto GetWorldTransform() const -> const core::float4x4&;
+        MKT_NODISCARD auto GetWorldTransform() const -> const core::float4x4 &;
         MKT_NODISCARD auto GetWorldRevision() const -> core::u64;
 
-        auto SetRotation( const core::float3& value ) -> void;
-        auto SetTranslation( const core::float3& value ) -> void;
-        auto SetTransform( const core::float4x4& transform ) -> void;
-        auto SetRotation( const core::quat& quaternion ) -> void;
-
-        auto SetWorldTransform( const core::float4x4& worldTransform ) -> void;
-
-        auto SetScale( const core::float3& value ) -> void;
-        auto SetUniformSale( const bool value ) -> void;
-
-        auto ComputeTransform( const core::float3& position, const core::float3& size, const core::float3& angles ) -> void;
+        auto ComputeTransform( const core::float3 &position, const core::float3 &size, const core::float3 &angles ) -> void;
 
         ~TransformComponent() = default;
 
@@ -203,24 +205,24 @@ namespace mikoto::scene {
     public:
         explicit RelationComponent( const eastl::optional<core::u64> parent = eastl::nullopt );
 
-        RelationComponent( const RelationComponent& other );
-        RelationComponent( RelationComponent&& other ) = default;
+        RelationComponent( const RelationComponent &other );
+        RelationComponent( RelationComponent &&other ) = default;
 
-        auto operator=( const RelationComponent& other ) -> RelationComponent&;
-        auto operator=( RelationComponent&& other ) -> RelationComponent& = default;
+        auto operator=( const RelationComponent &other ) -> RelationComponent &;
+        auto operator=( RelationComponent &&other ) -> RelationComponent & = default;
 
         auto RegisterChild( core::u64 id ) -> void;
         auto EraseChild( core::u64 id ) -> void;
 
+        auto SetParent( core::u64 uid ) -> void;
+
         MKT_NODISCARD auto IsChild( const core::u64 id ) const -> bool;
         MKT_NODISCARD auto HasChildren() const -> bool;
-
-        auto SetParent( core::u64 uid ) -> void;
         MKT_NODISCARD auto HasParent() const -> bool;
-        MKT_NODISCARD auto GetParent() const -> const eastl::optional<core::u64>&;
+        MKT_NODISCARD auto GetParent() const -> const eastl::optional<core::u64> &;
 
         MKT_NODISCARD auto IsLeaf() const -> bool;
-        MKT_NODISCARD auto GetChildren() const -> const ankerl::unordered_dense::set<core::u64>&;
+        MKT_NODISCARD auto GetChildren() const -> const ankerl::unordered_dense::set<core::u64> &;
 
         ~RelationComponent() = default;
 
@@ -230,7 +232,7 @@ namespace mikoto::scene {
         eastl::optional<core::u64> mGroup{};
         ankerl::unordered_dense::set<core::u64> mChildrenIDs{};
         friend class Scene;
-        Scene* mScene{};
+        Scene *mScene{};
         core::u64 mEntityID{};
     };
 
@@ -245,11 +247,11 @@ namespace mikoto::scene {
         GroupComponent() = default;
 
         // Membership belongs to the scene; use Scene::DuplicateEntity to clone groups.
-        GroupComponent( const GroupComponent& other ) = delete;
-        GroupComponent( GroupComponent&& other ) = default;
+        GroupComponent( const GroupComponent &other ) = delete;
+        GroupComponent( GroupComponent &&other ) = default;
 
-        auto operator=( const GroupComponent& other ) -> GroupComponent& = delete;
-        auto operator=( GroupComponent&& other ) -> GroupComponent& = default;
+        auto operator=( const GroupComponent &other ) -> GroupComponent & = delete;
+        auto operator=( GroupComponent &&other ) -> GroupComponent & = default;
 
         auto AddEntity( core::u64 entityID ) -> bool;
         auto RemoveEntity( core::u64 entityID ) -> void;
@@ -257,7 +259,7 @@ namespace mikoto::scene {
         MKT_NODISCARD auto Contains( core::u64 entityID ) const -> bool;
         MKT_NODISCARD auto HasChildren() const -> bool;
 
-        MKT_NODISCARD auto GetChildren() const -> const ankerl::unordered_dense::set<core::u64>&;
+        MKT_NODISCARD auto GetChildren() const -> const ankerl::unordered_dense::set<core::u64> &;
 
         ~GroupComponent() = default;
 
@@ -269,7 +271,7 @@ namespace mikoto::scene {
         // Members may themselves contain GroupComponent.
         ankerl::unordered_dense::set<core::u64> mChildren{};
         friend class Scene;
-        Scene* mScene{};
+        Scene *mScene{};
         core::u64 mEntityID{};
     };
 
@@ -278,17 +280,18 @@ namespace mikoto::scene {
     public:
         // Is internal is used for material that are part of loaded models
         explicit MaterialComponent( material::MaterialHandle mat =
-            material::MaterialHandle::CreateEmpty(), bool isInternal = true );
+                                        material::MaterialHandle::CreateEmpty(),
+            bool isInternal = true );
+
+        auto SetIsInternal( bool value ) -> void;
+        auto SetMaterial( material::MaterialHandle mat ) -> void;
 
         MKT_NODISCARD auto HasMaterial() const -> bool;
         MKT_NODISCARD auto GetMaterial() const -> material::MaterialHandle;
 
         // Borrow for render gathering without incrementing the reference count.
-        MKT_NODISCARD auto GetMaterialReference() const -> const material::MaterialHandle&;
+        MKT_NODISCARD auto GetMaterialReference() const -> const material::MaterialHandle &;
         MKT_NODISCARD auto IsInternal() const -> bool;
-
-        auto SetIsInternal( bool value ) -> void;
-        auto SetMaterial( material::MaterialHandle mat ) -> void;
 
         ~MaterialComponent() = default;
 
@@ -298,7 +301,6 @@ namespace mikoto::scene {
         bool mIsInternalMaterial{ true };
         material::MaterialHandle mMaterial{};
         // Authoring graph ownership belongs to the concrete material asset.
-
     };
 
 
@@ -312,20 +314,22 @@ namespace mikoto::scene {
         explicit MeshComponent( asset::ModelHandle model = asset::ModelHandle::CreateEmpty(), core::i32 meshIndex = {} );
         /** Release only render residency; mesh identity, transforms and scene edits survive. */
         auto UpdateResidency( bool wanted ) -> void;
-        MKT_NODISCARD auto GetStreamingCenter() const -> const core::float3&;
-        MKT_NODISCARD auto GetStreamingExtent() const -> const core::float3&;
+        MKT_NODISCARD auto GetStreamingCenter() const -> const core::float3 &;
+        MKT_NODISCARD auto GetStreamingExtent() const -> const core::float3 &;
 
         ~MeshComponent() = default;
 
         auto SetMesh( asset::ModelHandle model, core::i32 meshIndex ) -> void;
 
+        auto SetAnimator( core::u64 id ) -> void;
+
         MKT_NODISCARD auto GetMeshIndex() const -> core::i32;
-        MKT_NODISCARD auto GetModelPath() const -> const filesystem::Path&;
+        MKT_NODISCARD auto GetModelPath() const -> const filesystem::Path &;
 
         MKT_NODISCARD auto HasMesh() const -> bool;
-        MKT_NODISCARD auto GetMesh() const -> const asset::MeshNode*;
+        MKT_NODISCARD auto GetMesh() const -> const asset::MeshNode *;
 
-        MKT_NODISCARD auto GetMesh() -> asset::MeshNode*;
+        MKT_NODISCARD auto GetMesh() -> asset::MeshNode *;
 
         MKT_NODISCARD auto GetModel() -> asset::ModelHandle;
         MKT_NODISCARD auto GetModel() const -> asset::ModelHandle;
@@ -334,8 +338,6 @@ namespace mikoto::scene {
 
         MKT_NODISCARD auto IsSkinned() const -> bool;
         MKT_NODISCARD auto HasArmature() const -> bool;
-
-        auto SetAnimator(core::u64 id) -> void;
 
         MKT_NODISCARD auto HasAnimations() const -> bool;
 
@@ -364,47 +366,55 @@ namespace mikoto::scene {
     public:
         explicit LightComponent( renderer::LightType type = renderer::LightType::ePoint );
 
-        LightComponent( const LightComponent& other ) = default;
-        LightComponent( LightComponent&& other ) = default;
+        LightComponent( const LightComponent &other ) = default;
+        LightComponent( LightComponent &&other ) = default;
 
-        auto operator=( const LightComponent& other ) -> LightComponent& = default;
-        auto operator=( LightComponent&& other ) -> LightComponent& = default;
+        auto operator=( const LightComponent &other ) -> LightComponent & = default;
+        auto operator=( LightComponent &&other ) -> LightComponent & = default;
 
         ~LightComponent() = default;
+        auto SetActiveType( const renderer::LightType type ) -> void;
 
         MKT_NODISCARD auto IsTypeActive( const renderer::LightType type ) const -> bool;
 
         MKT_NODISCARD auto GetActiveType() const -> renderer::LightType;
-        auto SetActiveType( const renderer::LightType type ) -> void;
 
         template<typename T>
-        MKT_NODISCARD auto Get() -> T& {
+        MKT_NODISCARD auto Get() -> T & {
             MKT_BEGIN_PROFILER();
             if constexpr ( std::is_same_v<T, renderer::PointLight> ) {
                 return mPointLight;
-            } else if constexpr ( std::is_same_v<T, renderer::SpotLight> ) {
+            }
+            else if constexpr ( std::is_same_v<T, renderer::SpotLight> ) {
                 return mSpotLight;
-            } else if constexpr ( std::is_same_v<T, renderer::DirectionalLight> ) {
+            }
+            else if constexpr ( std::is_same_v<T, renderer::DirectionalLight> ) {
                 return mDirectionalLight;
-            } else if constexpr ( std::is_same_v<T, renderer::AreaLight> ) {
+            }
+            else if constexpr ( std::is_same_v<T, renderer::AreaLight> ) {
                 return mAreaLight;
-            } else {
+            }
+            else {
                 MKT_STATIC_ASSERT( false, "Unsupported light type in LightComponent::Get()" );
             }
         }
 
         template<typename T>
-        MKT_NODISCARD auto Get() const -> const T& {
+        MKT_NODISCARD auto Get() const -> const T & {
             MKT_BEGIN_PROFILER();
             if constexpr ( std::is_same_v<T, renderer::PointLight> ) {
                 return mPointLight;
-            } else if constexpr ( std::is_same_v<T, renderer::SpotLight> ) {
+            }
+            else if constexpr ( std::is_same_v<T, renderer::SpotLight> ) {
                 return mSpotLight;
-            } else if constexpr ( std::is_same_v<T, renderer::DirectionalLight> ) {
+            }
+            else if constexpr ( std::is_same_v<T, renderer::DirectionalLight> ) {
                 return mDirectionalLight;
-            } else if constexpr ( std::is_same_v<T, renderer::AreaLight> ) {
+            }
+            else if constexpr ( std::is_same_v<T, renderer::AreaLight> ) {
                 return mAreaLight;
-            } else {
+            }
+            else {
                 MKT_STATIC_ASSERT( false, "Unsupported light type in LightComponent::Get()" );
             }
         }
@@ -423,19 +433,20 @@ namespace mikoto::scene {
     public:
         AudioMixerComponent() = default;
 
-        AudioMixerComponent( const AudioMixerComponent& other );
-        AudioMixerComponent( AudioMixerComponent&& ) = default;
+        AudioMixerComponent( const AudioMixerComponent &other );
+        AudioMixerComponent( AudioMixerComponent && ) = default;
 
-        auto operator=( AudioMixerComponent&& ) -> AudioMixerComponent& = default;
-        auto operator=( const AudioMixerComponent& other ) -> AudioMixerComponent&;
+        auto operator=( AudioMixerComponent && ) -> AudioMixerComponent & = default;
+        auto operator=( const AudioMixerComponent &other ) -> AudioMixerComponent &;
 
         auto SetMute( bool mute ) -> void;
         auto SetVolume( core::f32 volume ) -> void;
 
-        MKT_NODISCARD auto GetMixer( audio::AudioDevice* device ) -> audio::AudioMixer*;
+        MKT_NODISCARD auto GetMixer( audio::AudioDevice *device ) -> audio::AudioMixer *;
 
         MKT_NODISCARD auto IsMuted() const -> bool;
         MKT_NODISCARD auto GetVolume() const -> core::f32;
+
     private:
         core::f32 mVolume{ 1 };
         eastl::shared_ptr<audio::AudioMixer> mRuntime{};
@@ -456,21 +467,21 @@ namespace mikoto::scene {
     class VideoComponent : public core::RevisionTracked {
     public:
         VideoComponent() = default;
-        VideoComponent( const VideoComponent& other );
-        VideoComponent( VideoComponent&& ) noexcept = default;
-        auto operator=( const VideoComponent& other ) -> VideoComponent&;
-        auto operator=( VideoComponent&& other ) noexcept -> VideoComponent&;
+        VideoComponent( const VideoComponent &other );
+        VideoComponent( VideoComponent && ) noexcept = default;
+        auto operator=( const VideoComponent &other ) -> VideoComponent &;
+        auto operator=( VideoComponent &&other ) noexcept -> VideoComponent &;
         ~VideoComponent();
 
         auto SetOutputMap( renderer::VideoOutputMap map ) -> void;
-        auto SetClip( const asset::AssetRef<asset::VideoClip>& clip ) -> void;
-        auto SetPlaybackSettings( const video::PlaybackSettings& settings ) -> void;
+        auto SetClip( const asset::AssetRef<asset::VideoClip> &clip ) -> void;
+        auto SetPlaybackSettings( const video::PlaybackSettings &settings ) -> void;
         auto UpdatePlayback( core::f64 timeStep, bool preview, bool active, core::float3 position ) -> void;
         auto ReleasePlayback() -> void;
 
         MKT_NODISCARD auto GetOutputMap() const -> renderer::VideoOutputMap;
-        MKT_NODISCARD auto GetClip() const -> const asset::AssetRef<asset::VideoClip>&;
-        MKT_NODISCARD auto GetPlaybackSettings() const -> const video::PlaybackSettings&;
+        MKT_NODISCARD auto GetClip() const -> const asset::AssetRef<asset::VideoClip> &;
+        MKT_NODISCARD auto GetPlaybackSettings() const -> const video::PlaybackSettings &;
         MKT_NODISCARD auto GetPlayback() const -> video::VideoPlaybackHandle;
         MKT_NODISCARD auto GetRenderData() const -> renderer::VideoRenderDataHandle;
 
@@ -503,11 +514,11 @@ namespace mikoto::scene {
     public:
         TextureRenderComponent();
 
-        TextureRenderComponent( const TextureRenderComponent& other );
-        TextureRenderComponent( TextureRenderComponent&& other ) noexcept;
+        TextureRenderComponent( const TextureRenderComponent &other );
+        TextureRenderComponent( TextureRenderComponent &&other ) noexcept;
 
-        auto operator=( TextureRenderComponent&& other ) noexcept -> TextureRenderComponent&;
-        auto operator=( const TextureRenderComponent& other ) -> TextureRenderComponent&;
+        auto operator=( TextureRenderComponent &&other ) noexcept -> TextureRenderComponent &;
+        auto operator=( const TextureRenderComponent &other ) -> TextureRenderComponent &;
 
         ~TextureRenderComponent();
 
@@ -515,13 +526,13 @@ namespace mikoto::scene {
         auto SetRenderPath( TextureRenderPath path ) -> void;
         auto SetRenderOutput( TextureRenderOutput output ) -> void;
 
-        auto SetCamera( const scene::Camera* camera, core::u64 entityID = 0 ) -> void;
+        auto SetCamera( const scene::Camera *camera, core::u64 entityID = 0 ) -> void;
         auto SetResolution( renderer::rhi::RenderResolution resolution ) -> void;
 
-        auto Update( Scene& scene, const CameraComponent& camera, const core::float4x4& cameraWorld,
-            const material::MaterialHandle& source, core::f32 timeStep ) -> void;
+        auto Update( Scene &scene, const CameraComponent &camera, const core::float4x4 &cameraWorld,
+            const material::MaterialHandle &source, core::f32 timeStep ) -> void;
 
-        MKT_NODISCARD auto GetRenderer() -> renderer::ISceneRenderer*;
+        MKT_NODISCARD auto GetRenderer() -> renderer::ISceneRenderer *;
         MKT_NODISCARD auto GetRenderRate() const -> TextureRenderRate;
         MKT_NODISCARD auto GetRenderPath() const -> TextureRenderPath;
         MKT_NODISCARD auto GetCamera() const -> const scene::Camera *;
@@ -551,17 +562,17 @@ namespace mikoto::scene {
     class AudioSourceComponent {
     public:
         AudioSourceComponent() = default;
-        explicit AudioSourceComponent( const filesystem::Path& path );
+        explicit AudioSourceComponent( const filesystem::Path &path );
 
-        AudioSourceComponent( const AudioSourceComponent& other );
-        AudioSourceComponent( AudioSourceComponent&& other ) = default;
+        AudioSourceComponent( const AudioSourceComponent &other );
+        AudioSourceComponent( AudioSourceComponent &&other ) = default;
 
-        auto operator=( const AudioSourceComponent& other ) -> AudioSourceComponent&;
-        auto operator=( AudioSourceComponent&& other ) noexcept -> AudioSourceComponent&;
+        auto operator=( const AudioSourceComponent &other ) -> AudioSourceComponent &;
+        auto operator=( AudioSourceComponent &&other ) noexcept -> AudioSourceComponent &;
 
-        auto SetClip( const audio::AudioHandle& clip ) -> void;
+        auto SetClip( const audio::AudioHandle &clip ) -> void;
         auto SetSettings( audio::SourceSettings settings ) -> void;
-        MKT_NODISCARD auto GetSettings() const -> const audio::SourceSettings&;
+        MKT_NODISCARD auto GetSettings() const -> const audio::SourceSettings &;
         core::u64 mOutputID{};
 
         MKT_NODISCARD auto GetClip() const -> audio::AudioHandle;
@@ -580,28 +591,28 @@ namespace mikoto::scene {
     public:
         explicit AudioListenerComponent() = default;
 
-        AudioListenerComponent( const AudioListenerComponent& other );
-        AudioListenerComponent( AudioListenerComponent&& other ) = default;
+        AudioListenerComponent( const AudioListenerComponent &other );
+        AudioListenerComponent( AudioListenerComponent &&other ) = default;
 
-        auto operator=( const AudioListenerComponent& other ) -> AudioListenerComponent&;
-        auto operator=( AudioListenerComponent&& other ) -> AudioListenerComponent& = default;
+        auto operator=( const AudioListenerComponent &other ) -> AudioListenerComponent &;
+        auto operator=( AudioListenerComponent &&other ) -> AudioListenerComponent & = default;
 
-        auto SetListener( audio::AudioListener* listener) -> void;
+        auto SetListener( audio::AudioListener *listener ) -> void;
 
         auto Disable() -> void;
         auto SetEnabled( bool value ) -> void;
 
         MKT_NODISCARD auto IsEnabled() const -> bool;
         MKT_NODISCARD auto IsActive() -> bool;
-        MKT_NODISCARD auto GetListenerPtr() const -> audio::AudioListener*;
+        MKT_NODISCARD auto GetListenerPtr() const -> audio::AudioListener *;
 
-        MKT_NODISCARD auto GetListener() -> audio::AudioListener&;
-        MKT_NODISCARD auto GetListener() const -> const audio::AudioListener&;
+        MKT_NODISCARD auto GetListener() -> audio::AudioListener &;
+        MKT_NODISCARD auto GetListener() const -> const audio::AudioListener &;
 
         ~AudioListenerComponent() = default;
 
     private:
-        audio::AudioListener* mListener{};
+        audio::AudioListener *mListener{};
         bool mEnabled{ true };
     };
 
@@ -628,7 +639,7 @@ namespace mikoto::scene {
         core::f32 mMaxHandBrakeTorque{ 4000.0f };
         bool mDriven{ true };
         bool mSteered{};
-        auto operator==( const VehicleWheelDescription& ) const -> bool = default;
+        auto operator==( const VehicleWheelDescription & ) const -> bool = default;
     };
 
 
@@ -639,11 +650,11 @@ namespace mikoto::scene {
     struct VehicleComponent {
         explicit VehicleComponent() = default;
 
-        VehicleComponent( const VehicleComponent& other ) = default;
-        VehicleComponent( VehicleComponent&& other ) = default;
+        VehicleComponent( const VehicleComponent &other ) = default;
+        VehicleComponent( VehicleComponent &&other ) = default;
 
-        auto operator=( const VehicleComponent& other ) -> VehicleComponent& = default;
-        auto operator=( VehicleComponent&& other ) -> VehicleComponent& = default;
+        auto operator=( const VehicleComponent &other ) -> VehicleComponent & = default;
+        auto operator=( VehicleComponent &&other ) -> VehicleComponent & = default;
 
         ~VehicleComponent() = default;
 
@@ -672,17 +683,17 @@ namespace mikoto::scene {
         core::f32 mBrake{};
         core::f32 mHandBrake{};
 
+        // An empty wheel list selects the corresponding Jolt sample's wheel layout.
+        auto SetVehicleType( VehicleType type ) -> void;
+        auto SetWheelDescriptions( const eastl::vector<VehicleWheelDescription> &wheels ) -> void;
+
         /** Reject invalid authoring data before it reaches the physics solver. */
         MKT_NODISCARD auto IsValid() const -> bool;
 
         /** Runtime controls do not require recreating the constraint. */
-        MKT_NODISCARD auto HasSameSettings( const VehicleComponent& other ) const -> bool;
-
-        // An empty wheel list selects the corresponding Jolt sample's wheel layout.
-        auto SetVehicleType( VehicleType type ) -> void;
+        MKT_NODISCARD auto HasSameSettings( const VehicleComponent &other ) const -> bool;
         MKT_NODISCARD auto GetVehicleType() const -> VehicleType;
-        auto SetWheelDescriptions( const eastl::vector<VehicleWheelDescription>& wheels ) -> void;
-        MKT_NODISCARD auto GetWheelDescriptions() const -> const eastl::vector<VehicleWheelDescription>&;
+        MKT_NODISCARD auto GetWheelDescriptions() const -> const eastl::vector<VehicleWheelDescription> &;
 
     private:
         VehicleType mVehicleType{ VehicleType::eWheeled };
@@ -721,50 +732,50 @@ namespace mikoto::scene {
 
         explicit RigidBodyComponent( const core::u64 bodyID );
 
-        RigidBodyComponent( const RigidBodyComponent& other );
-        RigidBodyComponent( RigidBodyComponent&& ) noexcept = default;
+        RigidBodyComponent( const RigidBodyComponent &other );
+        RigidBodyComponent( RigidBodyComponent && ) noexcept = default;
 
-        auto operator=( const RigidBodyComponent& other ) -> RigidBodyComponent&;
+        auto operator=( const RigidBodyComponent &other ) -> RigidBodyComponent &;
 
-        auto operator=( RigidBodyComponent&& ) noexcept -> RigidBodyComponent& = default;
+        auto operator=( RigidBodyComponent && ) noexcept -> RigidBodyComponent & = default;
 
         ~RigidBodyComponent() = default;
-
-        MKT_NODISCARD auto GetMass() const -> float;
         auto SetMass( const float mass ) -> void;
 
+        MKT_NODISCARD auto GetMass() const -> float;
+
         MKT_NODISCARD auto static GetMaxBodyMass() -> float;
+        auto SetFriction( const float friction ) -> void;
+        auto SetUseGravity( const bool enabled ) -> void;
+        auto SetBodyType( const BodyType type ) -> void;
+
+        auto SetLinearVelocity( float x, float y, float z ) -> void;
+
+        auto SetLinearVelocity( const core::float3 &velocity ) -> void;
+
+        auto SetAngularVelocity( float x, float y, float z ) -> void;
+
+        auto SetAngularVelocity( const core::float3 &velocity ) -> void;
+
+        auto SetBodyID( const core::u64 bodyID ) -> void;
+
+        auto SetRestitution( float value ) -> void;
 
         MKT_NODISCARD auto GetFriction() const -> float;
-        auto SetFriction( const float friction ) -> void;
 
         MKT_NODISCARD auto UseGravity() const -> bool;
-        auto SetUseGravity( const bool enabled ) -> void;
 
         MKT_NODISCARD auto GetBodyType() const -> BodyType;
         MKT_NODISCARD auto IsBodyType( const BodyType type ) const -> bool;
         MKT_NODISCARD auto IsDynamic() const -> bool;
-        auto SetBodyType( const BodyType type ) -> void;
 
         MKT_NODISCARD auto GetBodyID() const -> core::u64;
         MKT_NODISCARD auto IsValidBodyID() const -> bool;
 
-        auto SetLinearVelocity( float x, float y, float z ) -> void;
-
-        auto SetLinearVelocity( const core::float3& velocity ) -> void;
-
-        auto SetAngularVelocity( float x, float y, float z ) -> void;
-
-        auto SetAngularVelocity( const core::float3& velocity ) -> void;
-
         MKT_NODISCARD auto GetLinearVelocity() const -> core::float3;
         MKT_NODISCARD auto GetAngularVelocity() const -> core::float3;
 
-        auto SetBodyID( const core::u64 bodyID ) -> void;
-
         auto RemoveBodyID() -> void;
-
-        auto SetRestitution( float value ) -> void;
         MKT_NODISCARD auto GetRestitution() const -> float;
 
     private:
@@ -784,38 +795,38 @@ namespace mikoto::scene {
 
     class MeshColliderComponent {
     public:
-        // Convex hulls support moving bodies. Triangle meshes are static only.
-        auto IsConvex() const -> bool;
         auto SetConvex( bool value ) -> void;
+        // Convex hulls support moving bodies. Triangle meshes are static only.
+        MKT_NODISCARD auto IsConvex() const -> bool;
         explicit MeshColliderComponent() = default;
 
-        MeshColliderComponent( const MeshColliderComponent& other ) = default;
-        MeshColliderComponent( MeshColliderComponent&& other ) = default;
+        MeshColliderComponent( const MeshColliderComponent &other ) = default;
+        MeshColliderComponent( MeshColliderComponent &&other ) = default;
 
-        auto operator=( const MeshColliderComponent& other ) -> MeshColliderComponent& = default;
-        auto operator=( MeshColliderComponent&& other ) -> MeshColliderComponent& = default;
+        auto operator=( const MeshColliderComponent &other ) -> MeshColliderComponent & = default;
+        auto operator=( MeshColliderComponent &&other ) -> MeshColliderComponent & = default;
 
         ~MeshColliderComponent() = default;
 
         /**
-         * @brief Returns the local collider offset.
-         * @returns Offset from the entity origin. */
-        MKT_NODISCARD auto GetOffset() const -> const core::float3&;
-
-        /**
          * @brief Updates the local collider offset.
          * @param offset Offset from the entity origin. */
-        auto SetOffset( const core::float3& offset ) -> void;
-
-        /**
-         * @brief Returns whether the shape emits overlap events without physical response.
-         * @returns Trigger state. */
-        MKT_NODISCARD auto IsTrigger() const -> bool;
+        auto SetOffset( const core::float3 &offset ) -> void;
 
         /**
          * @brief Updates trigger behaviour.
          * @param value True to make the collider a trigger. */
         auto SetTrigger( const bool value ) -> void;
+
+        /**
+         * @brief Returns the local collider offset.
+         * @returns Offset from the entity origin. */
+        MKT_NODISCARD auto GetOffset() const -> const core::float3 &;
+
+        /**
+         * @brief Returns whether the shape emits overlap events without physical response.
+         * @returns Trigger state. */
+        MKT_NODISCARD auto IsTrigger() const -> bool;
 
         /**
          * @brief Returns the concrete collider kind.
@@ -824,7 +835,7 @@ namespace mikoto::scene {
 
     private:
         core::float3 mOffset{};
-        bool mIsTrigger{false};
+        bool mIsTrigger{ false };
         bool mConvex{ true };
     };
 
@@ -833,30 +844,30 @@ namespace mikoto::scene {
     public:
         explicit CapsuleColliderComponent() = default;
 
-        CapsuleColliderComponent( const CapsuleColliderComponent& other ) = default;
-        CapsuleColliderComponent( CapsuleColliderComponent&& other ) = default;
+        CapsuleColliderComponent( const CapsuleColliderComponent &other ) = default;
+        CapsuleColliderComponent( CapsuleColliderComponent &&other ) = default;
 
-        auto operator=( const CapsuleColliderComponent& other ) -> CapsuleColliderComponent& = default;
-        auto operator=( CapsuleColliderComponent&& other ) -> CapsuleColliderComponent& = default;
+        auto operator=( const CapsuleColliderComponent &other ) -> CapsuleColliderComponent & = default;
+        auto operator=( CapsuleColliderComponent &&other ) -> CapsuleColliderComponent & = default;
 
         ~CapsuleColliderComponent() = default;
+        /** @brief Sets the radius of the capsule hemispheres. @param radius New non-negative radius. */
+        auto SetRadius( const core::f32 radius ) -> void;
+        /** @brief Sets half the height of the cylindrical capsule section. @param height New non-negative half-height. */
+        auto SetHalfHeight( const core::f32 height ) -> void;
+        /** @brief Updates the local collider offset. @param offset Offset from the entity origin. */
+        auto SetOffset( const core::float3 &offset ) -> void;
+        /** @brief Updates trigger behaviour. @param value True to make the collider a trigger. */
+        auto SetTrigger( const bool value ) -> void;
 
         /** @brief Returns the radius of the capsule hemispheres. @returns Non-negative radius. */
         MKT_NODISCARD auto GetRadius() const -> core::f32;
-        /** @brief Sets the radius of the capsule hemispheres. @param radius New non-negative radius. */
-        auto SetRadius( const core::f32 radius ) -> void;
         /** @brief Returns half the height of the cylindrical capsule section. @returns Half-height. */
         MKT_NODISCARD auto GetHalfHeight() const -> core::f32;
-        /** @brief Sets half the height of the cylindrical capsule section. @param height New non-negative half-height. */
-        auto SetHalfHeight( const core::f32 height ) -> void;
         /** @brief Returns the local collider offset. @returns Offset from the entity origin. */
-        MKT_NODISCARD auto GetOffset() const -> const core::float3&;
-        /** @brief Updates the local collider offset. @param offset Offset from the entity origin. */
-        auto SetOffset( const core::float3& offset ) -> void;
+        MKT_NODISCARD auto GetOffset() const -> const core::float3 &;
         /** @brief Returns whether the shape is a trigger. @returns Trigger state. */
         MKT_NODISCARD auto IsTrigger() const -> bool;
-        /** @brief Updates trigger behaviour. @param value True to make the collider a trigger. */
-        auto SetTrigger( const bool value ) -> void;
         /** @brief Returns the concrete collider kind. @returns Capsule collider type. */
         MKT_NODISCARD static auto GetColliderType() -> physics::ColliderType;
 
@@ -872,26 +883,26 @@ namespace mikoto::scene {
     public:
         explicit SphereColliderComponent() = default;
 
-        SphereColliderComponent( const SphereColliderComponent& other ) = default;
-        SphereColliderComponent( SphereColliderComponent&& other ) = default;
+        SphereColliderComponent( const SphereColliderComponent &other ) = default;
+        SphereColliderComponent( SphereColliderComponent &&other ) = default;
 
-        auto operator=( const SphereColliderComponent& other ) -> SphereColliderComponent& = default;
-        auto operator=( SphereColliderComponent&& other ) -> SphereColliderComponent& = default;
+        auto operator=( const SphereColliderComponent &other ) -> SphereColliderComponent & = default;
+        auto operator=( SphereColliderComponent &&other ) -> SphereColliderComponent & = default;
 
         ~SphereColliderComponent() = default;
+        /** @brief Sets the sphere radius. @param radius New non-negative radius. */
+        auto SetRadius( const core::f32 radius ) -> void;
+        /** @brief Updates the local collider offset. @param offset Offset from the entity origin. */
+        auto SetOffset( const core::float3 &offset ) -> void;
+        /** @brief Updates trigger behaviour. @param value True to make the collider a trigger. */
+        auto SetTrigger( const bool value ) -> void;
 
         /** @brief Returns the sphere radius. @returns Non-negative radius. */
         MKT_NODISCARD auto GetRadius() const -> core::f32;
-        /** @brief Sets the sphere radius. @param radius New non-negative radius. */
-        auto SetRadius( const core::f32 radius ) -> void;
         /** @brief Returns the local collider offset. @returns Offset from the entity origin. */
-        MKT_NODISCARD auto GetOffset() const -> const core::float3&;
-        /** @brief Updates the local collider offset. @param offset Offset from the entity origin. */
-        auto SetOffset( const core::float3& offset ) -> void;
+        MKT_NODISCARD auto GetOffset() const -> const core::float3 &;
         /** @brief Returns whether the shape is a trigger. @returns Trigger state. */
         MKT_NODISCARD auto IsTrigger() const -> bool;
-        /** @brief Updates trigger behaviour. @param value True to make the collider a trigger. */
-        auto SetTrigger( const bool value ) -> void;
         /** @brief Returns the concrete collider kind. @returns Sphere collider type. */
         MKT_NODISCARD static auto GetColliderType() -> physics::ColliderType;
 
@@ -906,26 +917,26 @@ namespace mikoto::scene {
     public:
         explicit BoxColliderComponent() = default;
 
-        BoxColliderComponent( const BoxColliderComponent& other ) = default;
-        BoxColliderComponent( BoxColliderComponent&& other ) = default;
+        BoxColliderComponent( const BoxColliderComponent &other ) = default;
+        BoxColliderComponent( BoxColliderComponent &&other ) = default;
 
-        auto operator=( const BoxColliderComponent& other ) -> BoxColliderComponent& = default;
-        auto operator=( BoxColliderComponent&& other ) -> BoxColliderComponent& = default;
+        auto operator=( const BoxColliderComponent &other ) -> BoxColliderComponent & = default;
+        auto operator=( BoxColliderComponent &&other ) -> BoxColliderComponent & = default;
 
         ~BoxColliderComponent() = default;
-
-        /** @brief Returns box half extents in local space. @returns Positive half extents. */
-        MKT_NODISCARD auto GetHalfExtents() const -> const core::float3&;
         /** @brief Sets box half extents in local space. @param extents Positive half extents. */
-        auto SetHalfExtents( const core::float3& extents ) -> void;
-        /** @brief Returns the local collider offset. @returns Offset from the entity origin. */
-        MKT_NODISCARD auto GetOffset() const -> const core::float3&;
+        auto SetHalfExtents( const core::float3 &extents ) -> void;
         /** @brief Updates the local collider offset. @param offset Offset from the entity origin. */
-        auto SetOffset( const core::float3& offset ) -> void;
-        /** @brief Returns whether the shape is a trigger. @returns Trigger state. */
-        MKT_NODISCARD auto IsTrigger() const -> bool;
+        auto SetOffset( const core::float3 &offset ) -> void;
         /** @brief Updates trigger behaviour. @param value True to make the collider a trigger. */
         auto SetTrigger( const bool value ) -> void;
+
+        /** @brief Returns box half extents in local space. @returns Positive half extents. */
+        MKT_NODISCARD auto GetHalfExtents() const -> const core::float3 &;
+        /** @brief Returns the local collider offset. @returns Offset from the entity origin. */
+        MKT_NODISCARD auto GetOffset() const -> const core::float3 &;
+        /** @brief Returns whether the shape is a trigger. @returns Trigger state. */
+        MKT_NODISCARD auto IsTrigger() const -> bool;
         /** @brief Returns the concrete collider kind. @returns Box collider type. */
         MKT_NODISCARD static auto GetColliderType() -> physics::ColliderType;
 
@@ -940,7 +951,7 @@ namespace mikoto::scene {
     // scene serialization remain pending. Setters store authored values without cooking or validation.
     // Distances use meters, angles use radians, and entity IDs are scene GUIDs (0 means unassigned unless noted).
     enum class CompoundColliderMode {
-        eStatic, // Immutable shape collection; the owning rigid body may still be dynamic.
+        eStatic,// Immutable shape collection; the owning rigid body may still be dynamic.
         eMutable
     };
 
@@ -997,31 +1008,31 @@ namespace mikoto::scene {
     public:
         explicit HeightFieldColliderComponent() = default;
 
-        HeightFieldColliderComponent( const HeightFieldColliderComponent& other ) = default;
-        HeightFieldColliderComponent( HeightFieldColliderComponent&& other ) = default;
+        HeightFieldColliderComponent( const HeightFieldColliderComponent &other ) = default;
+        HeightFieldColliderComponent( HeightFieldColliderComponent &&other ) = default;
 
-        auto operator=( const HeightFieldColliderComponent& other ) -> HeightFieldColliderComponent& = default;
-        auto operator=( HeightFieldColliderComponent&& other ) -> HeightFieldColliderComponent& = default;
+        auto operator=( const HeightFieldColliderComponent &other ) -> HeightFieldColliderComponent & = default;
+        auto operator=( HeightFieldColliderComponent &&other ) -> HeightFieldColliderComponent & = default;
 
         auto SetLandscapeEntityID( core::u64 value ) -> void;
-        MKT_NODISCARD auto GetLandscapeEntityID() const -> core::u64;
 
-        auto SetHeightmap( const asset::AssetRef<asset::Texture>& value ) -> void;
-        MKT_NODISCARD auto GetHeightmap() const -> const asset::AssetRef<asset::Texture>&;
+        auto SetHeightmap( const asset::AssetRef<asset::Texture> &value ) -> void;
 
-        auto SetSampleSpacing( const core::float2& value ) -> void;
-        MKT_NODISCARD auto GetSampleSpacing() const -> const core::float2&;
+        auto SetSampleSpacing( const core::float2 &value ) -> void;
 
         auto SetHeightScale( core::f32 value ) -> void;
-        MKT_NODISCARD auto GetHeightScale() const -> core::f32;
 
         auto SetBaseElevation( core::f32 value ) -> void;
-        MKT_NODISCARD auto GetBaseElevation() const -> core::f32;
 
-        auto SetOffset( const core::float3& value ) -> void;
-        MKT_NODISCARD auto GetOffset() const -> const core::float3&;
+        auto SetOffset( const core::float3 &value ) -> void;
 
         auto SetTrigger( bool value ) -> void;
+        MKT_NODISCARD auto GetLandscapeEntityID() const -> core::u64;
+        MKT_NODISCARD auto GetHeightmap() const -> const asset::AssetRef<asset::Texture> &;
+        MKT_NODISCARD auto GetSampleSpacing() const -> const core::float2 &;
+        MKT_NODISCARD auto GetHeightScale() const -> core::f32;
+        MKT_NODISCARD auto GetBaseElevation() const -> core::f32;
+        MKT_NODISCARD auto GetOffset() const -> const core::float3 &;
         MKT_NODISCARD auto IsTrigger() const -> bool;
 
         MKT_NODISCARD static auto GetColliderType() -> physics::ColliderType;
@@ -1043,22 +1054,22 @@ namespace mikoto::scene {
     public:
         explicit CompoundColliderComponent() = default;
 
-        CompoundColliderComponent( const CompoundColliderComponent& other ) = default;
-        CompoundColliderComponent( CompoundColliderComponent&& other ) = default;
+        CompoundColliderComponent( const CompoundColliderComponent &other ) = default;
+        CompoundColliderComponent( CompoundColliderComponent &&other ) = default;
 
-        auto operator=( const CompoundColliderComponent& other ) -> CompoundColliderComponent& = default;
-        auto operator=( CompoundColliderComponent&& other ) -> CompoundColliderComponent& = default;
+        auto operator=( const CompoundColliderComponent &other ) -> CompoundColliderComponent & = default;
+        auto operator=( CompoundColliderComponent &&other ) -> CompoundColliderComponent & = default;
 
-        auto SetColliderEntities( const eastl::vector<core::u64>& value ) -> void;
-        MKT_NODISCARD auto GetColliderEntities() const -> const eastl::vector<core::u64>&;
+        auto SetColliderEntities( const eastl::vector<core::u64> &value ) -> void;
 
         auto SetMode( CompoundColliderMode value ) -> void;
-        MKT_NODISCARD auto GetMode() const -> CompoundColliderMode;
 
-        auto SetOffset( const core::float3& value ) -> void;
-        MKT_NODISCARD auto GetOffset() const -> const core::float3&;
+        auto SetOffset( const core::float3 &value ) -> void;
 
         auto SetTrigger( bool value ) -> void;
+        MKT_NODISCARD auto GetColliderEntities() const -> const eastl::vector<core::u64> &;
+        MKT_NODISCARD auto GetMode() const -> CompoundColliderMode;
+        MKT_NODISCARD auto GetOffset() const -> const core::float3 &;
         MKT_NODISCARD auto IsTrigger() const -> bool;
 
         MKT_NODISCARD static auto GetColliderType() -> physics::ColliderType;
@@ -1077,22 +1088,22 @@ namespace mikoto::scene {
     public:
         explicit CylinderColliderComponent() = default;
 
-        CylinderColliderComponent( const CylinderColliderComponent& other ) = default;
-        CylinderColliderComponent( CylinderColliderComponent&& other ) = default;
+        CylinderColliderComponent( const CylinderColliderComponent &other ) = default;
+        CylinderColliderComponent( CylinderColliderComponent &&other ) = default;
 
-        auto operator=( const CylinderColliderComponent& other ) -> CylinderColliderComponent& = default;
-        auto operator=( CylinderColliderComponent&& other ) -> CylinderColliderComponent& = default;
+        auto operator=( const CylinderColliderComponent &other ) -> CylinderColliderComponent & = default;
+        auto operator=( CylinderColliderComponent &&other ) -> CylinderColliderComponent & = default;
 
         auto SetRadius( core::f32 value ) -> void;
-        MKT_NODISCARD auto GetRadius() const -> core::f32;
 
         auto SetHalfHeight( core::f32 value ) -> void;
-        MKT_NODISCARD auto GetHalfHeight() const -> core::f32;
 
-        auto SetOffset( const core::float3& value ) -> void;
-        MKT_NODISCARD auto GetOffset() const -> const core::float3&;
+        auto SetOffset( const core::float3 &value ) -> void;
 
         auto SetTrigger( bool value ) -> void;
+        MKT_NODISCARD auto GetRadius() const -> core::f32;
+        MKT_NODISCARD auto GetHalfHeight() const -> core::f32;
+        MKT_NODISCARD auto GetOffset() const -> const core::float3 &;
         MKT_NODISCARD auto IsTrigger() const -> bool;
 
         MKT_NODISCARD static auto GetColliderType() -> physics::ColliderType;
@@ -1111,25 +1122,25 @@ namespace mikoto::scene {
     public:
         explicit TaperedCapsuleColliderComponent() = default;
 
-        TaperedCapsuleColliderComponent( const TaperedCapsuleColliderComponent& other ) = default;
-        TaperedCapsuleColliderComponent( TaperedCapsuleColliderComponent&& other ) = default;
+        TaperedCapsuleColliderComponent( const TaperedCapsuleColliderComponent &other ) = default;
+        TaperedCapsuleColliderComponent( TaperedCapsuleColliderComponent &&other ) = default;
 
-        auto operator=( const TaperedCapsuleColliderComponent& other ) -> TaperedCapsuleColliderComponent& = default;
-        auto operator=( TaperedCapsuleColliderComponent&& other ) -> TaperedCapsuleColliderComponent& = default;
+        auto operator=( const TaperedCapsuleColliderComponent &other ) -> TaperedCapsuleColliderComponent & = default;
+        auto operator=( TaperedCapsuleColliderComponent &&other ) -> TaperedCapsuleColliderComponent & = default;
 
         auto SetTopRadius( core::f32 value ) -> void;
-        MKT_NODISCARD auto GetTopRadius() const -> core::f32;
 
         auto SetBottomRadius( core::f32 value ) -> void;
-        MKT_NODISCARD auto GetBottomRadius() const -> core::f32;
 
         auto SetHalfHeight( core::f32 value ) -> void;
-        MKT_NODISCARD auto GetHalfHeight() const -> core::f32;
 
-        auto SetOffset( const core::float3& value ) -> void;
-        MKT_NODISCARD auto GetOffset() const -> const core::float3&;
+        auto SetOffset( const core::float3 &value ) -> void;
 
         auto SetTrigger( bool value ) -> void;
+        MKT_NODISCARD auto GetTopRadius() const -> core::f32;
+        MKT_NODISCARD auto GetBottomRadius() const -> core::f32;
+        MKT_NODISCARD auto GetHalfHeight() const -> core::f32;
+        MKT_NODISCARD auto GetOffset() const -> const core::float3 &;
         MKT_NODISCARD auto IsTrigger() const -> bool;
 
         MKT_NODISCARD static auto GetColliderType() -> physics::ColliderType;
@@ -1149,25 +1160,25 @@ namespace mikoto::scene {
     public:
         explicit TaperedCylinderColliderComponent() = default;
 
-        TaperedCylinderColliderComponent( const TaperedCylinderColliderComponent& other ) = default;
-        TaperedCylinderColliderComponent( TaperedCylinderColliderComponent&& other ) = default;
+        TaperedCylinderColliderComponent( const TaperedCylinderColliderComponent &other ) = default;
+        TaperedCylinderColliderComponent( TaperedCylinderColliderComponent &&other ) = default;
 
-        auto operator=( const TaperedCylinderColliderComponent& other ) -> TaperedCylinderColliderComponent& = default;
-        auto operator=( TaperedCylinderColliderComponent&& other ) -> TaperedCylinderColliderComponent& = default;
+        auto operator=( const TaperedCylinderColliderComponent &other ) -> TaperedCylinderColliderComponent & = default;
+        auto operator=( TaperedCylinderColliderComponent &&other ) -> TaperedCylinderColliderComponent & = default;
 
         auto SetTopRadius( core::f32 value ) -> void;
-        MKT_NODISCARD auto GetTopRadius() const -> core::f32;
 
         auto SetBottomRadius( core::f32 value ) -> void;
-        MKT_NODISCARD auto GetBottomRadius() const -> core::f32;
 
         auto SetHalfHeight( core::f32 value ) -> void;
-        MKT_NODISCARD auto GetHalfHeight() const -> core::f32;
 
-        auto SetOffset( const core::float3& value ) -> void;
-        MKT_NODISCARD auto GetOffset() const -> const core::float3&;
+        auto SetOffset( const core::float3 &value ) -> void;
 
         auto SetTrigger( bool value ) -> void;
+        MKT_NODISCARD auto GetTopRadius() const -> core::f32;
+        MKT_NODISCARD auto GetBottomRadius() const -> core::f32;
+        MKT_NODISCARD auto GetHalfHeight() const -> core::f32;
+        MKT_NODISCARD auto GetOffset() const -> const core::float3 &;
         MKT_NODISCARD auto IsTrigger() const -> bool;
 
         MKT_NODISCARD static auto GetColliderType() -> physics::ColliderType;
@@ -1187,22 +1198,22 @@ namespace mikoto::scene {
     public:
         explicit PlaneColliderComponent() = default;
 
-        PlaneColliderComponent( const PlaneColliderComponent& other ) = default;
-        PlaneColliderComponent( PlaneColliderComponent&& other ) = default;
+        PlaneColliderComponent( const PlaneColliderComponent &other ) = default;
+        PlaneColliderComponent( PlaneColliderComponent &&other ) = default;
 
-        auto operator=( const PlaneColliderComponent& other ) -> PlaneColliderComponent& = default;
-        auto operator=( PlaneColliderComponent&& other ) -> PlaneColliderComponent& = default;
+        auto operator=( const PlaneColliderComponent &other ) -> PlaneColliderComponent & = default;
+        auto operator=( PlaneColliderComponent &&other ) -> PlaneColliderComponent & = default;
 
-        auto SetNormal( const core::float3& value ) -> void;
-        MKT_NODISCARD auto GetNormal() const -> const core::float3&;
+        auto SetNormal( const core::float3 &value ) -> void;
 
         auto SetDistance( core::f32 value ) -> void;
-        MKT_NODISCARD auto GetDistance() const -> core::f32;
 
-        auto SetOffset( const core::float3& value ) -> void;
-        MKT_NODISCARD auto GetOffset() const -> const core::float3&;
+        auto SetOffset( const core::float3 &value ) -> void;
 
         auto SetTrigger( bool value ) -> void;
+        MKT_NODISCARD auto GetNormal() const -> const core::float3 &;
+        MKT_NODISCARD auto GetDistance() const -> core::f32;
+        MKT_NODISCARD auto GetOffset() const -> const core::float3 &;
         MKT_NODISCARD auto IsTrigger() const -> bool;
 
         MKT_NODISCARD static auto GetColliderType() -> physics::ColliderType;
@@ -1223,34 +1234,34 @@ namespace mikoto::scene {
     public:
         explicit JointComponent() = default;
 
-        JointComponent( const JointComponent& other ) = default;
-        JointComponent( JointComponent&& other ) = default;
+        JointComponent( const JointComponent &other ) = default;
+        JointComponent( JointComponent &&other ) = default;
 
-        auto operator=( const JointComponent& other ) -> JointComponent& = default;
-        auto operator=( JointComponent&& other ) -> JointComponent& = default;
+        auto operator=( const JointComponent &other ) -> JointComponent & = default;
+        auto operator=( JointComponent &&other ) -> JointComponent & = default;
 
         auto SetBodyAEntityID( core::u64 value ) -> void;
-        MKT_NODISCARD auto GetBodyAEntityID() const -> core::u64;
 
         auto SetBodyBEntityID( core::u64 value ) -> void;
-        MKT_NODISCARD auto GetBodyBEntityID() const -> core::u64;
 
-        auto SetAnchorA( const core::float3& value ) -> void;
-        MKT_NODISCARD auto GetAnchorA() const -> const core::float3&;
+        auto SetAnchorA( const core::float3 &value ) -> void;
 
-        auto SetAnchorB( const core::float3& value ) -> void;
-        MKT_NODISCARD auto GetAnchorB() const -> const core::float3&;
+        auto SetAnchorB( const core::float3 &value ) -> void;
 
-        auto SetRotationA( const core::quat& value ) -> void;
-        MKT_NODISCARD auto GetRotationA() const -> const core::quat&;
+        auto SetRotationA( const core::quat &value ) -> void;
 
-        auto SetRotationB( const core::quat& value ) -> void;
-        MKT_NODISCARD auto GetRotationB() const -> const core::quat&;
+        auto SetRotationB( const core::quat &value ) -> void;
 
         auto SetCollideConnected( bool value ) -> void;
-        MKT_NODISCARD auto CanConnectedBodiesCollide() const -> bool;
 
         auto SetEnabled( bool value ) -> void;
+        MKT_NODISCARD auto GetBodyAEntityID() const -> core::u64;
+        MKT_NODISCARD auto GetBodyBEntityID() const -> core::u64;
+        MKT_NODISCARD auto GetAnchorA() const -> const core::float3 &;
+        MKT_NODISCARD auto GetAnchorB() const -> const core::float3 &;
+        MKT_NODISCARD auto GetRotationA() const -> const core::quat &;
+        MKT_NODISCARD auto GetRotationB() const -> const core::quat &;
+        MKT_NODISCARD auto CanConnectedBodiesCollide() const -> bool;
         MKT_NODISCARD auto IsEnabled() const -> bool;
 
         ~JointComponent() = default;
@@ -1271,20 +1282,20 @@ namespace mikoto::scene {
     public:
         explicit DistanceJointComponent() = default;
 
-        DistanceJointComponent( const DistanceJointComponent& other ) = default;
-        DistanceJointComponent( DistanceJointComponent&& other ) = default;
+        DistanceJointComponent( const DistanceJointComponent &other ) = default;
+        DistanceJointComponent( DistanceJointComponent &&other ) = default;
 
-        auto operator=( const DistanceJointComponent& other ) -> DistanceJointComponent& = default;
-        auto operator=( DistanceJointComponent&& other ) -> DistanceJointComponent& = default;
+        auto operator=( const DistanceJointComponent &other ) -> DistanceJointComponent & = default;
+        auto operator=( DistanceJointComponent &&other ) -> DistanceJointComponent & = default;
 
         auto SetMinDistance( core::f32 value ) -> void;
-        MKT_NODISCARD auto GetMinDistance() const -> core::f32;
 
         auto SetMaxDistance( core::f32 value ) -> void;
-        MKT_NODISCARD auto GetMaxDistance() const -> core::f32;
 
-        auto SetSpring( const JointSpringSettings& value ) -> void;
-        MKT_NODISCARD auto GetSpring() const -> const JointSpringSettings&;
+        auto SetSpring( const JointSpringSettings &value ) -> void;
+        MKT_NODISCARD auto GetMinDistance() const -> core::f32;
+        MKT_NODISCARD auto GetMaxDistance() const -> core::f32;
+        MKT_NODISCARD auto GetSpring() const -> const JointSpringSettings &;
 
         ~DistanceJointComponent() = default;
 
@@ -1299,11 +1310,11 @@ namespace mikoto::scene {
     public:
         explicit FixedJointComponent() = default;
 
-        FixedJointComponent( const FixedJointComponent& other ) = default;
-        FixedJointComponent( FixedJointComponent&& other ) = default;
+        FixedJointComponent( const FixedJointComponent &other ) = default;
+        FixedJointComponent( FixedJointComponent &&other ) = default;
 
-        auto operator=( const FixedJointComponent& other ) -> FixedJointComponent& = default;
-        auto operator=( FixedJointComponent&& other ) -> FixedJointComponent& = default;
+        auto operator=( const FixedJointComponent &other ) -> FixedJointComponent & = default;
+        auto operator=( FixedJointComponent &&other ) -> FixedJointComponent & = default;
 
         ~FixedJointComponent() = default;
     };
@@ -1313,11 +1324,11 @@ namespace mikoto::scene {
     public:
         explicit PointJointComponent() = default;
 
-        PointJointComponent( const PointJointComponent& other ) = default;
-        PointJointComponent( PointJointComponent&& other ) = default;
+        PointJointComponent( const PointJointComponent &other ) = default;
+        PointJointComponent( PointJointComponent &&other ) = default;
 
-        auto operator=( const PointJointComponent& other ) -> PointJointComponent& = default;
-        auto operator=( PointJointComponent&& other ) -> PointJointComponent& = default;
+        auto operator=( const PointJointComponent &other ) -> PointJointComponent & = default;
+        auto operator=( PointJointComponent &&other ) -> PointJointComponent & = default;
 
         ~PointJointComponent() = default;
     };
@@ -1327,23 +1338,23 @@ namespace mikoto::scene {
     public:
         explicit HingeJointComponent() = default;
 
-        HingeJointComponent( const HingeJointComponent& other ) = default;
-        HingeJointComponent( HingeJointComponent&& other ) = default;
+        HingeJointComponent( const HingeJointComponent &other ) = default;
+        HingeJointComponent( HingeJointComponent &&other ) = default;
 
-        auto operator=( const HingeJointComponent& other ) -> HingeJointComponent& = default;
-        auto operator=( HingeJointComponent&& other ) -> HingeJointComponent& = default;
+        auto operator=( const HingeJointComponent &other ) -> HingeJointComponent & = default;
+        auto operator=( HingeJointComponent &&other ) -> HingeJointComponent & = default;
 
         auto SetMinAngle( core::f32 value ) -> void;
-        MKT_NODISCARD auto GetMinAngle() const -> core::f32;
 
         auto SetMaxAngle( core::f32 value ) -> void;
+
+        auto SetLimitSpring( const JointSpringSettings &value ) -> void;
+
+        auto SetMotor( const JointMotorSettings &value ) -> void;
+        MKT_NODISCARD auto GetMinAngle() const -> core::f32;
         MKT_NODISCARD auto GetMaxAngle() const -> core::f32;
-
-        auto SetLimitSpring( const JointSpringSettings& value ) -> void;
-        MKT_NODISCARD auto GetLimitSpring() const -> const JointSpringSettings&;
-
-        auto SetMotor( const JointMotorSettings& value ) -> void;
-        MKT_NODISCARD auto GetMotor() const -> const JointMotorSettings&;
+        MKT_NODISCARD auto GetLimitSpring() const -> const JointSpringSettings &;
+        MKT_NODISCARD auto GetMotor() const -> const JointMotorSettings &;
 
         ~HingeJointComponent() = default;
 
@@ -1359,23 +1370,23 @@ namespace mikoto::scene {
     public:
         explicit SliderJointComponent() = default;
 
-        SliderJointComponent( const SliderJointComponent& other ) = default;
-        SliderJointComponent( SliderJointComponent&& other ) = default;
+        SliderJointComponent( const SliderJointComponent &other ) = default;
+        SliderJointComponent( SliderJointComponent &&other ) = default;
 
-        auto operator=( const SliderJointComponent& other ) -> SliderJointComponent& = default;
-        auto operator=( SliderJointComponent&& other ) -> SliderJointComponent& = default;
+        auto operator=( const SliderJointComponent &other ) -> SliderJointComponent & = default;
+        auto operator=( SliderJointComponent &&other ) -> SliderJointComponent & = default;
 
         auto SetMinDistance( core::f32 value ) -> void;
-        MKT_NODISCARD auto GetMinDistance() const -> core::f32;
 
         auto SetMaxDistance( core::f32 value ) -> void;
+
+        auto SetLimitSpring( const JointSpringSettings &value ) -> void;
+
+        auto SetMotor( const JointMotorSettings &value ) -> void;
+        MKT_NODISCARD auto GetMinDistance() const -> core::f32;
         MKT_NODISCARD auto GetMaxDistance() const -> core::f32;
-
-        auto SetLimitSpring( const JointSpringSettings& value ) -> void;
-        MKT_NODISCARD auto GetLimitSpring() const -> const JointSpringSettings&;
-
-        auto SetMotor( const JointMotorSettings& value ) -> void;
-        MKT_NODISCARD auto GetMotor() const -> const JointMotorSettings&;
+        MKT_NODISCARD auto GetLimitSpring() const -> const JointSpringSettings &;
+        MKT_NODISCARD auto GetMotor() const -> const JointMotorSettings &;
 
         ~SliderJointComponent() = default;
 
@@ -1391,11 +1402,11 @@ namespace mikoto::scene {
     public:
         explicit ConeJointComponent() = default;
 
-        ConeJointComponent( const ConeJointComponent& other ) = default;
-        ConeJointComponent( ConeJointComponent&& other ) = default;
+        ConeJointComponent( const ConeJointComponent &other ) = default;
+        ConeJointComponent( ConeJointComponent &&other ) = default;
 
-        auto operator=( const ConeJointComponent& other ) -> ConeJointComponent& = default;
-        auto operator=( ConeJointComponent&& other ) -> ConeJointComponent& = default;
+        auto operator=( const ConeJointComponent &other ) -> ConeJointComponent & = default;
+        auto operator=( ConeJointComponent &&other ) -> ConeJointComponent & = default;
 
         auto SetHalfConeAngle( core::f32 value ) -> void;
         MKT_NODISCARD auto GetHalfConeAngle() const -> core::f32;
@@ -1411,26 +1422,26 @@ namespace mikoto::scene {
     public:
         explicit SwingTwistJointComponent() = default;
 
-        SwingTwistJointComponent( const SwingTwistJointComponent& other ) = default;
-        SwingTwistJointComponent( SwingTwistJointComponent&& other ) = default;
+        SwingTwistJointComponent( const SwingTwistJointComponent &other ) = default;
+        SwingTwistJointComponent( SwingTwistJointComponent &&other ) = default;
 
-        auto operator=( const SwingTwistJointComponent& other ) -> SwingTwistJointComponent& = default;
-        auto operator=( SwingTwistJointComponent&& other ) -> SwingTwistJointComponent& = default;
+        auto operator=( const SwingTwistJointComponent &other ) -> SwingTwistJointComponent & = default;
+        auto operator=( SwingTwistJointComponent &&other ) -> SwingTwistJointComponent & = default;
 
         auto SetNormalHalfConeAngle( core::f32 value ) -> void;
-        MKT_NODISCARD auto GetNormalHalfConeAngle() const -> core::f32;
 
         auto SetPlaneHalfConeAngle( core::f32 value ) -> void;
-        MKT_NODISCARD auto GetPlaneHalfConeAngle() const -> core::f32;
 
         auto SetMinTwistAngle( core::f32 value ) -> void;
-        MKT_NODISCARD auto GetMinTwistAngle() const -> core::f32;
 
         auto SetMaxTwistAngle( core::f32 value ) -> void;
-        MKT_NODISCARD auto GetMaxTwistAngle() const -> core::f32;
 
-        auto SetMotors( const eastl::array<JointMotorSettings, 3>& value ) -> void;
-        MKT_NODISCARD auto GetMotors() const -> const eastl::array<JointMotorSettings, 3>&;
+        auto SetMotors( const eastl::array<JointMotorSettings, 3> &value ) -> void;
+        MKT_NODISCARD auto GetNormalHalfConeAngle() const -> core::f32;
+        MKT_NODISCARD auto GetPlaneHalfConeAngle() const -> core::f32;
+        MKT_NODISCARD auto GetMinTwistAngle() const -> core::f32;
+        MKT_NODISCARD auto GetMaxTwistAngle() const -> core::f32;
+        MKT_NODISCARD auto GetMotors() const -> const eastl::array<JointMotorSettings, 3> &;
 
         ~SwingTwistJointComponent() = default;
 
@@ -1448,32 +1459,32 @@ namespace mikoto::scene {
     public:
         explicit SixDofJointComponent() = default;
 
-        SixDofJointComponent( const SixDofJointComponent& other ) = default;
-        SixDofJointComponent( SixDofJointComponent&& other ) = default;
+        SixDofJointComponent( const SixDofJointComponent &other ) = default;
+        SixDofJointComponent( SixDofJointComponent &&other ) = default;
 
-        auto operator=( const SixDofJointComponent& other ) -> SixDofJointComponent& = default;
-        auto operator=( SixDofJointComponent&& other ) -> SixDofJointComponent& = default;
+        auto operator=( const SixDofJointComponent &other ) -> SixDofJointComponent & = default;
+        auto operator=( SixDofJointComponent &&other ) -> SixDofJointComponent & = default;
 
-        auto SetTranslationMotion( const eastl::array<JointAxisMotion, 3>& value ) -> void;
-        MKT_NODISCARD auto GetTranslationMotion() const -> const eastl::array<JointAxisMotion, 3>&;
+        auto SetTranslationMotion( const eastl::array<JointAxisMotion, 3> &value ) -> void;
 
-        auto SetRotationMotion( const eastl::array<JointAxisMotion, 3>& value ) -> void;
-        MKT_NODISCARD auto GetRotationMotion() const -> const eastl::array<JointAxisMotion, 3>&;
+        auto SetRotationMotion( const eastl::array<JointAxisMotion, 3> &value ) -> void;
 
-        auto SetMinTranslation( const core::float3& value ) -> void;
-        MKT_NODISCARD auto GetMinTranslation() const -> const core::float3&;
+        auto SetMinTranslation( const core::float3 &value ) -> void;
 
-        auto SetMaxTranslation( const core::float3& value ) -> void;
-        MKT_NODISCARD auto GetMaxTranslation() const -> const core::float3&;
+        auto SetMaxTranslation( const core::float3 &value ) -> void;
 
-        auto SetMinRotation( const core::float3& value ) -> void;
-        MKT_NODISCARD auto GetMinRotation() const -> const core::float3&;
+        auto SetMinRotation( const core::float3 &value ) -> void;
 
-        auto SetMaxRotation( const core::float3& value ) -> void;
-        MKT_NODISCARD auto GetMaxRotation() const -> const core::float3&;
+        auto SetMaxRotation( const core::float3 &value ) -> void;
 
-        auto SetMotors( const eastl::array<JointMotorSettings, 6>& value ) -> void;
-        MKT_NODISCARD auto GetMotors() const -> const eastl::array<JointMotorSettings, 6>&;
+        auto SetMotors( const eastl::array<JointMotorSettings, 6> &value ) -> void;
+        MKT_NODISCARD auto GetTranslationMotion() const -> const eastl::array<JointAxisMotion, 3> &;
+        MKT_NODISCARD auto GetRotationMotion() const -> const eastl::array<JointAxisMotion, 3> &;
+        MKT_NODISCARD auto GetMinTranslation() const -> const core::float3 &;
+        MKT_NODISCARD auto GetMaxTranslation() const -> const core::float3 &;
+        MKT_NODISCARD auto GetMinRotation() const -> const core::float3 &;
+        MKT_NODISCARD auto GetMaxRotation() const -> const core::float3 &;
+        MKT_NODISCARD auto GetMotors() const -> const eastl::array<JointMotorSettings, 6> &;
 
         ~SixDofJointComponent() = default;
 
@@ -1492,26 +1503,26 @@ namespace mikoto::scene {
     public:
         explicit PathJointComponent() = default;
 
-        PathJointComponent( const PathJointComponent& other ) = default;
-        PathJointComponent( PathJointComponent&& other ) = default;
+        PathJointComponent( const PathJointComponent &other ) = default;
+        PathJointComponent( PathJointComponent &&other ) = default;
 
-        auto operator=( const PathJointComponent& other ) -> PathJointComponent& = default;
-        auto operator=( PathJointComponent&& other ) -> PathJointComponent& = default;
+        auto operator=( const PathJointComponent &other ) -> PathJointComponent & = default;
+        auto operator=( PathJointComponent &&other ) -> PathJointComponent & = default;
 
-        auto SetControlPoints( const eastl::vector<JointPathPoint>& value ) -> void;
-        MKT_NODISCARD auto GetControlPoints() const -> const eastl::vector<JointPathPoint>&;
+        auto SetControlPoints( const eastl::vector<JointPathPoint> &value ) -> void;
 
         auto SetLooping( bool value ) -> void;
-        MKT_NODISCARD auto IsLooping() const -> bool;
 
         auto SetInitialFraction( core::f32 value ) -> void;
-        MKT_NODISCARD auto GetInitialFraction() const -> core::f32;
 
         auto SetMaxFrictionForce( core::f32 value ) -> void;
-        MKT_NODISCARD auto GetMaxFrictionForce() const -> core::f32;
 
-        auto SetMotor( const JointMotorSettings& value ) -> void;
-        MKT_NODISCARD auto GetMotor() const -> const JointMotorSettings&;
+        auto SetMotor( const JointMotorSettings &value ) -> void;
+        MKT_NODISCARD auto GetControlPoints() const -> const eastl::vector<JointPathPoint> &;
+        MKT_NODISCARD auto IsLooping() const -> bool;
+        MKT_NODISCARD auto GetInitialFraction() const -> core::f32;
+        MKT_NODISCARD auto GetMaxFrictionForce() const -> core::f32;
+        MKT_NODISCARD auto GetMotor() const -> const JointMotorSettings &;
 
         ~PathJointComponent() = default;
 
@@ -1528,19 +1539,19 @@ namespace mikoto::scene {
     public:
         explicit GearJointComponent() = default;
 
-        GearJointComponent( const GearJointComponent& other ) = default;
-        GearJointComponent( GearJointComponent&& other ) = default;
+        GearJointComponent( const GearJointComponent &other ) = default;
+        GearJointComponent( GearJointComponent &&other ) = default;
 
-        auto operator=( const GearJointComponent& other ) -> GearJointComponent& = default;
-        auto operator=( GearJointComponent&& other ) -> GearJointComponent& = default;
+        auto operator=( const GearJointComponent &other ) -> GearJointComponent & = default;
+        auto operator=( GearJointComponent &&other ) -> GearJointComponent & = default;
 
         auto SetHingeAEntityID( core::u64 value ) -> void;
-        MKT_NODISCARD auto GetHingeAEntityID() const -> core::u64;
 
         auto SetHingeBEntityID( core::u64 value ) -> void;
-        MKT_NODISCARD auto GetHingeBEntityID() const -> core::u64;
 
         auto SetRatio( core::f32 value ) -> void;
+        MKT_NODISCARD auto GetHingeAEntityID() const -> core::u64;
+        MKT_NODISCARD auto GetHingeBEntityID() const -> core::u64;
         MKT_NODISCARD auto GetRatio() const -> core::f32;
 
         ~GearJointComponent() = default;
@@ -1556,19 +1567,19 @@ namespace mikoto::scene {
     public:
         explicit RackAndPinionJointComponent() = default;
 
-        RackAndPinionJointComponent( const RackAndPinionJointComponent& other ) = default;
-        RackAndPinionJointComponent( RackAndPinionJointComponent&& other ) = default;
+        RackAndPinionJointComponent( const RackAndPinionJointComponent &other ) = default;
+        RackAndPinionJointComponent( RackAndPinionJointComponent &&other ) = default;
 
-        auto operator=( const RackAndPinionJointComponent& other ) -> RackAndPinionJointComponent& = default;
-        auto operator=( RackAndPinionJointComponent&& other ) -> RackAndPinionJointComponent& = default;
+        auto operator=( const RackAndPinionJointComponent &other ) -> RackAndPinionJointComponent & = default;
+        auto operator=( RackAndPinionJointComponent &&other ) -> RackAndPinionJointComponent & = default;
 
         auto SetHingeEntityID( core::u64 value ) -> void;
-        MKT_NODISCARD auto GetHingeEntityID() const -> core::u64;
 
         auto SetSliderEntityID( core::u64 value ) -> void;
-        MKT_NODISCARD auto GetSliderEntityID() const -> core::u64;
 
         auto SetRatio( core::f32 value ) -> void;
+        MKT_NODISCARD auto GetHingeEntityID() const -> core::u64;
+        MKT_NODISCARD auto GetSliderEntityID() const -> core::u64;
         MKT_NODISCARD auto GetRatio() const -> core::f32;
 
         ~RackAndPinionJointComponent() = default;
@@ -1584,25 +1595,25 @@ namespace mikoto::scene {
     public:
         explicit PulleyJointComponent() = default;
 
-        PulleyJointComponent( const PulleyJointComponent& other ) = default;
-        PulleyJointComponent( PulleyJointComponent&& other ) = default;
+        PulleyJointComponent( const PulleyJointComponent &other ) = default;
+        PulleyJointComponent( PulleyJointComponent &&other ) = default;
 
-        auto operator=( const PulleyJointComponent& other ) -> PulleyJointComponent& = default;
-        auto operator=( PulleyJointComponent&& other ) -> PulleyJointComponent& = default;
+        auto operator=( const PulleyJointComponent &other ) -> PulleyJointComponent & = default;
+        auto operator=( PulleyJointComponent &&other ) -> PulleyJointComponent & = default;
 
-        auto SetFixedPointA( const core::float3& value ) -> void;
-        MKT_NODISCARD auto GetFixedPointA() const -> const core::float3&;
+        auto SetFixedPointA( const core::float3 &value ) -> void;
 
-        auto SetFixedPointB( const core::float3& value ) -> void;
-        MKT_NODISCARD auto GetFixedPointB() const -> const core::float3&;
+        auto SetFixedPointB( const core::float3 &value ) -> void;
 
         auto SetRatio( core::f32 value ) -> void;
-        MKT_NODISCARD auto GetRatio() const -> core::f32;
 
         auto SetMinLength( core::f32 value ) -> void;
-        MKT_NODISCARD auto GetMinLength() const -> core::f32;
 
         auto SetMaxLength( core::f32 value ) -> void;
+        MKT_NODISCARD auto GetFixedPointA() const -> const core::float3 &;
+        MKT_NODISCARD auto GetFixedPointB() const -> const core::float3 &;
+        MKT_NODISCARD auto GetRatio() const -> core::f32;
+        MKT_NODISCARD auto GetMinLength() const -> core::f32;
         MKT_NODISCARD auto GetMaxLength() const -> core::f32;
 
         ~PulleyJointComponent() = default;
@@ -1625,37 +1636,37 @@ namespace mikoto::scene {
         bool mGrounded{};
         explicit CharacterControllerComponent() = default;
 
-        CharacterControllerComponent( const CharacterControllerComponent& other ) = default;
-        CharacterControllerComponent( CharacterControllerComponent&& other ) = default;
+        CharacterControllerComponent( const CharacterControllerComponent &other ) = default;
+        CharacterControllerComponent( CharacterControllerComponent &&other ) = default;
 
-        auto operator=( const CharacterControllerComponent& other ) -> CharacterControllerComponent& = default;
-        auto operator=( CharacterControllerComponent&& other ) -> CharacterControllerComponent& = default;
+        auto operator=( const CharacterControllerComponent &other ) -> CharacterControllerComponent & = default;
+        auto operator=( CharacterControllerComponent &&other ) -> CharacterControllerComponent & = default;
 
         auto SetControllerType( CharacterControllerType value ) -> void;
-        MKT_NODISCARD auto GetControllerType() const -> CharacterControllerType;
 
         auto SetRadius( core::f32 value ) -> void;
-        MKT_NODISCARD auto GetRadius() const -> core::f32;
 
         auto SetHalfHeight( core::f32 value ) -> void;
-        MKT_NODISCARD auto GetHalfHeight() const -> core::f32;
 
         auto SetMaxSlopeAngle( core::f32 value ) -> void;
-        MKT_NODISCARD auto GetMaxSlopeAngle() const -> core::f32;
 
         auto SetMaxStepHeight( core::f32 value ) -> void;
-        MKT_NODISCARD auto GetMaxStepHeight() const -> core::f32;
 
         auto SetMaxStrength( core::f32 value ) -> void;
-        MKT_NODISCARD auto GetMaxStrength() const -> core::f32;
 
         auto SetGravityFactor( core::f32 value ) -> void;
-        MKT_NODISCARD auto GetGravityFactor() const -> core::f32;
 
         auto SetStickToFloor( bool value ) -> void;
-        MKT_NODISCARD auto DoesStickToFloor() const -> bool;
 
         auto SetEnabled( bool value ) -> void;
+        MKT_NODISCARD auto GetControllerType() const -> CharacterControllerType;
+        MKT_NODISCARD auto GetRadius() const -> core::f32;
+        MKT_NODISCARD auto GetHalfHeight() const -> core::f32;
+        MKT_NODISCARD auto GetMaxSlopeAngle() const -> core::f32;
+        MKT_NODISCARD auto GetMaxStepHeight() const -> core::f32;
+        MKT_NODISCARD auto GetMaxStrength() const -> core::f32;
+        MKT_NODISCARD auto GetGravityFactor() const -> core::f32;
+        MKT_NODISCARD auto DoesStickToFloor() const -> bool;
         MKT_NODISCARD auto IsEnabled() const -> bool;
 
         ~CharacterControllerComponent() = default;
@@ -1678,22 +1689,22 @@ namespace mikoto::scene {
     public:
         explicit RagdollComponent() = default;
 
-        RagdollComponent( const RagdollComponent& other ) = default;
-        RagdollComponent( RagdollComponent&& other ) = default;
+        RagdollComponent( const RagdollComponent &other ) = default;
+        RagdollComponent( RagdollComponent &&other ) = default;
 
-        auto operator=( const RagdollComponent& other ) -> RagdollComponent& = default;
-        auto operator=( RagdollComponent&& other ) -> RagdollComponent& = default;
+        auto operator=( const RagdollComponent &other ) -> RagdollComponent & = default;
+        auto operator=( RagdollComponent &&other ) -> RagdollComponent & = default;
 
-        auto SetSkeleton( const asset::AssetRef<asset::Skeleton>& value ) -> void;
-        MKT_NODISCARD auto GetSkeleton() const -> const asset::AssetRef<asset::Skeleton>&;
+        auto SetSkeleton( const asset::AssetRef<asset::Skeleton> &value ) -> void;
 
-        auto SetBoneMappings( const eastl::vector<RagdollBoneDescription>& value ) -> void;
-        MKT_NODISCARD auto GetBoneMappings() const -> const eastl::vector<RagdollBoneDescription>&;
+        auto SetBoneMappings( const eastl::vector<RagdollBoneDescription> &value ) -> void;
 
         auto SetSimulationBlend( core::f32 value ) -> void;
-        MKT_NODISCARD auto GetSimulationBlend() const -> core::f32;
 
         auto SetEnabled( bool value ) -> void;
+        MKT_NODISCARD auto GetSkeleton() const -> const asset::AssetRef<asset::Skeleton> &;
+        MKT_NODISCARD auto GetBoneMappings() const -> const eastl::vector<RagdollBoneDescription> &;
+        MKT_NODISCARD auto GetSimulationBlend() const -> core::f32;
         MKT_NODISCARD auto IsEnabled() const -> bool;
 
         ~RagdollComponent() = default;
@@ -1711,37 +1722,37 @@ namespace mikoto::scene {
     public:
         explicit SoftBodyComponent() = default;
 
-        SoftBodyComponent( const SoftBodyComponent& other ) = default;
-        SoftBodyComponent( SoftBodyComponent&& other ) = default;
+        SoftBodyComponent( const SoftBodyComponent &other ) = default;
+        SoftBodyComponent( SoftBodyComponent &&other ) = default;
 
-        auto operator=( const SoftBodyComponent& other ) -> SoftBodyComponent& = default;
-        auto operator=( SoftBodyComponent&& other ) -> SoftBodyComponent& = default;
+        auto operator=( const SoftBodyComponent &other ) -> SoftBodyComponent & = default;
+        auto operator=( SoftBodyComponent &&other ) -> SoftBodyComponent & = default;
 
-        auto SetModel( const asset::AssetRef<asset::Model>& value ) -> void;
-        MKT_NODISCARD auto GetModel() const -> const asset::AssetRef<asset::Model>&;
+        auto SetModel( const asset::AssetRef<asset::Model> &value ) -> void;
 
         auto SetMeshIndex( core::u32 value ) -> void;
-        MKT_NODISCARD auto GetMeshIndex() const -> core::u32;
 
         auto SetVertexMass( core::f32 value ) -> void;
-        MKT_NODISCARD auto GetVertexMass() const -> core::f32;
 
         auto SetGravityFactor( core::f32 value ) -> void;
-        MKT_NODISCARD auto GetGravityFactor() const -> core::f32;
 
         auto SetLinearDamping( core::f32 value ) -> void;
-        MKT_NODISCARD auto GetLinearDamping() const -> core::f32;
 
         auto SetPressure( core::f32 value ) -> void;
-        MKT_NODISCARD auto GetPressure() const -> core::f32;
 
         auto SetEdgeCompliance( core::f32 value ) -> void;
-        MKT_NODISCARD auto GetEdgeCompliance() const -> core::f32;
 
-        auto SetPinnedVertices( const eastl::vector<core::u32>& value ) -> void;
-        MKT_NODISCARD auto GetPinnedVertices() const -> const eastl::vector<core::u32>&;
+        auto SetPinnedVertices( const eastl::vector<core::u32> &value ) -> void;
 
         auto SetEnabled( bool value ) -> void;
+        MKT_NODISCARD auto GetModel() const -> const asset::AssetRef<asset::Model> &;
+        MKT_NODISCARD auto GetMeshIndex() const -> core::u32;
+        MKT_NODISCARD auto GetVertexMass() const -> core::f32;
+        MKT_NODISCARD auto GetGravityFactor() const -> core::f32;
+        MKT_NODISCARD auto GetLinearDamping() const -> core::f32;
+        MKT_NODISCARD auto GetPressure() const -> core::f32;
+        MKT_NODISCARD auto GetEdgeCompliance() const -> core::f32;
+        MKT_NODISCARD auto GetPinnedVertices() const -> const eastl::vector<core::u32> &;
         MKT_NODISCARD auto IsEnabled() const -> bool;
 
         ~SoftBodyComponent() = default;
@@ -1770,20 +1781,24 @@ namespace mikoto::scene {
     public:
         explicit ClothComponent() = default;
 
-        ClothComponent( const ClothComponent& other ) = default;
-        ClothComponent( ClothComponent&& other ) = default;
+        ClothComponent( const ClothComponent &other ) = default;
+        ClothComponent( ClothComponent &&other ) = default;
 
-        auto operator=( const ClothComponent& other ) -> ClothComponent& = default;
-        auto operator=( ClothComponent&& other ) -> ClothComponent& = default;
+        auto operator=( const ClothComponent &other ) -> ClothComponent & = default;
+        auto operator=( ClothComponent &&other ) -> ClothComponent & = default;
 
         auto SetBendCompliance( core::f32 value ) -> void;
-        MKT_NODISCARD auto GetBendCompliance() const -> core::f32;
-
         auto SetDrag( core::f32 value ) -> void;
-        MKT_NODISCARD auto GetDrag() const -> core::f32;
-
         auto SetLift( core::f32 value ) -> void;
+        /** Sets world-space air velocity in metres per second without restarting cloth. */
+        auto SetWindVelocity( const core::float3 &velocity ) -> void;
+        auto SetWindGustStrength( core::f32 strength ) -> void;
+
+        MKT_NODISCARD auto GetBendCompliance() const -> core::f32;
+        MKT_NODISCARD auto GetDrag() const -> core::f32;
         MKT_NODISCARD auto GetLift() const -> core::f32;
+        MKT_NODISCARD auto GetWindVelocity() const -> const core::float3 &;
+        MKT_NODISCARD auto GetWindGustStrength() const -> core::f32;
 
         ~ClothComponent() = default;
 
@@ -1791,6 +1806,8 @@ namespace mikoto::scene {
         core::f32 mBendCompliance{ 0.00001f };
         core::f32 mDrag{ 0.1f };
         core::f32 mLift{ 0.1f };
+        core::float3 mWindVelocity{};
+        core::f32 mWindGustStrength{ .25f };
     };
 
     /** Describes how a rigid body responds to a referenced water volume through buoyancy and linear/angular drag. */
@@ -1798,25 +1815,25 @@ namespace mikoto::scene {
     public:
         explicit BuoyancyComponent() = default;
 
-        BuoyancyComponent( const BuoyancyComponent& other ) = default;
-        BuoyancyComponent( BuoyancyComponent&& other ) = default;
+        BuoyancyComponent( const BuoyancyComponent &other ) = default;
+        BuoyancyComponent( BuoyancyComponent &&other ) = default;
 
-        auto operator=( const BuoyancyComponent& other ) -> BuoyancyComponent& = default;
-        auto operator=( BuoyancyComponent&& other ) -> BuoyancyComponent& = default;
+        auto operator=( const BuoyancyComponent &other ) -> BuoyancyComponent & = default;
+        auto operator=( BuoyancyComponent &&other ) -> BuoyancyComponent & = default;
 
         auto SetWaterVolumeEntityID( core::u64 value ) -> void;
-        MKT_NODISCARD auto GetWaterVolumeEntityID() const -> core::u64;
 
         auto SetBuoyancyFactor( core::f32 value ) -> void;
-        MKT_NODISCARD auto GetBuoyancyFactor() const -> core::f32;
 
         auto SetLinearDrag( core::f32 value ) -> void;
-        MKT_NODISCARD auto GetLinearDrag() const -> core::f32;
 
         auto SetAngularDrag( core::f32 value ) -> void;
-        MKT_NODISCARD auto GetAngularDrag() const -> core::f32;
 
         auto SetEnabled( bool value ) -> void;
+        MKT_NODISCARD auto GetWaterVolumeEntityID() const -> core::u64;
+        MKT_NODISCARD auto GetBuoyancyFactor() const -> core::f32;
+        MKT_NODISCARD auto GetLinearDrag() const -> core::f32;
+        MKT_NODISCARD auto GetAngularDrag() const -> core::f32;
         MKT_NODISCARD auto IsEnabled() const -> bool;
 
         ~BuoyancyComponent() = default;
@@ -1835,28 +1852,28 @@ namespace mikoto::scene {
     public:
         explicit WaterVolumeComponent() = default;
 
-        WaterVolumeComponent( const WaterVolumeComponent& other ) = default;
-        WaterVolumeComponent( WaterVolumeComponent&& other ) = default;
+        WaterVolumeComponent( const WaterVolumeComponent &other ) = default;
+        WaterVolumeComponent( WaterVolumeComponent &&other ) = default;
 
-        auto operator=( const WaterVolumeComponent& other ) -> WaterVolumeComponent& = default;
-        auto operator=( WaterVolumeComponent&& other ) -> WaterVolumeComponent& = default;
+        auto operator=( const WaterVolumeComponent &other ) -> WaterVolumeComponent & = default;
+        auto operator=( WaterVolumeComponent &&other ) -> WaterVolumeComponent & = default;
 
-        auto SetHalfExtents( const core::float3& value ) -> void;
-        MKT_NODISCARD auto GetHalfExtents() const -> const core::float3&;
+        auto SetHalfExtents( const core::float3 &value ) -> void;
 
         auto SetSurfaceOffset( core::f32 value ) -> void;
-        MKT_NODISCARD auto GetSurfaceOffset() const -> core::f32;
 
         auto SetDensity( core::f32 value ) -> void;
-        MKT_NODISCARD auto GetDensity() const -> core::f32;
 
-        auto SetFlowVelocity( const core::float3& value ) -> void;
-        MKT_NODISCARD auto GetFlowVelocity() const -> const core::float3&;
+        auto SetFlowVelocity( const core::float3 &value ) -> void;
 
         auto SetWaterSurfaceEntityID( core::u64 value ) -> void;
-        MKT_NODISCARD auto GetWaterSurfaceEntityID() const -> core::u64;
 
         auto SetEnabled( bool value ) -> void;
+        MKT_NODISCARD auto GetHalfExtents() const -> const core::float3 &;
+        MKT_NODISCARD auto GetSurfaceOffset() const -> core::f32;
+        MKT_NODISCARD auto GetDensity() const -> core::f32;
+        MKT_NODISCARD auto GetFlowVelocity() const -> const core::float3 &;
+        MKT_NODISCARD auto GetWaterSurfaceEntityID() const -> core::u64;
         MKT_NODISCARD auto IsEnabled() const -> bool;
 
         ~WaterVolumeComponent() = default;
@@ -1871,44 +1888,79 @@ namespace mikoto::scene {
     };
 
 
-    enum class CloudShape : core::u32 { eSkyLayer, eBox, eSphere };
-    enum class FogShape : core::u32 { eGlobal, eBox, eSphere };
+    enum class CloudShape : core::u32 { eSkyLayer,
+        eBox,
+        eSphere };
+    enum class FogShape : core::u32 { eGlobal,
+        eBox,
+        eSphere };
 
     // Shapes delimit a medium without adding a visible/refractive surface.
     // Density and optical properties belong to the shared VolumeMaterial asset.
+    /** Attach to any moving entity to displace raster-cloud density around it. */
+    // Up to 64 active sphere/box/capsule masks displace raster cloud density and light
+    // paths without editing the source grid. Moving/removing the mask restores density
+    // and refreshes light/history. This is reversible displacement, not a persistent
+    // convex-hull destruction trail.
+    class CloudInteractionComponent final {
+    public:
+        auto SetShape( renderer::CloudInteractionShape shape ) -> void;
+        auto SetDimensions( const core::float3 &dimensions ) -> void;
+        auto SetStrength( core::f32 strength ) -> void;
+        auto SetFeather( core::f32 feather ) -> void;
+        auto SetEnabled( bool enabled ) -> void;
+
+        MKT_NODISCARD auto GetShape() const -> renderer::CloudInteractionShape;
+        MKT_NODISCARD auto GetDimensions() const -> const core::float3 &;
+        MKT_NODISCARD auto GetStrength() const -> core::f32;
+        MKT_NODISCARD auto GetFeather() const -> core::f32;
+        MKT_NODISCARD auto IsEnabled() const -> bool;
+
+    private:
+        renderer::CloudInteractionShape mShape{ renderer::CloudInteractionShape::eSphere };
+        core::float3 mDimensions{ 10 };
+        core::f32 mStrength{ 1 }, mFeather{ .2f };
+        bool mEnabled{ true };
+    };
+
     class CloudComponent {
     public:
         CloudComponent();
 
-        CloudComponent( const CloudComponent& other ) = default;
-        CloudComponent( CloudComponent&& other ) = default;
+        CloudComponent( const CloudComponent &other ) = default;
+        CloudComponent( CloudComponent &&other ) = default;
 
-        auto operator=( const CloudComponent& other ) -> CloudComponent& = default;
-        auto operator=( CloudComponent&& other ) -> CloudComponent& = default;
+        auto operator=( const CloudComponent &other ) -> CloudComponent & = default;
+        auto operator=( CloudComponent &&other ) -> CloudComponent & = default;
 
         auto SetShape( CloudShape shape ) -> void;
         auto SetBottomAltitude( core::f32 altitude ) -> void;
         auto SetLayerThickness( core::f32 thickness ) -> void;
         auto SetDimensions( const core::float3 &dimensions ) -> void;
-        
+
         auto SetHorizonRadius( core::f32 radius ) -> void;
         auto SetDensityMultiplier( core::f32 multiplier ) -> void;
         auto SetMaterial( material::VolumeMaterialHandle material ) -> void;
 
         auto SetWindSpeed( core::f32 speed ) -> void;
         auto SetWindDirection( const core::float2 &direction ) -> void;
-        
+
         auto SetCastShadows( bool value ) -> void;
         auto SetReceiveShadows( bool value ) -> void;
+        auto SetLightning( const renderer::CloudLightningSettings &settings ) -> void;
+        auto TriggerLightning( core::f64 time ) -> void;
+
+        MKT_NODISCARD auto GetLightning() const -> const renderer::CloudLightningSettings &;
+        MKT_NODISCARD auto GetLightningState( core::f64 time, const core::float4x4 &world ) const -> renderer::CloudLightningState;
 
         MKT_NODISCARD auto GetShape() const -> CloudShape;
         MKT_NODISCARD auto GetBottomAltitude() const -> core::f32;
         MKT_NODISCARD auto GetLayerThickness() const -> core::f32;
-        MKT_NODISCARD auto GetDimensions() const -> const core::float3&;
+        MKT_NODISCARD auto GetDimensions() const -> const core::float3 &;
         MKT_NODISCARD auto GetHorizonRadius() const -> core::f32;
         MKT_NODISCARD auto GetMaterial() const -> material::VolumeMaterialHandle;
         MKT_NODISCARD auto GetDensityMultiplier() const -> core::f32;
-        MKT_NODISCARD auto GetWindDirection() const -> const core::float2&;
+        MKT_NODISCARD auto GetWindDirection() const -> const core::float2 &;
         MKT_NODISCARD auto GetWindSpeed() const -> core::f32;
         MKT_NODISCARD auto IsShadowCaster() const -> bool;
         MKT_NODISCARD auto IsShadowReceiver() const -> bool;
@@ -1927,33 +1979,35 @@ namespace mikoto::scene {
         core::f32 mWindSpeed{ 10.0f };
         bool mCastShadows{ true };
         bool mReceiveShadows{ true };
+        renderer::CloudLightningSettings mLightning{};
+        core::f64 mLightningTriggerTime{ -1.0 };
     };
 
     class FogComponent {
     public:
         FogComponent();
 
-        FogComponent( const FogComponent& other ) = default;
-        FogComponent( FogComponent&& other ) = default;
+        FogComponent( const FogComponent &other ) = default;
+        FogComponent( FogComponent &&other ) = default;
 
-        auto operator=( const FogComponent& other ) -> FogComponent& = default;
-        auto operator=( FogComponent&& other ) -> FogComponent& = default;
-
-        MKT_NODISCARD auto GetShape() const -> FogShape;
-        MKT_NODISCARD auto GetDimensions() const -> const core::float3&;
-        MKT_NODISCARD auto GetHorizonRadius() const -> core::f32;
-        MKT_NODISCARD auto GetMaterial() const -> material::VolumeMaterialHandle;
-        MKT_NODISCARD auto GetDensityMultiplier() const -> core::f32;
-        MKT_NODISCARD auto IsShadowCaster() const -> bool;
-        MKT_NODISCARD auto IsShadowReceiver() const -> bool;
+        auto operator=( const FogComponent &other ) -> FogComponent & = default;
+        auto operator=( FogComponent &&other ) -> FogComponent & = default;
 
         auto SetShape( FogShape shape ) -> void;
-        auto SetDimensions( const core::float3& dimensions ) -> void;
+        auto SetDimensions( const core::float3 &dimensions ) -> void;
         auto SetHorizonRadius( core::f32 radius ) -> void;
         auto SetMaterial( material::VolumeMaterialHandle material ) -> void;
         auto SetDensityMultiplier( core::f32 multiplier ) -> void;
         auto SetCastShadows( bool value ) -> void;
         auto SetReceiveShadows( bool value ) -> void;
+
+        MKT_NODISCARD auto GetShape() const -> FogShape;
+        MKT_NODISCARD auto GetDimensions() const -> const core::float3 &;
+        MKT_NODISCARD auto GetHorizonRadius() const -> core::f32;
+        MKT_NODISCARD auto GetMaterial() const -> material::VolumeMaterialHandle;
+        MKT_NODISCARD auto GetDensityMultiplier() const -> core::f32;
+        MKT_NODISCARD auto IsShadowCaster() const -> bool;
+        MKT_NODISCARD auto IsShadowReceiver() const -> bool;
 
         ~FogComponent() = default;
 
@@ -1961,13 +2015,13 @@ namespace mikoto::scene {
         FogShape mShape{ FogShape::eGlobal };
         core::float3 mDimensions{ 100.0f };
 
-        // A finite world-space sphere bounds 
+        // A finite world-space sphere bounds
         // global haze and infinite-light connections.
         core::f32 mHorizonRadius{ 100000.0f };
         core::f32 mDensityMultiplier{ 1.0f };
 
         material::VolumeMaterialHandle mMaterial{};
-        
+
         bool mCastShadows{ true };
         bool mReceiveShadows{ true };
     };
@@ -1982,36 +2036,36 @@ namespace mikoto::scene {
 
     class CameraComponent {
     public:
-        explicit CameraComponent( platform::IWindow* window = nullptr );
+        explicit CameraComponent( platform::IWindow *window = nullptr );
 
-        CameraComponent( const CameraComponent& other ) = default;
-        CameraComponent( CameraComponent&& other ) = default;
+        CameraComponent( const CameraComponent &other ) = default;
+        CameraComponent( CameraComponent &&other ) = default;
 
-        auto operator=( const CameraComponent& other ) -> CameraComponent& = default;
-        auto operator=( CameraComponent&& other ) -> CameraComponent& = default;
+        auto operator=( const CameraComponent &other ) -> CameraComponent & = default;
+        auto operator=( CameraComponent &&other ) -> CameraComponent & = default;
 
         auto SetGamma( float gamma ) -> void;
         auto SetMainCamera( bool main ) -> void;
         auto SetSkyboxBlur( float value ) -> void;
         auto SetExposure( float exposure ) -> void;
         auto SetFixedAspectRatio( bool value ) -> void;
-        
+
         auto SetClearFlags( CameraClearFlags bg ) -> void;
-        auto SetClearColor( const renderer::rhi::Color& color ) -> void;
-        
+        auto SetClearColor( const renderer::rhi::Color &color ) -> void;
+
         auto OnViewportResize( core::f32 width, core::f32 height ) -> void;
-        
+
         MKT_NODISCARD auto HasCamera() const -> bool;
         MKT_NODISCARD auto IsMainCamera() const -> bool;
 
-        MKT_NODISCARD auto GetCamera() -> SceneCamera&;
-        MKT_NODISCARD auto GetCamera() const -> const SceneCamera&;
+        MKT_NODISCARD auto GetCamera() -> SceneCamera &;
+        MKT_NODISCARD auto GetCamera() const -> const SceneCamera &;
 
         MKT_NODISCARD auto IsAspectRatioFixed() const -> bool;
 
         MKT_NODISCARD auto GetClearFlags() const -> CameraClearFlags;
 
-        MKT_NODISCARD auto GetClearColor() const -> const renderer::rhi::Color&;
+        MKT_NODISCARD auto GetClearColor() const -> const renderer::rhi::Color &;
 
         MKT_NODISCARD auto GetGamma() const -> float;
         MKT_NODISCARD auto GetExposure() const -> float;
@@ -2034,8 +2088,11 @@ namespace mikoto::scene {
     };
 
 
-    enum class TextBackend { eMSDF, eSlug };
-    enum class TextAlignment { eLeft, eCenter, eRight };
+    enum class TextBackend { eMSDF,
+        eSlug };
+    enum class TextAlignment { eLeft,
+        eCenter,
+        eRight };
 
     class TextComponent {
     public:
@@ -2043,22 +2100,22 @@ namespace mikoto::scene {
 
         TextComponent( eastl::string_view textContent, float size, float spacing, bool isWorld );
 
-        TextComponent( const TextComponent& other ) = default;
-        TextComponent( TextComponent&& other ) = default;
+        TextComponent( const TextComponent &other ) = default;
+        TextComponent( TextComponent &&other ) = default;
 
-        auto operator=( const TextComponent& other ) -> TextComponent& = default;
-        auto operator=( TextComponent&& other ) -> TextComponent& = default;
+        auto operator=( const TextComponent &other ) -> TextComponent & = default;
+        auto operator=( TextComponent &&other ) -> TextComponent & = default;
 
         auto SetFont( renderer::FontHandle font ) -> void;
 
-        auto SetCamera( const Camera* camera ) -> void;
+        auto SetCamera( const Camera *camera ) -> void;
 
         auto SetIsWorldText( bool value ) -> void;
 
         auto SetOutlineWidth( core::f32 width ) -> void;
-        auto SetOutlineColor( const core::float4& color ) -> void;
+        auto SetOutlineColor( const core::float4 &color ) -> void;
         auto SetMaterial( core::Ref<material::TextMaterial> material ) -> void;
-        
+
         auto SetBackend( TextBackend value ) -> void;
         auto SetAlignment( TextAlignment value ) -> void;
         auto SetLineSpacing( float value ) -> void;
@@ -2078,11 +2135,11 @@ namespace mikoto::scene {
 
         MKT_NODISCARD auto HasFont() const -> bool;
         MKT_NODISCARD auto IsWorldText() const -> bool;
-        MKT_NODISCARD auto GetCamera() const -> const Camera*;
+        MKT_NODISCARD auto GetCamera() const -> const Camera *;
 
-        MKT_NODISCARD auto GetFont() const -> const renderer::Font*;
+        MKT_NODISCARD auto GetFont() const -> const renderer::Font *;
         MKT_NODISCARD auto GetFontHandle() const -> renderer::FontHandle;
-        MKT_NODISCARD auto GetColor() const -> const core::float4&;
+        MKT_NODISCARD auto GetColor() const -> const core::float4 &;
 
         MKT_NODISCARD auto GetMaterial() const -> core::Ref<material::TextMaterial>;
 
@@ -2098,10 +2155,10 @@ namespace mikoto::scene {
         MKT_NODISCARD auto GetAlignment() const -> TextAlignment;
         MKT_NODISCARD auto GetBackend() const -> TextBackend;
         MKT_NODISCARD auto GetOutlineWidth() const -> core::f32;
-        MKT_NODISCARD auto GetOutlineColor() const -> const core::float4&;
+        MKT_NODISCARD auto GetOutlineColor() const -> const core::float4 &;
 
-        MKT_NODISCARD auto GetContents() const -> const eastl::string&;
-        MKT_NODISCARD auto GetUnicodeContents() const -> const text::UnicodeString&;
+        MKT_NODISCARD auto GetContents() const -> const eastl::string &;
+        MKT_NODISCARD auto GetUnicodeContents() const -> const text::UnicodeString &;
 
         MKT_NODISCARD static auto GetMinLetterSpacing() -> float;
         MKT_NODISCARD static auto GetMaxLetterSpacing() -> float;
@@ -2113,7 +2170,7 @@ namespace mikoto::scene {
         renderer::FontHandle mFont{};
         const Camera *mCamera{ nullptr };
 
-        // Preserve UTF-8 for editing/serialization 
+        // Preserve UTF-8 for editing/serialization
         // and decode only on edits.
         eastl::string mTextContent{};
         text::UnicodeString mStringContent{};
@@ -2132,7 +2189,7 @@ namespace mikoto::scene {
         core::float4 mOutlineColor{ 0, 0, 0, 1 };
 
         text::ScreenPlacement mScreenPlacement{};
-        
+
         TextBackend mBackend{ TextBackend::eSlug };
         TextAlignment mAlignment{ TextAlignment::eLeft };
 
@@ -2145,31 +2202,31 @@ namespace mikoto::scene {
     public:
         // The script can be constructed from a script on disk
         // if left empty we will use a blank script with minimal setup
-        explicit ScriptComponent( const filesystem::Path& filePath = {},
-                                  scripting::ScriptLanguage language = scripting::ScriptLanguage::eLua,
-                                  eastl::string_view className = {} );
+        explicit ScriptComponent( const filesystem::Path &filePath = {},
+            scripting::ScriptLanguage language = scripting::ScriptLanguage::eLua,
+            eastl::string_view className = {} );
 
-        ScriptComponent( const ScriptComponent& other ) = default;
-        ScriptComponent( ScriptComponent&& other ) = default;
+        ScriptComponent( const ScriptComponent &other ) = default;
+        ScriptComponent( ScriptComponent &&other ) = default;
 
-        auto operator=( const ScriptComponent& other ) -> ScriptComponent& = default;
-        auto operator=( ScriptComponent&& other ) -> ScriptComponent& = default;
+        auto operator=( const ScriptComponent &other ) -> ScriptComponent & = default;
+        auto operator=( ScriptComponent &&other ) -> ScriptComponent & = default;
 
         /** @brief Adopts a loaded script without executing its initializer again. */
         auto SetScript( scripting::ScriptHandle handle ) -> void;
         auto SetLanguage( scripting::ScriptLanguage language ) -> void;
-        auto SetManagedScript( const filesystem::Path& assembly, eastl::string_view className ) -> void;
-        MKT_NODISCARD auto GetLanguage() const -> scripting::ScriptLanguage;
-        MKT_NODISCARD auto GetClassName() const -> const eastl::string&;
-
-        MKT_NODISCARD auto GetHandle() -> scripting::ScriptHandle;
-        MKT_NODISCARD auto GetFilePath() const -> const filesystem::Path&;
+        auto SetManagedScript( const filesystem::Path &assembly, eastl::string_view className ) -> void;
 
         /** @brief Sets per-entity serialized property overrides, keyed by member name.
          * @param properties JSON object copied into the component and persisted in the scene.
          */
         auto SetProperties( eastl::string_view properties ) -> void;
-        MKT_NODISCARD auto GetProperties() const -> const eastl::string&;
+        MKT_NODISCARD auto GetLanguage() const -> scripting::ScriptLanguage;
+        MKT_NODISCARD auto GetClassName() const -> const eastl::string &;
+
+        MKT_NODISCARD auto GetHandle() -> scripting::ScriptHandle;
+        MKT_NODISCARD auto GetFilePath() const -> const filesystem::Path &;
+        MKT_NODISCARD auto GetProperties() const -> const eastl::string &;
 
         ~ScriptComponent() = default;
 
@@ -2187,28 +2244,28 @@ namespace mikoto::scene {
     class KeyframeAnimationComponent {
     public:
         KeyframeAnimationComponent() = default;
-        KeyframeAnimationComponent( const KeyframeAnimationComponent& other );
-        auto operator=( const KeyframeAnimationComponent& other ) -> KeyframeAnimationComponent&;
-        KeyframeAnimationComponent( KeyframeAnimationComponent&& ) noexcept = default;
-        auto operator=( KeyframeAnimationComponent&& ) noexcept -> KeyframeAnimationComponent& = default;
+        KeyframeAnimationComponent( const KeyframeAnimationComponent &other );
+        auto operator=( const KeyframeAnimationComponent &other ) -> KeyframeAnimationComponent &;
+        KeyframeAnimationComponent( KeyframeAnimationComponent && ) noexcept = default;
+        auto operator=( KeyframeAnimationComponent && ) noexcept -> KeyframeAnimationComponent & = default;
 
-        auto Play( Entity& entity, bool preview ) -> void;
+        auto Play( Entity &entity, bool preview ) -> void;
         auto Pause() -> void;
-        auto Stop( Entity& entity ) -> void;
-        auto Seek( Entity& entity, core::f64 frame ) -> void;
-        auto Update( Entity& entity, core::f64 seconds ) -> void;
-        auto Apply( Entity& entity ) const -> void;
+        auto Stop( Entity &entity ) -> void;
+        auto Seek( Entity &entity, core::f64 frame ) -> void;
+        auto Update( Entity &entity, core::f64 seconds ) -> void;
+        auto Apply( Entity &entity ) const -> void;
         MKT_NODISCARD auto GetFrame() const -> core::f64;
         MKT_NODISCARD auto IsPlaying() const -> bool;
         MKT_NODISCARD auto IsPreviewing() const -> bool;
-        MKT_NODISCARD auto GetRestTransform() const -> const core::float4x4&;
-        auto RestoreLightProperties( LightComponent& light ) const -> void;
-        MKT_NODISCARD static auto ReadProperty( const Entity& entity, animation::KeyframeChannel channel ) -> core::float3;
+        MKT_NODISCARD auto GetRestTransform() const -> const core::float4x4 &;
+        auto RestoreLightProperties( LightComponent &light ) const -> void;
+        MKT_NODISCARD static auto ReadProperty( const Entity &entity, animation::KeyframeChannel channel ) -> core::float3;
 
         animation::KeyframeClip mClip{};
 
     private:
-        auto CaptureRest( const Entity& entity ) -> void;
+        auto CaptureRest( const Entity &entity ) -> void;
         core::float4x4 mRestTransform{ 1.0f };
         std::array<core::float3, 3> mRestLightColors{};
         std::array<core::f32, 3> mRestLightIntensities{};
@@ -2222,18 +2279,18 @@ namespace mikoto::scene {
 
     class AnimatorComponent {
     public:
-        explicit AnimatorComponent( core::u64 ID = 0);
+        explicit AnimatorComponent( core::u64 ID = 0 );
 
-        AnimatorComponent( const AnimatorComponent& other ) = default;
-        AnimatorComponent( AnimatorComponent&& other ) = default;
+        AnimatorComponent( const AnimatorComponent &other ) = default;
+        AnimatorComponent( AnimatorComponent &&other ) = default;
 
-        auto operator=( const AnimatorComponent& other ) -> AnimatorComponent& = default;
-        auto operator=( AnimatorComponent&& other ) -> AnimatorComponent& = default;
+        auto operator=( const AnimatorComponent &other ) -> AnimatorComponent & = default;
+        auto operator=( AnimatorComponent &&other ) -> AnimatorComponent & = default;
 
         auto SetAnimatorID( core::u64 ID ) -> void;
-        
+
         MKT_NODISCARD auto GetAnimatorID() const -> core::u64;
-        
+
         ~AnimatorComponent() = default;
 
     private:
@@ -2243,13 +2300,13 @@ namespace mikoto::scene {
 
     class SkinnedMeshRenderer {
     public:
-        explicit SkinnedMeshRenderer( core::u64 ID = 0);
+        explicit SkinnedMeshRenderer( core::u64 ID = 0 );
 
-        SkinnedMeshRenderer( const SkinnedMeshRenderer& other ) = default;
-        SkinnedMeshRenderer( SkinnedMeshRenderer&& other ) = default;
+        SkinnedMeshRenderer( const SkinnedMeshRenderer &other ) = default;
+        SkinnedMeshRenderer( SkinnedMeshRenderer &&other ) = default;
 
-        auto operator=( const SkinnedMeshRenderer& other ) -> SkinnedMeshRenderer& = default;
-        auto operator=( SkinnedMeshRenderer&& other ) -> SkinnedMeshRenderer& = default;
+        auto operator=( const SkinnedMeshRenderer &other ) -> SkinnedMeshRenderer & = default;
+        auto operator=( SkinnedMeshRenderer &&other ) -> SkinnedMeshRenderer & = default;
 
         auto SetAnimatorID( core::u64 id ) -> void;
 
@@ -2266,11 +2323,11 @@ namespace mikoto::scene {
     public:
         explicit PostProcessMaterialComponent( material::MaterialHandle material = {} );
 
-        PostProcessMaterialComponent( const PostProcessMaterialComponent& other ) = default;
-        PostProcessMaterialComponent( PostProcessMaterialComponent&& other ) = default;
+        PostProcessMaterialComponent( const PostProcessMaterialComponent &other ) = default;
+        PostProcessMaterialComponent( PostProcessMaterialComponent &&other ) = default;
 
-        auto operator=( const PostProcessMaterialComponent& other ) -> PostProcessMaterialComponent& = default;
-        auto operator=( PostProcessMaterialComponent&& other ) -> PostProcessMaterialComponent& = default;
+        auto operator=( const PostProcessMaterialComponent &other ) -> PostProcessMaterialComponent & = default;
+        auto operator=( PostProcessMaterialComponent &&other ) -> PostProcessMaterialComponent & = default;
 
         auto SetCameraEntityID( core::u64 id ) -> void;
         auto SetMaterial( material::MaterialHandle material ) -> void;
@@ -2286,15 +2343,49 @@ namespace mikoto::scene {
     };
 
 
+    enum class SkyLightSource : core::u32 {
+        eAtmosphere,
+        eEnvironmentMap
+    };
+
+    /** Global sky illumination. The lowest active entity GUID selects one skylight. */
+    class SkyLightComponent final {
+    public:
+        auto SetEnabled( bool enabled ) -> void;
+        auto SetSource( SkyLightSource source ) -> void;
+        auto SetIntensity( core::f32 intensity ) -> void;
+        auto SetOcclusionEnabled( bool enabled ) -> void;
+        auto SetOcclusionDistance( core::f32 distance ) -> void;
+        auto SetOcclusionSamplesPerFrame( core::u32 samples ) -> void;
+        auto SetEnvironmentMaterial( material::MaterialHandle material ) -> void;
+
+        MKT_NODISCARD auto IsEnabled() const -> bool;
+        MKT_NODISCARD auto GetSource() const -> SkyLightSource;
+        MKT_NODISCARD auto GetIntensity() const -> core::f32;
+        MKT_NODISCARD auto IsOcclusionEnabled() const -> bool;
+        MKT_NODISCARD auto GetOcclusionDistance() const -> core::f32;
+        MKT_NODISCARD auto GetOcclusionSamplesPerFrame() const -> core::u32;
+        MKT_NODISCARD auto GetEnvironmentMaterial() const -> material::MaterialHandle;
+
+    private:
+        bool mEnabled{ true };
+        SkyLightSource mSource{ SkyLightSource::eAtmosphere };
+        core::f32 mIntensity{ 1.0f };
+        bool mOcclusionEnabled{ true };
+        core::f32 mOcclusionDistance{ 50.0f };
+        core::u32 mOcclusionSamplesPerFrame{ 2 };
+        material::MaterialHandle mEnvironmentMaterial{};
+    };
+
     class SkyboxMaterialComponent {
     public:
         explicit SkyboxMaterialComponent() = default;
 
-        SkyboxMaterialComponent( const SkyboxMaterialComponent& other ) = default;
-        SkyboxMaterialComponent( SkyboxMaterialComponent&& other ) = default;
+        SkyboxMaterialComponent( const SkyboxMaterialComponent &other ) = default;
+        SkyboxMaterialComponent( SkyboxMaterialComponent &&other ) = default;
 
-        auto operator=( const SkyboxMaterialComponent& other ) -> SkyboxMaterialComponent& = default;
-        auto operator=( SkyboxMaterialComponent&& other ) -> SkyboxMaterialComponent& = default;
+        auto operator=( const SkyboxMaterialComponent &other ) -> SkyboxMaterialComponent & = default;
+        auto operator=( SkyboxMaterialComponent &&other ) -> SkyboxMaterialComponent & = default;
 
         auto SetMaterial( material::MaterialHandle material ) -> void;
 
@@ -2311,17 +2402,17 @@ namespace mikoto::scene {
     public:
         explicit ParticleSimulatorComponent();
 
-        ParticleSimulatorComponent( const ParticleSimulatorComponent& other ) = default;
-        ParticleSimulatorComponent( ParticleSimulatorComponent&& other ) noexcept = default;
+        ParticleSimulatorComponent( const ParticleSimulatorComponent &other ) = default;
+        ParticleSimulatorComponent( ParticleSimulatorComponent &&other ) noexcept = default;
 
-        auto operator=( const ParticleSimulatorComponent& other ) -> ParticleSimulatorComponent& = default;
-        auto operator=( ParticleSimulatorComponent&& other ) noexcept -> ParticleSimulatorComponent& = default;
+        auto operator=( const ParticleSimulatorComponent &other ) -> ParticleSimulatorComponent & = default;
+        auto operator=( ParticleSimulatorComponent &&other ) noexcept -> ParticleSimulatorComponent & = default;
 
         auto SetEffect( asset::ParticleEffectHandle effect ) -> void;
         auto SetEmitter( core::usize index, renderer::ParticleEmitterHandle emitter ) -> void;
-        auto Update( core::f32 timeStep, const core::float4x4& world, core::u64 seed, renderer::ParticleSimulationMode mode ) -> void;
+        auto Update( core::f32 timeStep, const core::float4x4 &world, core::u64 seed, renderer::ParticleSimulationMode mode ) -> void;
 
-        MKT_NODISCARD auto GetEffect() const -> const asset::ParticleEffectHandle&;
+        MKT_NODISCARD auto GetEffect() const -> const asset::ParticleEffectHandle &;
         MKT_NODISCARD auto GetInstances() -> eastl::span<renderer::ParticleEmitterInstance>;
         MKT_NODISCARD auto GetInstances() const -> eastl::span<const renderer::ParticleEmitterInstance>;
 
@@ -2333,18 +2424,18 @@ namespace mikoto::scene {
 
     class CanvasComponent {
     public:
-        explicit CanvasComponent( const scene::Camera* camera = nullptr );
+        explicit CanvasComponent( const scene::Camera *camera = nullptr );
 
-        CanvasComponent( const CanvasComponent& other ) = default;
-        CanvasComponent( CanvasComponent&& other ) = default;
+        CanvasComponent( const CanvasComponent &other ) = default;
+        CanvasComponent( CanvasComponent &&other ) = default;
 
-        auto operator=( const CanvasComponent& other ) -> CanvasComponent& = default;
-        auto operator=( CanvasComponent&& other ) -> CanvasComponent& = default;
+        auto operator=( const CanvasComponent &other ) -> CanvasComponent & = default;
+        auto operator=( CanvasComponent &&other ) -> CanvasComponent & = default;
 
         ~CanvasComponent() = default;
 
-        auto GetCanvas() -> renderer::Canvas&;
-        auto GetCanvas() const -> const renderer::Canvas&;
+        MKT_NODISCARD auto GetCanvas() -> renderer::Canvas &;
+        MKT_NODISCARD auto GetCanvas() const -> const renderer::Canvas &;
 
     private:
         renderer::Canvas mCanvas{};
@@ -2356,25 +2447,43 @@ namespace mikoto::scene {
         eCustom,
     };
 
+    /** Coastal appearance and homogeneous water medium; distances are metres. */
+    struct WaterAppearanceSettings {
+        bool mInfiniteOcean{};
+        bool mDepthBasedRefractionEnabled{ true };
+        bool mShoreFoamEnabled{ true };
+        bool mUnderwaterScatteringEnabled{ true };
+        bool mCausticsEnabled{ true };
+
+        core::f32 mShoreFoamDepth{ 1.2f };
+        core::f32 mShoreFoamAmount{ .65f };
+        core::f32 mShoreWaveSpeed{ .45f };
+        core::f32 mFoamLifetime{ 4.0f };
+        core::f32 mWaveDepth{ 5.0f };
+        core::float3 mScattering{ .025f, .045f, .055f };// Inverse metres.
+        core::f32 mAnisotropy{ .65f };
+        core::f32 mMaximumDepth{ 100.0f };
+        core::f32 mCausticsStrength{ .4f };
+        core::f32 mCausticsScale{ .45f };// Cycles per metre.
+        core::f32 mCausticsDepth{ 12.0f };
+    };
+
     // How is water rendered
     class WaterRenderComponent : public core::RevisionTracked {
     public:
         explicit WaterRenderComponent();
 
-        WaterRenderComponent( const WaterRenderComponent& ) = default;
-        WaterRenderComponent( WaterRenderComponent&& ) = default;
+        WaterRenderComponent( const WaterRenderComponent & ) = default;
+        WaterRenderComponent( WaterRenderComponent && ) = default;
 
-        auto operator=( const WaterRenderComponent& ) -> WaterRenderComponent& = default;
-        auto operator=( WaterRenderComponent&& ) -> WaterRenderComponent& = default;
+        auto operator=( const WaterRenderComponent & ) -> WaterRenderComponent & = default;
+        auto operator=( WaterRenderComponent && ) -> WaterRenderComponent & = default;
 
         auto SetShape( WaterShape shape ) -> void;
         auto SetMaterial( material::MaterialHandle waterMaterial ) -> void;
-        MKT_NODISCARD auto GetMaterial() const -> core::Ref<material::SurfaceMaterial>;
+        auto SetAppearance( const WaterAppearanceSettings &settings ) -> void;
 
-        // Reset appearance without changing the plane's dimensions or transform.
-        auto ApplyOceanPreset() -> void;
         auto SetFoamAmount( float amount ) -> void;
-        MKT_NODISCARD auto GetFoamAmount() const -> float;
 
         auto SetPlaneResolution( core::float2 resolution ) -> void;
         auto SetPlaneDimensions( core::float2 dimensions ) -> void;
@@ -2384,6 +2493,12 @@ namespace mikoto::scene {
 
         // Shared tint for the grid and vertex debug overlays.
         auto SetDebugPreviewColor( core::float3 color ) -> void;
+        MKT_NODISCARD auto GetMaterial() const -> core::Ref<material::SurfaceMaterial>;
+
+        // Reset appearance without changing the plane's dimensions or transform.
+        auto ApplyOceanPreset() -> void;
+        MKT_NODISCARD auto GetAppearance() const -> const WaterAppearanceSettings &;
+        MKT_NODISCARD auto GetFoamAmount() const -> float;
         MKT_NODISCARD auto GetDebugPreviewColor() const -> core::float3;
 
         MKT_NODISCARD auto IsGridVisible() const -> bool;
@@ -2406,6 +2521,7 @@ namespace mikoto::scene {
         bool mShowVertices{ false };
         core::float3 mDebugPreviewColor{ 1.0f, 1.0f, 1.0f };
         float mFoamAmount{ 0.65f };
+        WaterAppearanceSettings mAppearance{};
 
         // TODO: Add mesh asset handle for eCustom.
         material::MaterialHandle mWaterMaterial{};
@@ -2430,7 +2546,7 @@ namespace mikoto::scene {
 
             core::f32 mPatchLength{ 128.0f };
             core::f32 mWindSpeed{ 12.0f };
-            core::f32 mWindDirection{ 0.0f }; // Degrees from local +X toward +Z.
+            core::f32 mWindDirection{ 0.0f };// Degrees from local +X toward +Z.
             core::f32 mAmplitude{ 1.0f };
             core::f32 mChoppiness{ 1.0f };
             core::u32 mSeed{ 1 };
@@ -2448,33 +2564,33 @@ namespace mikoto::scene {
     public:
         explicit WaterSimulationComponent();
 
-        WaterSimulationComponent( const WaterSimulationComponent& ) = default;
-        WaterSimulationComponent( WaterSimulationComponent&& ) = default;
+        WaterSimulationComponent( const WaterSimulationComponent & ) = default;
+        WaterSimulationComponent( WaterSimulationComponent && ) = default;
 
-        auto operator=( const WaterSimulationComponent& ) -> WaterSimulationComponent& = default;
-        auto operator=( WaterSimulationComponent&& ) -> WaterSimulationComponent& = default;
+        auto operator=( const WaterSimulationComponent & ) -> WaterSimulationComponent & = default;
+        auto operator=( WaterSimulationComponent && ) -> WaterSimulationComponent & = default;
 
         auto SetType( WaterSimulationType type ) -> void;
         auto ApplyOceanPreset() -> void;
         auto SetWaves( eastl::vector<WaterWave> waves ) -> void;
-        auto AddWave( const WaterWave& wave ) -> void;
+        auto AddWave( const WaterWave &wave ) -> void;
         auto RemoveWave( core::usize index ) -> bool;
         auto ClearWaves() -> void;
         auto SetTimeScale( float timeScale ) -> void;
         auto SetSteepness( float steepness ) -> void;
-        auto SetFftSettings( const FftSettings& settings ) -> void;
+        auto SetFftSettings( const FftSettings &settings ) -> void;
 
         // Scene update advances time once, independently of camera/render count.
         auto Update( core::f32 timeStep ) -> void;
         auto ResetTime() -> void;
 
         MKT_NODISCARD auto GetType() const -> WaterSimulationType;
-        MKT_NODISCARD auto GetWaves() const -> const eastl::vector<WaterWave>&;
+        MKT_NODISCARD auto GetWaves() const -> const eastl::vector<WaterWave> &;
         MKT_NODISCARD auto GetWaveCount() const -> core::usize;
         MKT_NODISCARD auto GetTimeScale() const -> float;
         MKT_NODISCARD auto GetSteepness() const -> float;
         MKT_NODISCARD auto GetTime() const -> core::f64;
-        MKT_NODISCARD auto GetFftSettings() const -> const FftSettings&;
+        MKT_NODISCARD auto GetFftSettings() const -> const FftSettings &;
 
     private:
         core::f32 mTimeScale{ 1.0f };
@@ -2497,19 +2613,19 @@ namespace mikoto::scene {
     public:
         explicit LandscapeComponent() = default;
 
-        LandscapeComponent( const LandscapeComponent& other ) = default;
-        LandscapeComponent( LandscapeComponent&& other ) = default;
+        LandscapeComponent( const LandscapeComponent &other ) = default;
+        LandscapeComponent( LandscapeComponent &&other ) = default;
 
-        auto operator=( const LandscapeComponent& other ) -> LandscapeComponent& = default;
-        auto operator=( LandscapeComponent&& other ) -> LandscapeComponent& = default;
+        auto operator=( const LandscapeComponent &other ) -> LandscapeComponent & = default;
+        auto operator=( LandscapeComponent &&other ) -> LandscapeComponent & = default;
 
         auto SetOrigin( core::float2 origin ) -> void;
         auto SetHeightScale( core::f32 scale ) -> void;
-        
+
         auto SetLowColor( core::float3 color ) -> void;
         auto SetHighColor( core::float3 color ) -> void;
         auto SetMiddleColor( core::float3 color ) -> void;
-        
+
         auto SetEnableEditLayers( bool enabled ) -> void;
         auto SetTerrainSection( core::u32 quads ) -> void;
 
@@ -2517,7 +2633,7 @@ namespace mikoto::scene {
         auto SetBaseElevation( core::f32 elevation ) -> void;
         auto SetSectionsPerComponent( core::u32 sections ) -> void;
         auto SetComponentCount( core::u32 x, core::u32 y ) -> void;
-        
+
         auto SetGeneratedNoise( const renderer::TerrainNoiseSettings &settings ) -> void;
 
         auto SetShowGrid( bool show ) -> void;
@@ -2526,10 +2642,18 @@ namespace mikoto::scene {
         auto ClearHeightmap() -> void;
         auto SetHeightmap( const asset::AssetRef<asset::Texture> &reference ) -> void;
 
+        auto SetSurfaceSettings( const renderer::TerrainSurfaceSettings &settings ) -> void;
+        auto SetSculptedHeightmap( eastl::shared_ptr<const renderer::TerrainHeightmap> heightmap ) -> void;
+        auto SetPaintMap( eastl::shared_ptr<const renderer::TerrainPaintMap> paintmap ) -> void;
+
+        MKT_NODISCARD auto GetSurfaceSettings() const -> const renderer::TerrainSurfaceSettings &;
+        MKT_NODISCARD auto GetSculptedHeightmap() const -> eastl::shared_ptr<const renderer::TerrainHeightmap>;
+        MKT_NODISCARD auto GetPaintMap() const -> eastl::shared_ptr<const renderer::TerrainPaintMap>;
+
         MKT_NODISCARD auto GetBrushType() const -> LandscapeBrushType;
         MKT_NODISCARD auto GetWorldDescription() const -> renderer::WorldDescription;
 
-        MKT_NODISCARD auto GetHeightmapError() const -> const eastl::string&;
+        MKT_NODISCARD auto GetHeightmapError() const -> const eastl::string &;
         MKT_NODISCARD auto GetHeightmapReference() const -> asset::AssetRef<asset::Texture>;
         MKT_NODISCARD auto GetHeightmap() const -> eastl::shared_ptr<const renderer::TerrainHeightmap>;
 
@@ -2540,11 +2664,13 @@ namespace mikoto::scene {
 
 
     private:
-        auto ApplyDescription( const renderer::WorldDescription& description ) -> void;
+        auto ApplyDescription( const renderer::WorldDescription &description ) -> void;
         renderer::WorldDescription mWorldDescription{};
 
     private:
-        material::MaterialHandle mTerrainMaterial{};
+        renderer::TerrainSurfaceSettings mSurface{};
+        eastl::shared_ptr<const renderer::TerrainHeightmap> mSculptedHeightmap{};
+        eastl::shared_ptr<const renderer::TerrainPaintMap> mPaintMap{};
 
         // Heightmap
         eastl::string mHeightMapError{};
@@ -2560,21 +2686,51 @@ namespace mikoto::scene {
         bool mShowVertices{};
     };
 
-    class WindSimulationComponent {
+    /** Directional or bounded air velocity shared by cloth and procedural vegetation. */
+    class WindAreaComponent final {
     public:
-        explicit WindSimulationComponent() = default;
+        explicit WindAreaComponent() = default;
+        WindAreaComponent( const WindAreaComponent &other ) = default;
+        WindAreaComponent( WindAreaComponent &&other ) = default;
+        auto operator=( const WindAreaComponent &other ) -> WindAreaComponent & = default;
+        auto operator=( WindAreaComponent &&other ) -> WindAreaComponent & = default;
 
-        WindSimulationComponent( const WindSimulationComponent& other ) = default;
-        WindSimulationComponent( WindSimulationComponent&& other ) = default;
+        auto SetShape( WindAreaShape shape ) -> void;
+        auto SetVelocity( const core::float3 &velocity ) -> void;
+        auto SetDimensions( const core::float3 &dimensions ) -> void;
+        auto SetFalloff( core::f32 falloff ) -> void;
+        auto SetGustStrength( core::f32 strength ) -> void;
+        auto SetGustFrequency( core::f32 frequency ) -> void;
+        auto SetGustWavelength( core::f32 wavelength ) -> void;
+        auto SetTurbulence( core::f32 turbulence ) -> void;
+        auto SetSeed( core::u32 seed ) -> void;
+        auto SetEnabled( bool enabled ) -> void;
 
-        auto operator=( const WindSimulationComponent& other ) -> WindSimulationComponent& = default;
-        auto operator=( WindSimulationComponent&& other ) -> WindSimulationComponent& = default;
+        MKT_NODISCARD auto GetShape() const -> WindAreaShape;
+        MKT_NODISCARD auto GetVelocity() const -> const core::float3 &;
+        MKT_NODISCARD auto GetDimensions() const -> const core::float3 &;
+        MKT_NODISCARD auto GetFalloff() const -> core::f32;
+        MKT_NODISCARD auto GetGustStrength() const -> core::f32;
+        MKT_NODISCARD auto GetGustFrequency() const -> core::f32;
+        MKT_NODISCARD auto GetGustWavelength() const -> core::f32;
+        MKT_NODISCARD auto GetTurbulence() const -> core::f32;
+        MKT_NODISCARD auto GetSeed() const -> core::u32;
+        MKT_NODISCARD auto IsEnabled() const -> bool;
 
-        ~WindSimulationComponent() = default;
+        ~WindAreaComponent() = default;
 
     private:
-
-    }; 
+        WindAreaShape mShape{ WindAreaShape::eBox };
+        core::float3 mVelocity{ 5.0f, 0.0f, 0.0f };
+        core::float3 mDimensions{ 30.0f, 10.0f, 30.0f };
+        core::f32 mFalloff{ .25f };
+        core::f32 mGustStrength{ .35f };
+        core::f32 mGustFrequency{ .2f };
+        core::f32 mGustWavelength{ 20.0f };
+        core::f32 mTurbulence{ .7f };
+        core::u32 mSeed{ 31 };
+        bool mEnabled{ true };
+    };
 
 }// namespace mikoto::scene
 

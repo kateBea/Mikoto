@@ -15,14 +15,18 @@
 #ifndef MIKOTO_RENDERER_TERRAN_GENERATION_HH
 #define MIKOTO_RENDERER_TERRAN_GENERATION_HH
 
+#include <EASTL/array.h>
 #include <EASTL/shared_ptr.h>
+#include <EASTL/vector.h>
+
+#include <Assets/Asset.hh>
+#include <Assets/AssetTexture.hh>
+#include <Assets/Image.hh>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
 
-#include <Assets/Asset.hh>
-#include <Assets/Image.hh>
-#include <Assets/AssetTexture.hh>
+#include <Renderer/Grass/Grass.hh>
 
 namespace mikoto::renderer {
 
@@ -35,7 +39,7 @@ namespace mikoto::renderer {
         core::f32 mLacunarity{ 2.7f };
         core::u32 mOctaves{ 7 };
 
-        MKT_NODISCARD auto operator==( const FBMSettings & ) const->bool = default;
+        MKT_NODISCARD auto operator==( const FBMSettings & ) const -> bool = default;
     };
 
     struct TerrainNoiseSettings {
@@ -48,7 +52,7 @@ namespace mikoto::renderer {
         core::float2 mOffset{};
 
         MKT_NODISCARD auto IsValid() const -> bool;
-        MKT_NODISCARD auto operator==( const TerrainNoiseSettings & ) const->bool = default;
+        MKT_NODISCARD auto operator==( const TerrainNoiseSettings & ) const -> bool = default;
     };
 
     enum class LayerBlendType {
@@ -69,6 +73,39 @@ namespace mikoto::renderer {
     };
 
     using TerrainLayerHandle = core::Ref<TerrainLayerDescription>;
+
+    inline constexpr core::u32 kTerrainSurfaceLayerCount{ 4 };
+
+    /** A weight-blended landscape layer. UV scale is repeats per world metre. */
+    struct TerrainSurfaceLayer {
+        eastl::string mName{ "Layer" };
+        asset::AssetRef<asset::Texture> mAlbedo{};
+        asset::AssetRef<asset::Texture> mNormal{};
+        asset::AssetRef<asset::Texture> mHeight{};
+        core::float3 mTint{ 1.0f };
+        core::float2 mUVScale{ .1f };
+        core::float2 mHeightRange{ 0.0f, 1.0f };
+        core::f32 mRoughness{ .8f };
+        core::f32 mNormalStrength{ 1.0f };
+        core::f32 mSlopeInfluence{};
+    };
+
+    struct TerrainSurfaceSettings {
+        TerrainSurfaceSettings();
+        GrassSettings mGrass{};
+        eastl::array<TerrainSurfaceLayer, kTerrainSurfaceLayerCount> mLayers{};
+        core::f32 mBlendWidth{ .1f };
+        core::f32 mHeightBlendWidth{ .2f };
+        bool mHeightBlendEnabled{ true };
+        bool mShowElevationColors{};
+    };
+
+    /** Immutable normalized RGBA layer weights shared by scene copies and undo. */
+    struct TerrainPaintMap {
+        core::u32 mWidth{};
+        core::u32 mHeight{};
+        eastl::vector<core::float4> mWeights{};
+    };
 
     struct WorldDescription {
         // Terrain origin (XZ)
@@ -101,7 +138,7 @@ namespace mikoto::renderer {
     };
 
     // Bound the resident grid before allocation or resolution calculations.
-    MKT_NODISCARD auto IsTerrainDescriptionValid( const WorldDescription& description ) -> bool;
+    MKT_NODISCARD auto IsTerrainDescriptionValid( const WorldDescription &description ) -> bool;
 
     /** Immutable image shared by scene copies, terrain sampling and its preview.
      * Red supplies height: LDR is linear [0, 1]; HDR retains its float values.
@@ -116,18 +153,32 @@ namespace mikoto::renderer {
         MKT_NODISCARD auto Sample( core::float2 uv ) const -> core::f32;
     };
 
+    /** Builds an owned float height image; no source asset is modified. */
+    MKT_NODISCARD auto CreateTerrainHeightmap( core::u32 width, core::u32 height,
+        const eastl::vector<core::f32> &heights ) -> eastl::shared_ptr<const TerrainHeightmap>;
+
+    MKT_NODISCARD auto TerrainAutomaticWeights( core::f32 height, core::f32 normalY,
+        const TerrainSurfaceSettings &surface ) -> core::float4;
+
+    /** Intersects the same two triangles per cell as the GPU terrain generator.
+     * Direction is a finite segment in terrain local space; returns its fraction.
+     */
+    MKT_NODISCARD auto IntersectTerrain( const WorldDescription &world,
+        const eastl::shared_ptr<const TerrainHeightmap> &heights, core::float3 origin,
+        core::float3 direction, core::float3 &position ) -> bool;
+
     /** A generation request owns its immutable settings and eventual image.
      * Readback completes on the render thread. Holding this request in the callback
      * avoids accessing a removed entity or replacing newer editor settings.
      */
     class TerrainNoiseGeneration : public core::RevisionTracked {
     public:
-        explicit TerrainNoiseGeneration( const TerrainNoiseSettings& settings );
+        explicit TerrainNoiseGeneration( const TerrainNoiseSettings &settings );
 
         auto Fail( const eastl::string &error ) -> void;
         auto Complete( asset::ImageHandle image ) -> void;
 
-        MKT_NODISCARD auto GetError() const -> const eastl::string&;
+        MKT_NODISCARD auto GetError() const -> const eastl::string &;
         MKT_NODISCARD auto GetSettings() const -> TerrainNoiseSettings;
         MKT_NODISCARD auto GetHeightmap() const -> eastl::shared_ptr<const TerrainHeightmap>;
 
@@ -137,6 +188,6 @@ namespace mikoto::renderer {
         eastl::string mError{};
     };
 
-}
+}// namespace mikoto::renderer
 
 #endif//MIKOTO_RENDERER_TERRAN_GENERATION_HH

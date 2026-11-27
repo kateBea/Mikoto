@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Encode valid silhouette seeds and decode their pixel coordinates. The reserved invalid value
+// lets jump flooding distinguish empty pixels from genuine boundary seeds.
+
 #pragma once
 
 // Ben Golus's RG16_SNORM encoding reserves y == -1 exclusively for invalid seeds.
@@ -26,6 +29,8 @@ bool IsOutlineSeedValid( float2 encoded ) {
     return encoded.y != -1.0f;
 }
 
+// Store the valid boundary-pixel coordinates in the seed representation. Invalid pixels use a
+// separate reserved encoding.
 float2 EncodeOutlineSeed( float2 pixelPosition, float2 dimensions ) {
     // SV_Position and decoded coordinates both use pixel centers at (x + 0.5, y + 0.5).
     // Clamp subpixel offsets at screen boundaries before writing to the normalized format.
@@ -33,6 +38,8 @@ float2 EncodeOutlineSeed( float2 pixelPosition, float2 dimensions ) {
         kOutlineEncodeScale - kOutlineEncodeOffset;
 }
 
+// Recover the source boundary coordinate for distance comparison in jump flooding and outline
+// composition.
 float2 DecodeOutlineSeed( float2 encoded, float2 dimensions ) {
     return ( encoded + kOutlineEncodeOffset ) * dimensions / kOutlineEncodeScale;
 }

@@ -12,32 +12,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <utility>
 #include <chrono>
 #include <climits>
+#include <utility>
 
-#include <EASTL/utility.h>
 #include <EASTL/algorithm.h>
 #include <EASTL/numeric_limits.h>
+#include <EASTL/utility.h>
 
 #include <Core/Core.hh>
-#include <Core/Profiler.hh>
 #include <Core/Exception.hh>
+#include <Core/Profiler.hh>
 
 #include <Logging/Logger.hh>
 
 #include <Platform/Window.hh>
 
-#include <Renderer/Rhi/Utility.hh>
 #include <Renderer/Core/RenderSystem.hh>
-#include <Renderer/Rhi/OpenGL/OpenGLDevice.hh>
 #include <Renderer/Rhi/OpenGL/OpenGLBuffer.hh>
-#include <Renderer/Rhi/OpenGL/OpenGLShader.hh>
+#include <Renderer/Rhi/OpenGL/OpenGLDevice.hh>
 #include <Renderer/Rhi/OpenGL/OpenGLHelpers.hh>
-#include <Renderer/Rhi/OpenGL/OpenGLTexture.hh>
 #include <Renderer/Rhi/OpenGL/OpenGLPipeline.hh>
 #include <Renderer/Rhi/OpenGL/OpenGLQueryPool.hh>
+#include <Renderer/Rhi/OpenGL/OpenGLShader.hh>
 #include <Renderer/Rhi/OpenGL/OpenGLSwapChain.hh>
+#include <Renderer/Rhi/OpenGL/OpenGLTexture.hh>
+#include <Renderer/Rhi/Utility.hh>
 
 // https://de45xmedrsdbp.cloudfront.net/Resources/files/UE4_OpenGL4_GDC2014-514746542.pdf
 
@@ -92,16 +92,17 @@ namespace mikoto::renderer::opengl {
             MKT_CORE_LOGGER_WARN( "Requested BC formats, ray tracing, mesh shaders or bindless descriptor tables whcih are not supported the current OGL version." );
         }
 
-        auto* context{ mInfo.mWindow ? mInfo.mWindow->GetOpenGLContext() : nullptr };
+        auto *context{ mInfo.mWindow ? mInfo.mWindow->GetOpenGLContext() : nullptr };
         if ( !context || !context->MakeCurrent() ) {
             MKT_THROW_RUNTIME_ERROR( "The OpenGL device requires a current window context." );
         }
 
         // Resolve functions through the context's window backend.
         // https://wiki.libsdl.org/SDL3/SDL_GL_GetProcAddress
-        const auto version{ gladLoadGLUserPtr( []( void* user, const char* name ) -> GLADapiproc {
-            return static_cast<platform::IOpenGLWindowContext*>( user )->GetProcAddress( name );
-        }, context ) };
+        const auto version{ gladLoadGLUserPtr( []( void *user, const char *name ) -> GLADapiproc {
+            return static_cast<platform::IOpenGLWindowContext *>( user )->GetProcAddress( name );
+        },
+            context ) };
 
         if ( !version || !GLAD_GL_VERSION_4_6 ) {
             MKT_THROW_RUNTIME_ERROR( "An active OpenGL 4.6 core context is required." );
@@ -453,7 +454,7 @@ namespace mikoto::renderer::opengl {
         dynamic_cast<Buffer &>( *buffer ).UnMap();
     }
 
-    auto Device::ReadTextureRegion( const rhi::ITexture* texture, const rhi::Rect& region, eastl::span<core::u8> destination ) -> bool {
+    auto Device::ReadTextureRegion( const rhi::ITexture *texture, const rhi::Rect &region, eastl::span<core::u8> destination ) -> bool {
         MKT_BEGIN_PROFILER();
 
         if ( !mInitialized || !texture || texture->GetOwningDevice() != this ) {
@@ -495,7 +496,7 @@ namespace mikoto::renderer::opengl {
             { .mName = GL_PACK_SKIP_PIXELS },
             { .mName = GL_PACK_SWAP_BYTES }
         };
-        for ( auto& setting: settings ) {
+        for ( auto &setting: settings ) {
             glGetIntegerv( setting.mName, &setting.mPrevious );
             glPixelStorei( setting.mName, setting.mValue );
         }
@@ -504,7 +505,7 @@ namespace mikoto::renderer::opengl {
             width, height, 1, format.mExternal, format.mType, core::as<GLsizei>( byteSize ), destination.data() );
         const bool read{ glGetError() == GL_NO_ERROR };
 
-        for ( const auto& setting: settings ) {
+        for ( const auto &setting: settings ) {
             glPixelStorei( setting.mName, setting.mPrevious );
         }
         glBindBuffer( GL_PIXEL_PACK_BUFFER, core::as<GLuint>( packBuffer ) );
@@ -514,8 +515,8 @@ namespace mikoto::renderer::opengl {
 
         // The RHI returns the top row first; GL gives us the bottom row first.
         for ( core::usize row{}; row < core::as<core::usize>( height / 2 ); ++row ) {
-            auto* first{ destination.data() + row * rowSize };
-            auto* last{ destination.data() + byteSize - ( row + 1 ) * rowSize };
+            auto *first{ destination.data() + row * rowSize };
+            auto *last{ destination.data() + byteSize - ( row + 1 ) * rowSize };
             eastl::swap_ranges( first, first + rowSize, last );
         }
         return true;
@@ -965,7 +966,7 @@ namespace mikoto::renderer::opengl {
                             Unsupported( "reinterpreted storage-image formats" );
                         }
 
-                        glBindImageTexture( slot, texture->Name(), sub.mBaseMipLevel, sub.mNumArraySlices != 1, sub.mBaseArraySlice,
+                        glBindImageTexture( slot, texture->Name(), sub.mBaseMipLevel, texture->GetDimension() == rhi::TextureDimension::eTexture3D || sub.mNumArraySlices != 1, sub.mBaseArraySlice,
                             GL_READ_WRITE, opengl::GetFormat( texture->GetFormat() ).mInternal );
                     }
 
@@ -1253,11 +1254,11 @@ namespace mikoto::renderer::opengl {
         Destroy();
     }
 
-    auto CommandList::GetStatistics() const -> const rhi::CommandListStatistics& {
+    auto CommandList::GetStatistics() const -> const rhi::CommandListStatistics & {
         return mStatistics;
     }
 
-    auto CommandList::DecodeVideo( const rhi::VideoDecodeDescription& ) -> void {
+    auto CommandList::DecodeVideo( const rhi::VideoDecodeDescription & ) -> void {
         MKT_THROW_RUNTIME_ERROR( "Video decoding is not supported by the OpenGL command-list backend." );
     }
 

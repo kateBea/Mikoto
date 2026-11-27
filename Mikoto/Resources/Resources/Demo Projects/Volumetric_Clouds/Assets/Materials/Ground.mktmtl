@@ -1,0 +1,35 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Cloud observation checkerboard",
+  "Material": {
+    "BaseColorFactor": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "MetallicFactor": 0,
+    "RoughnessFactor": 0.9,
+    "AlphaMask": 0,
+    "Checkerboard": {
+      "Enabled": true,
+      "CellSize": 25,
+      "ColorA": [
+        0.00303527,
+        0.00334654,
+        0.00334654
+      ],
+      "ColorB": [
+        0.1412633,
+        0.1778884,
+        0.2050787
+      ],
+      "Offset": [
+        0,
+        0,
+        0
+      ]
+    }
+  }
+}

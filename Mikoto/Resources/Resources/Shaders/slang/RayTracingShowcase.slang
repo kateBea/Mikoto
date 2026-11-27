@@ -18,12 +18,12 @@
 #include "base/RayTracing_Bindings.slang"
 
 struct CameraParameters {
-    float4 Origin;
-    float4 Forward;
-    float4 Right;
-    float4 Up;
-    float3 Settings;
-    uint SceneIndex;
+    float4 mOrigin;
+    float4 mForward;
+    float4 mRight;
+    float4 mUp;
+    float3 mSettings;
+    uint mSceneIndex;
 };
 
 [[vk::binding( 1, 0 )]] RWTexture2D<float4> Output : register( u0 );
@@ -36,9 +36,9 @@ ConstantBuffer<CameraParameters> Camera : register( b0 );
 #endif
 
 [raypayload] struct Payload {
-    float3 Color : read( caller, closesthit ) : write( caller, closesthit, miss );
-    uint Depth : read( closesthit ) : write( caller );
-    uint Shadow : read( closesthit, miss ) : write( caller );
+    float3 mColor : read( caller, closesthit ) : write( caller, closesthit, miss );
+    uint mDepth : read( closesthit ) : write( caller );
+    uint mShadow : read( closesthit, miss ) : write( caller );
 };
 
 float3 Sky( float3 direction ) {
@@ -50,25 +50,27 @@ void RayGeneration() {
     uint2 pixel = DispatchRaysIndex().xy;
     float2 uv = ( float2( pixel ) + 0.5 ) / float2( DispatchRaysDimensions().xy ) * 2.0 - 1.0;
     RayDesc ray;
-    ray.Origin = Camera.Origin.xyz;
-    ray.Direction = normalize( Camera.Forward.xyz + Camera.Right.xyz * uv.x * Camera.Right.w * Camera.Origin.w -
-                               Camera.Up.xyz * uv.y * Camera.Origin.w );
+    ray.Origin = Camera.mOrigin.xyz;
+    ray.Direction = normalize( Camera.mForward.xyz + Camera.mRight.xyz * uv.x * Camera.mRight.w * Camera.mOrigin.w -
+                               Camera.mUp.xyz * uv.y * Camera.mOrigin.w );
     ray.TMin = 0.001;
     ray.TMax = 1000.0;
     Payload payload = { float3( 0.0 ), 0, 0 };
-    TraceRay( LoadRayScene( Camera.SceneIndex ), RAY_FLAG_NONE, 0xFF, 0, 1, 0, ray, payload );
-    float3 color = max( payload.Color * Camera.Forward.w, 0.0 );
+    TraceRay( LoadRayScene( Camera.mSceneIndex ), RAY_FLAG_NONE, 0xFF, 0, 1, 0, ray, payload );
+    float3 color = max( payload.mColor * Camera.mForward.w, 0.0 );
     color = color / ( 1.0 + color );
     Output[pixel] = float4( pow( color, 1.0 / 2.2 ), 1.0 );
 }
 
-        [shader( "miss" )] void Miss( inout Payload payload ) {
-    payload.Color = payload.Shadow != 0 ? float3( 1.0 ) : Sky( WorldRayDirection() );
+        [shader( "miss" )]
+        void Miss( inout Payload payload ) {
+    payload.mColor = payload.mShadow != 0 ? float3( 1.0 ) : Sky( WorldRayDirection() );
 }
 
-[shader( "closesthit" )] void ClosestHit( inout Payload payload, BuiltInTriangleIntersectionAttributes attributes ) {
-    if ( payload.Shadow != 0 ) {
-        payload.Color = float3( 0.0 );
+[shader( "closesthit" )]
+void ClosestHit( inout Payload payload, BuiltInTriangleIntersectionAttributes attributes ) {
+    if ( payload.mShadow != 0 ) {
+        payload.mColor = float3( 0.0 );
         return;
     }
     uint3 indices = Indices.Load3( PrimitiveIndex() * 12 );
@@ -88,28 +90,28 @@ void RayGeneration() {
     }
     float3 light = normalize( float3( -0.5, 0.9, 0.3 ) );
     float visibility = 1.0;
-    if ( Camera.Up.w > 0.5 && dot( normal, light ) > 0.0 ) {
+    if ( Camera.mUp.w > 0.5 && dot( normal, light ) > 0.0 ) {
         RayDesc shadowRay;
         shadowRay.Origin = point + normal * 0.003;
         shadowRay.Direction = light;
         shadowRay.TMin = 0.001;
         shadowRay.TMax = 1000.0;
-        Payload shadow = { float3( 0.0 ), payload.Depth, 1 };
+        Payload shadow = { float3( 0.0 ), payload.mDepth, 1 };
         // Skip closest-hit execution; an occluder leaves Color at zero, a miss sets it to one.
-        TraceRay( LoadRayScene( Camera.SceneIndex ), RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_SKIP_CLOSEST_HIT_SHADER, 0xFF, 0, 1, 0,
+        TraceRay( LoadRayScene( Camera.mSceneIndex ), RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_SKIP_CLOSEST_HIT_SHADER, 0xFF, 0, 1, 0,
                   shadowRay, shadow );
-        visibility = shadow.Color.x;
+        visibility = shadow.mColor.x;
     }
-    payload.Color = color * ( 0.15 + 2.4 * saturate( dot( normal, light ) ) * visibility );
-    if ( payload.Depth < uint( Camera.Settings.x ) ) {
+    payload.mColor = color * ( 0.15 + 2.4 * saturate( dot( normal, light ) ) * visibility );
+    if ( payload.mDepth < uint( Camera.mSettings.x ) ) {
         RayDesc reflection;
         reflection.Origin = point + normal * 0.003;
         reflection.Direction = reflect( WorldRayDirection(), normal );
         reflection.TMin = 0.001;
         reflection.TMax = 1000.0;
-        Payload reflected = { float3( 0.0 ), payload.Depth + 1, 0 };
-        TraceRay( LoadRayScene( Camera.SceneIndex ), RAY_FLAG_NONE, 0xFF, 0, 1, 0, reflection, reflected );
+        Payload reflected = { float3( 0.0 ), payload.mDepth + 1, 0 };
+        TraceRay( LoadRayScene( Camera.mSceneIndex ), RAY_FLAG_NONE, 0xFF, 0, 1, 0, reflection, reflected );
         float reflectivity = a.w < 0.5 ? 0.28 : 0.6;
-        payload.Color = lerp( payload.Color, reflected.Color, reflectivity );
+        payload.mColor = lerp( payload.mColor, reflected.mColor, reflectivity );
     }
 }

@@ -17,48 +17,48 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 
-#include <EASTL/sort.h>
-#include <EASTL/array.h>
-#include <EASTL/memory.h>
-#include <EASTL/string.h>
-#include <EASTL/iterator.h>
 #include <EASTL/algorithm.h>
+#include <EASTL/array.h>
+#include <EASTL/iterator.h>
+#include <EASTL/memory.h>
+#include <EASTL/sort.h>
+#include <EASTL/string.h>
 #include <EASTL/string_view.h>
 
-#include <Core/Core.hh>
-#include <Core/Types.hh>
-#include <Core/Profiler.hh>
-#include <Core/RuntimeConsole.hh>
-#include <Core/LocalizationService.hh>
-
-#include <Memory/Allocator.hh>
-
-#include <Threading/TaskService.hh>
-
-#include <Filesystem/FileSystem.hh>
-#include <Filesystem/FileService.hh>
+#include <Application/EditorApp.hh>
 
 #include <Assets/AssetRegistryService.hh>
 
-#include <Scene/Scene.hh>
-#include <Scene/Entity.hh>
-#include <Scene/Component.hh>
+#include <Core/Core.hh>
+#include <Core/LocalizationService.hh>
+#include <Core/Profiler.hh>
+#include <Core/RuntimeConsole.hh>
+#include <Core/Types.hh>
 
-#include <Scripting/ScriptingService.hh>
+#include <Filesystem/FileService.hh>
+#include <Filesystem/FileSystem.hh>
 
-#include <ImGui/Utility.hh>
-#include <ImGui/ImGuiWidget.hh>
-#include <ImGui/ImGuiService.hh>
 #include <ImGui/IconsFontAwesome6.h>
 #include <ImGui/IconsMaterialDesign.h>
 #include <ImGui/IconsMaterialDesignIcons.h>
+#include <ImGui/ImGuiService.hh>
+#include <ImGui/ImGuiWidget.hh>
+#include <ImGui/Utility.hh>
 
-#include <Application/EditorApp.hh>
+#include <Layers/EditorLayer.hh>
+
+#include <Memory/Allocator.hh>
 
 #include <Panels/ComponentMenu.hh>
 #include <Panels/HierarchyPanel.hh>
 
-#include <Layers/EditorLayer.hh>
+#include <Scene/Component.hh>
+#include <Scene/Entity.hh>
+#include <Scene/Scene.hh>
+
+#include <Scripting/ScriptingService.hh>
+
+#include <Threading/TaskService.hh>
 
 namespace mikoto::editor {
 
@@ -69,7 +69,7 @@ namespace mikoto::editor {
 
     static constexpr core::cstr kEntityDragPayload{ "MIKOTO_ENTITY" };
 
-    static auto GetHierarchyTypeLabel( scene::EntityType type ) -> const eastl::string& {
+    static auto GetHierarchyTypeLabel( scene::EntityType type ) -> const eastl::string & {
         constexpr eastl::array<core::cstr, core::as<core::usize>( scene::EntityType::eCount )> labels{
             "hierarchy_type_empty",
             "hierarchy_type_sound",
@@ -89,7 +89,7 @@ namespace mikoto::editor {
         return MKT_LOC( index < labels.size() ? labels[index] : "stats_unknown" );
     }
 
-    static auto DrawHierarchyComponentIcons( const scene::Entity& entity, const ImVec4& tooltipTextColor ) -> void {
+    static auto DrawHierarchyComponentIcons( const scene::Entity &entity, const ImVec4 &tooltipTextColor ) -> void {
         struct ComponentIcon {
             core::cstr mGlyph;
             core::cstr mLabel;
@@ -109,7 +109,8 @@ namespace mikoto::editor {
             { ICON_MD_LANDSCAPE, "hierarchy_terrain", entity.HasComponent<scene::LandscapeComponent>() },
             { ICON_MD_WATER, "hierarchy_type_water", entity.HasComponent<scene::WaterRenderComponent>() },
             { ICON_MD_WAVES, "water_simulation", entity.HasComponent<scene::WaterSimulationComponent>() },
-            { ICON_MD_AIR, "WindSimulation", entity.HasComponent<scene::WindSimulationComponent>() },
+            { ICON_MD_AIR, "Wind area", entity.HasComponent<scene::WindAreaComponent>() },
+            { ICON_MD_WB_CLOUDY, "Sky Light", entity.HasComponent<scene::SkyLightComponent>() },
             { ICON_MD_CLOUD, "volume_cloud", entity.HasComponent<scene::CloudComponent>() },
             { ICON_MD_BLUR_ON, "volume_fog", entity.HasComponent<scene::FogComponent>() },
             { ICON_MD_GRAIN, "particle_simulator_component", entity.HasComponent<scene::ParticleSimulatorComponent>() },
@@ -160,11 +161,11 @@ namespace mikoto::editor {
 
         // Material Icons and Font Awesome share private-use code points.
         // Choose this face explicitly so a light glyph cannot become a plane.
-        auto* interfaceFont{ ImGui::GetFont() };
+        auto *interfaceFont{ ImGui::GetFont() };
         const auto materialIcons{ imgui::ImGuiService::Get()->PushFont( "Resources/ImGui/MaterialIcons-Regular.ttf" ) };
         const core::f32 spacing{ ImGui::GetStyle().ItemInnerSpacing.x };
         core::f32 totalWidth{};
-        for ( const auto& icon: icons ) {
+        for ( const auto &icon: icons ) {
             if ( icon.mPresent ) {
                 totalWidth += ImGui::CalcTextSize( icon.mGlyph ).x + spacing;
             }
@@ -182,7 +183,7 @@ namespace mikoto::editor {
 
         // Keep one line per entity. The overflow tooltip lists the icons clipped by the column width.
         for ( ; next < eastl::size( icons ); ++next ) {
-            const auto& icon{ icons[next] };
+            const auto &icon{ icons[next] };
             if ( !icon.mPresent ) {
                 continue;
             }
@@ -225,7 +226,7 @@ namespace mikoto::editor {
                     ImGui::SeparatorText( MKT_LOC( "hierarchy_more_components" ).c_str() );
                 }
                 for ( ; next < eastl::size( icons ); ++next ) {
-                    const auto& icon{ icons[next] };
+                    const auto &icon{ icons[next] };
                     if ( icon.mPresent ) {
                         ImGui::TextUnformatted( icon.mGlyph );
                         ImGui::SameLine();
@@ -239,7 +240,7 @@ namespace mikoto::editor {
         }
     }
 
-    auto HierarchyPanel::DrawPrefabMenu( scene::Entity* root ) -> void {
+    auto HierarchyPanel::DrawPrefabMenu( scene::Entity *root ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         if ( ImGui::BeginMenu( imgui::widget::LocalizedLabel( "hierarchy_3d_object", "3D Object" ).c_str() ) ) {
@@ -263,7 +264,7 @@ namespace mikoto::editor {
         }
     }
 
-    auto HierarchyPanel::DrawLightMenuItems( scene::Entity* root ) const -> void {
+    auto HierarchyPanel::DrawLightMenuItems( scene::Entity *root ) const -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         scene::EntityCreateInfo entityCreateInfo{
@@ -304,12 +305,12 @@ namespace mikoto::editor {
     }
 
     auto HierarchyPanel::ObserveScene() -> void {
-        auto* scene{ mEditorState->mActiveScene };
+        auto *scene{ mEditorState->mActiveScene };
         const auto signal{ scene ? scene->GetHierarchySignal() : nullptr };
         // Comparing the signal also detects replacement at the same scene address.
         if ( mHierarchySignal != signal ) {
             // Entity payloads contain IDs scoped to the scene they came from.
-            if ( const auto* payload{ ImGui::GetDragDropPayload() }; payload && payload->IsDataType( kEntityDragPayload ) ) {
+            if ( const auto *payload{ ImGui::GetDragDropPayload() }; payload && payload->IsDataType( kEntityDragPayload ) ) {
                 ImGui::ClearDragDrop();
             }
 
@@ -335,8 +336,8 @@ namespace mikoto::editor {
         mRowsDirty |= structureChanged || HasActiveFilter() || mSortOrder != SortOrder::eIgnore;
     }
 
-    auto HierarchyPanel::BeginRename( scene::Entity& entity ) -> void {
-        const auto& tag{ entity.GetComponent<scene::TagComponent>() };
+    auto HierarchyPanel::BeginRename( scene::Entity &entity ) -> void {
+        const auto &tag{ entity.GetComponent<scene::TagComponent>() };
         mRenameEntityID = tag.GetGuid();
         mRenameBuffer.resize( eastl::max<core::usize>( 256, tag.GetTag().size() + 1 ) );
         eastl::copy( tag.GetTag().begin(), tag.GetTag().end(), mRenameBuffer.begin() );
@@ -355,7 +356,7 @@ namespace mikoto::editor {
         mRowsDirty = true;
     }
 
-    auto HierarchyPanel::DrawRenameInput( scene::TagComponent& tag, const ImVec2& position ) -> void {
+    auto HierarchyPanel::DrawRenameInput( scene::TagComponent &tag, const ImVec2 &position ) -> void {
         ImGui::SetCursorScreenPos( position );
         ImGui::SetNextItemWidth( eastl::max( ImGui::GetContentRegionAvail().x, 1.0f ) );
 
@@ -363,8 +364,8 @@ namespace mikoto::editor {
             ImGui::SetKeyboardFocusHere();
         }
 
-        const auto resize{ []( ImGuiInputTextCallbackData* data ) -> int {
-            auto& buffer{ *static_cast<eastl::vector<char>*>( data->UserData ) };
+        const auto resize{ []( ImGuiInputTextCallbackData *data ) -> int {
+            auto &buffer{ *static_cast<eastl::vector<char> *>( data->UserData ) };
             buffer.resize( core::as<core::usize>( data->BufSize ) );
             data->Buf = buffer.data();
             return 0;
@@ -402,7 +403,7 @@ namespace mikoto::editor {
 
         mRowsDirty = false;
 
-        auto* scene{ mEditorState->mActiveScene };
+        auto *scene{ mEditorState->mActiveScene };
 
         mVisibleRows.clear();
         mPendingRows.clear();
@@ -421,24 +422,24 @@ namespace mikoto::editor {
             }
 
             const bool ascending{ mSortOrder == SortOrder::eNameAscending };
-            eastl::stable_sort( first, last, [&]( const VisibleRow& left, const VisibleRow& right ) {
-                const auto& leftName{ scene->FindByID( left.mEntityID )->GetComponent<scene::TagComponent>().GetTag() };
-                const auto& rightName{ scene->FindByID( right.mEntityID )->GetComponent<scene::TagComponent>().GetTag() };
+            eastl::stable_sort( first, last, [&]( const VisibleRow &left, const VisibleRow &right ) {
+                const auto &leftName{ scene->FindByID( left.mEntityID )->GetComponent<scene::TagComponent>().GetTag() };
+                const auto &rightName{ scene->FindByID( right.mEntityID )->GetComponent<scene::TagComponent>().GetTag() };
                 const auto order{ leftName.comparei( rightName ) };
                 return ascending ? order < 0 : order > 0;
             } );
         } };
 
         // Rebuild the display order only when the hierarchy view changes.
-        for ( const auto& entry: scene->GetEntities() ) {
-            const auto& id{ entry.first };
+        for ( const auto &entry: scene->GetEntities() ) {
+            const auto &id{ entry.first };
 
             if ( const auto parent{ scene->GetHierarchyParent( id ) } ) {
                 mDisplayChildren[parent].push_back( id );
             }
         }
 
-        for ( auto* root: scene->GetRootEntities() ) {
+        for ( auto *root: scene->GetRootEntities() ) {
             const auto id{ root->GetComponent<scene::TagComponent>().GetGuid() };
 
             if ( !scene->GetHierarchyParent( id ) ) {
@@ -455,7 +456,7 @@ namespace mikoto::editor {
         while ( !mPendingRows.empty() ) {
             const auto row{ mPendingRows.back() };
             mPendingRows.pop_back();
-            auto* entity{ scene->FindByID( row.mEntityID ) };
+            auto *entity{ scene->FindByID( row.mEntityID ) };
 
             if ( !entity || !mVisitedEntities.insert( row.mEntityID ).second ) {
                 continue;
@@ -502,37 +503,37 @@ namespace mikoto::editor {
     }
 
     auto HierarchyPanel::AcceptEntityDrop( core::u64 targetID ) -> void {
-        const auto* payload{ ImGui::AcceptDragDropPayload( kEntityDragPayload, ImGuiDragDropFlags_AcceptNoDrawDefaultRect ) };
+        const auto *payload{ ImGui::AcceptDragDropPayload( kEntityDragPayload, ImGuiDragDropFlags_AcceptNoDrawDefaultRect ) };
 
         if ( payload && payload->IsDelivery() && payload->Data && payload->DataSize == sizeof( core::u64 ) ) {
-            mReparentEntity = *static_cast<const core::u64*>( payload->Data );
+            mReparentEntity = *static_cast<const core::u64 *>( payload->Data );
             mReparentTarget = targetID;
         }
     }
 
-    auto HierarchyPanel::DrawNodeTree( const VisibleRow& row, float rowHeight ) -> void {
+    auto HierarchyPanel::DrawNodeTree( const VisibleRow &row, float rowHeight ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         const core::u64 entityID{ row.mEntityID };
 
-        scene::Entity* entity{ mEditorState->mActiveScene->FindByID( entityID ) };
+        scene::Entity *entity{ mEditorState->mActiveScene->FindByID( entityID ) };
 
         if ( entity == nullptr ) {
             return;
         }
 
-        scene::TagComponent& tagComponent{ entity->GetComponent<scene::TagComponent>() };
+        scene::TagComponent &tagComponent{ entity->GetComponent<scene::TagComponent>() };
 
         ImGui::PushID( static_cast<core::i32>( entityID >> 32 ) );
         ImGui::PushID( static_cast<core::i32>( entityID ) );
         ImGui::TableNextRow( ImGuiTableRowFlags_None, rowHeight );
         const bool rowSubmitted{ ImGui::TableNextColumn() };
 
-        scene::Entity* currentSelection{ mEditorState->mSelectedEntity };
+        scene::Entity *currentSelection{ mEditorState->mSelectedEntity };
         const bool isGroup{ entity->HasComponent<scene::GroupComponent>() };
 
         const auto thisEntityIsSelected{ eastl::find( mEditorState->mSelectedEntityIDs.begin(),
-            mEditorState->mSelectedEntityIDs.end(), entityID ) != mEditorState->mSelectedEntityIDs.end() };
+                                             mEditorState->mSelectedEntityIDs.end(), entityID ) != mEditorState->mSelectedEntityIDs.end() };
         const bool renaming{ mRenameEntityID == entityID };
         const ImVec4 normalText{ ImGui::GetStyleColorVec4( ImGuiCol_Text ) };
 
@@ -608,7 +609,7 @@ namespace mikoto::editor {
         }
 
         const auto rowPosition{ ImGui::GetCursorScreenPos() };
-        const auto& style{ ImGui::GetStyle() };
+        const auto &style{ ImGui::GetStyle() };
         const float frameHeight{ ImGui::GetFrameHeight() };
         const core::f32 indentation{ core::as<core::f32>( row.mDepth + 1 ) * style.IndentSpacing };
         ImGui::Indent( indentation );
@@ -621,9 +622,9 @@ namespace mikoto::editor {
 
         if ( isGroup ) {
             const auto folder{ expanded ? ICON_FA_FOLDER_OPEN : ICON_FA_FOLDER };
-            const ImVec4 color{ thisEntityIsSelected ? ImGui::GetStyleColorVec4( ImGuiCol_Text ) :
-                expanded ? ImVec4{ 1.0f, 0.72f, 0.20f, 1.0f } : ImVec4{ 0.85f, 0.60f, 0.15f, 1.0f } };
-            auto* draw{ ImGui::GetWindowDrawList() };
+            const ImVec4 color{ thisEntityIsSelected ? ImGui::GetStyleColorVec4( ImGuiCol_Text ) : expanded ? ImVec4{ 1.0f, 0.72f, 0.20f, 1.0f }
+                                                                                                            : ImVec4{ 0.85f, 0.60f, 0.15f, 1.0f } };
+            auto *draw{ ImGui::GetWindowDrawList() };
             draw->AddText( labelStart, ImGui::GetColorU32( color ), folder );
 
             if ( !renaming ) {
@@ -656,11 +657,11 @@ namespace mikoto::editor {
 
         if ( rowSubmitted && !renaming && ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked( ImGuiMouseButton_Left ) ) {
             // Match viewport selection: a double-click selects the immediate parent.
-            auto* selected{ entity };
+            auto *selected{ entity };
             const auto parentID{ mEditorState->mActiveScene->GetHierarchyParent( entityID ) };
 
             if ( parentID && !isGroup ) {
-                if ( auto* parent{ mEditorState->mActiveScene->FindByID( parentID ) } ) {
+                if ( auto *parent{ mEditorState->mActiveScene->FindByID( parentID ) } ) {
                     selected = parent;
                 }
             }
@@ -721,8 +722,8 @@ namespace mikoto::editor {
 
         // Finish every cell before measuring the row, so adjacent guides share their endpoints.
         ImGui::TableSetColumnIndex( 0 );
-        const auto* table{ ImGui::GetCurrentTable() };
-        auto* draw{ ImGui::GetWindowDrawList() };
+        const auto *table{ ImGui::GetCurrentTable() };
+        auto *draw{ ImGui::GetWindowDrawList() };
         const float guideX{ rowPosition.x + style.FramePadding.x + ImGui::GetFontSize() * 0.5f };
         constexpr ImU32 guideColor{ IM_COL32( 82, 82, 82, 255 ) };
         constexpr float guideWidth{ 1.0f };
@@ -743,7 +744,7 @@ namespace mikoto::editor {
         ImGui::PopID();
     }
 
-    auto HierarchyPanel::OnEntityRightClickMenu( scene::Entity* entity ) -> void {
+    auto HierarchyPanel::OnEntityRightClickMenu( scene::Entity *entity ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         if ( entity == nullptr ) {
@@ -826,9 +827,9 @@ namespace mikoto::editor {
         const auto scene{ mEditorState->mActiveScene };
         const bool filteringByType{ mTypeFilter != scene::EntityType::eCount };
 
-        for ( const auto& entry: scene->GetEntities() ) {
-            const auto& id{ entry.first };
-            const auto& candidate{ entry.second };
+        for ( const auto &entry: scene->GetEntities() ) {
+            const auto &id{ entry.first };
+            const auto &candidate{ entry.second };
 
             if ( ( filteringByType && candidate->GetType() != mTypeFilter ) ||
                  !mSearchFilter.PassFilter( candidate->GetComponent<scene::TagComponent>().GetTag().c_str() ) ) {
@@ -943,7 +944,7 @@ namespace mikoto::editor {
         }
     }
 
-    auto HierarchyPanel::DrawModelLoadMenu( scene::Entity* root ) -> void {
+    auto HierarchyPanel::DrawModelLoadMenu( scene::Entity *root ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         if ( ImGui::MenuItem( imgui::widget::LocalizedLabel( "hierarchy_load_model", "Load model" ).c_str() ) ) {
@@ -951,7 +952,7 @@ namespace mikoto::editor {
         }
     }
 
-    auto HierarchyPanel::DrawCanvasMenu( scene::Entity* root ) -> void {
+    auto HierarchyPanel::DrawCanvasMenu( scene::Entity *root ) -> void {
         ImGui::Spacing();
         ImGui::Separator();
 
@@ -965,7 +966,7 @@ namespace mikoto::editor {
         }
     }
 
-    auto HierarchyPanel::DrawTextMenu( scene::Entity* root ) -> void {
+    auto HierarchyPanel::DrawTextMenu( scene::Entity *root ) -> void {
         MKT_BEGIN_PROFILER();
 
         ImGui::Spacing();
@@ -1000,7 +1001,7 @@ namespace mikoto::editor {
         }
     }
 
-    auto HierarchyPanel::AddEntityWithModel( eastl::string_view uri, scene::Entity* root ) -> void {
+    auto HierarchyPanel::AddEntityWithModel( eastl::string_view uri, scene::Entity *root ) -> void {
         MKT_BEGIN_PROFILER();
         threading::TaskService::Get()->ExecuteWorkerTask( [this, root, path = filesystem::Path{ uri }]() -> void {
             asset::ModelLoadDescription description{
@@ -1015,7 +1016,7 @@ namespace mikoto::editor {
 
             const scene::EntityCreateInfo entityCreateInfo{
                 .mRoot = root,
-                    .mName{ description.mFile->GetName() },
+                .mName{ description.mFile->GetName() },
                 .mModel = model,
                 .mEntityType = scene::EntityType::eMesh,
             };
@@ -1024,7 +1025,7 @@ namespace mikoto::editor {
         } );
     }
 
-    auto HierarchyPanel::AddEntityWithModel( const asset::AssetRef<asset::Model>& model, scene::Entity* root ) -> void {
+    auto HierarchyPanel::AddEntityWithModel( const asset::AssetRef<asset::Model> &model, scene::Entity *root ) -> void {
         MKT_BEGIN_PROFILER();
         mEditorState->mActiveScene->PushEntity( {
             .mRoot = root,
@@ -1034,7 +1035,7 @@ namespace mikoto::editor {
         } );
     }
 
-    auto HierarchyPanel::AddEntityWithModel( scene::Entity* root ) -> void {
+    auto HierarchyPanel::AddEntityWithModel( scene::Entity *root ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         threading::TaskService::Get()->ExecuteWorkerTask( [this, root]() -> void {
@@ -1065,7 +1066,7 @@ namespace mikoto::editor {
 
             const scene::EntityCreateInfo entityCreateInfo{
                 .mRoot = root,
-                    .mName{ description.mFile->GetName() },
+                .mName{ description.mFile->GetName() },
                 .mModel = model,
                 .mEntityType = scene::EntityType::eMesh,
             };
@@ -1074,8 +1075,8 @@ namespace mikoto::editor {
         } );
     }
 
-    auto HierarchyPanel::CreateGroup( scene::Entity* container ) -> void {
-        auto* group{ mEditorState->mActiveScene->CreateGroup( MKT_LOC( "hierarchy_group" ), container ) };
+    auto HierarchyPanel::CreateGroup( scene::Entity *container ) -> void {
+        auto *group{ mEditorState->mActiveScene->CreateGroup( MKT_LOC( "hierarchy_group" ), container ) };
 
         if ( group ) {
             mEditorState->SelectEntity( group );
@@ -1088,20 +1089,20 @@ namespace mikoto::editor {
         }
     }
 
-    auto HierarchyPanel::DrawAudioMenu( scene::Entity* parent ) -> void {
+    auto HierarchyPanel::DrawAudioMenu( scene::Entity *parent ) -> void {
         if ( !ImGui::BeginMenu( imgui::widget::LocalizedLabel( "hierarchy_audio", "Audio" ).c_str() ) ) {
             return;
         }
 
-        const auto create{ [&]<typename Component>( const char* label ) {
+        const auto create{ [&]<typename Component>( const char *label ) {
             if ( !ImGui::MenuItem( imgui::widget::LocalizedLabel( label ).c_str() ) ) {
                 return;
             }
 
-            if ( auto* entity{ mEditorState->mActiveScene->CreateEntity( scene::EntityCreateInfo{
-                .mRoot = parent,
-                .mName = MKT_LOC( label ).c_str(),
-                .mEntityType = scene::EntityType::eSound } ) } ) {
+            if ( auto *entity{ mEditorState->mActiveScene->CreateEntity( scene::EntityCreateInfo{
+                     .mRoot = parent,
+                     .mName = MKT_LOC( label ).c_str(),
+                     .mEntityType = scene::EntityType::eSound } ) } ) {
                 entity->AddComponent<Component>();
                 mEditorState->SelectEntity( entity );
 
@@ -1117,24 +1118,24 @@ namespace mikoto::editor {
         ImGui::EndMenu();
     }
 
-    auto HierarchyPanel::DrawTerrainMenu( scene::Entity* parent ) -> void {
+    auto HierarchyPanel::DrawTerrainMenu( scene::Entity *parent ) -> void {
         if ( ImGui::MenuItem( imgui::widget::LocalizedLabel( "hierarchy_terrain", "Terrain" ).c_str() ) ) {
-            if ( auto* terrain{ mEditorState->mActiveScene->CreateEntity( scene::EntityCreateInfo{
-                .mRoot = parent,
-                .mName = MKT_LOC( "hierarchy_terrain" ).c_str(),
-                .mEntityType = scene::EntityType::eTerrain } ) } ) {
+            if ( auto *terrain{ mEditorState->mActiveScene->CreateEntity( scene::EntityCreateInfo{
+                     .mRoot = parent,
+                     .mName = MKT_LOC( "hierarchy_terrain" ).c_str(),
+                     .mEntityType = scene::EntityType::eTerrain } ) } ) {
                 mEditorState->SelectEntity( terrain );
                 mRowsDirty = true;
             }
         }
     }
 
-    auto HierarchyPanel::DrawVideoMenu( scene::Entity* parent ) -> void {
+    auto HierarchyPanel::DrawVideoMenu( scene::Entity *parent ) -> void {
         if ( !ImGui::MenuItem( imgui::widget::LocalizedLabel( "hierarchy_video", "Video" ).c_str() ) ) {
             return;
         }
 
-        auto* entity{ mEditorState->mActiveScene->CreateEntity( scene::EntityCreateInfo{
+        auto *entity{ mEditorState->mActiveScene->CreateEntity( scene::EntityCreateInfo{
             .mRoot = parent,
             .mName = "Video",
             .mEntityType = scene::EntityType::eEmpty } ) };
@@ -1196,9 +1197,9 @@ namespace mikoto::editor {
         }
 
         if ( ImGui::MenuItem( imgui::widget::LocalizedLabel( "hierarchy_camera", "Camera" ).c_str() ) ) {
-            if ( auto* camera{ mEditorState->mActiveScene->CreateEntity( scene::EntityCreateInfo{
-                .mName = MKT_LOC( "hierarchy_camera" ).c_str(),
-                .mEntityType = scene::EntityType::eCamera } ) } ) {
+            if ( auto *camera{ mEditorState->mActiveScene->CreateEntity( scene::EntityCreateInfo{
+                     .mName = MKT_LOC( "hierarchy_camera" ).c_str(),
+                     .mEntityType = scene::EntityType::eCamera } ) } ) {
                 camera->AddComponent<scene::CameraComponent>();
                 mEditorState->SelectEntity( camera );
                 mRowsDirty = true;
@@ -1212,7 +1213,7 @@ namespace mikoto::editor {
         DrawTextMenu();
     }
 
-    HierarchyPanel::HierarchyPanel( const HierarchyPanelCreateInfo& createInfo )
+    HierarchyPanel::HierarchyPanel( const HierarchyPanelCreateInfo &createInfo )
         : Panel{ "Hierarchy", "Panel", createInfo.mGroup, createInfo.mIsToggleable },
           mEditorState{ createInfo.mState } {
         MKT_BEGIN_PROFILER();
@@ -1220,7 +1221,7 @@ namespace mikoto::editor {
     }
 
     auto HierarchyPanel::RefreshProjectScripts() -> void {
-        const auto& directory{ scripting::ScriptingService::Get()->GetScriptBasePath() };
+        const auto &directory{ scripting::ScriptingService::Get()->GetScriptBasePath() };
 
         if ( mScriptDirectory != directory ) {
             mScriptDirectory = directory;
@@ -1280,7 +1281,7 @@ namespace mikoto::editor {
                     ++it;
                 }
             }
-        } catch ( const std::exception& error ) {
+        } catch ( const std::exception &error ) {
             mScriptListError = error.what();
         }
     }
@@ -1294,7 +1295,7 @@ namespace mikoto::editor {
 
         if ( ImGui::BeginPopup( "CreateProjectScript" ) ) {
             constexpr scripting::ScriptLanguage languages[]{ scripting::ScriptLanguage::eNative, scripting::ScriptLanguage::eLua, scripting::ScriptLanguage::eCSharp };
-            const char* labels[]{ "Native (C++)", "Lua", "C# (.NET)" };
+            const char *labels[]{ "Native (C++)", "Lua", "C# (.NET)" };
 
             for ( int index{}; index < 3; ++index ) {
                 if ( ImGui::MenuItem( labels[index] ) ) {
@@ -1306,7 +1307,7 @@ namespace mikoto::editor {
                             RefreshProjectScripts();
                             OpenScriptEditor( path );
                         }
-                    } catch ( const std::exception& error ) {
+                    } catch ( const std::exception &error ) {
                         core::RuntimeConsole::Get()->Error( error.what() );
                     }
                 }
@@ -1316,7 +1317,7 @@ namespace mikoto::editor {
         }
 
         RefreshProjectScripts();
-        const auto& paths{ mProjectScripts };
+        const auto &paths{ mProjectScripts };
 
         if ( !mScriptListError.empty() ) {
             ImGui::TextWrapped( "%s", mScriptListError.c_str() );
@@ -1336,7 +1337,7 @@ namespace mikoto::editor {
         ImGui::TableHeadersRow();
         ImGui::PopStyleVar();
 
-        for ( const auto& value: paths ) {
+        for ( const auto &value: paths ) {
             if ( !mSearchFilter.PassFilter( value.c_str() ) ) {
                 continue;
             }
@@ -1403,7 +1404,7 @@ namespace mikoto::editor {
         }
     }
 
-    auto HierarchyPanel::OpenScriptEditor( const filesystem::Path& path ) -> void {
+    auto HierarchyPanel::OpenScriptEditor( const filesystem::Path &path ) -> void {
         mPendingScriptOpen = {};
         mScriptEditorOpen = true;
         mFocusScriptEditor = true;
@@ -1425,7 +1426,7 @@ namespace mikoto::editor {
 
         try {
             const auto key{ path.GetAbsolute() };
-            auto& request{ mScriptRequests[key] };
+            auto &request{ mScriptRequests[key] };
 
             if ( request.GetState() == asset::AssetState::eUnloaded ) {
                 request = asset::AssetRegistryService::Get()->Request<asset::ScriptSource>( asset::ScriptLoadDescription{ .mPath = path } );
@@ -1462,7 +1463,7 @@ namespace mikoto::editor {
             mScriptEditor.SetReadOnly( true );
             mScriptEditor.SetShowWhitespaces( false );
             mScriptEditorError.clear();
-        } catch ( const std::exception& error ) {
+        } catch ( const std::exception &error ) {
             mScriptEditorError = error.what();
         }
     }
@@ -1573,7 +1574,7 @@ namespace mikoto::editor {
         // Match ImGui's framed tree bounds so the column heading, scene and Scripts share their edges.
         const auto drawFrame{ [frameExtension]( ImU32 color, float radius ) {
             ImGui::TableSetColumnIndex( 0 );
-            const auto* table{ ImGui::GetCurrentTable() };
+            const auto *table{ ImGui::GetCurrentTable() };
             ImGui::TablePushBackgroundChannel();
             ImGui::GetWindowDrawList()->AddRectFilled(
                 { table->WorkRect.Min.x - frameExtension, table->RowPosY1 },
@@ -1582,7 +1583,7 @@ namespace mikoto::editor {
         } };
 
         ImGui::TableSetupColumn( MKT_LOC( "hierarchy_name" ).c_str(), ImGuiTableColumnFlags_WidthStretch | ImGuiTableColumnFlags_NoHide );
-        const auto& componentsLabel{ MKT_LOC( "hierarchy_components" ) };
+        const auto &componentsLabel{ MKT_LOC( "hierarchy_components" ) };
         const core::f32 componentsWidth{ ImGui::CalcTextSize( componentsLabel.c_str() ).x + ImGui::GetStyle().CellPadding.x };
         ImGui::TableSetupColumn( componentsLabel.c_str(), ImGuiTableColumnFlags_WidthFixed, componentsWidth );
         ImGui::TableSetupColumn( ICON_MD_VISIBILITY, ImGuiTableColumnFlags_WidthFixed, lineHeight * 2.0f );
@@ -1606,7 +1607,7 @@ namespace mikoto::editor {
                 ImGui::TableSetBgColor( ImGuiTableBgTarget_CellBg, 0 );
 
                 if ( ImGui::IsItemHovered() || ImGui::IsItemActive() ) {
-                    const auto* table{ ImGui::GetCurrentTable() };
+                    const auto *table{ ImGui::GetCurrentTable() };
                     auto bounds{ ImGui::TableGetCellBgRect( table, column ) };
 
                     if ( column == 0 ) {
@@ -1626,7 +1627,7 @@ namespace mikoto::editor {
             }
 
             ImGui::TablePushBackgroundChannel();
-            const auto* table{ ImGui::GetCurrentTable() };
+            const auto *table{ ImGui::GetCurrentTable() };
 
             for ( int column{ 1 }; column < 3; ++column ) {
                 ImGui::GetWindowDrawList()->AddLine( { table->Columns[column].MinX, table->RowPosY1 },
@@ -1681,7 +1682,7 @@ namespace mikoto::editor {
             BuildVisibleRows();
             // Reserve the same pixel-aligned height in the table and clipper. The eye button
             // inherits the tree's text baseline, which adds to its otherwise unpadded height.
-            const auto& style{ ImGui::GetStyle() };
+            const auto &style{ ImGui::GetStyle() };
             const float rowHeight{ ImCeil( ImGui::GetFrameHeight() + style.FramePadding.y + style.CellPadding.y * 2.0f ) };
             ImGuiListClipper clipper{};
             clipper.Begin( core::as<int>( mVisibleRows.size() ), rowHeight );
@@ -1746,7 +1747,7 @@ namespace mikoto::editor {
         BuildSearchResults();
 
         if ( mRenameEntityID && ( !mEditorState->mActiveScene || !mEditorState->mActiveScene->FindByID( mRenameEntityID ) ||
-             ( HasActiveFilter() && !mSearchResults.contains( mRenameEntityID ) ) ) ) {
+                                    ( HasActiveFilter() && !mSearchResults.contains( mRenameEntityID ) ) ) ) {
             mRenameEntityID = 0;
             mFocusRename = false;
         }
@@ -1789,7 +1790,7 @@ namespace mikoto::editor {
             }
 
             if ( mReparentEntity ) {
-                auto* scene{ mEditorState->mActiveScene };
+                auto *scene{ mEditorState->mActiveScene };
 
                 if ( scene->MoveEntityInHierarchy( mReparentEntity, mReparentTarget ) ) {
                     if ( mReparentTarget ) {

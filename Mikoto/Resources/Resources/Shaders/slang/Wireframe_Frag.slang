@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Output the wireframe debug surface color. Rasterizer wireframe mode determines which triangle
+// edges generate fragments.
+
 #pragma once
 
 #include "base/Base.slang"
@@ -21,12 +24,12 @@
 #include "base/Memory_Helpers.slang"
 
 struct FSOutput {
-    float4 Color : SV_Target0;
+    float4 mColor : SV_Target0;
 };
 
 struct FSInput {
-    nointerpolation uint FaceFlags : TEXCOORD0;
-    float4 ScreenPos : SV_Position;
+    nointerpolation uint mFaceFlags : TEXCOORD0;
+    float4 mScreenPos : SV_Position;
 };
 
 struct DrawParams {
@@ -43,12 +46,12 @@ MKT_DECLARE_PUSH_CONSTANT( DrawParams, Parameters );
 
 [shader( "fragment" )]
 FSOutput main( FSInput input, bool frontFacing : SV_IsFrontFace ) {
-    if ( MaterialBackfaceDiscard( input.FaceFlags, frontFacing ) ) {
+    if ( MaterialBackfaceDiscard( input.mFaceFlags, frontFacing ) ) {
         discard;
     }
     FSOutput o;
 
-    o.Color = Parameters.mLineColor;
+    o.mColor = Parameters.mLineColor;
 
     return o;
 }

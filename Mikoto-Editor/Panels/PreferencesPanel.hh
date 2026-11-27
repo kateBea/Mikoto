@@ -60,7 +60,7 @@ namespace mikoto::editor {
         auto Save() -> void;
         auto DrawShortcuts() const -> void;
         auto DrawPlatformSettings() -> void;
-        auto DrawFontSelector() -> bool;
+        auto DrawFontSelector( core::usize &index, const char *labelKey ) -> bool;
         auto LoadSystemFonts() -> void;
 
         static constexpr core::i32 kPlatformCategory{ 5 };
@@ -79,6 +79,10 @@ namespace mikoto::editor {
         core::usize mBundledFontCount{};
         bool mSystemFontsLoaded{};
         core::usize mFontIndex{};
+        core::usize mConsoleFontIndex{};
+        eastl::optional<core::usize> mAppliedConsoleFontIndex{};
+        core::f32 mConsoleTextScale{ 0.95f };
+        bool mConsoleUseEditorFont{ true };
         eastl::optional<core::usize> mAppliedFontIndex{};
         ImGuiTextFilter mFontFilter{};
 

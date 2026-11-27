@@ -1,0 +1,5418 @@
+{
+  "Version": 5,
+  "RelativeAssetPaths": true,
+  "Scene": "Text_Showcase",
+  "EnvironmentLightingSource": 2,
+  "ToneMapping": 0,
+  "Atmosphere": {
+    "PlanetRadius": 6360,
+    "AtmosphereHeight": 100,
+    "WorldUnitsPerKilometer": 1000,
+    "GroundHeight": 0.1,
+    "SunElevation": 35,
+    "SunAzimuth": 135,
+    "SunIlluminance": 1,
+    "UseDirectionalLight": true,
+    "AerialPerspective": true,
+    "AerialDistance": 160
+  },
+  "Objects": [
+    {
+      "ID": 1,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Checkerboard plaza",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0.1,
+          0
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 2,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Checkerboard plaza mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -38.0,
+              0.0,
+              -44.0
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              7.9723474053283585,
+              0.020979855296509305,
+              9.231139100906521
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../../../Prefabs/cube/gltf/scene.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 0
+          }
+        }
+      ],
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          38.0,
+          0.1,
+          44.0
+        ],
+        "Offset": [
+          0,
+          0.1,
+          0
+        ],
+        "Trigger": false
+      }
+    },
+    {
+      "ID": 3,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "West boundary",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -38,
+          0.3,
+          -1
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 4,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "West boundary mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -0.25,
+              0.0,
+              -44.0
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              0.05244965398242341,
+              0.3146978294476395,
+              9.231139100906521
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../../../Prefabs/cube/gltf/scene.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 2
+          }
+        }
+      ],
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          0.25,
+          1.5,
+          44.0
+        ],
+        "Offset": [
+          0,
+          1.5,
+          0
+        ],
+        "Trigger": false
+      }
+    },
+    {
+      "ID": 5,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "East boundary",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          38,
+          0.3,
+          -1
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 6,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "East boundary mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -0.25,
+              0.0,
+              -44.0
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              0.05244965398242341,
+              0.3146978294476395,
+              9.231139100906521
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../../../Prefabs/cube/gltf/scene.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 2
+          }
+        }
+      ],
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          0.25,
+          1.5,
+          44.0
+        ],
+        "Offset": [
+          0,
+          1.5,
+          0
+        ],
+        "Trigger": false
+      }
+    },
+    {
+      "ID": 7,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "North boundary",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0.3,
+          -45
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 8,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "North boundary mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -38.0,
+              0.0,
+              -0.25
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              7.9723474053283585,
+              0.3146978294476395,
+              0.05244965398242341
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../../../Prefabs/cube/gltf/scene.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 2
+          }
+        }
+      ],
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          38.0,
+          1.5,
+          0.25
+        ],
+        "Offset": [
+          0,
+          1.5,
+          0
+        ],
+        "Trigger": false
+      }
+    },
+    {
+      "ID": 9,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "South low wall",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0.3,
+          43
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 10,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "South low wall mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -38.0,
+              0.0,
+              -0.25
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              7.9723474053283585,
+              0.11538920413080117,
+              0.05244965398242341
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../../../Prefabs/cube/gltf/scene.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 2
+          }
+        }
+      ],
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          38.0,
+          0.55,
+          0.25
+        ],
+        "Offset": [
+          0,
+          0.55,
+          0
+        ],
+        "Trigger": false
+      }
+    },
+    {
+      "ID": 11,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "Aisle marker",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -0.15,
+          0.305,
+          19.0
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.03146979238945405,
+          0.0010489927648254652,
+          1.6783889274375492
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../../../Prefabs/cube/gltf/scene.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 2
+      }
+    },
+    {
+      "ID": 12,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "Aisle marker",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -0.15,
+          0.305,
+          -5.0
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.03146979238945405,
+          0.0010489927648254652,
+          1.6783889274375492
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../../../Prefabs/cube/gltf/scene.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 2
+      }
+    },
+    {
+      "ID": 13,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "Aisle marker",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -0.15,
+          0.305,
+          -29.0
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.03146979238945405,
+          0.0010489927648254652,
+          1.6783889274375492
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../../../Prefabs/cube/gltf/scene.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 2
+      }
+    },
+    {
+      "ID": 14,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "01  HIRAGANA / ひらがな",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -27,
+          0.3,
+          16
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 15,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "01  HIRAGANA / ひらがな mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -7.5,
+              0.0,
+              -0.17
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1.5734896194727024,
+              0.6923352247848069,
+              0.03566576470804792
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../../../Prefabs/cube/gltf/scene.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 1
+          }
+        },
+        {
+          "ID": 16,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "01  HIRAGANA / ひらがな heading",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.5,
+              5.95,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "01  HIRAGANA / ひらがな",
+            "FontPath": "../../../Fonts/Noto_Sans_JP/static/NotoSansJP-Regular.ttf",
+            "IsWorldText": true,
+            "Size": 0.43,
+            "WorldSize": 0.43,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.36,
+              0.83,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 17,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Hiragana syllabary",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.4,
+              4.8,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "あいうえお かきくけこ\nさしすせそ たちつてと\nなにぬねの はひふへほ\nまみむめも やゆよ らりるれろ\nわをん こんにちは",
+            "FontPath": "../../../Fonts/Noto_Sans_JP/static/NotoSansJP-Regular.ttf",
+            "IsWorldText": true,
+            "Size": 0.56,
+            "WorldSize": 0.56,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.0,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.94,
+              0.97,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 18,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Hiragana note",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.4,
+              0.65,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "Noto Sans JP / world text",
+            "FontPath": "../../../Fonts/JetBrainsMono/fonts/ttf/JetBrainsMono-Regular.ttf",
+            "IsWorldText": true,
+            "Size": 0.26,
+            "WorldSize": 0.26,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.94,
+              0.97,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        }
+      ],
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          7.5,
+          3.3,
+          0.17
+        ],
+        "Offset": [
+          0,
+          3.3,
+          0
+        ],
+        "Trigger": false
+      }
+    },
+    {
+      "ID": 19,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "02  KATAKANA / カタカナ",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -9,
+          0.3,
+          16
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 20,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "02  KATAKANA / カタカナ mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -7.5,
+              0.0,
+              -0.17
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1.5734896194727024,
+              0.6923352247848069,
+              0.03566576470804792
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../../../Prefabs/cube/gltf/scene.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 1
+          }
+        },
+        {
+          "ID": 21,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "02  KATAKANA / カタカナ heading",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.5,
+              5.95,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "02  KATAKANA / カタカナ",
+            "FontPath": "../../../Fonts/Noto_Sans_JP/static/NotoSansJP-Regular.ttf",
+            "IsWorldText": true,
+            "Size": 0.43,
+            "WorldSize": 0.43,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.36,
+              0.83,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 22,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Katakana syllabary",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.4,
+              4.8,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "アイウエオ カキクケコ\nサシスセソ タチツテト\nナニヌネノ ハヒフヘホ\nマミムメモ ヤユヨ ラリルレロ\nワヲン ミコト・エンジン",
+            "FontPath": "../../../Fonts/Noto_Sans_JP/static/NotoSansJP-Regular.ttf",
+            "IsWorldText": true,
+            "Size": 0.56,
+            "WorldSize": 0.56,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.0,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.94,
+              0.97,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 23,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Katakana note",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.4,
+              0.65,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "Same content pipeline, different glyphs",
+            "FontPath": "../../../Fonts/JetBrainsMono/fonts/ttf/JetBrainsMono-Regular.ttf",
+            "IsWorldText": true,
+            "Size": 0.26,
+            "WorldSize": 0.26,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.94,
+              0.97,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        }
+      ],
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          7.5,
+          3.3,
+          0.17
+        ],
+        "Offset": [
+          0,
+          3.3,
+          0
+        ],
+        "Trigger": false
+      }
+    },
+    {
+      "ID": 24,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "03  KANJI / SHARED HAN",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          9,
+          0.3,
+          16
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 25,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "03  KANJI / SHARED HAN mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -7.5,
+              0.0,
+              -0.17
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1.5734896194727024,
+              0.6923352247848069,
+              0.03566576470804792
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../../../Prefabs/cube/gltf/scene.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 1
+          }
+        },
+        {
+          "ID": 26,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "03  KANJI / SHARED HAN heading",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.5,
+              5.95,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "03  KANJI / SHARED HAN",
+            "FontPath": "../../../Fonts/Inter/static/Inter-Bold.ttf",
+            "IsWorldText": true,
+            "Size": 0.43,
+            "WorldSize": 0.43,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.36,
+              0.83,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 27,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Kanji title",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.4,
+              4.7,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "日本語 漢字 未来",
+            "FontPath": "../../../Fonts/Noto_Sans_JP/static/NotoSansJP-Regular.ttf",
+            "IsWorldText": true,
+            "Size": 0.85,
+            "WorldSize": 0.85,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.94,
+              0.97,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 28,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Kanji landscape",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.4,
+              3.25,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "山 川 森 海 空 光",
+            "FontPath": "../../../Fonts/Noto_Sans_JP/static/NotoSansJP-Regular.ttf",
+            "IsWorldText": true,
+            "Size": 0.85,
+            "WorldSize": 0.85,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              1,
+              0.78,
+              0.3,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 29,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Shared Han characters",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.4,
+              1.8,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "中文 文字 世界 山川 日月",
+            "FontPath": "../../../Fonts/Noto_Sans_JP/static/NotoSansJP-Regular.ttf",
+            "IsWorldText": true,
+            "Size": 0.58,
+            "WorldSize": 0.58,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.94,
+              0.97,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        }
+      ],
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          7.5,
+          3.3,
+          0.17
+        ],
+        "Offset": [
+          0,
+          3.3,
+          0
+        ],
+        "Trigger": false
+      }
+    },
+    {
+      "ID": 30,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "04  WRITING SYSTEMS",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          27,
+          0.3,
+          16
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 31,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "04  WRITING SYSTEMS mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -7.5,
+              0.0,
+              -0.17
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1.5734896194727024,
+              0.6923352247848069,
+              0.03566576470804792
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../../../Prefabs/cube/gltf/scene.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 1
+          }
+        },
+        {
+          "ID": 32,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "04  WRITING SYSTEMS heading",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.5,
+              5.95,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "04  WRITING SYSTEMS",
+            "FontPath": "../../../Fonts/Inter/static/Inter-Bold.ttf",
+            "IsWorldText": true,
+            "Size": 0.43,
+            "WorldSize": 0.43,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.36,
+              0.83,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 33,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Extended Latin",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.4,
+              4.9,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "Español · Français · Português\nStraße · Łódź · Tiếng Việt",
+            "FontPath": "../../../Fonts/Inter/static/Inter-Regular.ttf",
+            "IsWorldText": true,
+            "Size": 0.48,
+            "WorldSize": 0.48,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.94,
+              0.97,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 34,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Greek",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.4,
+              3.05,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "Ελληνικά — Καλημέρα κόσμε",
+            "FontPath": "../../../Fonts/Inter/static/Inter-Regular.ttf",
+            "IsWorldText": true,
+            "Size": 0.48,
+            "WorldSize": 0.48,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.5,
+              0.88,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 35,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Cyrillic",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.4,
+              1.75,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "Кириллица — Привет, мир!\nДобро пожаловать",
+            "FontPath": "../../../Fonts/Inter/static/Inter-Regular.ttf",
+            "IsWorldText": true,
+            "Size": 0.48,
+            "WorldSize": 0.48,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              1,
+              0.8,
+              0.35,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        }
+      ],
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          7.5,
+          3.3,
+          0.17
+        ],
+        "Offset": [
+          0,
+          3.3,
+          0
+        ],
+        "Trigger": false
+      }
+    },
+    {
+      "ID": 36,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "05  FAMILIES / WEIGHTS",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -27,
+          0.3,
+          -8
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 37,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "05  FAMILIES / WEIGHTS mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -7.5,
+              0.0,
+              -0.17
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1.5734896194727024,
+              0.6923352247848069,
+              0.03566576470804792
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../../../Prefabs/cube/gltf/scene.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 1
+          }
+        },
+        {
+          "ID": 38,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "05  FAMILIES / WEIGHTS heading",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.5,
+              5.95,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "05  FAMILIES / WEIGHTS",
+            "FontPath": "../../../Fonts/Inter/static/Inter-Bold.ttf",
+            "IsWorldText": true,
+            "Size": 0.43,
+            "WorldSize": 0.43,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.36,
+              0.83,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 39,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Inter Light",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.4,
+              4.95,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "Inter Light  Aa 012345",
+            "FontPath": "../../../Fonts/Inter/static/Inter-Light.ttf",
+            "IsWorldText": true,
+            "Size": 0.45,
+            "WorldSize": 0.45,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.94,
+              0.97,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 40,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Inter Regular",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.4,
+              4.17,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "Inter Regular  Aa 012345",
+            "FontPath": "../../../Fonts/Inter/static/Inter-Regular.ttf",
+            "IsWorldText": true,
+            "Size": 0.45,
+            "WorldSize": 0.45,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.94,
+              0.97,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 41,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Inter Bold",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.4,
+              3.39,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "Inter Bold  Aa 012345",
+            "FontPath": "../../../Fonts/Inter/static/Inter-Bold.ttf",
+            "IsWorldText": true,
+            "Size": 0.45,
+            "WorldSize": 0.45,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.94,
+              0.97,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 42,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Open Sans Italic",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.4,
+              2.6100000000000003,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "Open Sans Italic  Aa 012345",
+            "FontPath": "../../../Fonts/Open_Sans/static/OpenSans-Italic.ttf",
+            "IsWorldText": true,
+            "Size": 0.45,
+            "WorldSize": 0.45,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.94,
+              0.97,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 43,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "JetBrains Mono",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.4,
+              1.83,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "JetBrains Mono  Aa 012345",
+            "FontPath": "../../../Fonts/JetBrainsMono/fonts/ttf/JetBrainsMono-Regular.ttf",
+            "IsWorldText": true,
+            "Size": 0.45,
+            "WorldSize": 0.45,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.94,
+              0.97,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 44,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Fira Sans",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.4,
+              1.0499999999999998,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "Fira Sans  Aa 012345",
+            "FontPath": "../../../Fonts/Fira_Sans,JetBrains_Mono,Lexend,Noto_Sans_JP,Source_Code_Pro/Fira_Sans/FiraSans-Regular.ttf",
+            "IsWorldText": true,
+            "Size": 0.45,
+            "WorldSize": 0.45,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.94,
+              0.97,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        }
+      ],
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          7.5,
+          3.3,
+          0.17
+        ],
+        "Offset": [
+          0,
+          3.3,
+          0
+        ],
+        "Trigger": false
+      }
+    },
+    {
+      "ID": 45,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "06  OUTLINES",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -9,
+          0.3,
+          -8
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 46,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "06  OUTLINES mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -7.5,
+              0.0,
+              -0.17
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1.5734896194727024,
+              0.6923352247848069,
+              0.03566576470804792
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../../../Prefabs/cube/gltf/scene.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 1
+          }
+        },
+        {
+          "ID": 47,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "06  OUTLINES heading",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.5,
+              5.95,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "06  OUTLINES",
+            "FontPath": "../../../Fonts/Inter/static/Inter-Bold.ttf",
+            "IsWorldText": true,
+            "Size": 0.43,
+            "WorldSize": 0.43,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.36,
+              0.83,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 48,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Outline 0",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.4,
+              4.8,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "Outline 0  Mikoto",
+            "FontPath": "../../../Fonts/Inter/static/Inter-Bold.ttf",
+            "IsWorldText": true,
+            "Size": 0.57,
+            "WorldSize": 0.57,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.94,
+              0.97,
+              1,
+              1
+            ],
+            "OutlineWidth": 0,
+            "OutlineColor": [
+              0,
+              0,
+              0,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 49,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Outline 0.025",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.4,
+              3.76,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "Outline 0.025  Mikoto",
+            "FontPath": "../../../Fonts/Inter/static/Inter-Bold.ttf",
+            "IsWorldText": true,
+            "Size": 0.57,
+            "WorldSize": 0.57,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.94,
+              0.97,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.025,
+            "OutlineColor": [
+              0,
+              0,
+              0,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 50,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Outline 0.06",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.4,
+              2.7199999999999998,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "Outline 0.06  Mikoto",
+            "FontPath": "../../../Fonts/Inter/static/Inter-Bold.ttf",
+            "IsWorldText": true,
+            "Size": 0.57,
+            "WorldSize": 0.57,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.94,
+              0.97,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.06,
+            "OutlineColor": [
+              0.02,
+              0.35,
+              0.55,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 51,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Outline 0.085",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.4,
+              1.6799999999999997,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "Outline 0.085  Mikoto",
+            "FontPath": "../../../Fonts/Inter/static/Inter-Bold.ttf",
+            "IsWorldText": true,
+            "Size": 0.57,
+            "WorldSize": 0.57,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.94,
+              0.97,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.085,
+            "OutlineColor": [
+              0.85,
+              0.3,
+              0.03,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 52,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Light outline backing",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -7.3,
+              0.15,
+              0.18
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1.5315298962867636,
+              0.06818452971365524,
+              0.0010489930796484682
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../../../Prefabs/cube/gltf/scene.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 3
+          }
+        },
+        {
+          "ID": 53,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Outline on light",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.4,
+              0.65,
+              0.24
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "Outlined on a light background",
+            "FontPath": "../../../Fonts/Inter/static/Inter-Bold.ttf",
+            "IsWorldText": true,
+            "Size": 0.36,
+            "WorldSize": 0.36,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.94,
+              0.97,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.055,
+            "OutlineColor": [
+              0,
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      ],
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          7.5,
+          3.3,
+          0.17
+        ],
+        "Offset": [
+          0,
+          3.3,
+          0
+        ],
+        "Trigger": false
+      }
+    },
+    {
+      "ID": 54,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "07  ALIGNMENT",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          9,
+          0.3,
+          -8
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 55,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "07  ALIGNMENT mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -7.5,
+              0.0,
+              -0.17
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1.5734896194727024,
+              0.6923352247848069,
+              0.03566576470804792
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../../../Prefabs/cube/gltf/scene.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 1
+          }
+        },
+        {
+          "ID": 56,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "07  ALIGNMENT heading",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.5,
+              5.95,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "07  ALIGNMENT",
+            "FontPath": "../../../Fonts/Inter/static/Inter-Bold.ttf",
+            "IsWorldText": true,
+            "Size": 0.43,
+            "WorldSize": 0.43,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.36,
+              0.83,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 57,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Alignment 0",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.4,
+              4.95,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "LEFT",
+            "FontPath": "../../../Fonts/Inter/static/Inter-Bold.ttf",
+            "IsWorldText": true,
+            "Size": 0.32,
+            "WorldSize": 0.32,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.94,
+              0.97,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 58,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Multiline alignment 0",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.4,
+              4.1,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "Short\nA longer line\nTiny\nAligned text",
+            "FontPath": "../../../Fonts/Inter/static/Inter-Regular.ttf",
+            "IsWorldText": true,
+            "Size": 0.44,
+            "WorldSize": 0.44,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.5,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.94,
+              0.97,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 59,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Alignment 1",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -0.05,
+              4.95,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "CENTER",
+            "FontPath": "../../../Fonts/Inter/static/Inter-Bold.ttf",
+            "IsWorldText": true,
+            "Size": 0.32,
+            "WorldSize": 0.32,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 1,
+            "Backend": 1,
+            "Color": [
+              0.94,
+              0.97,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 60,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Multiline alignment 1",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -0.05,
+              4.1,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "Short\nA longer line\nTiny\nAligned text",
+            "FontPath": "../../../Fonts/Inter/static/Inter-Regular.ttf",
+            "IsWorldText": true,
+            "Size": 0.44,
+            "WorldSize": 0.44,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.5,
+            "Alignment": 1,
+            "Backend": 1,
+            "Color": [
+              0.94,
+              0.97,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 61,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Alignment 2",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              6.3,
+              4.95,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "RIGHT",
+            "FontPath": "../../../Fonts/Inter/static/Inter-Bold.ttf",
+            "IsWorldText": true,
+            "Size": 0.32,
+            "WorldSize": 0.32,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 2,
+            "Backend": 1,
+            "Color": [
+              0.94,
+              0.97,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 62,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Multiline alignment 2",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              6.3,
+              4.1,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "Short\nA longer line\nTiny\nAligned text",
+            "FontPath": "../../../Fonts/Inter/static/Inter-Regular.ttf",
+            "IsWorldText": true,
+            "Size": 0.44,
+            "WorldSize": 0.44,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.5,
+            "Alignment": 2,
+            "Backend": 1,
+            "Color": [
+              0.94,
+              0.97,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        }
+      ],
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          7.5,
+          3.3,
+          0.17
+        ],
+        "Offset": [
+          0,
+          3.3,
+          0
+        ],
+        "Trigger": false
+      }
+    },
+    {
+      "ID": 63,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "08  LETTER / LINE SPACING",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          27,
+          0.3,
+          -8
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 64,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "08  LETTER / LINE SPACING mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -7.5,
+              0.0,
+              -0.17
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1.5734896194727024,
+              0.6923352247848069,
+              0.03566576470804792
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../../../Prefabs/cube/gltf/scene.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 1
+          }
+        },
+        {
+          "ID": 65,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "08  LETTER / LINE SPACING heading",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.5,
+              5.95,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "08  LETTER / LINE SPACING",
+            "FontPath": "../../../Fonts/Inter/static/Inter-Bold.ttf",
+            "IsWorldText": true,
+            "Size": 0.43,
+            "WorldSize": 0.43,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.36,
+              0.83,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 66,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Letter spacing 0",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.4,
+              4.9,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "SPACING  0",
+            "FontPath": "../../../Fonts/JetBrainsMono/fonts/ttf/JetBrainsMono-Regular.ttf",
+            "IsWorldText": true,
+            "Size": 0.5,
+            "WorldSize": 0.5,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.94,
+              0.97,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 67,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Letter spacing 0.06",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.4,
+              4.1000000000000005,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "SPACING  0.06",
+            "FontPath": "../../../Fonts/JetBrainsMono/fonts/ttf/JetBrainsMono-Regular.ttf",
+            "IsWorldText": true,
+            "Size": 0.5,
+            "WorldSize": 0.5,
+            "ScreenSize": 32,
+            "Spacing": 0.06,
+            "WorldSpacing": 0.06,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.94,
+              0.97,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 68,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Letter spacing 0.16",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.4,
+              3.3000000000000003,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "SPACING  0.16",
+            "FontPath": "../../../Fonts/JetBrainsMono/fonts/ttf/JetBrainsMono-Regular.ttf",
+            "IsWorldText": true,
+            "Size": 0.5,
+            "WorldSize": 0.5,
+            "ScreenSize": 32,
+            "Spacing": 0.16,
+            "WorldSpacing": 0.16,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.94,
+              0.97,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 69,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Line spacing 0.85",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.4,
+              2.25,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "Line 0.85\nSecond\nThird",
+            "FontPath": "../../../Fonts/Inter/static/Inter-Regular.ttf",
+            "IsWorldText": true,
+            "Size": 0.36,
+            "WorldSize": 0.36,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 0.85,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.94,
+              0.97,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 70,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Line spacing 1.25",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -2.0500000000000007,
+              2.25,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "Line 1.25\nSecond\nThird",
+            "FontPath": "../../../Fonts/Inter/static/Inter-Regular.ttf",
+            "IsWorldText": true,
+            "Size": 0.36,
+            "WorldSize": 0.36,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.94,
+              0.97,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 71,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Line spacing 1.75",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              2.299999999999999,
+              2.25,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "Line 1.75\nSecond\nThird",
+            "FontPath": "../../../Fonts/Inter/static/Inter-Regular.ttf",
+            "IsWorldText": true,
+            "Size": 0.36,
+            "WorldSize": 0.36,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.75,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.94,
+              0.97,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        }
+      ],
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          7.5,
+          3.3,
+          0.17
+        ],
+        "Offset": [
+          0,
+          3.3,
+          0
+        ],
+        "Trigger": false
+      }
+    },
+    {
+      "ID": 72,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "09  SLUG / MSDF",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -27,
+          0.3,
+          -32
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 73,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "09  SLUG / MSDF mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -7.5,
+              0.0,
+              -0.17
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1.5734896194727024,
+              0.6923352247848069,
+              0.03566576470804792
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../../../Prefabs/cube/gltf/scene.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 1
+          }
+        },
+        {
+          "ID": 74,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "09  SLUG / MSDF heading",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.5,
+              5.95,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "09  SLUG / MSDF",
+            "FontPath": "../../../Fonts/Inter/static/Inter-Bold.ttf",
+            "IsWorldText": true,
+            "Size": 0.43,
+            "WorldSize": 0.43,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.36,
+              0.83,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 75,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Backend 1",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.4,
+              4.95,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "SLUG / curves",
+            "FontPath": "../../../Fonts/Inter/static/Inter-Bold.ttf",
+            "IsWorldText": true,
+            "Size": 0.36,
+            "WorldSize": 0.36,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.94,
+              0.97,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 76,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Backend sample 1",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.4,
+              4.05,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "Aa 012345\n日本語\nZoom in",
+            "FontPath": "../../../Fonts/Noto_Sans_JP/static/NotoSansJP-Regular.ttf",
+            "IsWorldText": true,
+            "Size": 0.62,
+            "WorldSize": 0.62,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.5,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.94,
+              0.97,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 77,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Backend 0",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              0.5,
+              4.95,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "MSDF / atlas",
+            "FontPath": "../../../Fonts/Inter/static/Inter-Bold.ttf",
+            "IsWorldText": true,
+            "Size": 0.36,
+            "WorldSize": 0.36,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 0,
+            "Color": [
+              0.94,
+              0.97,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 78,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Backend sample 0",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              0.5,
+              4.05,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "Aa 012345\n日本語\nZoom in",
+            "FontPath": "../../../Fonts/Noto_Sans_JP/static/NotoSansJP-Regular.ttf",
+            "IsWorldText": true,
+            "Size": 0.62,
+            "WorldSize": 0.62,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.5,
+            "Alignment": 0,
+            "Backend": 0,
+            "Color": [
+              0.94,
+              0.97,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 79,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Backend comparison note",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.4,
+              0.65,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "Walk closer to compare the edges.",
+            "FontPath": "../../../Fonts/JetBrainsMono/fonts/ttf/JetBrainsMono-Regular.ttf",
+            "IsWorldText": true,
+            "Size": 0.28,
+            "WorldSize": 0.28,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.94,
+              0.97,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        }
+      ],
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          7.5,
+          3.3,
+          0.17
+        ],
+        "Offset": [
+          0,
+          3.3,
+          0
+        ],
+        "Trigger": false
+      }
+    },
+    {
+      "ID": 80,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "10  COLOR / MATERIAL OPACITY",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -9,
+          0.3,
+          -32
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 81,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "10  COLOR / MATERIAL OPACITY mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -7.5,
+              0.0,
+              -0.17
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1.5734896194727024,
+              0.6923352247848069,
+              0.03566576470804792
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../../../Prefabs/cube/gltf/scene.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 1
+          }
+        },
+        {
+          "ID": 82,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "10  COLOR / MATERIAL OPACITY heading",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.5,
+              5.95,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "10  COLOR / MATERIAL OPACITY",
+            "FontPath": "../../../Fonts/Inter/static/Inter-Bold.ttf",
+            "IsWorldText": true,
+            "Size": 0.43,
+            "WorldSize": 0.43,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.36,
+              0.83,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 83,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Color cyan",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.4,
+              4.85,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "Tinted text material",
+            "FontPath": "../../../Fonts/Inter/static/Inter-Bold.ttf",
+            "IsWorldText": true,
+            "Size": 0.62,
+            "WorldSize": 0.62,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.94,
+              0.97,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ],
+            "MaterialPath": "../Assets/Materials/Text_Cyan.mktmtl"
+          }
+        },
+        {
+          "ID": 84,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Opacity full",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.4,
+              3.6,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "100% opacity",
+            "FontPath": "../../../Fonts/Inter/static/Inter-Bold.ttf",
+            "IsWorldText": true,
+            "Size": 0.7,
+            "WorldSize": 0.7,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.94,
+              0.97,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 85,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Opacity 60",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.4,
+              2.35,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "60% opacity",
+            "FontPath": "../../../Fonts/Inter/static/Inter-Bold.ttf",
+            "IsWorldText": true,
+            "Size": 0.7,
+            "WorldSize": 0.7,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.94,
+              0.97,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ],
+            "MaterialPath": "../Assets/Materials/Text_60_Percent.mktmtl"
+          }
+        },
+        {
+          "ID": 86,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Opacity 25",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.4,
+              1.1,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "25% opacity",
+            "FontPath": "../../../Fonts/Inter/static/Inter-Bold.ttf",
+            "IsWorldText": true,
+            "Size": 0.7,
+            "WorldSize": 0.7,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.94,
+              0.97,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ],
+            "MaterialPath": "../Assets/Materials/Text_25_Percent.mktmtl"
+          }
+        }
+      ],
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          7.5,
+          3.3,
+          0.17
+        ],
+        "Offset": [
+          0,
+          3.3,
+          0
+        ],
+        "Trigger": false
+      }
+    },
+    {
+      "ID": 87,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "11  COLOR EMOJI / SEQUENCES",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          9,
+          0.3,
+          -32
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 88,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "11  COLOR EMOJI / SEQUENCES mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -7.5,
+              0.0,
+              -0.17
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1.5734896194727024,
+              0.6923352247848069,
+              0.03566576470804792
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../../../Prefabs/cube/gltf/scene.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 1
+          }
+        },
+        {
+          "ID": 89,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "11  COLOR EMOJI / SEQUENCES heading",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.5,
+              5.95,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "11  COLOR EMOJI / SEQUENCES",
+            "FontPath": "../../../Fonts/Inter/static/Inter-Bold.ttf",
+            "IsWorldText": true,
+            "Size": 0.43,
+            "WorldSize": 0.43,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.36,
+              0.83,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 90,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Color emoji",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.4,
+              4.7,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "😀 😎 🤖 🚀 ✨ 🍜 🌸 🎮",
+            "FontPath": "../../../Fonts/Noto_Sans_JP/static/NotoSansJP-Regular.ttf",
+            "IsWorldText": true,
+            "Size": 0.8,
+            "WorldSize": 0.8,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.94,
+              0.97,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 91,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Emoji ZWJ and skin tones",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.4,
+              3.1,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "👩‍🚀 🧑🏽‍💻 👨‍👩‍👧‍👦",
+            "FontPath": "../../../Fonts/Noto_Sans_JP/static/NotoSansJP-Regular.ttf",
+            "IsWorldText": true,
+            "Size": 1,
+            "WorldSize": 1,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.94,
+              0.97,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 92,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Emoji flags",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.4,
+              1.7,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "🇯🇵 🇪🇸 🏳️‍🌈",
+            "FontPath": "../../../Fonts/Noto_Sans_JP/static/NotoSansJP-Regular.ttf",
+            "IsWorldText": true,
+            "Size": 1,
+            "WorldSize": 1,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.94,
+              0.97,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 93,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Emoji note",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.4,
+              0.65,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "Noto Color Emoji fallback",
+            "FontPath": "../../../Fonts/JetBrainsMono/fonts/ttf/JetBrainsMono-Regular.ttf",
+            "IsWorldText": true,
+            "Size": 0.26,
+            "WorldSize": 0.26,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.94,
+              0.97,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        }
+      ],
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          7.5,
+          3.3,
+          0.17
+        ],
+        "Offset": [
+          0,
+          3.3,
+          0
+        ],
+        "Trigger": false
+      }
+    },
+    {
+      "ID": 94,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "12  SCALE / ROTATION / DEPTH",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          27,
+          0.3,
+          -32
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 95,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "12  SCALE / ROTATION / DEPTH mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -7.5,
+              0.0,
+              -0.17
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1.5734896194727024,
+              0.6923352247848069,
+              0.03566576470804792
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../../../Prefabs/cube/gltf/scene.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 1
+          }
+        },
+        {
+          "ID": 96,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "12  SCALE / ROTATION / DEPTH heading",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.5,
+              5.95,
+              0.2
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "12  SCALE / ROTATION / DEPTH",
+            "FontPath": "../../../Fonts/Inter/static/Inter-Bold.ttf",
+            "IsWorldText": true,
+            "Size": 0.43,
+            "WorldSize": 0.43,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.36,
+              0.83,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 97,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Large rotated vector text",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -5.7,
+              4.05,
+              0.28
+            ],
+            "Rotation": [
+              0,
+              0,
+              -7
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "Mikoto",
+            "FontPath": "../../../Fonts/Inter/static/Inter-Bold.ttf",
+            "IsWorldText": true,
+            "Size": 1.7,
+            "WorldSize": 1.7,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.25,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              1,
+              0.78,
+              0.32,
+              1
+            ],
+            "OutlineWidth": 0.04,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        },
+        {
+          "ID": 98,
+          "Type": 4,
+          "TagComponent": {
+            "Name": "Depth test text",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -6.4,
+              2.2,
+              0.23
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "TextComponent": {
+            "Contents": "World text is occluded\nby the solid pillar.",
+            "FontPath": "../../../Fonts/Inter/static/Inter-Regular.ttf",
+            "IsWorldText": true,
+            "Size": 0.58,
+            "WorldSize": 0.58,
+            "ScreenSize": 32,
+            "Spacing": 0,
+            "WorldSpacing": 0,
+            "ScreenSpacing": 0,
+            "LineSpacing": 1.35,
+            "Alignment": 0,
+            "Backend": 1,
+            "Color": [
+              0.94,
+              0.97,
+              1,
+              1
+            ],
+            "OutlineWidth": 0.02,
+            "OutlineColor": [
+              0.005,
+              0.01,
+              0.02,
+              1
+            ]
+          }
+        }
+      ],
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          7.5,
+          3.3,
+          0.17
+        ],
+        "Offset": [
+          0,
+          3.3,
+          0
+        ],
+        "Trigger": false
+      }
+    },
+    {
+      "ID": 99,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Text occlusion pillar",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          28.2,
+          0.3,
+          -30
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 100,
+          "Type": 5,
+          "TagComponent": {
+            "Name": "Text occlusion pillar mesh",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              -0.6,
+              0.0,
+              -0.5
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              0.1258791695578162,
+              0.35665754004065814,
+              0.10489930796484682
+            ],
+            "Uniform Scale": false
+          },
+          "Children": [],
+          "MeshComponent": {
+            "MeshIndex": 0,
+            "ModelPath": "../../../Prefabs/cube/gltf/scene.gltf"
+          },
+          "MaterialComponent": {
+            "Reference": 4
+          }
+        }
+      ],
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          0.6,
+          1.7,
+          0.5
+        ],
+        "Offset": [
+          0,
+          1.7,
+          0
+        ],
+        "Trigger": false
+      }
+    },
+    {
+      "ID": 101,
+      "Type": 4,
+      "TagComponent": {
+        "Name": "Welcome / Japanese",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -4.5,
+          3.6,
+          24
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "TextComponent": {
+        "Contents": "文字の世界",
+        "FontPath": "../../../Fonts/Noto_Sans_JP/static/NotoSansJP-Regular.ttf",
+        "IsWorldText": true,
+        "Size": 1.25,
+        "WorldSize": 1.25,
+        "ScreenSize": 32,
+        "Spacing": 0,
+        "WorldSpacing": 0,
+        "ScreenSpacing": 0,
+        "LineSpacing": 1.25,
+        "Alignment": 0,
+        "Backend": 1,
+        "Color": [
+          1,
+          0.83,
+          0.4,
+          1
+        ],
+        "OutlineWidth": 0.06,
+        "OutlineColor": [
+          0.005,
+          0.01,
+          0.02,
+          1
+        ]
+      }
+    },
+    {
+      "ID": 102,
+      "Type": 4,
+      "TagComponent": {
+        "Name": "Welcome / English",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -4.5,
+          2.4,
+          24
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "TextComponent": {
+        "Contents": "TEXT SHOWCASE",
+        "FontPath": "../../../Fonts/Inter/static/Inter-Bold.ttf",
+        "IsWorldText": true,
+        "Size": 0.6,
+        "WorldSize": 0.6,
+        "ScreenSize": 32,
+        "Spacing": 0,
+        "WorldSpacing": 0,
+        "ScreenSpacing": 0,
+        "LineSpacing": 1.25,
+        "Alignment": 0,
+        "Backend": 1,
+        "Color": [
+          0.94,
+          0.97,
+          1,
+          1
+        ],
+        "OutlineWidth": 0.02,
+        "OutlineColor": [
+          0.005,
+          0.01,
+          0.02,
+          1
+        ]
+      }
+    },
+    {
+      "ID": 103,
+      "Type": 4,
+      "TagComponent": {
+        "Name": "Entry controls",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -7.6,
+          1.3,
+          24
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "TextComponent": {
+        "Contents": "WASD walk | Shift run | Space jump\nRMB orbit | Wheel zoom | F foot IK | R reset",
+        "FontPath": "../../../Fonts/JetBrainsMono/fonts/ttf/JetBrainsMono-Regular.ttf",
+        "IsWorldText": true,
+        "Size": 0.31,
+        "WorldSize": 0.31,
+        "ScreenSize": 32,
+        "Spacing": 0,
+        "WorldSpacing": 0,
+        "ScreenSpacing": 0,
+        "LineSpacing": 1.25,
+        "Alignment": 0,
+        "Backend": 1,
+        "Color": [
+          0.94,
+          0.97,
+          1,
+          1
+        ],
+        "OutlineWidth": 0.02,
+        "OutlineColor": [
+          0.005,
+          0.01,
+          0.02,
+          1
+        ]
+      }
+    },
+    {
+      "ID": 104,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Player",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0.35,
+          39
+        ],
+        "Rotation": [
+          0,
+          180,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 105,
+          "Type": 0,
+          "TagComponent": {
+            "Name": "Player visual",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              0,
+              0,
+              0
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": true
+          },
+          "Children": [
+            {
+              "ID": 106,
+              "Type": 5,
+              "TagComponent": {
+                "Name": "Player / Object_6",
+                "Visibility": true
+              },
+              "TransformComponent": {
+                "Local Transform": [
+                  [
+                    0.009948707500316236,
+                    0,
+                    0,
+                    0
+                  ],
+                  [
+                    0,
+                    0.009948707500316236,
+                    2.2090568264224143e-18,
+                    0
+                  ],
+                  [
+                    0,
+                    -2.2090568264224143e-18,
+                    0.009948707500316236,
+                    0
+                  ],
+                  [
+                    -2.6655413112378242e-08,
+                    0.0032145593396110607,
+                    -0.016524171460887357,
+                    1
+                  ]
+                ],
+                "Uniform Scale": false
+              },
+              "Children": [],
+              "MeshComponent": {
+                "MeshIndex": 0,
+                "ModelPath": "../../Animation_Playground/Assets/Models/PlayerXbot.gltf"
+              },
+              "SkinnedMeshRenderer": {
+                "AnimatorID": 105
+              }
+            },
+            {
+              "ID": 107,
+              "Type": 5,
+              "TagComponent": {
+                "Name": "Player / Object_7",
+                "Visibility": true
+              },
+              "TransformComponent": {
+                "Local Transform": [
+                  [
+                    0.009948707500316236,
+                    0,
+                    0,
+                    0
+                  ],
+                  [
+                    0,
+                    0.009948707500316236,
+                    2.2090568264224143e-18,
+                    0
+                  ],
+                  [
+                    0,
+                    -2.2090568264224143e-18,
+                    0.009948707500316236,
+                    0
+                  ],
+                  [
+                    -2.6655413112378242e-08,
+                    0.0032145593396110607,
+                    -0.016524171460887357,
+                    1
+                  ]
+                ],
+                "Uniform Scale": false
+              },
+              "Children": [],
+              "MeshComponent": {
+                "MeshIndex": 1,
+                "ModelPath": "../../Animation_Playground/Assets/Models/PlayerXbot.gltf"
+              },
+              "SkinnedMeshRenderer": {
+                "AnimatorID": 105
+              }
+            }
+          ],
+          "AnimatorComponent": {
+            "ID": 105,
+            "ModelPath": "../../Animation_Playground/Assets/Models/PlayerXbot.gltf",
+            "Clip": "Idle",
+            "Playing": true,
+            "ControllerPlaying": false
+          }
+        }
+      ],
+      "CharacterControllerComponent": {
+        "ControllerType": 0,
+        "Radius": 0.26,
+        "HalfHeight": 0.62,
+        "MaxSlopeAngle": 0.85,
+        "MaxStepHeight": 0.3,
+        "MaxStrength": 120,
+        "GravityFactor": 1,
+        "StickToFloor": true,
+        "Enabled": true
+      },
+      "ScriptComponent": {
+        "Language": "CSharp",
+        "ScriptPath": "../Assets/Scripts/CSharp/PlaygroundCharacterController.cs",
+        "ClassName": "PlaygroundCharacterController",
+        "Properties": "{}"
+      }
+    },
+    {
+      "ID": 108,
+      "Type": 6,
+      "TagComponent": {
+        "Name": "Orbit camera",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          4,
+          41.5
+        ],
+        "Rotation": [
+          -20,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "CameraComponent": {
+        "Projection": 1,
+        "Fov": 55,
+        "Near": 0.05,
+        "Far": 500,
+        "Main": true,
+        "FixedAspect": false,
+        "ClearFlags": 2,
+        "ClearColor": [
+          0.025,
+          0.04,
+          0.07,
+          1
+        ],
+        "Gamma": 2.2,
+        "Exposure": 1
+      }
+    },
+    {
+      "ID": 109,
+      "Type": 3,
+      "TagComponent": {
+        "Name": "Sun",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0,
+          0
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "LightComponent": {
+        "Type": 0,
+        "Directional": {
+          "Color": [
+            1,
+            0.97,
+            0.9
+          ],
+          "Direction": [
+            -0.45,
+            -0.8,
+            -0.4
+          ],
+          "Intensity": 3,
+          "CastShadows": true,
+          "AngularRadius": 0.266
+        }
+      }
+    },
+    {
+      "ID": 110,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Sky light",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0,
+          0
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "SkyLightComponent": {
+        "Enabled": true,
+        "Source": 0,
+        "Intensity": 0.5,
+        "OcclusionEnabled": true,
+        "OcclusionDistance": 45,
+        "OcclusionSamplesPerFrame": 2
+      }
+    },
+    {
+      "ID": 111,
+      "Type": 4,
+      "TagComponent": {
+        "Name": "Screen controls",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0,
+          0
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "TextComponent": {
+        "Contents": "TEXT SHOWCASE  |  WASD move · Shift run · Space jump",
+        "FontPath": "../../../Fonts/Inter/static/Inter-Regular.ttf",
+        "IsWorldText": false,
+        "Size": 20,
+        "WorldSize": 1,
+        "ScreenSize": 20,
+        "Spacing": 0,
+        "WorldSpacing": 0,
+        "ScreenSpacing": 0,
+        "LineSpacing": 1.25,
+        "Alignment": 0,
+        "Backend": 1,
+        "Color": [
+          0.94,
+          0.97,
+          1,
+          1
+        ],
+        "OutlineWidth": 0.02,
+        "OutlineColor": [
+          0.005,
+          0.01,
+          0.02,
+          1
+        ],
+        "ScreenPosition": [
+          12,
+          12,
+          0
+        ],
+        "ScreenScale": [
+          1,
+          1,
+          1
+        ],
+        "ScreenRotation": 0
+      }
+    },
+    {
+      "ID": 112,
+      "Type": 4,
+      "TagComponent": {
+        "Name": "Screen orbit controls",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0,
+          0
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "TextComponent": {
+        "Contents": "RMB orbit · Wheel zoom · F foot IK · R reset",
+        "FontPath": "../../../Fonts/Inter/static/Inter-Regular.ttf",
+        "IsWorldText": false,
+        "Size": 17,
+        "WorldSize": 1,
+        "ScreenSize": 17,
+        "Spacing": 0,
+        "WorldSpacing": 0,
+        "ScreenSpacing": 0,
+        "LineSpacing": 1.25,
+        "Alignment": 0,
+        "Backend": 1,
+        "Color": [
+          0.94,
+          0.97,
+          1,
+          1
+        ],
+        "OutlineWidth": 0.02,
+        "OutlineColor": [
+          0.005,
+          0.01,
+          0.02,
+          1
+        ],
+        "ScreenPosition": [
+          12,
+          43,
+          0
+        ],
+        "ScreenScale": [
+          1,
+          1,
+          1
+        ],
+        "ScreenRotation": 0
+      }
+    },
+    {
+      "ID": 113,
+      "Type": 4,
+      "TagComponent": {
+        "Name": "Screen space label",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0,
+          0
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "TextComponent": {
+        "Contents": "Screen-space text stays with the viewport",
+        "FontPath": "../../../Fonts/JetBrainsMono/fonts/ttf/JetBrainsMono-Regular.ttf",
+        "IsWorldText": false,
+        "Size": 15,
+        "WorldSize": 1,
+        "ScreenSize": 15,
+        "Spacing": 0,
+        "WorldSpacing": 0,
+        "ScreenSpacing": 0,
+        "LineSpacing": 1.25,
+        "Alignment": 0,
+        "Backend": 1,
+        "Color": [
+          0.55,
+          0.86,
+          1,
+          1
+        ],
+        "OutlineWidth": 0.02,
+        "OutlineColor": [
+          0.005,
+          0.01,
+          0.02,
+          1
+        ],
+        "ScreenPosition": [
+          12,
+          71,
+          0
+        ],
+        "ScreenScale": [
+          1,
+          1,
+          1
+        ],
+        "ScreenRotation": 0
+      }
+    }
+  ],
+  "Materials": [
+    {
+      "MaterialPath": "../Assets/Materials/Checkerboard.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Panel.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Trim.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/LightPanel.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Coral.mktmtl"
+    }
+  ]
+}

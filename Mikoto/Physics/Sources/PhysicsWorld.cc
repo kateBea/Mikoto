@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <map>
+#include <algorithm>
 #include <cmath>
+#include <map>
 #include <mutex>
 #include <tuple>
-#include <algorithm>
 
-#include <EASTL/sort.h>
-#include <EASTL/memory.h>
 #include <EASTL/algorithm.h>
+#include <EASTL/memory.h>
+#include <EASTL/sort.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtx/compatibility.hpp>
@@ -28,70 +28,72 @@
 
 // Jolt requires its top-level header before the rest of its headers.
 #include <Jolt/Jolt.h>
+
 #include <Jolt/Core/TempAllocator.h>
-#include <Jolt/Physics/Body/BodyLock.h>
-#include <Jolt/Physics/Body/BodyFilter.h>
-#include <Jolt/Physics/PhysicsSettings.h>
-#include <Jolt/Physics/Collision/RayCast.h>
-#include <Jolt/Physics/Collision/CastResult.h>
-#include <Jolt/Physics/SoftBody/SoftBodyShape.h>
-#include <Jolt/Physics/Collision/Shape/BoxShape.h>
-#include <Jolt/Physics/Body/BodyCreationSettings.h>
-#include <Jolt/Physics/Collision/GroupFilterTable.h>
-#include <Jolt/Physics/Constraints/ConeConstraint.h>
-#include <Jolt/Physics/Constraints/GearConstraint.h>
-#include <Jolt/Physics/Constraints/PathConstraint.h>
 #include <Jolt/Physics/Body/BodyActivationListener.h>
-#include <Jolt/Physics/Collision/Shape/SphereShape.h>
-#include <Jolt/Physics/Constraints/FixedConstraint.h>
-#include <Jolt/Physics/Constraints/HingeConstraint.h>
-#include <Jolt/Physics/Constraints/PointConstraint.h>
+#include <Jolt/Physics/Body/BodyCreationSettings.h>
+#include <Jolt/Physics/Body/BodyFilter.h>
+#include <Jolt/Physics/Body/BodyLock.h>
+#include <Jolt/Physics/Collision/CastResult.h>
+#include <Jolt/Physics/Collision/GroupFilterTable.h>
+#include <Jolt/Physics/Collision/RayCast.h>
+#include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
-#include <Jolt/Physics/Constraints/PulleyConstraint.h>
-#include <Jolt/Physics/Constraints/SliderConstraint.h>
-#include <Jolt/Physics/Vehicle/MotorcycleController.h>
 #include <Jolt/Physics/Collision/Shape/CylinderShape.h>
-#include <Jolt/Physics/Constraints/DistanceConstraint.h>
-#include <Jolt/Physics/Vehicle/VehicleCollisionTester.h>
 #include <Jolt/Physics/Collision/Shape/HeightFieldShape.h>
+#include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
+#include <Jolt/Physics/Collision/Shape/SphereShape.h>
+#include <Jolt/Physics/Constraints/ConeConstraint.h>
+#include <Jolt/Physics/Constraints/DistanceConstraint.h>
+#include <Jolt/Physics/Constraints/FixedConstraint.h>
+#include <Jolt/Physics/Constraints/GearConstraint.h>
+#include <Jolt/Physics/Constraints/HingeConstraint.h>
+#include <Jolt/Physics/Constraints/PathConstraint.h>
+#include <Jolt/Physics/Constraints/PathConstraintPathHermite.h>
+#include <Jolt/Physics/Constraints/PointConstraint.h>
+#include <Jolt/Physics/Constraints/PulleyConstraint.h>
+#include <Jolt/Physics/Constraints/RackAndPinionConstraint.h>
+#include <Jolt/Physics/Constraints/SliderConstraint.h>
 #include <Jolt/Physics/Constraints/SwingTwistConstraint.h>
-#include <Jolt/Physics/Vehicle/TrackedVehicleController.h>
-#include <Jolt/Physics/Vehicle/WheeledVehicleController.h>
+#include <Jolt/Physics/PhysicsSettings.h>
+#include <Jolt/Physics/PhysicsStepListener.h>
 #include <Jolt/Physics/SoftBody/SoftBodyCreationSettings.h>
 #include <Jolt/Physics/SoftBody/SoftBodyMotionProperties.h>
-#include <Jolt/Physics/Constraints/RackAndPinionConstraint.h>
-#include <Jolt/Physics/Constraints/PathConstraintPathHermite.h>
-#include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
+#include <Jolt/Physics/SoftBody/SoftBodyShape.h>
+#include <Jolt/Physics/Vehicle/MotorcycleController.h>
+#include <Jolt/Physics/Vehicle/TrackedVehicleController.h>
+#include <Jolt/Physics/Vehicle/VehicleCollisionTester.h>
+#include <Jolt/Physics/Vehicle/WheeledVehicleController.h>
+
+#include <Animation/AnimationSystem.hh>
+#include <Animation/Animator.hh>
+
+#include <Assets/ImageProcessing.hh>
 
 #include <Core/Core.hh>
-#include <Core/Types.hh>
-#include <Core/Profiler.hh>
 #include <Core/Exception.hh>
+#include <Core/Profiler.hh>
+#include <Core/Types.hh>
 
 #include <Logging/Assert.hh>
 #include <Logging/Logger.hh>
 
 #include <Memory/Allocator.hh>
 
-#include <Threading/Utility.hh>
-
-#include <Assets/ImageProcessing.hh>
-
-#include <Animation/Animator.hh>
-#include <Animation/AnimationSystem.hh>
-
+#include <Physics/PhysicsWorld.hh>
+#include <Physics/PhysicSystem.hh>
 #include <Physics/RayCast.hh>
 #include <Physics/Utility.hh>
-#include <Physics/PhysicSystem.hh>
-#include <Physics/PhysicsWorld.hh>
 
 #include <Renderer/Core/MeshRenderData.hh>
-#include <Renderer/Core/TerrainGeneration.hh>
 #include <Renderer/Core/PhysicsDebugRenderer.hh>
+#include <Renderer/Core/TerrainGeneration.hh>
 
+#include <Scene/Component.hh>
 #include <Scene/Scene.hh>
 #include <Scene/Utility.hh>
-#include <Scene/Component.hh>
+
+#include <Threading/Utility.hh>
 
 namespace mikoto::physics {
 
@@ -99,29 +101,28 @@ namespace mikoto::physics {
     using namespace mikoto::scene;
 
     // Jolt invokes listeners on worker threads. Consumers drain events on the main thread.
-    // Events represent subshape contacts: a triangle mesh may emit several for one entity pair.
+    // Jolt callbacks only collect data under a lock. Script dispatch happens later
+    // on the engine thread, after the solver and transform synchronization finish.
     class ContactEventListener final : public JPH::ContactListener {
     public:
-        auto OnContactValidate( const JPH::Body& a, const JPH::Body& b, JPH::RVec3Arg, const JPH::CollideShapeResult& ) -> JPH::ValidateResult override;
+        auto OnContactValidate( const JPH::Body &a, const JPH::Body &b, JPH::RVec3Arg, const JPH::CollideShapeResult & ) -> JPH::ValidateResult override;
         auto SetDisabledPairs( std::set<std::pair<core::u64, core::u64>> pairs ) -> bool;
-        auto OnContactRemoved( const JPH::SubShapeIDPair& pair ) -> void override;
-        auto OnContactAdded( const JPH::Body& a, const JPH::Body& b, const JPH::ContactManifold& contact, JPH::ContactSettings& settings ) -> void override;
+        auto OnContactRemoved( const JPH::SubShapeIDPair &pair ) -> void override;
+        auto OnContactAdded( const JPH::Body &a, const JPH::Body &b, const JPH::ContactManifold &contact, JPH::ContactSettings &settings ) -> void override;
 
-        auto TakeEvents() -> eastl::vector<ContactEvent>;
+        auto UpdateCharacterContacts( const eastl::vector<ContactEvent> &previous, const eastl::vector<ContactEvent> &current ) -> void;
+        auto FinishStep() -> void;
+        auto RestartNotifications() -> void;
+        MKT_NODISCARD auto GetEvents() -> eastl::vector<ContactEvent>;
 
         MKT_NODISCARD auto GetDroppedEventCount() const -> core::usize;
 
         auto Clear() -> void;
 
     private:
-        auto Push( const ContactEvent& event ) -> void;
-
-    private:
         mutable std::mutex mMutex{};
 
-        core::usize mDropped{};
-
-        eastl::vector<ContactEvent> mEvents{};
+        ContactEventBuffer mBuffer{};
 
         ankerl::unordered_dense::map<JPH::SubShapeIDPair, ContactEvent> mContacts{};
         std::set<std::pair<core::u64, core::u64>> mDisabledPairs{};
@@ -149,7 +150,7 @@ namespace mikoto::physics {
         MKT_NODISCARD auto GetBroadPhaseLayer( JPH::ObjectLayer inLayer ) const -> JPH::BroadPhaseLayer override;
 
 #if defined( JPH_EXTERNAL_PROFILE ) || defined( JPH_PROFILE_ENABLED )
-        MKT_NODISCARD auto GetBroadPhaseLayerName( JPH::BroadPhaseLayer inLayer ) const -> const char* override;
+        MKT_NODISCARD auto GetBroadPhaseLayerName( JPH::BroadPhaseLayer inLayer ) const -> const char * override;
 #endif// JPH_EXTERNAL_PROFILE || JPH_PROFILE_ENABLED
 
     private:
@@ -174,14 +175,14 @@ namespace mikoto::physics {
         ContactEventListener mContactListener{};
         DebugBodyActivationListener mBodyActivationListener{};
         JPH::PhysicsSystem mPhysicsSystem{};
-        JPH::BodyInterface* mBodyInterface{};
+        JPH::BodyInterface *mBodyInterface{};
     };
 
-    static auto Vec( const core::float3& v ) -> JPH::Vec3 {
+    static auto Vec( const core::float3 &v ) -> JPH::Vec3 {
         return { v.x, v.y, v.z };
     }
 
-    static auto Quat( const core::quat& q ) -> JPH::Quat {
+    static auto Quat( const core::quat &q ) -> JPH::Quat {
         if ( glm::dot( q, q ) < .0001f ) {
             MKT_THROW_RUNTIME_ERROR( "Joint rotation must be nonzero." );
         }
@@ -189,7 +190,7 @@ namespace mikoto::physics {
         return JPH::Quat{ q.x, q.y, q.z, q.w }.Normalized();
     }
 
-    static auto Spring( const JointSpringSettings& source ) -> JPH::SpringSettings {
+    static auto Spring( const JointSpringSettings &source ) -> JPH::SpringSettings {
         if ( source.mFrequency < 0 || source.mDamping < 0 ) {
             MKT_THROW_RUNTIME_ERROR( "Joint spring frequency and damping must be nonnegative." );
         }
@@ -197,7 +198,7 @@ namespace mikoto::physics {
         return { JPH::ESpringMode::FrequencyAndDamping, source.mFrequency, source.mDamping };
     }
 
-    static auto Motor( const JointMotorSettings& source, bool angular = false ) -> JPH::MotorSettings {
+    static auto Motor( const JointMotorSettings &source, bool angular = false ) -> JPH::MotorSettings {
         JPH::MotorSettings motor{};
         motor.mSpringSettings = Spring( source.mSpring );
 
@@ -236,7 +237,7 @@ namespace mikoto::physics {
 
     class SoftBodyPickFilter final : public JPH::BodyFilter {
     public:
-        auto ShouldCollideLocked( const JPH::Body& body ) const -> bool override {
+        auto ShouldCollideLocked( const JPH::Body &body ) const -> bool override {
             return !body.IsSensor();
         }
     };
@@ -244,9 +245,10 @@ namespace mikoto::physics {
 #ifdef JPH_DEBUG_RENDERER
     class PhysicsDebugSelectionFilter final : public JPH::BodyDrawFilter {
     public:
-        explicit PhysicsDebugSelectionFilter( core::u64 entity ) : mEntity{ entity } {}
+        explicit PhysicsDebugSelectionFilter( core::u64 entity ) : mEntity{ entity } {
+        }
 
-        MKT_NODISCARD auto ShouldDraw( const JPH::Body& body ) const -> bool override {
+        MKT_NODISCARD auto ShouldDraw( const JPH::Body &body ) const -> bool override {
             return mEntity != 0 && body.GetUserData() == mEntity;
         }
 
@@ -268,7 +270,7 @@ namespace mikoto::physics {
         }
     };
 
-    static auto Frame( const JPH::Body& body, const core::float3& anchor, const core::quat& rotation ) -> JointFrame {
+    static auto Frame( const JPH::Body &body, const core::float3 &anchor, const core::quat &rotation ) -> JointFrame {
         if ( &body == &JPH::Body::sFixedToWorld ) {
             return { Vec( anchor ), Quat( rotation ) };
         }
@@ -277,7 +279,7 @@ namespace mikoto::physics {
     }
 
     template<typename T>
-    static auto CreateJoint( const T& joint, JPH::Body& a, JPH::Body& b, JPH::Constraint* dependencyA, JPH::Constraint* dependencyB ) -> JPH::Ref<JPH::TwoBodyConstraint> {
+    static auto CreateJoint( const T &joint, JPH::Body &a, JPH::Body &b, JPH::Constraint *dependencyA, JPH::Constraint *dependencyB ) -> JPH::Ref<JPH::TwoBodyConstraint> {
         // The settings/drive calls below follow the corresponding Samples/Tests/Constraints/*Test.cpp.
         // https://github.com/jrouwe/JoltPhysics/tree/e77f175595e64cb44218cc9d9d56fc365ad0e36a/Samples/Tests/Constraints
         const auto fa{ Frame( a, joint.GetAnchorA(), joint.GetRotationA() ) };
@@ -354,7 +356,7 @@ namespace mikoto::physics {
             s.mMotorSettings = Motor( joint.GetMotor(), hinge );
 
             // Build the constraint before applying the runtime drive mode and targets.
-            JPH::Ref<Constraint> c{ static_cast<Constraint*>( s.Create( a, b ) ) };
+            JPH::Ref<Constraint> c{ static_cast<Constraint *>( s.Create( a, b ) ) };
             c->SetMotorState( MotorState( joint.GetMotor().mMode ) );
 
             if constexpr ( hinge ) {
@@ -400,7 +402,7 @@ namespace mikoto::physics {
                 MKT_THROW_RUNTIME_ERROR( "Invalid swing/twist limits." );
             }
 
-            const auto& motors{ joint.GetMotors() };
+            const auto &motors{ joint.GetMotors() };
 
             if ( motors[1].mMode != motors[2].mMode ) {
                 MKT_THROW_RUNTIME_ERROR( "Jolt uses one shared mode for both swing motors." );
@@ -409,7 +411,7 @@ namespace mikoto::physics {
             s.mTwistMotorSettings = Motor( motors[0], true );
             s.mSwingMotorSettings = Motor( motors[1], true );
 
-            JPH::Ref<JPH::SwingTwistConstraint> c{ static_cast<JPH::SwingTwistConstraint*>( s.Create( a, b ) ) };
+            JPH::Ref<JPH::SwingTwistConstraint> c{ static_cast<JPH::SwingTwistConstraint *>( s.Create( a, b ) ) };
             c->SetTwistMotorState( MotorState( motors[0].mMode ) );
             c->SetSwingMotorState( MotorState( motors[1].mMode ) );
             c->SetTargetAngularVelocityCS( JPH::Vec3{ motors[0].mTargetVelocity, motors[1].mTargetVelocity, motors[2].mTargetVelocity } );
@@ -425,7 +427,7 @@ namespace mikoto::physics {
             s.mAxisY1 = fa.Y();
             s.mAxisX2 = fb.X();
             s.mAxisY2 = fb.Y();
-            const auto& motors{ joint.GetMotors() };
+            const auto &motors{ joint.GetMotors() };
             JPH::Vec3 position{}, rotation{}, velocity{}, angular{};
 
             // Each translation/rotation axis has its own limits and drive settings.
@@ -456,7 +458,7 @@ namespace mikoto::physics {
                 ( i < 3 ? velocity : angular ).SetComponent( i % 3, motors[i].mTargetVelocity );
             }
 
-            JPH::Ref<JPH::SixDOFConstraint> c{ static_cast<JPH::SixDOFConstraint*>( s.Create( a, b ) ) };
+            JPH::Ref<JPH::SixDOFConstraint> c{ static_cast<JPH::SixDOFConstraint *>( s.Create( a, b ) ) };
 
             for ( int i{}; i < 6; ++i ) {
                 c->SetMotorState( static_cast<JPH::SixDOFConstraint::EAxis>( i ), MotorState( motors[i].mMode ) );
@@ -477,7 +479,7 @@ namespace mikoto::physics {
             JPH::Ref<JPH::PathConstraintPathHermite> path{ new JPH::PathConstraintPathHermite{} };
             path->SetIsLooping( joint.IsLooping() );
 
-            for ( const auto& point: joint.GetControlPoints() ) {
+            for ( const auto &point: joint.GetControlPoints() ) {
                 if ( glm::length2( point.mTangent ) < .0001f || glm::length2( glm::cross( point.mTangent, point.mNormal ) ) < .0001f ) {
                     MKT_THROW_RUNTIME_ERROR( "Path tangent and normal must form a valid frame." );
                 }
@@ -497,7 +499,7 @@ namespace mikoto::physics {
             s.mMaxFrictionForce = joint.GetMaxFrictionForce();
             s.mPositionMotorSettings = Motor( joint.GetMotor() );
 
-            JPH::Ref<JPH::PathConstraint> c{ static_cast<JPH::PathConstraint*>( s.Create( a, b ) ) };
+            JPH::Ref<JPH::PathConstraint> c{ static_cast<JPH::PathConstraint *>( s.Create( a, b ) ) };
             c->SetPositionMotorState( MotorState( joint.GetMotor().mMode ) );
             c->SetTargetVelocity( joint.GetMotor().mTargetVelocity );
             c->SetTargetPathFraction( joint.GetMotor().mTargetPosition );
@@ -532,7 +534,7 @@ namespace mikoto::physics {
             s.mHingeAxis2 = fb.X();
             s.mRatio = joint.GetRatio();
 
-            JPH::Ref<JPH::GearConstraint> c{ static_cast<JPH::GearConstraint*>( s.Create( a, b ) ) };
+            JPH::Ref<JPH::GearConstraint> c{ static_cast<JPH::GearConstraint *>( s.Create( a, b ) ) };
             c->SetConstraints( dependencyA, dependencyB );
 
             return c.GetPtr();
@@ -547,7 +549,7 @@ namespace mikoto::physics {
             s.mSliderAxis = fb.X();
             s.mRatio = joint.GetRatio();
 
-            JPH::Ref<JPH::RackAndPinionConstraint> c{ static_cast<JPH::RackAndPinionConstraint*>( s.Create( a, b ) ) };
+            JPH::Ref<JPH::RackAndPinionConstraint> c{ static_cast<JPH::RackAndPinionConstraint *>( s.Create( a, b ) ) };
             c->SetConstraints( dependencyA, dependencyB );
 
             return c.GetPtr();
@@ -607,19 +609,19 @@ namespace mikoto::physics {
         return mObjectToBroadPhase[inLayer];
     }
 
-    auto DebugBodyActivationListener::OnBodyActivated( const JPH::BodyID& inBodyID, JPH::uint64 inBodyUserData ) -> void {
+    auto DebugBodyActivationListener::OnBodyActivated( const JPH::BodyID &inBodyID, JPH::uint64 inBodyUserData ) -> void {
         MKT_BEGIN_PROFILER();
         MKT_CORE_LOGGER_DEBUG( "A body got activated" );
     }
 
-    auto DebugBodyActivationListener::OnBodyDeactivated( const JPH::BodyID& inBodyID, JPH::uint64 inBodyUserData ) -> void {
+    auto DebugBodyActivationListener::OnBodyDeactivated( const JPH::BodyID &inBodyID, JPH::uint64 inBodyUserData ) -> void {
         MKT_BEGIN_PROFILER();
         MKT_CORE_LOGGER_DEBUG( "A body got deactivated" );
     }
 
 
 #if defined( JPH_EXTERNAL_PROFILE ) || defined( JPH_PROFILE_ENABLED )
-    auto BPLayerInterfaceImpl::GetBroadPhaseLayerName( JPH::BroadPhaseLayer inLayer ) const -> const char* {
+    auto BPLayerInterfaceImpl::GetBroadPhaseLayerName( JPH::BroadPhaseLayer inLayer ) const -> const char * {
         MKT_BEGIN_PROFILER();
         switch ( core::as<JPH::BroadPhaseLayer::Type>( inLayer ) ) {
             case core::as<JPH::BroadPhaseLayer::Type>( BroadPhaseLayers::NON_MOVING ):
@@ -633,7 +635,7 @@ namespace mikoto::physics {
     }
 #endif
 
-    auto ContactEventListener::OnContactValidate( const JPH::Body& a, const JPH::Body& b, JPH::RVec3Arg, const JPH::CollideShapeResult& ) -> JPH::ValidateResult {
+    auto ContactEventListener::OnContactValidate( const JPH::Body &a, const JPH::Body &b, JPH::RVec3Arg, const JPH::CollideShapeResult & ) -> JPH::ValidateResult {
         const std::lock_guard lock{ mMutex };
 
         return mDisabledPairs.contains( { std::min( a.GetUserData(), b.GetUserData() ), std::max( a.GetUserData(), b.GetUserData() ) } )
@@ -654,65 +656,77 @@ namespace mikoto::physics {
     }
 
 
-    auto ContactEventListener::OnContactAdded( const JPH::Body& a, const JPH::Body& b, const JPH::ContactManifold& contact, JPH::ContactSettings& settings ) -> void {
+    auto ContactEventListener::OnContactAdded( const JPH::Body &a, const JPH::Body &b, const JPH::ContactManifold &contact, JPH::ContactSettings &settings ) -> void {
         MKT_BEGIN_PROFILER();
         std::lock_guard lock{ mMutex };
         ContactEvent event{ ContactEvent::Type::eEnter, a.GetUserData(), b.GetUserData(), settings.mIsSensor };
-        mContacts[JPH::SubShapeIDPair{ a.GetID(), contact.mSubShapeID1, b.GetID(), contact.mSubShapeID2 }] = event;
-        Push( event );
+        const auto [entry, inserted]{ mContacts.try_emplace(
+            JPH::SubShapeIDPair{ a.GetID(), contact.mSubShapeID1, b.GetID(), contact.mSubShapeID2 }, event ) };
+        if ( inserted ) {
+            mBuffer.AddContact( event.mEntityA, event.mEntityB, event.mIsTrigger );
+        }
     }
 
-    auto ContactEventListener::OnContactRemoved( const JPH::SubShapeIDPair& pair ) -> void {
+    auto ContactEventListener::OnContactRemoved( const JPH::SubShapeIDPair &pair ) -> void {
         MKT_BEGIN_PROFILER();
         std::lock_guard lock{ mMutex };
 
         if ( auto it = mContacts.find( pair ); it != mContacts.end() ) {
             auto event = it->second;
-            event.mType = ContactEvent::Type::eExit;
-            Push( event );
+            mBuffer.RemoveContact( event.mEntityA, event.mEntityB, event.mIsTrigger );
             mContacts.erase( it );
         }
     }
 
-    auto ContactEventListener::TakeEvents() -> eastl::vector<ContactEvent> {
-        MKT_BEGIN_PROFILER();
+    auto ContactEventListener::UpdateCharacterContacts( const eastl::vector<ContactEvent> &previous, const eastl::vector<ContactEvent> &current ) -> void {
         std::lock_guard lock{ mMutex };
+        const auto contains{ []( const auto &contacts, const ContactEvent &event ) {
+            return eastl::any_of( contacts.begin(), contacts.end(), [&]( const ContactEvent &candidate ) {
+                return candidate.mEntityB == event.mEntityB && candidate.mIsTrigger == event.mIsTrigger;
+            } );
+        } };
+        for ( const auto &event: current ) {
+            if ( !contains( previous, event ) ) {
+                mBuffer.AddContact( event.mEntityA, event.mEntityB, event.mIsTrigger );
+            }
+        }
+        for ( const auto &event: previous ) {
+            if ( !contains( current, event ) ) {
+                mBuffer.RemoveContact( event.mEntityA, event.mEntityB, event.mIsTrigger );
+            }
+        }
+    }
 
-        eastl::vector<ContactEvent> result{};
-        result.swap( mEvents );
+    auto ContactEventListener::FinishStep() -> void {
+        std::lock_guard lock{ mMutex };
+        mBuffer.FinishStep();
+    }
 
-        return result;
+    auto ContactEventListener::RestartNotifications() -> void {
+        std::lock_guard lock{ mMutex };
+        mBuffer.RestartNotifications();
+    }
+
+    auto ContactEventListener::GetEvents() -> eastl::vector<ContactEvent> {
+        std::lock_guard lock{ mMutex };
+        return mBuffer.GetEvents();
     }
 
     auto ContactEventListener::GetDroppedEventCount() const -> usize {
-        MKT_BEGIN_PROFILER();
         std::lock_guard lock{ mMutex };
-
-        return mDropped;
+        return mBuffer.GetDroppedEventCount();
     }
 
     auto ContactEventListener::Clear() -> void {
-        MKT_BEGIN_PROFILER();
         std::lock_guard lock{ mMutex };
-        mEvents.clear();
+        mBuffer.Clear();
         mContacts.clear();
-        mDropped = 0;
     }
 
-    auto ContactEventListener::Push( const ContactEvent& event ) -> void {
-        MKT_BEGIN_PROFILER();
-
-        if ( mEvents.size() < 16384 ) {
-            mEvents.push_back( event );
-        }
-        else {
-            ++mDropped;
-        }
-    }
-
-    PhysicsWorld::PhysicsWorld( const PhysicsWorldCreateInfo& spec )
+    PhysicsWorld::PhysicsWorld( const PhysicsWorldCreateInfo &spec )
         : mScene{ spec.mScene },
-          mSimulationInfo{ eastl::make_unique<SimulationInfo>() }, mGravity{ spec.mGravity } {
+          mSimulationInfo{ eastl::make_unique<SimulationInfo>() },
+          mGravity{ spec.mGravity } {
     }
 
     PhysicsWorld::~PhysicsWorld() {
@@ -801,20 +815,63 @@ namespace mikoto::physics {
 
         Synchronize();
 
-        // Keep the solver stable during short frame hitches without allowing one bad
-        // frame to monopolise the game thread.
-        constexpr core::i32 kMaxCollisionSteps{ 4 };
-        constexpr core::f32 kCollisionStep{ 1.0f / 60.0f };
-
-        // Bound the elapsed time too: capping only the step count still permits huge solver steps.
-        const core::f32 simulationTime{ eastl::min( dt, kMaxCollisionSteps * kCollisionStep ) };
-        const core::i32 collisionSteps{ eastl::clamp( static_cast<core::i32>( glm::ceil( simulationTime / kCollisionStep ) ), 1, kMaxCollisionSteps ) };
+        const bool hasCloth{ eastl::any_of( mSoftBodies.begin(), mSoftBodies.end(), []( const auto &entry ) {
+            return entry.second.mCloth && entry.second.mBody;
+        } ) };
+        // Retain the existing 1/15 s hitch budget. Light cloth needs smaller
+        // collision steps, while scenes without cloth keep their current rate.
+        const core::i32 maxSteps{ hasCloth ? 8 : 4 };
+        const core::f32 stepLength{ hasCloth ? 1.0f / 120.0f : 1.0f / 60.0f };
+        const core::f32 simulationTime{ eastl::min( dt, maxSteps * stepLength ) };
+        const core::i32 collisionSteps{ eastl::clamp( static_cast<core::i32>( glm::ceil( simulationTime / stepLength ) ), 1, maxSteps ) };
         UpdateCharacters( simulationTime );
         ApplyBuoyancy( simulationTime );
         UpdateSoftBodyGrab( simulationTime );
-        const auto& backend{ PhysicSystem::Get()->GetPhysicsBackend() };
-        const auto errors{ mSimulationInfo->mPhysicsSystem.Update( simulationTime, collisionSteps,
-            mSimulationInfo->mTempAllocator.get(), backend.GetJoltJobSystem() ) };
+
+        if ( hasCloth ) {
+            mClothWindField = mScene->GetWindField();
+            for ( const auto &[entity, state]: mSoftBodies ) {
+                const auto *cloth{ mScene->GetRegistry().try_get<scene::ClothComponent>( entity ) };
+                if ( cloth && state.mBody && ( !mClothWindField.mAreas.empty() || glm::length2( cloth->GetWindVelocity() ) > 0 ) ) {
+                    mSimulationInfo->mBodyInterface->ActivateBody( state.mBody->GetID() );
+                }
+            }
+        }
+
+        class ClothWindStepListener final : public JPH::PhysicsStepListener {
+        public:
+            ClothWindStepListener( PhysicsWorld *world, JPH::PhysicsSystem *system, bool enabled )
+                : mWorld{ world }, mSystem{ system }, mEnabled{ enabled } {
+                if ( mEnabled ) {
+                    mSystem->AddStepListener( this );
+                }
+            }
+
+            auto OnStep( const JPH::PhysicsStepListenerContext &context ) -> void override {
+                mWorld->ApplyClothAerodynamics( context.mDeltaTime );
+            }
+
+            ~ClothWindStepListener() override {
+                if ( mEnabled ) {
+                    mSystem->RemoveStepListener( this );
+                }
+            }
+
+        private:
+            PhysicsWorld *mWorld{};
+            JPH::PhysicsSystem *mSystem{};
+            bool mEnabled{};
+        };
+
+        const auto &backend{ PhysicSystem::Get()->GetPhysicsBackend() };
+        JPH::EPhysicsUpdateError errors{};
+        {
+            // The callback executes before every internal step. This preserves
+            // full-frame rigid-body forces and avoids a large per-frame wind kick.
+            ClothWindStepListener wind{ this, &mSimulationInfo->mPhysicsSystem, hasCloth };
+            errors = mSimulationInfo->mPhysicsSystem.Update( simulationTime, collisionSteps,
+                mSimulationInfo->mTempAllocator.get(), backend.GetJoltJobSystem() );
+        }
         ReportUpdateErrors( errors );
 
         PostUpdate();
@@ -822,9 +879,10 @@ namespace mikoto::physics {
         PostUpdateCharacters();
         PostUpdateSoftBodies();
         UpdateRagdollPoses();
+        mSimulationInfo->mContactListener.FinishStep();
     }
 
-    auto PhysicsWorld::DrawPhysics( JPH::DebugRenderer* renderer, const PhysicsDebugDrawSettings& settings ) -> void {
+    auto PhysicsWorld::DrawPhysics( JPH::DebugRenderer *renderer, const PhysicsDebugDrawSettings &settings ) -> void {
         MKT_BEGIN_PROFILER();
 #ifdef JPH_DEBUG_RENDERER
         if ( !mIsInitialized || !renderer || !settings.mEnabled ) {
@@ -846,7 +904,7 @@ namespace mikoto::physics {
         mSimulationInfo->mPhysicsSystem.DrawBodies( drawSettings, renderer, settings.mSelectedOnly ? &filter : nullptr );
 
         if ( settings.mShapes ) {
-            for ( const auto& [id, body]: mBodies ) {
+            for ( const auto &[id, body]: mBodies ) {
                 if ( !body->IsInBroadPhase() || ( settings.mSelectedOnly && !filter.ShouldDraw( *body ) ) ) {
                     continue;
                 }
@@ -876,7 +934,7 @@ namespace mikoto::physics {
         using Error = JPH::EPhysicsUpdateError;
 
         // Report each exhausted buffer once per world reset, not on every failing frame.
-        const auto report = [&]( Error flag, const char* message ) {
+        const auto report = [&]( Error flag, const char *message ) {
             if ( ( errors & flag ) != Error::None && ( mReportedUpdateErrors & flag ) == Error::None ) {
                 MKT_CORE_LOGGER_ERROR( "Physics collisions dropped: {}", message );
             }
@@ -894,7 +952,7 @@ namespace mikoto::physics {
             return;
         }
 
-        auto& registry{ mScene->GetRegistry() };
+        auto &registry{ mScene->GetRegistry() };
         mScene->UpdateWorldTransformations();
 
         // Cooking a compound also caches its child shapes; keep references stable during that traversal.
@@ -903,7 +961,7 @@ namespace mikoto::physics {
 
         for ( auto [owner, compound]: registry.view<scene::CompoundColliderComponent>().each() ) {
             for ( auto id: compound.GetColliderEntities() ) {
-                if ( auto* child{ mScene->FindByID( id ) }; child && child->Get() != owner ) {
+                if ( auto *child{ mScene->FindByID( id ) }; child && child->Get() != owner ) {
                     mCompoundMembers.insert( child->Get() );
                 }
             }
@@ -911,7 +969,7 @@ namespace mikoto::physics {
 
         eastl::vector<entt::entity> removed{};
 
-        for ( const auto& [entity, state]: mEntityBodies ) {
+        for ( const auto &[entity, state]: mEntityBodies ) {
             if ( !registry.valid( entity ) || !registry.all_of<scene::TransformComponent>( entity ) ||
                  !scene::HasCollider( registry, entity ) || registry.any_of<scene::CharacterControllerComponent, scene::SoftBodyComponent, scene::ClothComponent>( entity ) || ( mCompoundMembers.contains( entity ) && state.mID != 0 ) ) {
                 removed.push_back( entity );
@@ -936,16 +994,16 @@ namespace mikoto::physics {
         SynchronizeRagdolls();
     }
 
-    auto PhysicsWorld::ReadColliderDescription( entt::entity entity, bool& trigger, eastl::vector<entt::entity>* ancestry ) -> ColliderShapeDescription {
-        auto& registry{ mScene->GetRegistry() };
-        auto& state{ mEntityBodies.at( entity ) };
+    auto PhysicsWorld::ReadColliderDescription( entt::entity entity, bool &trigger, eastl::vector<entt::entity> *ancestry ) -> ColliderShapeDescription {
+        auto &registry{ mScene->GetRegistry() };
+        auto &state{ mEntityBodies.at( entity ) };
         ColliderShapeDescription desc{};
 
-        if ( const auto* vehicle{ registry.try_get<scene::VehicleComponent>( entity ) } ) {
+        if ( const auto *vehicle{ registry.try_get<scene::VehicleComponent>( entity ) } ) {
             desc.mCenterOfMassOffset.y = vehicle->mCenterOfMassOffsetY;
         }
 
-        if ( auto* collider{ registry.try_get<scene::CompoundColliderComponent>( entity ) } ) {
+        if ( auto *collider{ registry.try_get<scene::CompoundColliderComponent>( entity ) } ) {
             desc.mKind = ColliderShapeKind::eCompound;
             desc.mOffset = collider->GetOffset();
             desc.mMutable = collider->GetMode() == scene::CompoundColliderMode::eMutable;
@@ -953,62 +1011,62 @@ namespace mikoto::physics {
             eastl::vector<entt::entity> ancestors{};
             ReadCompound( entity, desc, ancestry ? *ancestry : ancestors );
         }
-        else if ( auto* collider{ registry.try_get<scene::HeightFieldColliderComponent>( entity ) } ) {
+        else if ( auto *collider{ registry.try_get<scene::HeightFieldColliderComponent>( entity ) } ) {
             desc.mKind = ColliderShapeKind::eHeightField;
             trigger = collider->IsTrigger();
             ReadHeightField( entity, desc );
         }
-        else if ( auto* collider{ registry.try_get<scene::PlaneColliderComponent>( entity ) } ) {
+        else if ( auto *collider{ registry.try_get<scene::PlaneColliderComponent>( entity ) } ) {
             desc.mKind = ColliderShapeKind::ePlane;
             desc.mDimensions = collider->GetNormal();
             desc.mPlaneDistance = collider->GetDistance();
             desc.mOffset = collider->GetOffset();
             trigger = collider->IsTrigger();
         }
-        else if ( auto* collider{ registry.try_get<scene::CylinderColliderComponent>( entity ) } ) {
+        else if ( auto *collider{ registry.try_get<scene::CylinderColliderComponent>( entity ) } ) {
             desc.mKind = ColliderShapeKind::eCylinder;
             desc.mDimensions = { collider->GetRadius(), collider->GetHalfHeight(), 0 };
             desc.mOffset = collider->GetOffset();
             trigger = collider->IsTrigger();
         }
-        else if ( auto* collider{ registry.try_get<scene::TaperedCapsuleColliderComponent>( entity ) } ) {
+        else if ( auto *collider{ registry.try_get<scene::TaperedCapsuleColliderComponent>( entity ) } ) {
             desc.mKind = ColliderShapeKind::eTaperedCapsule;
             desc.mDimensions = { collider->GetTopRadius(), collider->GetHalfHeight(), collider->GetBottomRadius() };
             desc.mOffset = collider->GetOffset();
             trigger = collider->IsTrigger();
         }
-        else if ( auto* collider{ registry.try_get<scene::TaperedCylinderColliderComponent>( entity ) } ) {
+        else if ( auto *collider{ registry.try_get<scene::TaperedCylinderColliderComponent>( entity ) } ) {
             desc.mKind = ColliderShapeKind::eTaperedCylinder;
             desc.mDimensions = { collider->GetTopRadius(), collider->GetHalfHeight(), collider->GetBottomRadius() };
             desc.mOffset = collider->GetOffset();
             trigger = collider->IsTrigger();
         }
-        else if ( auto* collider = registry.try_get<scene::MeshColliderComponent>( entity ) ) {
+        else if ( auto *collider = registry.try_get<scene::MeshColliderComponent>( entity ) ) {
             desc.mKind = ColliderShapeKind::eMesh;
             desc.mOffset = collider->GetOffset();
             desc.mIsConvex = collider->IsConvex();
 
             trigger = collider->IsTrigger();
 
-            if ( auto* mesh = registry.try_get<scene::MeshComponent>( entity ); mesh && mesh->GetMesh() ) {
+            if ( auto *mesh = registry.try_get<scene::MeshComponent>( entity ); mesh && mesh->GetMesh() ) {
                 state.mModel = mesh->GetModel();
                 desc.mVertices = mesh->GetMesh()->GetCollisionVertices();
                 desc.mIndices = mesh->GetMesh()->GetCollisionIndices();
             }
         }
-        else if ( auto* collider{ registry.try_get<scene::CapsuleColliderComponent>( entity ) } ) {
+        else if ( auto *collider{ registry.try_get<scene::CapsuleColliderComponent>( entity ) } ) {
             desc.mKind = ColliderShapeKind::eCapsule;
             desc.mDimensions = { collider->GetRadius(), collider->GetHalfHeight(), 0 };
             desc.mOffset = collider->GetOffset();
             trigger = collider->IsTrigger();
         }
-        else if ( auto* collider{ registry.try_get<scene::SphereColliderComponent>( entity ) } ) {
+        else if ( auto *collider{ registry.try_get<scene::SphereColliderComponent>( entity ) } ) {
             desc.mKind = ColliderShapeKind::eSphere;
             desc.mDimensions.x = collider->GetRadius();
             desc.mOffset = collider->GetOffset();
             trigger = collider->IsTrigger();
         }
-        else if ( auto* collider{ registry.try_get<scene::BoxColliderComponent>( entity ) } ) {
+        else if ( auto *collider{ registry.try_get<scene::BoxColliderComponent>( entity ) } ) {
             desc.mDimensions = collider->GetHalfExtents();
             desc.mOffset = collider->GetOffset();
             trigger = collider->IsTrigger();
@@ -1017,11 +1075,11 @@ namespace mikoto::physics {
         return desc;
     }
 
-    auto PhysicsWorld::DisableBody( entt::entity entity, const char* message ) -> void {
-        auto& state{ mEntityBodies.at( entity ) };
-        auto* body{ GetJoltBody( state.mID ) };
-        auto* bodyInterface{ mSimulationInfo->mBodyInterface };
-        auto* rb{ mScene->GetRegistry().try_get<scene::RigidBodyComponent>( entity ) };
+    auto PhysicsWorld::DisableBody( entt::entity entity, const char *message ) -> void {
+        auto &state{ mEntityBodies.at( entity ) };
+        auto *body{ GetJoltBody( state.mID ) };
+        auto *bodyInterface{ mSimulationInfo->mBodyInterface };
+        auto *rb{ mScene->GetRegistry().try_get<scene::RigidBodyComponent>( entity ) };
         const bool changed = state.mError != message;
 
         if ( body ) {
@@ -1050,20 +1108,20 @@ namespace mikoto::physics {
 
     auto PhysicsWorld::SynchronizeEntity( entt::entity entity ) -> void {
         MKT_BEGIN_PROFILER();
-        auto& registry{ mScene->GetRegistry() };
+        auto &registry{ mScene->GetRegistry() };
         mEntityBodies.reserve( mEntityBodies.size() + registry.view<scene::TransformComponent>().size() );
-        auto& tr{ registry.get<scene::TransformComponent>( entity ) };
-        auto* rb{ registry.try_get<scene::RigidBodyComponent>( entity ) };
-        auto& state{ mEntityBodies[entity] };
-        auto* body{ GetJoltBody( state.mID ) };
-        auto* bodyInterface{ mSimulationInfo->mBodyInterface };
+        auto &tr{ registry.get<scene::TransformComponent>( entity ) };
+        auto *rb{ registry.try_get<scene::RigidBodyComponent>( entity ) };
+        auto &state{ mEntityBodies[entity] };
+        auto *body{ GetJoltBody( state.mID ) };
+        auto *bodyInterface{ mSimulationInfo->mBodyInterface };
 
         ColliderShapeDescription desc{};
         bool trigger{};
 
         try {
             desc = ReadColliderDescription( entity, trigger );
-        } catch ( const std::exception& error ) {
+        } catch ( const std::exception &error ) {
             DisableBody( entity, error.what() );
             return;
         }
@@ -1153,7 +1211,7 @@ namespace mikoto::physics {
                     }
                 }
 
-                if ( auto* tag{ registry.try_get<scene::TagComponent>( entity ) } ) {
+                if ( auto *tag{ registry.try_get<scene::TagComponent>( entity ) } ) {
                     settings.mUserData = tag->GetGuid();
                 }
 
@@ -1183,12 +1241,12 @@ namespace mikoto::physics {
         SynchronizeBodyProperties( entity, position, rotation, trigger, shapeChanged );
     }
 
-    auto PhysicsWorld::SynchronizeBodyProperties( entt::entity entity, const core::float3& position,
-        const core::quat& rotation, bool trigger, bool shapeChanged ) -> void {
-        auto& state{ mEntityBodies.at( entity ) };
-        auto* body{ GetJoltBody( state.mID ) };
-        auto* rb{ mScene->GetRegistry().try_get<scene::RigidBodyComponent>( entity ) };
-        auto* bodyInterface{ mSimulationInfo->mBodyInterface };
+    auto PhysicsWorld::SynchronizeBodyProperties( entt::entity entity, const core::float3 &position,
+        const core::quat &rotation, bool trigger, bool shapeChanged ) -> void {
+        auto &state{ mEntityBodies.at( entity ) };
+        auto *body{ GetJoltBody( state.mID ) };
+        auto *rb{ mScene->GetRegistry().try_get<scene::RigidBodyComponent>( entity ) };
+        auto *bodyInterface{ mSimulationInfo->mBodyInterface };
         const auto motion{ rb ? GetJoltMotionType( rb->GetBodyType() ) : JPH::EMotionType::Static };
         const auto activation{ motion == JPH::EMotionType::Static ? JPH::EActivation::DontActivate : JPH::EActivation::Activate };
         const auto layer{ motion == JPH::EMotionType::Static && !trigger ? Layers::NON_MOVING : Layers::MOVING };
@@ -1268,7 +1326,7 @@ namespace mikoto::physics {
 
     auto PhysicsWorld::PostUpdate() -> void {
         MKT_BEGIN_PROFILER();
-        auto& registry = mScene->GetRegistry();
+        auto &registry = mScene->GetRegistry();
 
         // Set all simulated world poses before converting children back to local space.
         ankerl::unordered_dense::map<entt::entity, core::float4x4> poses{};
@@ -1278,13 +1336,13 @@ namespace mikoto::physics {
                 continue;
             }
 
-            auto* body = GetJoltBody( rb.GetBodyID() );
+            auto *body = GetJoltBody( rb.GetBodyID() );
 
             if ( !body ) {
                 continue;
             }
 
-            auto& state = mEntityBodies.at( entity );
+            auto &state = mEntityBodies.at( entity );
             state.mPosition = GetFloat3F( body->GetPosition() );// Entity origin, never center of mass.
             state.mRotation = GetQuatF( body->GetRotation() );
             poses.emplace( entity, glm::translate( core::float4x4{ 1 }, state.mPosition ) * glm::mat4_cast( state.mRotation ) * glm::scale( core::float4x4{ 1 }, state.mDescription.mScale ) );
@@ -1295,16 +1353,16 @@ namespace mikoto::physics {
         }
 
         // Resolve the new world transform of intermediate (nonphysical) parents too.
-        auto worldPose = [&]( auto&& self, scene::Entity* entity ) -> core::float4x4 {
+        auto worldPose = [&]( auto &&self, scene::Entity *entity ) -> core::float4x4 {
             if ( auto it = poses.find( entity->Get() ); it != poses.end() ) {
                 return it->second;
             }
 
             auto local = entity->GetComponent<scene::TransformComponent>().GetTransform();
-            const auto& relation = entity->GetComponent<scene::RelationComponent>();
+            const auto &relation = entity->GetComponent<scene::RelationComponent>();
 
             if ( relation.HasParent() ) {
-                if ( auto* parent = mScene->FindByID( *relation.GetParent() ) ) {
+                if ( auto *parent = mScene->FindByID( *relation.GetParent() ) ) {
                     return self( self, parent ) * local;
                 }
             }
@@ -1312,11 +1370,11 @@ namespace mikoto::physics {
             return local;
         };
 
-        for ( const auto& [entity, pose]: poses ) {
+        for ( const auto &[entity, pose]: poses ) {
             auto local = pose;
 
-            if ( auto* relation = registry.try_get<scene::RelationComponent>( entity ); relation && relation->HasParent() ) {
-                if ( auto* parent = mScene->FindByID( *relation->GetParent() ) ) {
+            if ( auto *relation = registry.try_get<scene::RelationComponent>( entity ); relation && relation->HasParent() ) {
+                if ( auto *parent = mScene->FindByID( *relation->GetParent() ) ) {
                     local = glm::inverse( worldPose( worldPose, parent ) ) * pose;
                 }
             }
@@ -1333,7 +1391,7 @@ namespace mikoto::physics {
         return mBodyIdCounter.fetch_add( 1, eastl::memory_order_relaxed ) + 1;
     }
 
-    auto PhysicsWorld::GetJoltBody( core::u64 id ) -> JPH::Body* {
+    auto PhysicsWorld::GetJoltBody( core::u64 id ) -> JPH::Body * {
         MKT_BEGIN_PROFILER();
         const auto it = mBodies.find( id );
 
@@ -1348,7 +1406,7 @@ namespace mikoto::physics {
         const auto it = mEntityBodies.find( entity );
 
         if ( it != mEntityBodies.end() ) {
-            if ( auto* body = GetJoltBody( it->second.mID ) ) {
+            if ( auto *body = GetJoltBody( it->second.mID ) ) {
                 mSimulationInfo->mBodyInterface->RemoveBody( body->GetID() );
                 mSimulationInfo->mBodyInterface->DestroyBody( body->GetID() );
                 mBodies.erase( it->second.mID );
@@ -1357,10 +1415,10 @@ namespace mikoto::physics {
             mEntityBodies.erase( it );
         }
 
-        auto& registry = mScene->GetRegistry();
+        auto &registry = mScene->GetRegistry();
 
         if ( registry.valid( entity ) ) {
-            if ( auto* rb = registry.try_get<scene::RigidBodyComponent>( entity ) ) {
+            if ( auto *rb = registry.try_get<scene::RigidBodyComponent>( entity ) ) {
                 rb->RemoveBodyID();
             }
         }
@@ -1391,7 +1449,7 @@ namespace mikoto::physics {
         mReportedUpdateErrors = JPH::EPhysicsUpdateError::None;
     }
 
-    auto PhysicsWorld::GetColliderError( entt::entity entity ) const -> const char* {
+    auto PhysicsWorld::GetColliderError( entt::entity entity ) const -> const char * {
         MKT_BEGIN_PROFILER();
 
         if ( const auto found{ mJoints.find( entity ) }; found != mJoints.end() && !found->second.mError.empty() ) {
@@ -1415,7 +1473,7 @@ namespace mikoto::physics {
         return it == mEntityBodies.end() ? "" : it->second.mError.c_str();
     }
 
-    auto PhysicsWorld::RemoveRigidBody( scene::Entity* entity ) -> void {
+    auto PhysicsWorld::RemoveRigidBody( scene::Entity *entity ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( entity ) {
@@ -1423,17 +1481,17 @@ namespace mikoto::physics {
         }
     }
 
-    auto PhysicsWorld::RemoveColliderBody( scene::Entity* entity ) -> void {
+    auto PhysicsWorld::RemoveColliderBody( scene::Entity *entity ) -> void {
         MKT_BEGIN_PROFILER();
         RemoveRigidBody( entity );
     }
 
-    auto PhysicsWorld::AddRigidBody( scene::Entity* entity ) -> void {
+    auto PhysicsWorld::AddRigidBody( scene::Entity *entity ) -> void {
         MKT_BEGIN_PROFILER();
         AddCollider( entity );
     }
 
-    auto PhysicsWorld::AddCollider( scene::Entity* entity ) -> void {
+    auto PhysicsWorld::AddCollider( scene::Entity *entity ) -> void {
         MKT_BEGIN_PROFILER();
 
         // Creation callbacks run before a newly created entity is registered in the scene.
@@ -1446,7 +1504,7 @@ namespace mikoto::physics {
         }
     }
 
-    auto PhysicsWorld::SetGravity( const core::float3& gravity ) -> void {
+    auto PhysicsWorld::SetGravity( const core::float3 &gravity ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( mGravity == gravity ) {
@@ -1456,7 +1514,7 @@ namespace mikoto::physics {
         mGravity = gravity;
         mSimulationInfo->mPhysicsSystem.SetGravity( JPH::Vec3( mGravity.x, mGravity.y, mGravity.z ) );
 
-        for ( const auto& [id, body]: mBodies ) {
+        for ( const auto &[id, body]: mBodies ) {
             if ( body->IsDynamic() ) {
                 mSimulationInfo->mBodyInterface->ActivateBody( body->GetID() );
             }
@@ -1475,16 +1533,20 @@ namespace mikoto::physics {
         return mSimulationInfo->mPhysicsSystem.GetNumBodies();
     }
 
-    auto PhysicsWorld::GetScene() const -> scene::Scene* {
+    auto PhysicsWorld::GetScene() const -> scene::Scene * {
         MKT_BEGIN_PROFILER();
 
         return mScene;
     }
 
-    auto PhysicsWorld::TakeContactEvents() -> eastl::vector<ContactEvent> {
+    auto PhysicsWorld::RestartContactNotifications() -> void {
+        mSimulationInfo->mContactListener.RestartNotifications();
+    }
+
+    auto PhysicsWorld::GetContactEvents() -> eastl::vector<ContactEvent> {
         MKT_BEGIN_PROFILER();
 
-        return mSimulationInfo->mContactListener.TakeEvents();
+        return mSimulationInfo->mContactListener.GetEvents();
     }
 
     auto PhysicsWorld::GetDroppedContactEventCount() const -> core::usize {
@@ -1493,7 +1555,7 @@ namespace mikoto::physics {
         return mSimulationInfo->mContactListener.GetDroppedEventCount();
     }
 
-    auto PhysicsWorld::GetGravity() const -> const core::float3& {
+    auto PhysicsWorld::GetGravity() const -> const core::float3 & {
         return mGravity;
     }
 
@@ -1522,13 +1584,13 @@ namespace mikoto::physics {
         }
     }
 
-    auto PhysicsWorld::Create( const PhysicsWorldCreateInfo& spec ) -> eastl::unique_ptr<PhysicsWorld> {
+    auto PhysicsWorld::Create( const PhysicsWorldCreateInfo &spec ) -> eastl::unique_ptr<PhysicsWorld> {
         MKT_BEGIN_PROFILER();
 
         return eastl::make_unique<PhysicsWorld>( spec );
     }
 
-    auto PhysicsWorld::GetFloat4x4F( const JPH::RMat44& m ) -> core::float4x4 {
+    auto PhysicsWorld::GetFloat4x4F( const JPH::RMat44 &m ) -> core::float4x4 {
         MKT_BEGIN_PROFILER();
         core::float4x4 out{};
 
@@ -1545,31 +1607,31 @@ namespace mikoto::physics {
         return out;
     }
 
-    auto PhysicsWorld::GetFloat3F( const JPH::Vec3& v ) -> core::float3 {
+    auto PhysicsWorld::GetFloat3F( const JPH::Vec3 &v ) -> core::float3 {
         MKT_BEGIN_PROFILER();
 
         return core::float3{ v.GetX(), v.GetY(), v.GetZ() };
     }
 
-    auto PhysicsWorld::GetQuatF( const JPH::Quat& q ) -> core::quat {
+    auto PhysicsWorld::GetQuatF( const JPH::Quat &q ) -> core::quat {
         MKT_BEGIN_PROFILER();
 
         return core::quat{ q.GetW(), q.GetX(), q.GetY(), q.GetZ() };
     }
 
-    auto PhysicsWorld::GetFloat3F( const core::float3& v ) -> JPH::Vec3 {
+    auto PhysicsWorld::GetFloat3F( const core::float3 &v ) -> JPH::Vec3 {
         MKT_BEGIN_PROFILER();
 
         return JPH::Vec3{ v.x, v.y, v.z };
     }
 
-    auto PhysicsWorld::GetQuatF( const core::float3& vec3EulerAnglesGLM ) -> JPH::Quat {
+    auto PhysicsWorld::GetQuatF( const core::float3 &vec3EulerAnglesGLM ) -> JPH::Quat {
         MKT_BEGIN_PROFILER();
         core::quat gq{ core::quat{ vec3EulerAnglesGLM } };// requires GLM_FORCE_RADIANS
         return GetQuatF( gq );
     }
 
-    auto PhysicsWorld::GetQuatF( const core::quat& q ) -> JPH::Quat {
+    auto PhysicsWorld::GetQuatF( const core::quat &q ) -> JPH::Quat {
         MKT_BEGIN_PROFILER();
 
         // glm stores (w, x, y, z)
@@ -1578,7 +1640,7 @@ namespace mikoto::physics {
 
     auto PhysicsWorld::RemoveBridges( entt::entity entity ) -> void {
         for ( auto it{ mBridges.begin() }; it != mBridges.end(); ) {
-            auto& state{ it->second };
+            auto &state{ it->second };
 
             if ( it->first != entity && eastl::find( state.mSegments.begin(), state.mSegments.end(), entity ) == state.mSegments.end() ) {
                 ++it;
@@ -1587,7 +1649,7 @@ namespace mikoto::physics {
 
             // Constraints borrow bodies. Remove every link before any plank is
             // destroyed or recooked, and restore its normal collision group.
-            for ( const auto& constraint: state.mConstraints ) {
+            for ( const auto &constraint: state.mConstraints ) {
                 mSimulationInfo->mPhysicsSystem.RemoveConstraint( constraint );
             }
 
@@ -1595,7 +1657,7 @@ namespace mikoto::physics {
                 const auto bodyState{ mEntityBodies.find( segment ) };
 
                 if ( bodyState != mEntityBodies.end() ) {
-                    if ( auto* body{ GetJoltBody( bodyState->second.mID ) } ) {
+                    if ( auto *body{ GetJoltBody( bodyState->second.mID ) } ) {
                         body->SetCollisionGroup( JPH::CollisionGroup{} );
                     }
                 }
@@ -1606,7 +1668,7 @@ namespace mikoto::physics {
     }
 
     auto PhysicsWorld::SynchronizeBridges() -> void {
-        auto& registry{ mScene->GetRegistry() };
+        auto &registry{ mScene->GetRegistry() };
         ankerl::unordered_dense::map<entt::entity, eastl::vector<entt::entity>> groups{};
 
         for ( const auto [entity, segment, relation]: registry.view<scene::BridgeSegmentComponent, scene::RelationComponent>().each() ) {
@@ -1614,7 +1676,7 @@ namespace mikoto::physics {
                 continue;
             }
 
-            auto* parent{ mScene->FindByID( *relation.GetParent() ) };
+            auto *parent{ mScene->FindByID( *relation.GetParent() ) };
             const auto found{ mEntityBodies.find( entity ) };
 
             if ( !parent || found == mEntityBodies.end() || !found->second.mShapeValid ||
@@ -1625,7 +1687,7 @@ namespace mikoto::physics {
             groups[parent->Get()].push_back( entity );
         }
 
-        for ( auto& [parent, segments]: groups ) {
+        for ( auto &[parent, segments]: groups ) {
             eastl::sort( segments.begin(), segments.end(), [&]( entt::entity a, entt::entity b ) {
                 return registry.get<scene::BridgeSegmentComponent>( a ).mIndex < registry.get<scene::BridgeSegmentComponent>( b ).mIndex;
             } );
@@ -1633,7 +1695,7 @@ namespace mikoto::physics {
 
         eastl::vector<entt::entity> stale{};
 
-        for ( const auto& [parent, state]: mBridges ) {
+        for ( const auto &[parent, state]: mBridges ) {
             const auto group{ groups.find( parent ) };
 
             if ( group == groups.end() || group->second != state.mSegments ) {
@@ -1645,7 +1707,7 @@ namespace mikoto::physics {
             RemoveBridges( parent );
         }
 
-        for ( const auto& [parent, segments]: groups ) {
+        for ( const auto &[parent, segments]: groups ) {
             if ( segments.size() < 2 || mBridges.contains( parent ) ) {
                 continue;
             }
@@ -1668,18 +1730,18 @@ namespace mikoto::physics {
                 filter->DisableCollision( index, index + 1 );
             }
 
-            JPH::Body* previous{};
+            JPH::Body *previous{};
 
             for ( core::u32 index{}; index < segments.size(); ++index ) {
-                const auto& bodyState{ mEntityBodies.at( segments[index] ) };
-                auto* body{ GetJoltBody( bodyState.mID ) };
+                const auto &bodyState{ mEntityBodies.at( segments[index] ) };
+                auto *body{ GetJoltBody( bodyState.mID ) };
                 body->SetCollisionGroup( JPH::CollisionGroup{ filter, entt::to_integral( parent ), index } );
 
                 if ( previous ) {
                     // Jolt's VehicleTest::CreateBridge uses two distance links
                     // per seam. Zero rest length joins the matching deck corners
                     // while allowing the planks to flex under the car.
-                    const auto& previousShape{ mEntityBodies.at( segments[index - 1] ).mDescription };
+                    const auto &previousShape{ mEntityBodies.at( segments[index - 1] ).mDescription };
                     const core::float3 a{ previousShape.mDimensions * glm::abs( previousShape.mScale ) };
                     const core::float3 b{ bodyState.mDescription.mDimensions * glm::abs( bodyState.mDescription.mScale ) };
 
@@ -1711,14 +1773,14 @@ namespace mikoto::physics {
 
         // Both registrations retain access to the chassis. Detach before any
         // collider replacement, scene teardown, or rigid-body destruction.
-        auto* constraint{ it->second.mConstraint.GetPtr() };
+        auto *constraint{ it->second.mConstraint.GetPtr() };
 
         if ( constraint ) {
             mSimulationInfo->mPhysicsSystem.RemoveStepListener( constraint );
             mSimulationInfo->mPhysicsSystem.RemoveConstraint( constraint );
         }
 
-        for ( auto& wheel: it->second.mWheelConstraints ) {
+        for ( auto &wheel: it->second.mWheelConstraints ) {
             mSimulationInfo->mPhysicsSystem.RemoveConstraint( wheel );
         }
 
@@ -1732,10 +1794,10 @@ namespace mikoto::physics {
     }
 
     auto PhysicsWorld::SynchronizeVehicles() -> void {
-        auto& registry{ mScene->GetRegistry() };
+        auto &registry{ mScene->GetRegistry() };
         eastl::vector<entt::entity> removed{};
 
-        for ( const auto& [entity, state]: mVehicles ) {
+        for ( const auto &[entity, state]: mVehicles ) {
             if ( !registry.valid( entity ) || !registry.all_of<scene::VehicleComponent, scene::RigidBodyComponent>( entity ) ) {
                 removed.push_back( entity );
             }
@@ -1746,8 +1808,8 @@ namespace mikoto::physics {
         }
 
         for ( auto [entity, vehicle, rigidBody, transform]: registry.view<scene::VehicleComponent, scene::RigidBodyComponent, scene::TransformComponent>().each() ) {
-            auto* body{ rigidBody.IsValidBodyID() ? GetJoltBody( rigidBody.GetBodyID() ) : nullptr };
-            const auto& world{ transform.GetWorldTransform() };
+            auto *body{ rigidBody.IsValidBodyID() ? GetJoltBody( rigidBody.GetBodyID() ) : nullptr };
+            const auto &world{ transform.GetWorldTransform() };
             const bool unitScale{ glm::abs( glm::length( core::float3{ world[0] } ) - 1.0f ) < 0.001f &&
                                   glm::abs( glm::length( core::float3{ world[1] } ) - 1.0f ) < 0.001f &&
                                   glm::abs( glm::length( core::float3{ world[2] } ) - 1.0f ) < 0.001f && glm::determinant( world ) > 0.0f };
@@ -1808,14 +1870,14 @@ namespace mikoto::physics {
             return;
         }
 
-        auto& registry{ mScene->GetRegistry() };
+        auto &registry{ mScene->GetRegistry() };
 
         for ( auto [entity, wheel, relation, transform]: registry.view<scene::VehicleWheelComponent, scene::RelationComponent, scene::TransformComponent>().each() ) {
             if ( !relation.HasParent() ) {
                 continue;
             }
 
-            auto* parent{ mScene->FindByID( *relation.GetParent() ) };
+            auto *parent{ mScene->FindByID( *relation.GetParent() ) };
 
             if ( !parent ) {
                 continue;
@@ -1824,7 +1886,7 @@ namespace mikoto::physics {
             const auto it{ mVehicles.find( parent->Get() ) };
 
             if ( it != mVehicles.end() ) {
-                const auto& state{ it->second };
+                const auto &state{ it->second };
                 JPH::RMat44 pose{};
 
                 if ( state.mConstraint && wheel.mIndex < state.mConstraint->GetWheels().size() ) {
@@ -1869,14 +1931,14 @@ namespace mikoto::physics {
         mScene->UpdateWorldTransformations();
     }
 
-    auto PhysicsWorld::ReadHeightField( entt::entity entity, ColliderShapeDescription& desc ) -> void {
-        auto& registry{ mScene->GetRegistry() };
-        auto& state{ mEntityBodies.at( entity ) };
-        const auto& collider{ registry.get<scene::HeightFieldColliderComponent>( entity ) };
-        scene::LandscapeComponent* landscape{};
+    auto PhysicsWorld::ReadHeightField( entt::entity entity, ColliderShapeDescription &desc ) -> void {
+        auto &registry{ mScene->GetRegistry() };
+        auto &state{ mEntityBodies.at( entity ) };
+        const auto &collider{ registry.get<scene::HeightFieldColliderComponent>( entity ) };
+        scene::LandscapeComponent *landscape{};
 
         if ( collider.GetLandscapeEntityID() ) {
-            auto* source{ mScene->FindByID( collider.GetLandscapeEntityID() ) };
+            auto *source{ mScene->FindByID( collider.GetLandscapeEntityID() ) };
 
             if ( !source || !source->HasComponent<scene::LandscapeComponent>() ) {
                 MKT_THROW_RUNTIME_ERROR( "Heightfield references a missing landscape." );
@@ -1945,24 +2007,24 @@ namespace mikoto::physics {
         desc.mOffset = collider.GetOffset() + ( landscape ? core::float3{ terrain.mOrigin.x, terrain.mBaseElevation, terrain.mOrigin.y } : core::float3{ 0, collider.GetBaseElevation(), 0 } );
     }
 
-    auto PhysicsWorld::ReadCompound( entt::entity entity, ColliderShapeDescription& desc, eastl::vector<entt::entity>& ancestors ) -> void {
+    auto PhysicsWorld::ReadCompound( entt::entity entity, ColliderShapeDescription &desc, eastl::vector<entt::entity> &ancestors ) -> void {
         if ( ancestors.size() >= 32 || eastl::find( ancestors.begin(), ancestors.end(), entity ) != ancestors.end() ) {
             MKT_THROW_RUNTIME_ERROR( "Compound collider references form a cycle or exceed 32 levels." );
         }
 
         ancestors.push_back( entity );
-        auto& registry{ mScene->GetRegistry() };
-        const auto& compound{ registry.get<scene::CompoundColliderComponent>( entity ) };
+        auto &registry{ mScene->GetRegistry() };
+        const auto &compound{ registry.get<scene::CompoundColliderComponent>( entity ) };
         const auto inverse{ glm::inverse( registry.get<scene::TransformComponent>( entity ).GetWorldTransform() ) };
 
         for ( auto guid: compound.GetColliderEntities() ) {
-            auto* child{ mScene->FindByID( guid ) };
+            auto *child{ mScene->FindByID( guid ) };
 
             if ( !child || !child->HasComponent<scene::TransformComponent>() || !scene::HasCollider( registry, child->Get() ) ) {
                 MKT_THROW_RUNTIME_ERROR( "Compound references a missing collider." );
             }
 
-            auto& state{ mEntityBodies[child->Get()] };
+            auto &state{ mEntityBodies[child->Get()] };
             bool trigger{};
             auto childDesc{ ReadColliderDescription( child->Get(), trigger, &ancestors ) };
 
@@ -2001,16 +2063,16 @@ namespace mikoto::physics {
     }
 
 
-    auto PhysicsWorld::CreateSixDofVehicle( entt::entity entity, JPH::Body& chassis, const scene::VehicleComponent& vehicle ) -> void {
+    auto PhysicsWorld::CreateSixDofVehicle( entt::entity entity, JPH::Body &chassis, const scene::VehicleComponent &vehicle ) -> void {
         // VehicleSixDOFTest.cpp: physical cylinder wheels, suspension on Y and drive on X.
         // https://github.com/jrouwe/JoltPhysics/blob/e77f175595e64cb44218cc9d9d56fc365ad0e36a/Samples/Tests/Vehicle/VehicleSixDOFTest.cpp
-        auto& state{ mVehicles.at( entity ) };
+        auto &state{ mVehicles.at( entity ) };
         JPH::Ref<JPH::GroupFilterTable> filter{ new JPH::GroupFilterTable{} };
         const JPH::CollisionGroup group{ filter, chassis.GetID().GetIndexAndSequenceNumber(), 0 };
         chassis.SetCollisionGroup( group );
         const auto wheels{ GetVehicleWheels( vehicle ) };
 
-        for ( const auto& source: wheels ) {
+        for ( const auto &source: wheels ) {
             const bool left{ source.mPosition.x < 0 };
             const float travel{ .5f * ( source.mSuspensionMax - source.mSuspensionMin ) };
             const auto anchor{ chassis.GetWorldTransform() * GetFloat3F( source.mPosition ) };
@@ -2022,7 +2084,7 @@ namespace mikoto::physics {
             bodySettings.mCollisionGroup = group;
             bodySettings.mFriction = 1;
             bodySettings.mUserData = chassis.GetUserData();
-            auto* wheel{ mSimulationInfo->mBodyInterface->CreateBody( bodySettings ) };
+            auto *wheel{ mSimulationInfo->mBodyInterface->CreateBody( bodySettings ) };
 
             if ( !wheel ) {
                 RemoveVehicle( entity );
@@ -2056,7 +2118,7 @@ namespace mikoto::physics {
                 settings.MakeFixedAxis( JPH::SixDOFConstraintSettings::EAxis::RotationY );
             }
 
-            JPH::Ref<JPH::SixDOFConstraint> constraint{ static_cast<JPH::SixDOFConstraint*>( settings.Create( chassis, *wheel ) ) };
+            JPH::Ref<JPH::SixDOFConstraint> constraint{ static_cast<JPH::SixDOFConstraint *>( settings.Create( chassis, *wheel ) ) };
             constraint->SetTargetPositionCS( JPH::Vec3{ 0, -travel, 0 } );
             constraint->SetMotorState( JPH::SixDOFConstraint::EAxis::TranslationY, JPH::EMotorState::Position );
 
@@ -2070,14 +2132,14 @@ namespace mikoto::physics {
         }
     }
 
-    auto PhysicsWorld::UpdateVehicleInputs( entt::entity entity, const scene::VehicleComponent& vehicle ) -> void {
+    auto PhysicsWorld::UpdateVehicleInputs( entt::entity entity, const scene::VehicleComponent &vehicle ) -> void {
         const auto it{ mVehicles.find( entity ) };
 
         if ( it == mVehicles.end() ) {
             return;
         }
 
-        auto& state{ it->second };
+        auto &state{ it->second };
         const auto throttle{ glm::clamp( vehicle.mThrottle, -1.0f, 1.0f ) };
         const auto steer{ glm::clamp( vehicle.mSteer, -1.0f, 1.0f ) };
         const auto brake{ glm::clamp( vehicle.mBrake, 0.0f, 1.0f ) };
@@ -2089,8 +2151,8 @@ namespace mikoto::physics {
             const bool stopping{ brake > 0 || handBrake > 0 || throttle * speed < 0 };
 
             for ( core::u32 i{}; i < state.mWheelConstraints.size(); ++i ) {
-                auto& constraint{ state.mWheelConstraints[i] };
-                const auto& wheel{ wheels[i] };
+                auto &constraint{ state.mWheelConstraints[i] };
+                const auto &wheel{ wheels[i] };
 
                 if ( wheel.mSteered ) {
                     constraint->SetTargetOrientationCS( JPH::Quat::sRotation( JPH::Vec3::sAxisY(), -steer * wheel.mMaxSteerAngle ) );
@@ -2107,7 +2169,7 @@ namespace mikoto::physics {
             const float speed{ state.mChassis->GetLinearVelocity().Dot( state.mChassis->GetRotation().RotateAxisZ() ) };
 
             if ( steer != 0 ) {
-                auto& ratio{ steer < 0 ? left : right };
+                auto &ratio{ steer < 0 ? left : right };
 
                 if ( brake == 0 && handBrake == 0 && forward == 0 && glm::abs( speed ) < 1 ) {
                     ratio = -1;
@@ -2118,7 +2180,7 @@ namespace mikoto::physics {
                 }
             }
 
-            static_cast<JPH::TrackedVehicleController*>( state.mConstraint->GetController() )->SetDriverInput( forward, left, right, glm::max( brake, handBrake ) );
+            static_cast<JPH::TrackedVehicleController *>( state.mConstraint->GetController() )->SetDriverInput( forward, left, right, glm::max( brake, handBrake ) );
         }
         else {
             float pressure{ brake };
@@ -2131,17 +2193,17 @@ namespace mikoto::physics {
                 pressure *= ( 1 - lean ) * ( 1 - lean );
             }
 
-            static_cast<JPH::WheeledVehicleController*>( state.mConstraint->GetController() )->SetDriverInput( throttle, steer, pressure, handBrake );
+            static_cast<JPH::WheeledVehicleController *>( state.mConstraint->GetController() )->SetDriverInput( throttle, steer, pressure, handBrake );
         }
     }
 
 
-    auto PhysicsWorld::FindEntityBody( core::u64 guid ) -> JPH::Body* {
+    auto PhysicsWorld::FindEntityBody( core::u64 guid ) -> JPH::Body * {
         if ( guid == 0 ) {
             return &JPH::Body::sFixedToWorld;
         }
 
-        auto* entity{ mScene->FindByID( guid ) };
+        auto *entity{ mScene->FindByID( guid ) };
 
         if ( !entity ) {
             return nullptr;
@@ -2162,8 +2224,8 @@ namespace mikoto::physics {
         // Gear/rack constraints borrow their hinges/sliders; detach dependants first.
         eastl::vector<entt::entity> dependants{};
 
-        for ( const auto& [owner, state]: mJoints ) {
-            if ( owner != entity && found->second.mConstraint && ( state.mDependencyA.GetPtr() == static_cast<JPH::Constraint*>( found->second.mConstraint.GetPtr() ) || state.mDependencyB.GetPtr() == static_cast<JPH::Constraint*>( found->second.mConstraint.GetPtr() ) ) ) {
+        for ( const auto &[owner, state]: mJoints ) {
+            if ( owner != entity && found->second.mConstraint && ( state.mDependencyA.GetPtr() == static_cast<JPH::Constraint *>( found->second.mConstraint.GetPtr() ) || state.mDependencyB.GetPtr() == static_cast<JPH::Constraint *>( found->second.mConstraint.GetPtr() ) ) ) {
                 dependants.push_back( owner );
             }
         }
@@ -2173,13 +2235,13 @@ namespace mikoto::physics {
         }
 
         // Erasing another dense-map entry may move this one.
-        auto& state{ mJoints.at( entity ) };
+        auto &state{ mJoints.at( entity ) };
 
         if ( state.mConstraint ) {
             mSimulationInfo->mPhysicsSystem.RemoveConstraint( state.mConstraint );
 
             // Jolt does not wake bodies when a constraint is detached.
-            for ( auto* body: { state.mBodyA, state.mBodyB } ) {
+            for ( auto *body: { state.mBodyA, state.mBodyB } ) {
                 if ( body && body->IsDynamic() ) {
                     mSimulationInfo->mBodyInterface->ActivateBody( body->GetID() );
                 }
@@ -2191,10 +2253,10 @@ namespace mikoto::physics {
 
     auto PhysicsWorld::RemoveJoints( entt::entity body ) -> void {
         const auto found{ mEntityBodies.find( body ) };
-        JPH::Body* native{ found == mEntityBodies.end() ? nullptr : GetJoltBody( found->second.mID ) };
+        JPH::Body *native{ found == mEntityBodies.end() ? nullptr : GetJoltBody( found->second.mID ) };
         eastl::vector<entt::entity> removed{};
 
-        for ( const auto& [owner, state]: mJoints ) {
+        for ( const auto &[owner, state]: mJoints ) {
             if ( owner == body || ( native && ( state.mBodyA == native || state.mBodyB == native ) ) ) {
                 removed.push_back( owner );
             }
@@ -2206,11 +2268,11 @@ namespace mikoto::physics {
     }
 
     auto PhysicsWorld::SynchronizeJoints() -> void {
-        auto& registry{ mScene->GetRegistry() };
+        auto &registry{ mScene->GetRegistry() };
         std::set<entt::entity> present{};
         std::set<std::pair<core::u64, core::u64>> disabledPairs{};
-        const auto dependency = [&]( core::u64 guid ) -> JPH::Constraint* {
-            auto* entity{ mScene->FindByID( guid ) };
+        const auto dependency = [&]( core::u64 guid ) -> JPH::Constraint * {
+            auto *entity{ mScene->FindByID( guid ) };
 
             if ( !entity ) {
                 return nullptr;
@@ -2222,11 +2284,11 @@ namespace mikoto::physics {
         };
 
         // Hinges and sliders are visited before their gear/rack dependants.
-        ForEachJointComponent( [&]<typename T>( const char* name ) {
+        ForEachJointComponent( [&]<typename T>( const char *name ) {
             for ( auto [entity, joint]: registry.view<T>().each() ) {
                 present.insert( entity );
-                auto* a{ joint.GetBodyAEntityID() ? FindEntityBody( joint.GetBodyAEntityID() ) : nullptr };
-                auto* b{ FindEntityBody( joint.GetBodyBEntityID() ) };
+                auto *a{ joint.GetBodyAEntityID() ? FindEntityBody( joint.GetBodyAEntityID() ) : nullptr };
+                auto *b{ FindEntityBody( joint.GetBodyBEntityID() ) };
                 JPH::Constraint *depA{}, *depB{};
 
                 if constexpr ( std::is_same_v<T, GearJointComponent> ) {
@@ -2262,7 +2324,7 @@ namespace mikoto::physics {
 
                     try {
                         state.mConstraint = CreateJoint( joint, *a, *b, depA, depB );
-                    } catch ( const std::exception& error ) {
+                    } catch ( const std::exception &error ) {
                         state.mError = error.what();
                         MKT_CORE_LOGGER_WARN( "{} disabled: {}", name, error.what() );
                     }
@@ -2272,7 +2334,7 @@ namespace mikoto::physics {
                     if ( it->second.mConstraint ) {
                         mSimulationInfo->mPhysicsSystem.AddConstraint( it->second.mConstraint );
 
-                        for ( auto* body: { a, b } ) {
+                        for ( auto *body: { a, b } ) {
                             if ( body->IsDynamic() ) {
                                 mSimulationInfo->mBodyInterface->ActivateBody( body->GetID() );
                             }
@@ -2287,7 +2349,7 @@ namespace mikoto::physics {
         } );
         eastl::vector<entt::entity> removed{};
 
-        for ( const auto& [entity, state]: mJoints ) {
+        for ( const auto &[entity, state]: mJoints ) {
             if ( !present.contains( entity ) ) {
                 removed.push_back( entity );
             }
@@ -2298,18 +2360,18 @@ namespace mikoto::physics {
         }
 
         if ( mSimulationInfo->mContactListener.SetDisabledPairs( eastl::move( disabledPairs ) ) ) {
-            for ( const auto& [id, body]: mBodies ) {
+            for ( const auto &[id, body]: mBodies ) {
                 mSimulationInfo->mBodyInterface->InvalidateContactCache( body->GetID() );
             }
         }
     }
 
-    auto PhysicsWorld::SetEntityWorldPose( entt::entity entity, const core::float3& position, const core::quat& rotation, const core::float3& scale ) -> void {
-        auto& registry{ mScene->GetRegistry() };
+    auto PhysicsWorld::SetEntityWorldPose( entt::entity entity, const core::float3 &position, const core::quat &rotation, const core::float3 &scale ) -> void {
+        auto &registry{ mScene->GetRegistry() };
         auto pose{ glm::translate( core::float4x4{ 1 }, position ) * glm::mat4_cast( rotation ) * glm::scale( core::float4x4{ 1 }, scale ) };
 
-        if ( const auto* relation{ registry.try_get<scene::RelationComponent>( entity ) }; relation && relation->HasParent() ) {
-            if ( auto* parent{ mScene->FindByID( *relation->GetParent() ) } ) {
+        if ( const auto *relation{ registry.try_get<scene::RelationComponent>( entity ) }; relation && relation->HasParent() ) {
+            if ( auto *parent{ mScene->FindByID( *relation->GetParent() ) } ) {
                 pose = glm::inverse( parent->GetComponent<scene::TransformComponent>().GetWorldTransform() ) * pose;
             }
         }
@@ -2329,6 +2391,7 @@ namespace mikoto::physics {
         }
 
         if ( found->second.mVirtual ) {
+            mSimulationInfo->mContactListener.UpdateCharacterContacts( found->second.mContacts, {} );
             mCharacterCollisions.Remove( found->second.mVirtual );
         }
 
@@ -2336,10 +2399,10 @@ namespace mikoto::physics {
     }
 
     auto PhysicsWorld::SynchronizeCharacters() -> void {
-        auto& registry{ mScene->GetRegistry() };
+        auto &registry{ mScene->GetRegistry() };
         eastl::vector<entt::entity> removed{};
 
-        for ( const auto& [entity, state]: mCharacters ) {
+        for ( const auto &[entity, state]: mCharacters ) {
             if ( !registry.valid( entity ) || !registry.all_of<scene::CharacterControllerComponent, scene::TransformComponent>( entity ) || !registry.get<scene::CharacterControllerComponent>( entity ).IsEnabled() ) {
                 removed.push_back( entity );
             }
@@ -2354,7 +2417,7 @@ namespace mikoto::physics {
                 continue;
             }
 
-            const auto& world{ transform.GetWorldTransform() };
+            const auto &world{ transform.GetWorldTransform() };
             const core::float3 position{ world[3] };
             const core::quat rotation{ glm::normalize( glm::quat_cast( world ) ) };
             auto it{ mCharacters.find( entity ) };
@@ -2410,7 +2473,7 @@ namespace mikoto::physics {
                         state.mRigid = new JPH::Character{ &settings, GetFloat3F( position ), GetQuatF( rotation ), tag.GetGuid(), &mSimulationInfo->mPhysicsSystem };
                         state.mRigid->AddToPhysicsSystem( JPH::EActivation::Activate );
                     }
-                } catch ( const std::exception& error ) {
+                } catch ( const std::exception &error ) {
                     state.mError = error.what();
                     MKT_CORE_LOGGER_WARN( "Character disabled: {}", error.what() );
                 }
@@ -2418,7 +2481,7 @@ namespace mikoto::physics {
                 it = mCharacters.emplace( entity, eastl::move( state ) ).first;
             }
 
-            auto& state{ it->second };
+            auto &state{ it->second };
 
             if ( glm::length2( state.mPosition - position ) > .000001f || glm::abs( glm::dot( state.mRotation, rotation ) ) < .99999f ) {
                 if ( state.mRigid ) {
@@ -2437,14 +2500,14 @@ namespace mikoto::physics {
     }
 
     auto PhysicsWorld::UpdateCharacters( core::f32 dt ) -> void {
-        auto& registry{ mScene->GetRegistry() };
+        auto &registry{ mScene->GetRegistry() };
 
-        for ( auto& [entity, state]: mCharacters ) {
-            auto& component{ registry.get<scene::CharacterControllerComponent>( entity ) };
+        for ( auto &[entity, state]: mCharacters ) {
+            auto &component{ registry.get<scene::CharacterControllerComponent>( entity ) };
 
             if ( state.mVirtual ) {
                 // CharacterVirtualTest::HandleInput: inherit ground motion before jump and gravity.
-                auto& character{ *state.mVirtual };
+                auto &character{ *state.mVirtual };
                 character.UpdateGroundVelocity();
                 const auto up{ character.GetUp() };
                 const auto vertical{ character.GetLinearVelocity().Dot( up ) * up };
@@ -2466,13 +2529,31 @@ namespace mikoto::physics {
                     settings.mStickToFloorStepDown = JPH::Vec3::sZero();
                 }
 
-                auto& system{ mSimulationInfo->mPhysicsSystem };
+                auto &system{ mSimulationInfo->mPhysicsSystem };
                 character.ExtendedUpdate( dt, system.GetGravity() * component.GetGravityFactor(), settings,
                     system.GetDefaultBroadPhaseLayerFilter( Layers::MOVING ), system.GetDefaultLayerFilter( Layers::MOVING ), {}, {}, *mSimulationInfo->mTempAllocator );
+
+                // Virtual characters do not own a body in Jolt's rigid-body solver.
+                // Their contact snapshot includes cached user IDs, including sensors;
+                // never dereference the possibly stale mCharacterB pointer.
+                eastl::vector<ContactEvent> contacts{};
+                for ( const auto &contact: character.GetActiveContacts() ) {
+                    if ( !contact.mUserData || ( contact.mIsSensorB ? contact.mDistance > 0 : !contact.mHadCollision ) ) {
+                        continue;
+                    }
+                    const auto found{ eastl::find_if( contacts.begin(), contacts.end(), [&]( const ContactEvent &event ) {
+                        return event.mEntityB == contact.mUserData && event.mIsTrigger == contact.mIsSensorB;
+                    } ) };
+                    if ( found == contacts.end() ) {
+                        contacts.push_back( { ContactEvent::Type::eEnter, character.GetUserData(), contact.mUserData, contact.mIsSensorB } );
+                    }
+                }
+                mSimulationInfo->mContactListener.UpdateCharacterContacts( state.mContacts, contacts );
+                state.mContacts = eastl::move( contacts );
             }
             else if ( state.mRigid ) {
                 // CharacterTest::HandleInput: project motion away from unwalkable surfaces.
-                auto& character{ *state.mRigid };
+                auto &character{ *state.mRigid };
                 auto desired{ GetFloat3F( component.mDesiredVelocity ) };
                 desired.SetY( 0 );
 
@@ -2503,7 +2584,7 @@ namespace mikoto::physics {
     auto PhysicsWorld::PostUpdateCharacters() -> void {
         mScene->UpdateWorldTransformations();
 
-        for ( auto& [entity, state]: mCharacters ) {
+        for ( auto &[entity, state]: mCharacters ) {
             if ( state.mRigid ) {
                 state.mRigid->PostSimulation( .05f );
                 state.mPosition = GetFloat3F( state.mRigid->GetPosition() );
@@ -2517,7 +2598,7 @@ namespace mikoto::physics {
                 continue;
             }
 
-            const JPH::CharacterBase* character{ state.mRigid ? static_cast<JPH::CharacterBase*>( state.mRigid.GetPtr() ) : state.mVirtual.GetPtr() };
+            const JPH::CharacterBase *character{ state.mRigid ? static_cast<JPH::CharacterBase *>( state.mRigid.GetPtr() ) : state.mVirtual.GetPtr() };
             mScene->GetRegistry().get<scene::CharacterControllerComponent>( entity ).mGrounded = character->GetGroundState() == JPH::CharacterBase::EGroundState::OnGround;
             SetEntityWorldPose( entity, state.mPosition, state.mRotation );
         }
@@ -2526,7 +2607,7 @@ namespace mikoto::physics {
     }
 
     auto PhysicsWorld::ApplyBuoyancy( core::f32 dt ) -> void {
-        auto& registry{ mScene->GetRegistry() };
+        auto &registry{ mScene->GetRegistry() };
 
         for ( auto [entity, buoyancy]: registry.view<scene::BuoyancyComponent>().each() ) {
             if ( !buoyancy.IsEnabled() ) {
@@ -2534,20 +2615,20 @@ namespace mikoto::physics {
             }
 
             const auto found{ mEntityBodies.find( entity ) };
-            auto* body{ found == mEntityBodies.end() ? nullptr : GetJoltBody( found->second.mID ) };
-            auto* water{ mScene->FindByID( buoyancy.GetWaterVolumeEntityID() ) };
+            auto *body{ found == mEntityBodies.end() ? nullptr : GetJoltBody( found->second.mID ) };
+            auto *water{ mScene->FindByID( buoyancy.GetWaterVolumeEntityID() ) };
 
             if ( !body || !body->IsDynamic() || !water || !water->HasComponent<scene::WaterVolumeComponent>() ) {
                 continue;
             }
 
-            const auto& volume{ water->GetComponent<scene::WaterVolumeComponent>() };
+            const auto &volume{ water->GetComponent<scene::WaterVolumeComponent>() };
 
             if ( !volume.IsEnabled() || volume.GetDensity() <= 0 ) {
                 continue;
             }
 
-            const auto& transform{ water->GetComponent<scene::TransformComponent>().GetWorldTransform() };
+            const auto &transform{ water->GetComponent<scene::TransformComponent>().GetWorldTransform() };
             const auto inverse{ glm::inverse( transform ) };
             const auto bounds{ body->GetWorldSpaceBounds() };
             const auto center{ core::float3{ inverse * core::float4{ GetFloat3F( bounds.GetCenter() ), 1 } } };
@@ -2562,9 +2643,9 @@ namespace mikoto::physics {
             core::float3 normal{ glm::normalize( core::float3{ glm::transpose( glm::inverse( transform ) )[1] } ) };
             auto point{ core::float3{ transform * core::float4{ 0, volume.GetSurfaceOffset(), 0, 1 } } };
 
-            if ( auto* surface{ mScene->FindByID( volume.GetWaterSurfaceEntityID() ) } ) {
+            if ( auto *surface{ mScene->FindByID( volume.GetWaterSurfaceEntityID() ) } ) {
                 // A referenced surface supplies its current plane; wave sampling belongs to the water simulation.
-                const auto& world{ surface->GetComponent<scene::TransformComponent>().GetWorldTransform() };
+                const auto &world{ surface->GetComponent<scene::TransformComponent>().GetWorldTransform() };
                 point = core::float3{ world[3] };
                 normal = glm::normalize( core::float3{ world[1] } );
             }
@@ -2579,17 +2660,17 @@ namespace mikoto::physics {
 
 
     auto PhysicsWorld::SynchronizeRagdolls() -> void {
-        auto& registry{ mScene->GetRegistry() };
+        auto &registry{ mScene->GetRegistry() };
         eastl::vector<entt::entity> removed{};
 
-        for ( const auto& [entity, state]: mRagdolls ) {
+        for ( const auto &[entity, state]: mRagdolls ) {
             if ( !registry.valid( entity ) || !registry.all_of<scene::RagdollComponent>( entity ) || !registry.get<scene::RagdollComponent>( entity ).IsEnabled() || registry.get<scene::RagdollComponent>( entity ).GetRevision() != state.mRevision ) {
                 removed.push_back( entity );
             }
         }
 
         for ( auto entity: removed ) {
-            if ( auto* animator{ animation::AnimationSystem::Get()->GetAnimator( mRagdolls.at( entity ).mAnimatorID ) } ) {
+            if ( auto *animator{ animation::AnimationSystem::Get()->GetAnimator( mRagdolls.at( entity ).mAnimatorID ) } ) {
                 animator->EvaluatePose();
             }
 
@@ -2605,11 +2686,11 @@ namespace mikoto::physics {
             state.mRevision = component.GetRevision();
 
             try {
-                if ( auto* owner{ registry.try_get<scene::AnimatorComponent>( entity ) } ) {
+                if ( auto *owner{ registry.try_get<scene::AnimatorComponent>( entity ) } ) {
                     state.mAnimatorID = owner->GetAnimatorID();
                 }
 
-                auto* animator{ animation::AnimationSystem::Get()->GetAnimator( state.mAnimatorID ) };
+                auto *animator{ animation::AnimationSystem::Get()->GetAnimator( state.mAnimatorID ) };
 
                 if ( !component.GetSkeleton().GetPath().IsEmpty() ) {
                     state.mSkeleton = asset::AssetRegistryService::Get()->LoadAssetHandle<asset::Skeleton>( component.GetSkeleton().GetPath() );
@@ -2624,15 +2705,15 @@ namespace mikoto::physics {
                     animator->CopyAnimationPose( state.mAnimationPose );
                 }
 
-                for ( const auto& bone: component.GetBoneMappings() ) {
-                    auto* body{ FindEntityBody( bone.mBodyEntityID ) };
+                for ( const auto &bone: component.GetBoneMappings() ) {
+                    auto *body{ FindEntityBody( bone.mBodyEntityID ) };
 
                     if ( !body || !bone.mBodyEntityID || !body->IsDynamic() ) {
                         MKT_THROW_RUNTIME_ERROR( "Ragdoll bone needs an authored dynamic body." );
                     }
 
                     if ( bone.mJointEntityID ) {
-                        auto* joint{ mScene->FindByID( bone.mJointEntityID ) };
+                        auto *joint{ mScene->FindByID( bone.mJointEntityID ) };
 
                         if ( !joint || !mJoints.contains( joint->Get() ) || !mJoints.at( joint->Get() ).mConstraint ) {
                             MKT_THROW_RUNTIME_ERROR( "Ragdoll bone references a missing joint." );
@@ -2652,7 +2733,7 @@ namespace mikoto::physics {
                 }
 
                 state.mPhysicsPose.resize( state.mAnimationPose.size() );
-            } catch ( const std::exception& error ) {
+            } catch ( const std::exception &error ) {
                 state.mError = error.what();
                 MKT_CORE_LOGGER_WARN( "Ragdoll binding disabled: {}", error.what() );
             }
@@ -2662,24 +2743,24 @@ namespace mikoto::physics {
     }
 
     auto PhysicsWorld::UpdateRagdollPoses() -> void {
-        auto& registry{ mScene->GetRegistry() };
+        auto &registry{ mScene->GetRegistry() };
 
-        for ( auto& [entity, state]: mRagdolls ) {
-            auto* animator{ animation::AnimationSystem::Get()->GetAnimator( state.mAnimatorID ) };
+        for ( auto &[entity, state]: mRagdolls ) {
+            auto *animator{ animation::AnimationSystem::Get()->GetAnimator( state.mAnimatorID ) };
 
             if ( !animator || !state.mError.empty() ) {
                 continue;
             }
 
-            const auto& component{ registry.get<scene::RagdollComponent>( entity ) };
+            const auto &component{ registry.get<scene::RagdollComponent>( entity ) };
             animator->CopyAnimationPose( state.mAnimationPose );
             state.mPhysicsPose = state.mAnimationPose;
             const auto inverse{ glm::inverse( registry.get<scene::TransformComponent>( entity ).GetWorldTransform() ) };
 
             // Jolt Ragdoll::GetPose exposes body world transforms. Here the ECS already owns
             // those bodies/constraints, so map them to skinning bones without creating duplicate bodies.
-            for ( const auto& binding: state.mBindings ) {
-                if ( auto* body{ FindEntityBody( binding.mEntityID ) } ) {
+            for ( const auto &binding: state.mBindings ) {
+                if ( auto *body{ FindEntityBody( binding.mEntityID ) } ) {
                     state.mPhysicsPose[binding.mJoint] = inverse * GetFloat4x4F( body->GetWorldTransform() ) * binding.mBodyToJoint;
                 }
             }
@@ -2687,7 +2768,7 @@ namespace mikoto::physics {
             const auto parents{ animator->GetModel()->GetSkeleton()->GetOzzSkeleton()->joint_parents() };
 
             for ( core::usize i{}; i < state.mPhysicsPose.size(); ++i ) {
-                const bool mapped{ eastl::any_of( state.mBindings.begin(), state.mBindings.end(), [&]( const auto& binding ) {
+                const bool mapped{ eastl::any_of( state.mBindings.begin(), state.mBindings.end(), [&]( const auto &binding ) {
                     return binding.mJoint == i;
                 } ) };
 
@@ -2702,7 +2783,7 @@ namespace mikoto::physics {
 
     // Adapted from Jolt's interactive soft-body grab. Save and restore the original pin state.
     // https://github.com/jrouwe/JoltPhysics/blob/v5.6.0/Samples/SamplesApp.cpp#L1864-L1978
-    auto PhysicsWorld::BeginSoftBodyGrab( const SoftBodyHit& hit ) -> bool {
+    auto PhysicsWorld::BeginSoftBodyGrab( const SoftBodyHit &hit ) -> bool {
         if ( IsSoftBodyGrabActive() || ( !mScene->IsPlaying() && !mScene->IsSimulating() ) ) {
             return false;
         }
@@ -2719,14 +2800,14 @@ namespace mikoto::physics {
             return false;
         }
 
-        auto& body{ lock.GetBody() };
-        auto& motion{ static_cast<JPH::SoftBodyMotionProperties&>( *body.GetMotionProperties() ) };
+        auto &body{ lock.GetBody() };
+        auto &motion{ static_cast<JPH::SoftBodyMotionProperties &>( *body.GetMotionProperties() ) };
 
         if ( hit.mParticle >= motion.GetVertices().size() ) {
             return false;
         }
 
-        auto& vertex{ motion.GetVertex( hit.mParticle ) };
+        auto &vertex{ motion.GetVertex( hit.mParticle ) };
         mSoftBodyGrab = {
             .mBody = body.GetID(),
             .mParticle = hit.mParticle,
@@ -2738,7 +2819,7 @@ namespace mikoto::physics {
         return true;
     }
 
-    auto PhysicsWorld::SetSoftBodyGrabTarget( const core::float3& target ) -> void {
+    auto PhysicsWorld::SetSoftBodyGrabTarget( const core::float3 &target ) -> void {
         mSoftBodyGrab.mTarget = target;
     }
 
@@ -2750,8 +2831,8 @@ namespace mikoto::physics {
         const JPH::BodyLockWrite lock{ mSimulationInfo->mPhysicsSystem.GetBodyLockInterface(), mSoftBodyGrab.mBody };
 
         if ( lock.Succeeded() ) {
-            auto& motion{ static_cast<JPH::SoftBodyMotionProperties&>( *lock.GetBody().GetMotionProperties() ) };
-            auto& vertex{ motion.GetVertex( mSoftBodyGrab.mParticle ) };
+            auto &motion{ static_cast<JPH::SoftBodyMotionProperties &>( *lock.GetBody().GetMotionProperties() ) };
+            auto &vertex{ motion.GetVertex( mSoftBodyGrab.mParticle ) };
             vertex.mInvMass = mSoftBodyGrab.mInverseMass;
 
             if ( vertex.mInvMass == 0.0f ) {
@@ -2766,12 +2847,13 @@ namespace mikoto::physics {
         return !mSoftBodyGrab.mBody.IsInvalid();
     }
 
-    auto PhysicsWorld::CastRay( const RayCast& ray, bool staticOnly ) const -> RayCastHit {
+    auto PhysicsWorld::CastRay( const RayCast &ray, bool staticOnly ) const -> RayCastHit {
         class QueryFilter final : public JPH::BodyFilter {
         public:
-            explicit QueryFilter( bool onlyStatic ) : mStaticOnly{ onlyStatic } {}
+            explicit QueryFilter( bool onlyStatic ) : mStaticOnly{ onlyStatic } {
+            }
 
-            auto ShouldCollideLocked( const JPH::Body& body ) const -> bool override {
+            auto ShouldCollideLocked( const JPH::Body &body ) const -> bool override {
                 return !body.IsSensor() && ( !mStaticOnly || body.IsStatic() );
             }
 
@@ -2784,7 +2866,7 @@ namespace mikoto::physics {
         }
 
         const JPH::RRayCast query{ JPH::RVec3{ GetFloat3F( ray.GetOrigin() ) }, GetFloat3F( ray.GetDirection() ) };
-        const auto& system{ mSimulationInfo->mPhysicsSystem };
+        const auto &system{ mSimulationInfo->mPhysicsSystem };
         JPH::RayCastResult hit{};
 
         if ( !system.GetNarrowPhaseQuery().CastRay( query, hit, {}, {}, QueryFilter{ staticOnly } ) ) {
@@ -2808,7 +2890,7 @@ namespace mikoto::physics {
         return result;
     }
 
-    auto PhysicsWorld::PickSoftBody( const RayCast& ray ) const -> SoftBodyHit {
+    auto PhysicsWorld::PickSoftBody( const RayCast &ray ) const -> SoftBodyHit {
         const JPH::RRayCast query{ JPH::RVec3{ GetFloat3F( ray.GetOrigin() ) }, GetFloat3F( ray.GetDirection() ) };
         JPH::RayCastResult hit{};
 
@@ -2822,16 +2904,16 @@ namespace mikoto::physics {
             return {};
         }
 
-        const auto& body{ lock.GetBody() };
-        const auto* entity{ mScene->FindByID( body.GetUserData() ) };
+        const auto &body{ lock.GetBody() };
+        const auto *entity{ mScene->FindByID( body.GetUserData() ) };
 
         if ( !entity ) {
             return {};
         }
 
-        const auto& motion{ static_cast<const JPH::SoftBodyMotionProperties&>( *body.GetMotionProperties() ) };
-        const auto& shape{ static_cast<const JPH::SoftBodyShape&>( *body.GetShape() ) };
-        const auto& face{ motion.GetSettings()->mFaces[shape.GetFaceIndex( hit.mSubShapeID2 )] };
+        const auto &motion{ static_cast<const JPH::SoftBodyMotionProperties &>( *body.GetMotionProperties() ) };
+        const auto &shape{ static_cast<const JPH::SoftBodyShape &>( *body.GetShape() ) };
+        const auto &face{ motion.GetSettings()->mFaces[shape.GetFaceIndex( hit.mSubShapeID2 )] };
         const JPH::Vec3 localHit{ body.GetInverseCenterOfMassTransform() * query.GetPointOnRay( hit.mFraction ) };
 
         // Restrict the grab to the hit triangle so overlapping cloth layers stay distinct.
@@ -2853,7 +2935,7 @@ namespace mikoto::physics {
         };
     }
 
-    auto PhysicsWorld::ReadSoftBodyParticles( entt::entity entity, eastl::vector<SoftBodyParticle>& particles ) const -> void {
+    auto PhysicsWorld::ReadSoftBodyParticles( entt::entity entity, eastl::vector<SoftBodyParticle> &particles ) const -> void {
         particles.clear();
 
         const auto found{ mSoftBodies.find( entity ) };
@@ -2868,17 +2950,15 @@ namespace mikoto::physics {
             return;
         }
 
-        const auto& body{ lock.GetBody() };
-        const auto& motion{ static_cast<const JPH::SoftBodyMotionProperties&>( *body.GetMotionProperties() ) };
+        const auto &body{ lock.GetBody() };
+        const auto &motion{ static_cast<const JPH::SoftBodyMotionProperties &>( *body.GetMotionProperties() ) };
         const auto world{ body.GetCenterOfMassTransform() };
 
         particles.reserve( motion.GetVertices().size() );
 
-        for ( const auto& vertex: motion.GetVertices() ) {
-            particles.push_back( {
-                .mPosition = GetFloat3F( JPH::Vec3{ world * vertex.mPosition } ),
-                .mPinned = vertex.mInvMass == 0.0f
-            } );
+        for ( const auto &vertex: motion.GetVertices() ) {
+            particles.push_back( { .mPosition = GetFloat3F( JPH::Vec3{ world * vertex.mPosition } ),
+                .mPinned = vertex.mInvMass == 0.0f } );
         }
     }
 
@@ -2897,9 +2977,9 @@ namespace mikoto::physics {
                 return;
             }
 
-            auto& body{ lock.GetBody() };
-            auto& motion{ static_cast<JPH::SoftBodyMotionProperties&>( *body.GetMotionProperties() ) };
-            auto& vertex{ motion.GetVertex( mSoftBodyGrab.mParticle ) };
+            auto &body{ lock.GetBody() };
+            auto &motion{ static_cast<JPH::SoftBodyMotionProperties &>( *body.GetMotionProperties() ) };
+            auto &vertex{ motion.GetVertex( mSoftBodyGrab.mParticle ) };
 
             // Advance through the solver so connected particles react during the step.
             const JPH::Vec3 localTarget{ body.GetInverseCenterOfMassTransform() * JPH::RVec3{ GetFloat3F( mSoftBodyGrab.mTarget ) } };
@@ -2916,7 +2996,7 @@ namespace mikoto::physics {
             return;
         }
 
-        if ( auto* body{ found->second.mBody } ) {
+        if ( auto *body{ found->second.mBody } ) {
             if ( mSoftBodyGrab.mBody == body->GetID() ) {
                 mSoftBodyGrab = {};
             }
@@ -2925,7 +3005,7 @@ namespace mikoto::physics {
             mSimulationInfo->mBodyInterface->DestroyBody( body->GetID() );
         }
 
-        auto& registry{ mScene->GetRegistry() };
+        auto &registry{ mScene->GetRegistry() };
 
         if ( registry.valid( entity ) ) {
             registry.remove<scene::DeformedMeshComponent>( entity );
@@ -2935,10 +3015,10 @@ namespace mikoto::physics {
     }
 
     auto PhysicsWorld::SynchronizeSoftBodies() -> void {
-        auto& registry{ mScene->GetRegistry() };
+        auto &registry{ mScene->GetRegistry() };
         eastl::vector<entt::entity> removed{};
 
-        for ( const auto& [entity, state]: mSoftBodies ) {
+        for ( const auto &[entity, state]: mSoftBodies ) {
             if ( !registry.valid( entity ) || !registry.all_of<scene::TransformComponent>( entity ) || !registry.any_of<scene::SoftBodyComponent, scene::ClothComponent>( entity ) ) {
                 removed.push_back( entity );
             }
@@ -2967,7 +3047,7 @@ namespace mikoto::physics {
                 core::quat rotation{};
                 core::float4 perspective{};
                 const bool decomposed{ glm::decompose( transform.GetWorldTransform(), scale, rotation, position, skew, perspective ) };
-                auto* mesh{ registry.try_get<scene::MeshComponent>( entity ) };
+                auto *mesh{ registry.try_get<scene::MeshComponent>( entity ) };
                 auto it{ mSoftBodies.find( entity ) };
                 const bool sourceChanged{ mesh && mesh->GetMesh() && it != mSoftBodies.end() && mesh->GetMesh()->GetRenderData() != it->second.mSource };
 
@@ -3011,14 +3091,14 @@ namespace mikoto::physics {
                             MKT_THROW_RUNTIME_ERROR( "Soft body needs an indexed mesh." );
                         }
 
-                        const auto& node{ *mesh->GetMesh() };
+                        const auto &node{ *mesh->GetMesh() };
                         state.mSource = node.GetRenderData();
 
                         if ( !state.mSource || state.mSource->IsSkinned() ) {
                             MKT_THROW_RUNTIME_ERROR( "Soft-body source must be an unskinned mesh." );
                         }
 
-                        const auto& vertices{ node.GetCollisionVertices() };
+                        const auto &vertices{ node.GetCollisionVertices() };
                         const auto indices{ state.mSource->GetIndices() };
 
                         if ( vertices.empty() || vertices.size() != state.mSource->GetVertexCount() || indices.size() % 3 != 0 ) {
@@ -3026,12 +3106,12 @@ namespace mikoto::physics {
                         }
 
                         state.mSettings = new JPH::SoftBodySharedSettings{};
-                        auto& settings{ *state.mSettings };
+                        auto &settings{ *state.mSettings };
 
                         // Weld render seams so duplicated visual vertices share one simulated particle.
                         std::map<std::tuple<float, float, float>, core::u32> welded{};
 
-                        for ( const auto& vertex: vertices ) {
+                        for ( const auto &vertex: vertices ) {
                             const auto point{ vertex * scale };
                             const auto [found, inserted]{ welded.emplace( std::tuple{ point.x, point.y, point.z }, static_cast<core::u32>( settings.mVertices.size() ) ) };
 
@@ -3071,7 +3151,11 @@ namespace mikoto::physics {
                             attributes.mBendCompliance = component.GetBendCompliance();
                         }
 
-                        settings.CreateConstraints( &attributes, 1, JPH::SoftBodySharedSettings::EBendType::Dihedral );
+                        // Distance bending is robust for light, densely tessellated
+                        // fabric. Closed soft bodies retain their angle constraints.
+                        // Jolt's cloth helper exposes selectable bend-constraint modes:
+                        // https://github.com/jrouwe/JoltPhysics/blob/master/Samples/Utils/SoftBodyCreator.cpp
+                        settings.CreateConstraints( &attributes, 1, cloth ? JPH::SoftBodySharedSettings::EBendType::Distance : JPH::SoftBodySharedSettings::EBendType::Dihedral );
                         settings.Optimize();
 
                         // The native body owns simulation; the private mesh publishes deformation to rendering.
@@ -3083,6 +3167,12 @@ namespace mikoto::physics {
                         bodySettings.mUpdatePosition = component.GetPinnedVertices().empty();
                         bodySettings.mUserData = tag.GetGuid();
                         bodySettings.mFacesDoubleSided = cloth;
+                        if constexpr ( cloth ) {
+                            // Fine fabric grids need enough constraint iterations to
+                            // drape without stretching around collision edges.
+                            bodySettings.mNumIterations = 20;
+                            bodySettings.mVertexRadius = .008f;
+                        }
                         state.mBody = mSimulationInfo->mBodyInterface->CreateSoftBody( bodySettings );
 
                         if ( !state.mBody ) {
@@ -3093,7 +3183,7 @@ namespace mikoto::physics {
                         state.mDeformed = core::Ref<renderer::MeshRenderData>::New( *state.mSource );
                         state.mPositions.resize( vertices.size() );
                         registry.emplace_or_replace<scene::DeformedMeshComponent>( entity, state.mDeformed );
-                    } catch ( const std::exception& error ) {
+                    } catch ( const std::exception &error ) {
                         state.mError = error.what();
                         MKT_CORE_LOGGER_WARN( "Soft body disabled: {}", error.what() );
 
@@ -3107,7 +3197,7 @@ namespace mikoto::physics {
                     it = mSoftBodies.emplace( entity, eastl::move( state ) ).first;
                 }
 
-                auto& state{ it->second };
+                auto &state{ it->second };
 
                 if ( state.mBody && ( glm::length2( state.mPosition - position ) > .000001f || glm::abs( glm::dot( state.mRotation, rotation ) ) < .99999f ) ) {
                     mSimulationInfo->mBodyInterface->SetPositionAndRotation( state.mBody->GetID(), GetFloat3F( position ), GetQuatF( rotation ), JPH::EActivation::Activate );
@@ -3120,14 +3210,97 @@ namespace mikoto::physics {
         synchronize.template operator()<scene::ClothComponent>();
     }
 
+    auto PhysicsWorld::ApplyClothWind( JPH::SoftBodyMotionProperties &motion, eastl::vector<core::float4> &forces,
+        const scene::WindField &field, const core::float4x4 &localToWorld, const core::float3 &authoredWind,
+        core::f32 drag, core::f32 lift, core::f32 gust, core::f32 dt ) -> void {
+        auto &vertices{ motion.GetVertices() };
+        forces.assign( vertices.size(), core::float4{ 0 } );
+        const auto worldToLocal{ glm::inverse( glm::mat3{ localToWorld } ) };
+        constexpr float airDensity{ 1.225f };// kg/m^3 at sea level; engine lengths are metres.
+        drag = glm::clamp( drag, 0.0f, 4.0f );
+        lift = glm::clamp( lift, 0.0f, 4.0f );
+        gust = glm::clamp( gust, 0.0f, 1.0f );
+
+        // Feed air forces into velocity before Jolt solves stretch, bend and contacts.
+        // Never overwrite solved positions with a visual sine-wave deformation.
+        for ( const auto &face: motion.GetFaces() ) {
+            const auto &a{ vertices[face.mVertex[0]] };
+            const auto &b{ vertices[face.mVertex[1]] };
+            const auto &c{ vertices[face.mVertex[2]] };
+            const auto point{ []( JPH::Vec3Arg value ) {
+                return core::float3{ value.GetX(), value.GetY(), value.GetZ() };
+            } };
+            const auto cross{ glm::cross( point( b.mPosition - a.mPosition ), point( c.mPosition - a.mPosition ) ) };
+            const float twiceArea{ glm::length( cross ) };
+            if ( twiceArea < 1e-8f ) {
+                continue;
+            }
+            const auto normal{ cross / twiceArea };
+            const auto localCenter{ point( ( a.mPosition + b.mPosition + c.mPosition ) / 3.0f ) };
+            const core::float3 worldCenter{ localToWorld * core::float4{ localCenter, 1.0f } };
+            const float localGust{ 1.0f + gust * std::sin( field.mTime * 1.7f + worldCenter.x * .4f + worldCenter.z * .6f ) };
+            const auto air{ worldToLocal * ( scene::SampleWind( field, worldCenter ) + authoredWind * localGust ) };
+            const auto relative{ air - point( ( a.mVelocity + b.mVelocity + c.mVelocity ) / 3.0f ) };
+            const float speed{ glm::length( relative ) };
+            if ( speed < 1e-5f || !std::isfinite( speed ) ) {
+                continue;
+            }
+            const float normalSpeed{ glm::dot( relative, normal ) };
+            const float pressure{ .5f * airDensity * twiceArea * .5f };
+            // Two-sided pressure is invariant to triangle winding. A small skin
+            // term keeps cloth coupled to a wind flowing along its surface.
+            const auto dragForce{ drag * ( normal * normalSpeed * glm::abs( normalSpeed ) + relative * speed * .04f ) };
+            const auto liftForce{ lift * normalSpeed * glm::cross( glm::cross( relative, normal ), relative ) / speed };
+            const auto force{ pressure * ( dragForce + liftForce ) / 3.0f };
+            const float resistance{ pressure * ( drag * ( glm::abs( normalSpeed ) + speed * .04f ) + lift * glm::abs( normalSpeed ) ) / 3.0f };
+            for ( const auto index: face.mVertex ) {
+                forces[index] += core::float4{ force, resistance };
+            }
+        }
+        for ( core::usize index{}; index < vertices.size(); ++index ) {
+            auto &vertex{ vertices[index] };
+            if ( vertex.mInvMass == 0.0f ) {
+                continue;
+            }
+            const auto &force{ forces[index] };
+            // Semi-implicit drag avoids reversing velocity during a short hitch
+            // or on a very light vertex. Pinned particles remain untouched.
+            const float factor{ dt * vertex.mInvMass / ( 1.0f + dt * vertex.mInvMass * force.w ) };
+            vertex.mVelocity += JPH::Vec3{ force.x, force.y, force.z } * factor;
+        }
+    }
+
+    auto PhysicsWorld::ApplyClothAerodynamics( core::f32 dt ) -> void {
+        // Jolt holds every body mutex during its step-listener callback. These
+        // cloth particles are exclusively ours here; taking another lock deadlocks.
+        // https://github.com/jrouwe/JoltPhysics/blob/master/Jolt/Physics/PhysicsStepListener.h
+        const auto &registry{ mScene->GetRegistry() };
+        for ( auto &[entity, state]: mSoftBodies ) {
+            if ( !state.mCloth || !state.mBody || !state.mBody->IsActive() || !registry.valid( entity ) || !registry.all_of<scene::ClothComponent>( entity ) ) {
+                continue;
+            }
+            const auto &cloth{ registry.get<scene::ClothComponent>( entity ) };
+            const auto wind{ cloth.GetWindVelocity() };
+            if ( !std::isfinite( wind.x ) || !std::isfinite( wind.y ) || !std::isfinite( wind.z ) ||
+                 !std::isfinite( cloth.GetDrag() ) || !std::isfinite( cloth.GetLift() ) || !std::isfinite( cloth.GetWindGustStrength() ) ) {
+                continue;
+            }
+            auto &body{ *state.mBody };
+            auto &motion{ *static_cast<JPH::SoftBodyMotionProperties *>( body.GetMotionProperties() ) };
+            ApplyClothWind( motion, state.mWindForces, mClothWindField, GetFloat4x4F( body.GetCenterOfMassTransform() ), wind,
+                cloth.GetDrag(), cloth.GetLift(), cloth.GetWindGustStrength(), dt );
+        }
+        mClothWindField.mTime += dt;
+    }
+
     auto PhysicsWorld::PostUpdateSoftBodies() -> void {
-        for ( auto& [entity, state]: mSoftBodies ) {
+        for ( auto &[entity, state]: mSoftBodies ) {
             if ( !state.mBody || !state.mDeformed ) {
                 continue;
             }
 
-            const auto* motion{ static_cast<const JPH::SoftBodyMotionProperties*>( state.mBody->GetMotionProperties() ) };
-            const auto& vertices{ motion->GetVertices() };
+            const auto *motion{ static_cast<const JPH::SoftBodyMotionProperties *>( state.mBody->GetMotionProperties() ) };
+            const auto &vertices{ motion->GetVertices() };
             bool changed{};
 
             for ( core::usize i{}; i < state.mVertexMap.size(); ++i ) {

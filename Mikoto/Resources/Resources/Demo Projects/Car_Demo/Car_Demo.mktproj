@@ -5,7 +5,7 @@
 # EditorCamera configures editor navigation; the scene camera controls the Game view.
 
 Version: 1
-Project: "Car Demo"
+Project: "Car_Demo"
 Assets: "Assets"
 Cache: "Assets/.cache"
 Scene: "Scene/Car_Demo.mktscn"
@@ -14,7 +14,7 @@ AutoSave: false
 AutoSaveIntervalMs: 2000
 EditorCamera:
   NavigationMode: "Fly"
-  Position: [8,5,10]
+  Position: [8,5.1,10]
   Direction: [-0.5935868077985094,-0.3116330740942174,-0.7419835097481368]
   Projection: "Perspective"
   FieldOfView: 45

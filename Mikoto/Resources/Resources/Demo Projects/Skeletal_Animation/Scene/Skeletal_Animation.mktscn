@@ -16,7 +16,7 @@ Objects:
       Name: "400 Animated Deadpool Instances"
       Visibility: true
     TransformComponent:
-      Position: [0,0,0]
+      Position: [0,0.1,0]
       Rotation: [0,0,0]
       Scale: [1,1,1]
       Uniform Scale: false
@@ -82828,7 +82828,7 @@ Objects:
       Name: "Ground"
       Visibility: true
     TransformComponent:
-      Position: [-33.0,-0.5,-33.0]
+      Position: [-33.0,-0.4,-33.0]
       Rotation: [0,0,0]
       Scale: [6.92335432567989,0.05244963824127326,6.92335432567989]
       Uniform Scale: false
@@ -82845,7 +82845,7 @@ Objects:
       Name: "Camera"
       Visibility: true
     TransformComponent:
-      Position: [0,0,0]
+      Position: [0,0.1,0]
       Rotation: [0,0,0]
       Scale: [1,1,1]
       Uniform Scale: false
@@ -82853,7 +82853,7 @@ Objects:
         - [1.0,0.0,0.0,0]
         - [0.0,0.8690647313803969,-0.4946983855549952,0]
         - [0.0,0.4946983855549952,0.8690647313803969,0]
-        - [0,38,65,1]
+        - [0,38.1,65,1]
     Children: []
     CameraComponent:
       Projection: 1
@@ -82873,7 +82873,7 @@ Objects:
       Name: "Sun"
       Visibility: true
     TransformComponent:
-      Position: [0,0,0]
+      Position: [0,0.1,0]
       Rotation: [0,0,0]
       Scale: [1,1,1]
       Uniform Scale: false
@@ -82892,7 +82892,7 @@ Objects:
       Name: "Modern Evening Street Skybox"
       Visibility: true
     TransformComponent:
-      Position: [0,0,0]
+      Position: [0,0.1,0]
       Rotation: [0,0,0]
       Scale: [1,1,1]
       Uniform Scale: false

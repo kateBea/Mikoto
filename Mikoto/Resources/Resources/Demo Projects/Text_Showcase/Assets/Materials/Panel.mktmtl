@@ -1,0 +1,15 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Panel",
+  "Material": {
+    "BaseColorFactor": [
+      0.055,
+      0.075,
+      0.11,
+      1
+    ],
+    "RoughnessFactor": 0.85,
+    "MetallicFactor": 0
+  }
+}

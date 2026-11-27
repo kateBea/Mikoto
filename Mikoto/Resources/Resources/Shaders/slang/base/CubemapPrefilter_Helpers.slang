@@ -13,6 +13,10 @@
 // limitations under the License.
 
 // Shared scene/preview cubemap convolution.
+
+// GGX importance-sampled environment convolution. PDF-derived sample footprints select source
+// mip levels so roughness broadens reflections without undersampling the environment.
+
 #pragma once
 
 #include "Lighting_Helpers.slang"

@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Build a view-space AABB for each screen tile and logarithmic depth slice. Light culling tests
+// light bounds against these cluster volumes.
+
 #pragma once
 
 #include "base/Base.slang"
@@ -28,6 +31,8 @@ struct ClusteredParams {
 
 MKT_DECLARE_PUSH_CONSTANT( ClusteredParams, parameters );
 
+// Intersect the corner camera ray with the requested view-depth plane. Four corners at each
+// slice boundary enclose the cluster frustum segment.
 float3 SliceCorner( float2 pixel, float depth, CameraInfo camera ) {
     // Convert the screen-space corner to normalized device coordinates.
     float2 ndc = pixel / camera.mScreenDimensions.xy * 2 - 1;

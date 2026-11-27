@@ -16,26 +16,27 @@
 #define MIKOTO_RENDERER_FORWARD_RENDERER_POST_PROCESS_MODULE_HH
 
 #include <EASTL/array.h>
-#include <EASTL/vector.h>
-#include <EASTL/optional.h>
 #include <EASTL/fixed_vector.h>
+#include <EASTL/optional.h>
+#include <EASTL/vector.h>
 
 #include <glm/glm.hpp>
 
 #include <Core/Core.hh>
-#include <Core/Types.hh>
 #include <Core/Profiler.hh>
+#include <Core/Types.hh>
 
 #include <Math/Math.hh>
 
 #include <Material/PostProcessMaterial.hh>
 
-#include <Renderer/Core/FrameGraph.hh>
-#include <Renderer/Postprocess/Bloom.hh>
 #include <Renderer/Core/CommandContext.hh>
+#include <Renderer/Core/FrameGraph.hh>
+#include <Renderer/Core/InfiniteGrid.hh>
+#include <Renderer/Postprocess/Bloom.hh>
 
-#include <Scene/Scene.hh>
 #include <Scene/Camera.hh>
+#include <Scene/Scene.hh>
 
 namespace mikoto::renderer {
 
@@ -132,6 +133,7 @@ namespace mikoto::renderer {
 
         // Editor overlay in display color space; register after tone mapping.
         auto RegisterInfiniteGrid( FrameGraph& graph ) -> void;
+        auto SetInfiniteGridSettings( const InfiniteGridSettings &settings ) -> void;
 
         auto SetEnableBloom( bool value ) -> void;
         auto GetBloomSettings() -> BloomSettings&;
@@ -151,6 +153,9 @@ namespace mikoto::renderer {
         eastl::vector<PostProcessMaterialData> mPostProcessMaterials{};
         eastl::optional<PostProcessMaterialData> mPreviewMaterial{};
         core::float2 mPreviewChromaticOffsetPixels{};
+
+        // Editor grid appearance; changes update push constants without rebuilding pipelines.
+        InfiniteGridSettings mInfiniteGrid{};
 
         // Bloom
         BloomSettings mBloomSettings{};

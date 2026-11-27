@@ -12,4 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Instantiate the shared SSR reduction kernel for reflected scene radiance. Rough reflections
+// can sample coarser color levels during resolve.
+
 #include "base/SSR_Reduce.slang"

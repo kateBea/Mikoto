@@ -15,29 +15,29 @@
 #ifndef MIKOTO_RENDERER_RHI_VULKAN_VULKAN_TEXTURE_HH
 #define MIKOTO_RENDERER_RHI_VULKAN_VULKAN_TEXTURE_HH
 
-#include <EASTL/string.h>
-#include <EASTL/vector.h>
-#include <EASTL/string_view.h>
-
 #include <volk.h>
+
+#include <EASTL/string.h>
+#include <EASTL/string_view.h>
+#include <EASTL/vector.h>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
 
-#include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/Texture.hh>
+#include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/Vulkan/VulkanMemoryAllocator.hh>
 
 namespace mikoto::renderer::vulkan {
 
     class Sampler final : public rhi::ISampler {
     public:
-        auto GetMinFilter() const -> rhi::SamplerFilter override;
-        auto GetMagFilter() const -> rhi::SamplerFilter override;
-        auto GetWrapU() const -> rhi::SamplerWrapMode override;
-        auto GetWrapV() const -> rhi::SamplerWrapMode override;
-        auto GetWrapW() const -> rhi::SamplerWrapMode override;
-        auto GetMipLevels() const -> float override;
+        MKT_NODISCARD auto GetMinFilter() const -> rhi::SamplerFilter override;
+        MKT_NODISCARD auto GetMagFilter() const -> rhi::SamplerFilter override;
+        MKT_NODISCARD auto GetWrapU() const -> rhi::SamplerWrapMode override;
+        MKT_NODISCARD auto GetWrapV() const -> rhi::SamplerWrapMode override;
+        MKT_NODISCARD auto GetWrapW() const -> rhi::SamplerWrapMode override;
+        MKT_NODISCARD auto GetMipLevels() const -> float override;
 
     private:
         float mMipLevels{ 1.0f };
@@ -51,7 +51,7 @@ namespace mikoto::renderer::vulkan {
         rhi::Color mBorderColor{};
 
     public:
-        explicit Sampler( const rhi::SamplerCreateDescription& desc );
+        explicit Sampler( const rhi::SamplerCreateDescription &desc );
 
         auto SetDebugName( eastl::string_view name ) -> void override;
 
@@ -83,8 +83,10 @@ namespace mikoto::renderer::vulkan {
 
     class Texture final : public rhi::ITexture {
     public:
-        explicit Texture( const rhi::TextureCreateDescription& data );
-        explicit Texture( const ExternalTextureDescription& spec );
+        explicit Texture( const rhi::TextureCreateDescription &data );
+        explicit Texture( const ExternalTextureDescription &spec );
+
+        auto SetDebugName( eastl::string_view name ) -> void override;
 
         MKT_NODISCARD auto GetSizeBytes() const -> core::usize override;
         MKT_NODISCARD auto GetStorageSizeBytes() const -> core::usize override;
@@ -92,6 +94,7 @@ namespace mikoto::renderer::vulkan {
         MKT_NODISCARD auto GetFormat() const -> rhi::Format override;
         MKT_NODISCARD auto GetWidth() const -> core::u32 override;
         MKT_NODISCARD auto GetHeight() const -> core::u32 override;
+        MKT_NODISCARD auto GetDepth() const -> core::u32 override;
 
         MKT_NODISCARD auto GetTextureUsage() const -> rhi::TextureUsageFlags override;
 
@@ -107,9 +110,7 @@ namespace mikoto::renderer::vulkan {
 
         MKT_NODISCARD auto GetAspectMask() const -> VkImageAspectFlags;
 
-        MKT_NODISCARD auto GetRenderView( core::u32 mipLevel, core::u32 face = 0 ) const -> const VkImageView&;
-
-        auto SetDebugName( eastl::string_view name ) -> void override;
+        MKT_NODISCARD auto GetRenderView( core::u32 mipLevel, core::u32 face = 0 ) const -> const VkImageView &;
 
         MKT_NODISCARD operator VkImage() const;
 
@@ -124,6 +125,7 @@ namespace mikoto::renderer::vulkan {
     private:
         core::u32 mWidth{};
         core::u32 mHeight{};
+        core::u32 mDepth{ 1 };
         core::u32 mMipCount{ 1 };
 
         asset::ImageHandle mImageData{};
@@ -157,4 +159,3 @@ namespace mikoto::renderer::vulkan {
 }// namespace mikoto::renderer::vulkan
 
 #endif// MIKOTO_RENDERER_RHI_VULKAN_VULKAN_TEXTURE_HH
-

@@ -15,6 +15,10 @@
 // Mikoto stroke extension, independent of the upstream Slug fill implementation.
 // References: https://github.com/EricLengyel/Slug (curve/band representation)
 // https://pomax.github.io/bezierinfo/#projections (closest-point formulation).
+
+// Compute analytic stroke coverage from the nearest quadratic-curve distance. Polynomial/root
+// helpers locate curve extrema and candidates for the closest point.
+
 #pragma once
 
 // Curve-based outline, evaluated per fragment (no MSDF/MTSDF sampling):
@@ -50,8 +54,13 @@ float SlugStrokePolynomial( float4 c, float t ) {
 // Sample-relative quadratic B(t)=a*t*t+b*t+c. Extrema of squared distance
 // satisfy dot(B,B')=0 (a cubic). Partition at the cubic's derivative roots,
 // then bisect each monotone interval so multiple minima cannot be missed.
+// Fixed refinement budget for a nearest-curve root.
+static const uint kSlugStrokeRootIterations = 20;
+
 float2 SlugNearestCurve( float2 p0, float2 p1, float2 p2 ) {
-    float2 a = p0 - 2 * p1 + p2, b = 2 * (p1 - p0), c = p0;
+    float2 a = p0 - 2 * p1 + p2;
+    float2 b = 2 * (p1 - p0);
+    float2 c = p0;
     float2 nearest = dot(p0,p0) < dot(p2,p2) ? p0 : p2;
     float4 poly = float4(2*dot(a,a), 3*dot(a,b), dot(b,b)+2*dot(a,c), dot(b,c));
     // Exact linear/point cases avoid dividing by a zero leading coefficient.
@@ -62,28 +71,37 @@ float2 SlugNearestCurve( float2 p0, float2 p1, float2 p2 ) {
     float cuts[4];
     cuts[0] = 0;
     uint count = 1;
-    float A = 3*poly.x, B = 2*poly.y, C = poly.z;
+    float A = 3*poly.x;
+    float B = 2*poly.y;
+    float C = poly.z;
     float discriminant = B*B - 4*A*C;
     if ( discriminant > 0 ) {
         // Stable quadratic formula avoids cancellation for nearly linear curves.
         float q = -0.5 * (B + (B >= 0 ? 1 : -1) * sqrt(discriminant));
-        float r0 = q/A, r1 = q != 0 ? C/q : r0;
-        float lo = min(r0,r1), hi = max(r0,r1);
+        float r0 = q/A;
+        float r1 = q != 0 ? C/q : r0;
+        float lo = min(r0,r1);
+        float hi = max(r0,r1);
         if ( lo > 0 && lo < 1 ) cuts[count++] = lo;
         if ( hi > 0 && hi < 1 ) cuts[count++] = hi;
     }
     cuts[count++] = 1;
     for ( uint i = 0; i + 1 < count; ++i ) {
-        float lo = cuts[i], hi = cuts[i+1];
+        float lo = cuts[i];
+        float hi = cuts[i+1];
         // Include partition boundaries, including repeated stationary roots.
         float2 point = (a*lo+b)*lo+c;
         if ( dot(point,point) < dot(nearest,nearest) ) nearest = point;
-        float fLo = SlugStrokePolynomial(poly,lo), fHi = SlugStrokePolynomial(poly,hi);
+        float fLo = SlugStrokePolynomial(poly,lo);
+        float fHi = SlugStrokePolynomial(poly,hi);
         if ( (fLo < 0) == (fHi < 0) ) continue;
-        for ( uint iteration = 0; iteration < 20; ++iteration ) {
+        for ( uint iteration = 0; iteration < kSlugStrokeRootIterations; ++iteration ) {
             float mid = (lo+hi)*0.5;
             float fMid = SlugStrokePolynomial(poly,mid);
-            if ( (fMid < 0) == (fLo < 0) ) { lo = mid; fLo = fMid; }
+            if ( (fMid < 0) == (fLo < 0) ) {
+                lo = mid;
+                fLo = fMid;
+            }
             else hi = mid;
         }
         float t = (lo+hi)*0.5;
@@ -96,7 +114,8 @@ float2 SlugNearestCurve( float2 p0, float2 p1, float2 p2 ) {
 float SlugStrokeCoverage( Texture2D curves, Texture2D<uint4> bands,
                           float2 position, float4 transform, int4 glyph, float radius ) {
     // Compute derivatives before entering pixel-dependent curve-search branches.
-    float2 dx = ddx(position), dy = ddy(position);
+    float2 dx = ddx(position);
+    float2 dy = ddy(position);
     float footprint = max(length(abs(dx)+abs(dy)), 1e-7);
     float reach = radius + footprint;
     int bandMax = glyph.w & 0xff;

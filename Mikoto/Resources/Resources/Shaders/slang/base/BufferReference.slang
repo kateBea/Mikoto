@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Typed access to buffer device addresses across Vulkan and D3D12. Address arithmetic uses the
+// element layout expected by the matching CPU upload.
+
 #pragma once
 
 // https://shader-slang.org/slang/user-guide/convenience-features

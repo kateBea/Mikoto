@@ -67,7 +67,7 @@ namespace mikoto::renderer {
         return true;
     }
 
-    auto CompatibilitySelectionModule::TakeResult() -> eastl::optional<core::u32> {
+    auto CompatibilitySelectionModule::GetPickResult() -> eastl::optional<core::u32> {
         if ( !mPending || !mRecorded || !mImage ) {
             return {};
         }

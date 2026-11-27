@@ -13,7 +13,7 @@ namespace Mikoto.Hosting;
 /// </remarks>
 public static unsafe class NativeBridge
 {
-    private const uint ApiVersion = 10;
+    private const uint ApiVersion = 11;
 
     // Native callbacks and scene sessions are shared across gameplay/compiler services.
     private static readonly object _gate = new();
@@ -35,7 +35,13 @@ public static unsafe class NativeBridge
         Compile = 5,
         ReloadScene = 6,
         Inspect = 7,
-        SetFields = 8
+        SetFields = 8,
+        CollisionEnter = 9,
+        CollisionStay = 10,
+        CollisionExit = 11,
+        TriggerEnter = 12,
+        TriggerStay = 13,
+        TriggerExit = 14
     }
 
     /// <summary>Matches the C++ ManagedNativeApi function table.</summary>
@@ -123,6 +129,7 @@ public static unsafe class NativeBridge
         public uint Reserved;
         public uint* ClassId;
         public byte* Values;
+        public ulong OtherEntity;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -273,6 +280,35 @@ public static unsafe class NativeBridge
             }
 
             _instances[entity].OnUpdate(timeStep);
+        }
+
+        internal void DispatchPhysicsEvent(ulong scene, ulong entity, ulong otherId, ManagedOperation operation)
+        {
+            var script = _instances[entity];
+            var other = new Entity(scene, otherId);
+            switch (operation)
+            {
+                case ManagedOperation.CollisionEnter:
+                    script.OnCollisionEnter(other);
+                    break;
+                case ManagedOperation.CollisionStay:
+                    script.OnCollisionStay(other);
+                    break;
+                case ManagedOperation.CollisionExit:
+                    script.OnCollisionExit(other);
+                    break;
+                case ManagedOperation.TriggerEnter:
+                    script.OnTriggerEnter(other);
+                    break;
+                case ManagedOperation.TriggerStay:
+                    script.OnTriggerStay(other);
+                    break;
+                case ManagedOperation.TriggerExit:
+                    script.OnTriggerExit(other);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(operation));
+            }
         }
 
         internal void Remove(ulong entity)
@@ -491,6 +527,15 @@ public static unsafe class NativeBridge
 
             case ManagedOperation.Update:
                 session.Update(command.Entity, command.TimeStep);
+                break;
+
+            case ManagedOperation.CollisionEnter:
+            case ManagedOperation.CollisionStay:
+            case ManagedOperation.CollisionExit:
+            case ManagedOperation.TriggerEnter:
+            case ManagedOperation.TriggerStay:
+            case ManagedOperation.TriggerExit:
+                session.DispatchPhysicsEvent(command.Scene, command.Entity, command.OtherEntity, command.Operation);
                 break;
 
             case ManagedOperation.Destroy:

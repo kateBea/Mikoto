@@ -1,0 +1,21 @@
+{
+  "Version": 1,
+  "Type": "VolumeMaterial",
+  "Name": "Clear coastal atmosphere",
+  "Material": {
+    "DensityModel": 0,
+    "Absorption": [
+      1e-06,
+      1e-06,
+      1.3e-06
+    ],
+    "Scattering": [
+      7e-06,
+      8.4e-06,
+      1.1e-05
+    ],
+    "Anisotropy": 0.6,
+    "Density": 1,
+    "HeightFalloff": 0.01
+  }
+}

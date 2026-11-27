@@ -1,0 +1,53 @@
+Mesh Volumes
+
+A separate path-traced gallery inspired by Alex Tardif's participating-media
+examples. Five exhibits compare three bunny media, a hollow teapot and a blue
+trefoil knot. The meshes provide density shapes; they are not opaque render
+surfaces. Room surfaces and shadows use the normal path-tracing geometry path.
+
+Open Mesh Volumes in the world selector. The Scene and Game cameras share the
+opening view. Navigate in Scene with RMB and WASD; keep the camera stationary
+to accumulate samples. No scripts or external project assets are required.
+
+Select a volume entity and open its volume material to change absorption,
+scattering, density or phase anisotropy. In Cloud authoring, the Closed mesh
+layer points to a bundled OBJ. Bake cloudscape rebuilds the shape; save the
+material to retain the result. Source geometry is uniformly fitted into the
+volume box with a 5 percent margin. Wind is disabled so accumulation converges.
+
+Bunny and teapot grids are 160 cubed; the knot is 128 cubed. Bunny variants use
+the same shape with different optical properties. The original teapot has
+hollow walls: its component density multiplier is deliberately higher (12).
+All sources are closed manifolds, and saved grids were round-trip checked with
+the production material decoder. Baked data uses the engine's lossless compact
+voxel encoding; it needs no first-open bake or download. This project adds no
+renderer code and does not change Clouds and Fog.
+
+References
+Alex Tardif, GPU Tracing Participating Media:
+https://alextardif.com/ParticipatingMedia.html
+PBRT v4, media and volume-scattering integrators:
+https://pbr-book.org/4ed/Volume_Scattering/Media
+https://pbr-book.org/4ed/Light_Transport_II_Volume_Rendering/Volume_Scattering_Integrators
+
+Asset provenance
+Bunny: simplified geometry from Mikoto's existing Prefabs/bunny/bunny.obj,
+Stanford Bunny, Stanford Computer Graphics Laboratory. 32,000 triangles;
+closed topology checked after simplification. Stanford's distribution terms
+allow research/free redistribution with acknowledgement, and require permission
+for commercial use. Keep this attribution with redistributions:
+https://graphics.stanford.edu/data/3Dscanrep/
+Teapot: geometry-only copy of Mikoto's existing Prefabs/teapot/teapot.obj
+(the Utah teapot model). No new licence is asserted for that bundled source.
+Trefoil knot and gallery primitives: procedurally generated for Mikoto.
+Rajdhani Regular: bundled with its SIL Open Font License in Assets/Fonts/OFL.txt.
+
+The centre bunny is an absorption-dominant smoke study. A bundled 64-cubed
+warped density grid intersects its closed mesh in the saved authoring recipe.
+Rebaking retains the breakup. This is a stationary smoke snapshot so path
+tracing can accumulate; density 4, absorption 0.5/m, scattering 0.3/m, g 0.25.
+
+The centre bunny is an absorption-dominant smoke study. A bundled 64-cubed
+warped density grid intersects its closed mesh in the saved authoring recipe.
+Rebaking retains the breakup. This is a stationary smoke snapshot so path
+tracing can accumulate; density 4, absorption 0.5/m, scattering 0.3/m, g 0.25.

@@ -20,9 +20,9 @@
 #include <Core/Core.hh>
 #include <Core/Types.hh>
 
-#include <Renderer/Rhi/Types.hh>
 #include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/ForwardRenderer/Passes/GeometryCullModule.hh>
+#include <Renderer/Rhi/Types.hh>
 
 namespace mikoto::renderer {
 
@@ -54,13 +54,15 @@ namespace mikoto::renderer {
     public:
         explicit MousePickingModule( rhi::RenderResolution resolution );
 
-        auto RegisterSelectionBuffer( FrameGraph& graph ) -> void;
+        auto RegisterSelectionBuffer( FrameGraph &graph ) -> void;
 
         auto Invalidate() -> void;
         auto CancelPendingPick() -> void;
-        auto TakePickResult() -> eastl::optional<core::u32>;
-        auto SetGeometryManager( GeometryCullModule& geom ) -> void;
-        auto RequestPixel( const ReadPixelViewportInfo& viewport ) -> bool;
+        auto SetGeometryManager( GeometryCullModule &geom ) -> void;
+        auto RequestPixel( const ReadPixelViewportInfo &viewport ) -> bool;
+
+        /** Returns the completed pick result and clears it. */
+        MKT_NODISCARD auto GetPickResult() -> eastl::optional<core::u32>;
 
         MKT_NODISCARD auto ReadPixel( core::u32 x, core::u32 y ) const -> core::u32;
         MKT_NODISCARD auto ReadPixel( const ReadPixelViewportInfo &viewport ) const -> core::u32;
@@ -74,12 +76,12 @@ namespace mikoto::renderer {
         };
 
     private:
-        MKT_NODISCARD static auto MapPickingPixel( 
-            const ReadPixelViewportInfo& viewport,
+        MKT_NODISCARD static auto MapPickingPixel(
+            const ReadPixelViewportInfo &viewport,
             core::u32 width, core::u32 height ) -> eastl::optional<PickingPixel>;
 
     private:
-        GeometryCullModule* mGeometryCullModule{};
+        GeometryCullModule *mGeometryCullModule{};
         rhi::RenderResolution mResolution{ rhi::RenderResolution::e1080P };
 
         ReadRegion mReadRegion{};
@@ -87,6 +89,7 @@ namespace mikoto::renderer {
         eastl::optional<core::u32> mPickResult{};
         eastl::optional<PickingPixel> mQueuedPick{};
 
+        core::u64 mReadbackGeneration{};
         bool mIsReadbackDone{};
         bool mIsReadbackInFlight{};
     };
@@ -94,4 +97,3 @@ namespace mikoto::renderer {
 }// namespace mikoto::renderer
 
 #endif// MIKOTO_RENDERER_FORWARD_RENDERER_MOUSE_PICKING_MODULE_HH
-

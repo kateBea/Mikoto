@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Visualize how many lights affect the cluster under this pixel. The selected mode either
+// replaces scene color or blends the heatmap over it.
+
 #pragma once
 
 #include "base/Base.slang"
@@ -42,7 +45,8 @@ float4 main( float2 uv : TEXCOORD0 ) : SV_Target0 {
         sceneColor = textures[parameters.mSceneTexture].SampleLevel( samplers[parameters.mSampler], uv, 0 ).rgb;
     }
 
-    uint width, height;
+    uint width;
+    uint height;
     textures[parameters.mDepthTexture].GetDimensions( width, height );
     int2 pixel = clamp( int2( uv * float2( width, height ) ), int2( 0 ), int2( width, height ) - 1 );
     float depth = textures[parameters.mDepthTexture].Load( int3( pixel, 0 ) ).r;

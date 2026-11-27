@@ -19,11 +19,11 @@
 #include <EASTL/string.h>
 #include <EASTL/vector.h>
 
-#include <Scene/Scene.hh>
-#include <Scene/Camera.hh>
-
 #include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Particle/ParticleEmitter.hh>
+
+#include <Scene/Camera.hh>
+#include <Scene/Scene.hh>
 
 namespace mikoto::renderer {
 
@@ -47,7 +47,7 @@ namespace mikoto::renderer {
         core::float4 mDirectionCone{};
         core::float4 mAccelerationDrag{};
         core::float4 mLifetimeSpeed{};
-        core::float4 mEmission{};
+        core::float4 mEmission{};// Rate, spawn radius, duration, bloom intensity for new particles.
         core::float4 mSizeRotationSoftness{};
         core::float4 mStartColor{};
         core::float4 mEndColor{};
@@ -89,11 +89,11 @@ namespace mikoto::renderer {
     public:
         explicit ParticleSimulationModule( rhi::RenderResolution resolution );
 
-        auto RegisterSimulationPasses( FrameGraph& graph ) -> void;
-        auto RegisterRenderPass( FrameGraph& graph ) -> void;
+        auto RegisterSimulationPasses( FrameGraph &graph ) -> void;
+        auto RegisterRenderPass( FrameGraph &graph ) -> void;
 
-        auto SetScene( const scene::Scene* scene ) -> void;
-        auto SetCamera( const scene::Camera* camera ) -> void;
+        auto SetScene( const scene::Scene *scene ) -> void;
+        auto SetCamera( const scene::Camera *camera ) -> void;
         auto SetSimulationMode( ParticleSimulationMode mode ) -> void;
 
         MKT_NODISCARD auto GetVisibleCount() const -> core::u32;
@@ -101,20 +101,20 @@ namespace mikoto::renderer {
         MKT_NODISCARD auto GetSimulationMode() const -> ParticleSimulationMode;
 
     private:
-        auto RegisterUploadPass( FrameGraph& graph ) -> void;
-        auto RegisterParameterUploadPass( FrameGraph& graph ) -> void;
-        auto RegisterSnapshotClearPass( FrameGraph& graph ) -> void;
-        auto RegisterSimulationPass( FrameGraph& graph ) -> void;
-        auto RegisterSortPass( FrameGraph& graph ) -> void;
+        auto RegisterUploadPass( FrameGraph &graph ) -> void;
+        auto RegisterParameterUploadPass( FrameGraph &graph ) -> void;
+        auto RegisterSnapshotClearPass( FrameGraph &graph ) -> void;
+        auto RegisterSimulationPass( FrameGraph &graph ) -> void;
+        auto RegisterSortPass( FrameGraph &graph ) -> void;
 
-        auto GatherCpuParticles( CommandContext& ctx ) -> void;
-        auto GatherGpuEmitters( CommandContext& ctx ) -> void;
+        auto GatherCpuParticles( CommandContext &ctx ) -> void;
+        auto GatherGpuEmitters( CommandContext &ctx ) -> void;
 
     private:
         // View configuration shared by either simulation path.
         rhi::RenderResolution mResolution{ rhi::RenderResolution::e1080P };
-        const scene::Scene* mScene{};
-        const scene::Camera* mCamera{};
+        const scene::Scene *mScene{};
+        const scene::Camera *mCamera{};
 
         // CPU billboard snapshot and its overflow count.
         eastl::vector<ParticleRenderData> mRenderData{};
@@ -140,4 +140,3 @@ namespace mikoto::renderer {
 }// namespace mikoto::renderer
 
 #endif// MIKOTO_RENDERER_FORWARD_RENDERER_PARTICLE_SIMULATION_MODULE_HH
-

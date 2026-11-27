@@ -16,19 +16,18 @@
 
 #include <EASTL/algorithm.h>
 
+#include <Assets/AssetRegistryService.hh>
+
+#include <Audio/AudioService.hh>
+
 #include <Core/Exception.hh>
 
 #include <Logging/Logger.hh>
 
 #include <Threading/TaskService.hh>
 
-#include <Assets/AssetRegistryService.hh>
-
-#include <Audio/AudioService.hh>
-
 #include <Video/AacDecoder.hh>
 #include <Video/VideoService.hh>
-
 
 
 #if defined( MIKOTO_PLATFORM_WINDOWS )
@@ -47,7 +46,7 @@ namespace mikoto::video {
         bool found{};
 
         for ( u64 index{}; index < samples.size(); ++index ) {
-            const auto& sample{ samples[index] };
+            const auto &sample{ samples[index] };
 
             if ( sample.mPresentationTime.ToSeconds() + sample.mDuration.ToSeconds() <= 0 ) {
                 continue;
@@ -62,7 +61,7 @@ namespace mikoto::video {
         return first;
     }
 
-    static auto TrimPcmBefore( PcmBlock& block, f64 seconds ) -> void {
+    static auto TrimPcmBefore( PcmBlock &block, f64 seconds ) -> void {
         const auto skip{ static_cast<usize>( eastl::max( 0.0, std::ceil( ( seconds - block.mPresentationTime.ToSeconds() ) * block.mSampleRate ) ) ) };
         const auto frames{ block.mSamples.size() / block.mChannels };
 
@@ -73,21 +72,28 @@ namespace mikoto::video {
         }
     }
 
-    VideoPlayback::VideoPlayback( asset::AssetHandle<asset::VideoClip> clip, const PlaybackSettings& settings, bool preview )
-        : mAsset{ eastl::move( clip ) }, mSettings{ settings }, mPreview{ preview } {
+    VideoPlayback::VideoPlayback( asset::AssetHandle<asset::VideoClip> clip, const PlaybackSettings &settings, bool preview )
+        : mAsset{ eastl::move( clip ) }, mSettings{ settings }, mPreview{ preview }, mPosterFrameOnly{ preview } {
     }
 
     VideoPlayback::~VideoPlayback() {
-        if ( auto* service{ VideoService::GetPtr() }; service && mRegistered ) {
+        if ( auto *service{ VideoService::GetPtr() }; service && mRegistered ) {
             service->UnregisterPlayback( this );
         }
     }
 
-    auto VideoPlayback::SetSettings( const PlaybackSettings& settings ) -> void {
+    auto VideoPlayback::SetSettings( const PlaybackSettings &settings ) -> void {
+        const bool audioEnabledChanged{ mSettings.mAudioEnabled != settings.mAudioEnabled };
         mSettings = settings;
 
-        if ( mClip && !mPreview ) {
+        // Only adding/removing the audio track needs cursor reconstruction.
+        // Live gain/spatial edits must not seek or invalidate decoded pictures.
+        if ( audioEnabledChanged && mClip && !mPosterFrameOnly && !mSeekTime ) {
             mSeekTime = mTimeSeconds;
+        }
+
+        if ( mAudio ) {
+            mAudio->SetSettings( settings.mAudio );
         }
     }
 
@@ -121,22 +127,29 @@ namespace mikoto::video {
         return mPreview;
     }
 
+    auto VideoPlayback::IsPosterFrameOnly() const -> bool {
+        return mPosterFrameOnly;
+    }
+
     auto VideoPlayback::IsRegistered() const -> bool {
         return mRegistered;
     }
 
     auto VideoPlayback::Play() -> void {
-        if ( mPreview ) {
+        if ( mState == PlaybackState::eFailed ) {
             return;
         }
 
-        if ( mState == PlaybackState::eEnded ) {
-            Seek( 0 );
+        const bool atEnd{ mState == PlaybackState::eEnded || ( mClip && mTimeSeconds >= mClip->GetInfo().mDurationSeconds ) };
+
+        if ( mPosterFrameOnly || atEnd ) {
+            // Rebuild decode/audio cursors once when a held poster becomes a
+            // real player. Keep editor ownership so Scene does not recreate it.
+            mPosterFrameOnly = false;
+            mSeekTime = atEnd ? 0.0 : mTimeSeconds;
         }
 
-        if ( mState != PlaybackState::eFailed ) {
-            mState = PlaybackState::ePlaying;
-        }
+        mState = PlaybackState::ePlaying;
     }
 
     auto VideoPlayback::Pause() -> void {
@@ -151,15 +164,19 @@ namespace mikoto::video {
 
     auto VideoPlayback::Stop() -> void {
         Pause();
-        Seek( 0 );
+        // Some MP4s start at a positive presentation timestamp. The poster
+        // path still presents their first frame when the stopped clock is zero.
+        mPosterFrameOnly = true;
+        mSeekTime = 0;
         mState = PlaybackState::eStopped;
     }
 
     auto VideoPlayback::Seek( f64 seconds ) -> void {
-        if ( mPreview ) {
+        if ( mState == PlaybackState::eFailed ) {
             return;
         }
 
+        mPosterFrameOnly = seconds <= 0 && mState != PlaybackState::ePlaying;
         mSeekTime = eastl::max( 0.0, seconds );
     }
 
@@ -167,7 +184,7 @@ namespace mikoto::video {
         return mState;
     }
 
-    auto VideoPlayback::GetError() const -> const eastl::string& {
+    auto VideoPlayback::GetError() const -> const eastl::string & {
         return mError;
     }
 
@@ -199,11 +216,13 @@ namespace mikoto::video {
         {
             std::unique_lock lock{ mJobsMutex };
             mAcceptingJobs = false;
-            mJobsFinished.wait( lock, [&] { return !mActiveJobs; } );
+            mJobsFinished.wait( lock, [&] {
+                return !mActiveJobs;
+            } );
             mCompletedJobs.clear();
         }
 
-        for ( auto* playback: mPlaybacks ) {
+        for ( auto *playback: mPlaybacks ) {
             playback->mRegistered = false;
             ++playback->mEpoch;
             playback->mJobPending = false;
@@ -237,8 +256,8 @@ namespace mikoto::video {
             jobs.swap( mCompletedJobs );
         }
 
-        for ( auto& job: jobs ) {
-            auto& playback{ *job.mPlayback };
+        for ( auto &job: jobs ) {
+            auto &playback{ *job.mPlayback };
 
             if ( job.mEpoch != playback.mEpoch ) {
                 continue;
@@ -260,11 +279,11 @@ namespace mikoto::video {
             playback.mAudioEnded = job.mAudioEnded;
             playback.mVideoEnded = playback.mNextVideoSample == playback.mClip->GetSamples( TrackKind::eVideo ).size();
 
-            for ( auto& picture: job.mPictures ) {
+            for ( auto &picture: job.mPictures ) {
                 playback.mPictures.push_back( eastl::move( picture ) );
             }
 
-            for ( auto& pcm: job.mPcm ) {
+            for ( auto &pcm: job.mPcm ) {
                 TrimPcmBefore( pcm, playback.mTimeSeconds );
 
                 if ( !pcm.mSamples.empty() ) {
@@ -274,7 +293,7 @@ namespace mikoto::video {
         }
     }
 
-    auto VideoService::ResetPlayback( VideoPlayback& playback, f64 seconds ) -> void {
+    auto VideoService::ResetPlayback( VideoPlayback &playback, f64 seconds ) -> void {
         // Replacing parser/audio state lets old worker results expire without blocking a seek.
         ++playback.mEpoch;
         playback.mJobPending = false;
@@ -289,17 +308,18 @@ namespace mikoto::video {
         playback.mVideoEnded = playback.mAudioEnded = playback.mStartedAudio = false;
         playback.mSeekTime.reset();
 
+        playback.mPreviewSample = FindPreviewSample( playback.mClip->GetSamples( TrackKind::eVideo ) );
+
         // Decode from the initial IDR through the first displayable picture, then hold it.
         // Wicked also decodes an initial frame independently of its Playing flag:
         // https://github.com/turanszkij/WickedEngine/blob/master/WickedEngine/wiVideo.cpp (IsDecodingRequired)
-        if ( playback.mPreview ) {
-            playback.mPreviewSample = FindPreviewSample( playback.mClip->GetSamples( TrackKind::eVideo ) );
+        if ( playback.mPosterFrameOnly ) {
             playback.mNextVideoSample = 0;
             playback.mTimeSeconds = 0;
         }
 
-        if ( !playback.mPreview && playback.mSettings.mAudioEnabled && playback.mClip->GetInfo().mAudio.mCodec != AudioCodec::eNone ) {
-            const auto& track{ playback.mClip->GetInfo().mAudio };
+        if ( !playback.mPosterFrameOnly && playback.mSettings.mAudioEnabled && playback.mClip->GetInfo().mAudio.mCodec != AudioCodec::eNone ) {
+            const auto &track{ playback.mClip->GetInfo().mAudio };
 
             if ( track.mCodec != AudioCodec::eAac ) {
                 MKT_THROW_RUNTIME_ERROR( "This video's audio codec is not supported." );
@@ -313,18 +333,19 @@ namespace mikoto::video {
             }
 
             playback.mAudio = eastl::make_unique<VideoAudioStream>( *mAudioDevice, track, playback.mSettings.mAudio );
-        } else {
+        }
+        else {
             playback.mAudioEnded = true;
         }
     }
 
     auto VideoService::ScheduleDecode( VideoPlaybackHandle playback ) -> void {
-        const auto& state{ *playback };
+        const auto &state{ *playback };
         const auto videoSamples{ state.mClip->GetSamples( TrackKind::eVideo ) };
 
-        const u64 videoEnd{ state.mPreview ? state.mPreviewSample + 1 : videoSamples.size() };
+        const u64 videoEnd{ state.mPosterFrameOnly ? state.mPreviewSample + 1 : videoSamples.size() };
         const bool videoNeeded{ !state.mVideoEnded && state.mNextVideoSample < videoEnd && state.mPictures.size() < 4 &&
-            ( state.mPreview || videoSamples[state.mNextVideoSample].mDecodeTime.ToSeconds() <= state.mTimeSeconds + 0.25 ) };
+                                ( state.mPosterFrameOnly || videoSamples[state.mNextVideoSample].mDecodeTime.ToSeconds() <= state.mTimeSeconds + 0.25 ) };
 
         const bool audioNeeded{ state.mAudio && !state.mAudioEnded && state.mPendingPcm.empty() && state.mAudio->GetQueuedSeconds() < 0.5 };
 
@@ -342,7 +363,7 @@ namespace mikoto::video {
         }
 
         playback->mJobPending = true;
-        
+
         auto clip{ state.mClip };
         auto parser{ state.mParser };
         auto audioDecoder{ state.mAudioDecoder };
@@ -363,7 +384,8 @@ namespace mikoto::video {
                     EncodedPacket packet{};
 
                     for ( u32 count{}; videoNeeded && count < 4 && job.mNextVideoSample < videoEnd &&
-                        clip->ReadSample( TrackKind::eVideo, job.mNextVideoSample, packet ); ++count ) {
+                                       clip->ReadSample( TrackKind::eVideo, job.mNextVideoSample, packet );
+                        ++count ) {
                         job.mPictures.push_back( parser->ParsePicture( packet ) );
                         ++job.mNextVideoSample;
                     }
@@ -376,7 +398,7 @@ namespace mikoto::video {
                         for ( u32 count{}; count < 24 && clip->ReadSample( TrackKind::eAudio, job.mNextAudioSample, packet ); ++count ) {
                             auto blocks{ audioDecoder->Decode( packet ) };
 
-                            for ( auto& block: blocks ) {
+                            for ( auto &block: blocks ) {
                                 job.mPcm.push_back( eastl::move( block ) );
                             }
 
@@ -384,7 +406,7 @@ namespace mikoto::video {
                         }
 
                         if ( job.mNextAudioSample == clip->GetSamples( TrackKind::eAudio ).size() ) {
-                            for ( auto& block: audioDecoder->Drain() ) {
+                            for ( auto &block: audioDecoder->Drain() ) {
                                 job.mPcm.push_back( eastl::move( block ) );
                             }
 
@@ -393,7 +415,7 @@ namespace mikoto::video {
                     }
 
                     job.mAudioDecoder = eastl::move( audioDecoder );
-                } catch ( const std::exception& error ) {
+                } catch ( const std::exception &error ) {
                     job.mError = error.what();
                 }
 
@@ -417,15 +439,15 @@ namespace mikoto::video {
         }
     }
 
-    auto VideoService::RegisterPlayback( const asset::AssetRef<asset::VideoClip>& clip,
-        const PlaybackSettings& settings, bool preview ) -> VideoPlaybackHandle {
+    auto VideoService::RegisterPlayback( const asset::AssetRef<asset::VideoClip> &clip,
+        const PlaybackSettings &settings, bool preview ) -> VideoPlaybackHandle {
         auto playback{ VideoPlaybackHandle::New( asset::AssetRegistryService::Get()->Request<asset::VideoClip>( clip ), settings, preview ) };
         mPlaybacks.insert( playback.GetPtr() );
         playback->mRegistered = true;
         return playback;
     }
 
-    auto VideoService::UnregisterPlayback( VideoPlayback* playback ) -> void {
+    auto VideoService::UnregisterPlayback( VideoPlayback *playback ) -> void {
         if ( !mPlaybacks.erase( playback ) ) {
             return;
         }
@@ -447,8 +469,7 @@ namespace mikoto::video {
         }
 
         // Each owner advances its media clock once, independently of how many views consume it.
-        auto& playback{ *player.GetPtr() };
-        const bool preview{ playback.mPreview };
+        auto &playback{ *player.GetPtr() };
 
         try {
             if ( !playback.mClip ) {
@@ -462,8 +483,12 @@ namespace mikoto::video {
                     return;
                 }
 
+                // Play-on-start applies to runtime ownership only. Editor
+                // previews stay silent until the Inspector explicitly starts one.
+                const bool playOnStart{ !playback.mPreview && playback.mSettings.mPlayOnStart };
+                playback.mPosterFrameOnly = !playOnStart;
                 ResetPlayback( playback, 0 );
-                playback.mState = !preview && playback.mSettings.mPlayOnStart ? PlaybackState::ePlaying : PlaybackState::eStopped;
+                playback.mState = playOnStart ? PlaybackState::ePlaying : PlaybackState::eStopped;
             }
 
             if ( playback.mSeekTime ) {
@@ -480,14 +505,15 @@ namespace mikoto::video {
 
             if ( playback.mState == PlaybackState::ePlaying ) {
                 if ( playback.mAudio ) {
-                    auto* sound{ playback.mAudio->GetSource() };
+                    auto *sound{ playback.mAudio->GetSource() };
                     const bool drained{ playback.mStartedAudio && playback.mAudioEnded && playback.mPendingPcm.empty() &&
-                        playback.mAudio->GetQueuedSeconds() == 0 };
+                                        playback.mAudio->GetQueuedSeconds() == 0 };
 
                     // A shorter audio track must not freeze the final video frames or looping.
                     if ( drained ) {
                         playback.mTimeSeconds += timeStep;
-                    } else {
+                    }
+                    else {
                         if ( playback.mStartedAudio || playback.mAudio->GetQueuedSeconds() >= 0.1 || playback.mAudioEnded ) {
                             sound->Play();
                             playback.mStartedAudio = true;
@@ -495,7 +521,8 @@ namespace mikoto::video {
 
                         playback.mTimeSeconds = playback.mAudio->GetPlaybackTime().value_or( playback.mTimeSeconds );
                     }
-                } else {
+                }
+                else {
                     playback.mTimeSeconds += timeStep;
                 }
             }
@@ -504,18 +531,19 @@ namespace mikoto::video {
                 playback.mAudio->GetSource()->UpdatePosition( playback.mPosition, static_cast<float>( timeStep ) );
             }
 
-            if ( !preview && playback.mTimeSeconds >= playback.mClip->GetInfo().mDurationSeconds ) {
+            if ( playback.mState == PlaybackState::ePlaying && !playback.mPosterFrameOnly && playback.mTimeSeconds >= playback.mClip->GetInfo().mDurationSeconds ) {
                 if ( playback.mSettings.mLooping ) {
                     ResetPlayback( playback, 0 );
-                } else {
+                }
+                else {
                     playback.mState = PlaybackState::eEnded;
                 }
             }
 
             ScheduleDecode( player );
-        } catch ( const std::exception& error ) {
+        } catch ( const std::exception &error ) {
             playback.SetFailure( error.what() );
             MKT_CORE_LOGGER_ERROR( "Video playback: {}", error.what() );
         }
     }
-}
+}// namespace mikoto::video

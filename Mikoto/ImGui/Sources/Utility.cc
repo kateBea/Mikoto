@@ -544,6 +544,13 @@ namespace mikoto::imgui {
         }
     }
 
+    ImGuiScopedTextFont::ImGuiScopedTextFont( ImFont *font, float size )
+        : mFont{ font } {
+        if ( mFont ) {
+            ImGui::PushFont( mFont, size );
+        }
+    }
+
     ImGuiScopedTextFont::ImGuiScopedTextFont( ImGuiScopedTextFont&& other ) noexcept
         : mFont{ other.mFont } {
         // The moved-from temporary must not pop the font owned by this scope.

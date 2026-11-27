@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Project the source environment into a cubemap face through the graphics path. The face
+// direction selects the source environment sample.
+
 #pragma once
 
 #include "base/Base.slang"

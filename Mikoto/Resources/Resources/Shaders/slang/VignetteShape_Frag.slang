@@ -12,10 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Evaluate the configured vignette shape in screen space. The mask separates the geometric
+// falloff from the later scene-color composition.
+
 #include "base/Base.slang"
 
 struct FSInput {
-    float2 UV : TEXCOORD0;
+    float2 mUV : TEXCOORD0;
 };
 
 struct DrawParams {
@@ -58,7 +61,7 @@ float EvaluateVignette( float2 uv, float2 center, float2 halfSize, float aspectR
 [shader( "fragment" )]
 float main( FSInput input ) : SV_Target0 {
     return EvaluateVignette(
-        input.UV,
+        input.mUV,
         parameters.mCenter,
         parameters.mHalfSize,
         parameters.mAspectRatio,

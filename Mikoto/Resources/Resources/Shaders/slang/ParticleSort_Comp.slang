@@ -12,16 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Sort particle render records using camera depth for transparency ordering. Each dispatch
+// performs the configured compare/exchange stage of the sorting network.
+
 #include "base/Particle.slang"
+
+// Inactive slots sort behind every live camera-depth record.
+static const float kParticleInactiveDepth = -3.402823466e+38;
 
 struct SortParameters {
     RWBufferReference<ParticleRenderData> mOutput;
-    uint mCount, mStage, mStride, mClear;
+    uint mCount;
+    uint mStage;
+    uint mStride;
+    uint mClear;
 };
 MKT_DECLARE_PUSH_CONSTANT( SortParameters, parameters );
 
 [shader( "compute" )]
-[numthreads( 128, 1, 1 )]
+[numthreads( kParticleSortGroupSize, 1, 1 )]
 void main( uint3 thread : SV_DispatchThreadID ) {
     uint index = thread.x;
     if ( index >= parameters.mCount ) {
@@ -29,7 +38,7 @@ void main( uint3 thread : SV_DispatchThreadID ) {
     }
     if ( parameters.mClear != 0 ) {
         ParticleRenderData empty = ( ParticleRenderData )0;
-        empty.mRotationSoftness.z = -3.402823466e+38;
+        empty.mRotationSoftness.z = kParticleInactiveDepth;
         empty.mRotationSoftness.w = float( index );
         parameters.mOutput[index] = empty;
         return;

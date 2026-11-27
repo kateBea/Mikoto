@@ -14,30 +14,49 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <Application/ParticleMaterialPreview.hh>
+
 #include <Assets/AssetParticleEffect.hh>
+
+#include <Core/Exception.hh>
 
 #include <Material/SkyboxMaterial.hh>
 #include <Material/SurfaceMaterial.hh>
 
 #include <Scene/Component.hh>
 
-#include <Application/ParticleMaterialPreview.hh>
-
 namespace mikoto::editor {
 
-    ParticleMaterialPreview::ParticleMaterialPreview( renderer::rhi::IGpuDevice* device, const asset::ModelHandle& ground ) {
+    ParticleMaterialPreview::ParticleMaterialPreview( renderer::rhi::IGpuDevice *device, const asset::ModelHandle &ground ) {
         mScene = eastl::make_unique<scene::Scene>( "Particle Material Preview" );
 
-        auto* simulator{ mScene->CreateEntity( "Preview emitter" ) };
+        auto *simulator{ mScene->CreateEntity( "Preview emitter" ) };
         mSimulator = simulator->Get();
         simulator->AddComponent<scene::ParticleSimulatorComponent>();
+        simulator->GetComponent<scene::TransformComponent>().SetTranslation( { 0, renderer::kPreviewStageElevation, 0 } );
 
         if ( ground ) {
-            auto* entity{ mScene->CreateEntity( scene::EntityCreateInfo{ .mName = "Preview ground", .mModel = ground } ) };
+            auto *entity{ mScene->CreateEntity( scene::EntityCreateInfo{ .mName = "Preview ground", .mModel = ground } ) };
             mGround = entity->Get();
+            if ( ground->GetMeshNodeCount() != 1 || ground->GetMeshNode( 0 ).GetCollisionVertices().empty() ) {
+                MKT_THROW_RUNTIME_ERROR( "Particle material preview requires the cube prefab." );
+            }
+            const auto &vertices{ ground->GetMeshNode( 0 ).GetCollisionVertices() };
+            core::float3 minimum{ vertices.front() }, maximum{ vertices.front() };
+            for ( const auto &vertex: vertices ) {
+                minimum = glm::min( minimum, vertex );
+                maximum = glm::max( maximum, vertex );
+            }
+            const core::float3 size{ maximum - minimum };
+            if ( glm::any( glm::lessThanEqual( size, core::float3{ .0001f } ) ) ) {
+                MKT_THROW_RUNTIME_ERROR( "Particle material preview ground has invalid bounds." );
+            }
+            // Normalize the imported cube and recenter it, as the particle editor does.
+            // The receiving surface stays 1 cm below the raised emitter, above the grid.
             entity->GetComponent<scene::TransformComponent>().SetTransform(
-                glm::translate( core::float4x4{ 1 }, core::float3{ 0, -0.08f, 0 } ) *
-                glm::scale( core::float4x4{ 1 }, core::float3{ 10, 0.1f, 10 } ) );
+                glm::translate( core::float4x4{ 1 }, core::float3{ 0, renderer::kPreviewStageElevation - .06f, 0 } ) *
+                glm::scale( core::float4x4{ 1 }, core::float3{ 10, .1f, 10 } / size ) *
+                glm::translate( core::float4x4{ 1 }, -( minimum + maximum ) * .5f ) );
 
             auto surface{ material::SurfaceMaterialHandle::New( "Particle preview ground" ) };
             surface->SetBaseColorFactor( { 0.16f, 0.18f, 0.22f, 1 } );
@@ -45,7 +64,7 @@ namespace mikoto::editor {
             entity->GetComponent<scene::MaterialComponent>().SetMaterial( surface );
         }
 
-        auto* light{ mScene->CreateEntity( "Preview key light" ) };
+        auto *light{ mScene->CreateEntity( "Preview key light" ) };
         mLight = light->Get();
         light->AddComponent<scene::LightComponent>();
 
@@ -56,10 +75,10 @@ namespace mikoto::editor {
         mCamera.SetViewportSize( 1280, 720 );
 
         mRenderer = renderer::ISceneRenderer::Create()
-            .SetName( "Particle Material Preview" )
-            .SetDevice( device )
-            .SetRenderResolution( renderer::rhi::RenderResolution::e720P )
-            .Build();
+                        .SetName( "Particle Material Preview" )
+                        .SetDevice( device )
+                        .SetRenderResolution( renderer::rhi::RenderResolution::e720P )
+                        .Build();
 
         mRenderer->SetEditorOverlaysEnabled( false );
         mRenderer->SetEnableSsao( false );
@@ -78,13 +97,14 @@ namespace mikoto::editor {
     }
 
     auto ParticleMaterialPreview::Render(
-        const material::ParticleMaterialHandle& material,
-        const renderer::ThumbnailPreviewSettings& settings,
-        const asset::AssetHandle<asset::Texture>& environment,
+        const material::ParticleMaterialHandle &material,
+        const renderer::ThumbnailPreviewSettings &settings,
+        const asset::AssetHandle<asset::Texture> &environment,
         core::f32 timeStep,
         core::u32 width,
         core::u32 height ) -> renderer::rhi::TextureHandle {
-        auto& simulator{ mScene->GetRegistry().get<scene::ParticleSimulatorComponent>( mSimulator ) };
+        auto &simulator{ mScene->GetRegistry().get<scene::ParticleSimulatorComponent>( mSimulator ) };
+        const auto emitterWorld{ glm::translate( core::float4x4{ 1 }, core::float3{ 0, renderer::kPreviewStageElevation, 0 } ) };
 
         if ( mMaterial != material ) {
             renderer::ParticleEmitterSettings recipe{};
@@ -102,12 +122,12 @@ namespace mikoto::editor {
             recipe.mEndSize = 0.35f;
 
             simulator.SetEmitter( 0, renderer::ParticleEmitterHandle::New(
-                renderer::ParticleEmitterCreateDescription{ .mSettings = recipe, .mMaterial = material } ) );
+                                         renderer::ParticleEmitterCreateDescription{ .mSettings = recipe, .mMaterial = material } ) );
             mMaterial = material;
 
             // Populate the first preview immediately. Later edits keep its playback clock.
             for ( core::u32 step{}; step < 60; ++step ) {
-                simulator.Update( 1.0f / 60.0f, core::float4x4{ 1 }, 1, renderer::ParticleSimulationMode::eCpu );
+                simulator.Update( 1.0f / 60.0f, emitterWorld, 1, renderer::ParticleSimulationMode::eCpu );
             }
         }
 
@@ -134,13 +154,13 @@ namespace mikoto::editor {
             mScene->GetRegistry().get<scene::TagComponent>( mGround ).SetActive( settings.mGround );
         }
 
-        auto& light{ mScene->GetRegistry().get<scene::LightComponent>( mLight ) };
+        auto &light{ mScene->GetRegistry().get<scene::LightComponent>( mLight ) };
         const auto yaw{ glm::radians( settings.mLightYaw ) };
         const auto elevation{ glm::radians( settings.mLightElevation ) };
 
         light.SetActiveType( renderer::LightType::eDirectional );
 
-        auto& directional{ light.Get<renderer::DirectionalLight>() };
+        auto &directional{ light.Get<renderer::DirectionalLight>() };
         directional.SetDirection(
             glm::sin( yaw ) * glm::cos( elevation ),
             -glm::sin( elevation ),
@@ -152,7 +172,7 @@ namespace mikoto::editor {
 
         const auto cameraYaw{ glm::radians( settings.mYaw ) };
         const auto pitch{ glm::radians( settings.mPitch ) };
-        const core::float3 target{ 0, 1.0f, 0 };
+        const core::float3 target{ 0, renderer::kPreviewStageElevation + 1.0f, 0 };
         const core::float3 cameraOffset{
             glm::sin( cameraYaw ) * glm::cos( pitch ),
             glm::sin( pitch ),
@@ -161,7 +181,7 @@ namespace mikoto::editor {
 
         mCamera.LookAt( target + settings.mDistance * cameraOffset, target );
 
-        simulator.Update( glm::clamp( timeStep, 0.0f, 0.1f ), core::float4x4{ 1 }, 1, renderer::ParticleSimulationMode::eCpu );
+        simulator.Update( glm::clamp( timeStep, 0.0f, 0.1f ), emitterWorld, 1, renderer::ParticleSimulationMode::eCpu );
         mRenderer->Render( mScene.get() );
 
         return mRenderer->GetFinalImage();

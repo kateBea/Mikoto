@@ -12,27 +12,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Propagate the closest silhouette seed using a shrinking jump distance. Comparing candidate
+// distances builds an approximate screen-space distance field.
+
 #pragma once
 
 #include "base/Memory_Helpers.slang"
 #include "base/Outline_Helpers.slang"
 
 struct DrawParams {
-    uint Seeds;
-    uint Step;
-    uint Axis; // 0: horizontal, 1: vertical.
-    uint Padding;
+    uint mSeeds;
+    uint mStep;
+    uint mAxis; // 0: horizontal, 1: vertical.
+    uint mPadding;
 };
 MKT_DECLARE_PUSH_CONSTANT( DrawParams, parameters );
 MKT_DECLARE_TEXTURE_SRV( Texture2D<float2> ) seeds;
 
 [shader( "fragment" )]
 float2 main( float2 unusedUV : TEXCOORD0, float4 position : SV_Position ) : SV_Target0 {
-    uint width, height;
-    seeds[parameters.Seeds].GetDimensions( width, height );
+    uint width;
+    uint height;
+    seeds[parameters.mSeeds].GetDimensions( width, height );
     int2 dimensions = int2( width, height );
     int2 pixel = int2( position.xy );
-    int2 axisStep = parameters.Axis == 0 ? int2( parameters.Step, 0 ) : int2( 0, parameters.Step );
+    int2 axisStep = parameters.mAxis == 0 ? int2( parameters.mStep, 0 ) : int2( 0, parameters.mStep );
     float bestDistanceSquared = 3.402823e+38f;
     float2 bestSeed = kInvalidOutlineSeed;
 
@@ -41,8 +45,10 @@ float2 main( float2 unusedUV : TEXCOORD0, float4 position : SV_Position ) : SV_T
     [unroll]
     for ( int offset = -1; offset <= 1; ++offset ) {
         int2 neighbor = clamp( pixel + offset * axisStep, int2( 0 ), dimensions - 1 );
-        float2 candidate = seeds[parameters.Seeds].Load( int3( neighbor, 0 ) );
-        if ( !IsOutlineSeedValid( candidate ) ) { continue; }
+        float2 candidate = seeds[parameters.mSeeds].Load( int3( neighbor, 0 ) );
+        if ( !IsOutlineSeedValid( candidate ) ) {
+            continue;
+        }
 
         // Always compare to THIS fragment, not to the neighbor that supplied the seed.
         float2 delta = position.xy - DecodeOutlineSeed( candidate, float2( dimensions ) );

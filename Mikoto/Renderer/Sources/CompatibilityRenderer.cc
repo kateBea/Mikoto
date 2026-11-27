@@ -70,6 +70,8 @@ namespace mikoto::renderer {
     }
 
     auto CompatibilityRenderer::Shutdown() -> void {
+        mHasSceneOutput = false;
+        mRequestedScene = nullptr;
         mPasses.reset();
         mSceneColor.Reset();
         mDepth.Reset();
@@ -165,6 +167,11 @@ namespace mikoto::renderer {
     auto CompatibilityRenderer::Render( const scene::Scene* scene ) -> void {
         MKT_BEGIN_PROFILER();
 
+        if ( scene != mRequestedScene ) {
+            mRequestedScene = scene;
+            InvalidateSceneOutput();
+        }
+
         if ( !mPasses ) {
             return;
         }
@@ -188,6 +195,7 @@ namespace mikoto::renderer {
         auto submission{ rhi::SubmitInfo{}.AddCommandList( commands ) };
         RenderSystem::Get()->BatchSubmission( eastl::move( submission ), rhi::QueueType::eGraphics );
         mFinalImage = eastl::move( finalImage );
+        mHasSceneOutput = true;
     }
 
     auto CompatibilityRenderer::SetMainCamera( const scene::SceneCamera* camera ) -> void {
@@ -295,11 +303,11 @@ namespace mikoto::renderer {
     }
 
     auto CompatibilityRenderer::GetFinalImage( FinalImageType type ) -> rhi::TextureHandle {
-        return mPasses && type == FinalImageType::eTonemap_Output ? mPasses->mPostProcess.GetOutput() : rhi::TextureHandle{};
+        return mHasSceneOutput && mPasses && type == FinalImageType::eTonemap_Output ? mPasses->mPostProcess.GetOutput() : rhi::TextureHandle{};
     }
 
     auto CompatibilityRenderer::GetFinalImage() -> rhi::TextureHandle {
-        return mFinalImage;
+        return mHasSceneOutput ? mFinalImage : rhi::TextureHandle{};
     }
 
     auto CompatibilityRenderer::CancelPick() -> void {
@@ -321,7 +329,7 @@ namespace mikoto::renderer {
     }
 
     auto CompatibilityRenderer::GetPickResult() -> eastl::optional<core::u32> {
-        return mPasses ? mPasses->mSelection.TakeResult() : eastl::optional<core::u32>{};
+        return mPasses ? mPasses->mSelection.GetPickResult() : eastl::optional<core::u32>{};
     }
 
     auto CompatibilityRenderer::ReadSelectionRectangle( const ReadPixelViewportInfo& first,

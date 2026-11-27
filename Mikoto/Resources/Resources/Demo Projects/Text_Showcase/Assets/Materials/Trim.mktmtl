@@ -1,0 +1,15 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Trim",
+  "Material": {
+    "BaseColorFactor": [
+      0.09,
+      0.36,
+      0.55,
+      1
+    ],
+    "RoughnessFactor": 0.85,
+    "MetallicFactor": 0
+  }
+}

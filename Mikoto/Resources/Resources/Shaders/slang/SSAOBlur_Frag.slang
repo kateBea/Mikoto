@@ -12,10 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Filter the raw screen-space AO result using nearby samples. This smooths the sampling pattern
+// before AO modulates indirect illumination.
+
 #pragma once
 
 #include "base/Base.slang"
 #include "base/Memory_Helpers.slang"
+// The bilateral AO filter covers a 5x5 pixel neighborhood.
+static const int kSsaoBlurRadius = 2;
+
 struct DrawParams {
     uint mSamplerID;
     uint mSsaoColorTargetID;
@@ -27,7 +33,8 @@ MKT_DECLARE_TEXTURE_SRV( Texture2D ) textures;
 
 [shader( "fragment" )]
 float main( float2 uv : TEXCOORD0 ) : SV_Target0 {
-    uint width, height;
+    uint width;
+    uint height;
     textures[parameters.mSsaoColorTargetID].GetDimensions( width, height );
 
     int2 pixel = clamp( int2( uv * float2( width, height ) ), int2( 0 ), int2( width, height ) - 1 );
@@ -38,10 +45,12 @@ float main( float2 uv : TEXCOORD0 ) : SV_Target0 {
 
     // Bilateral filtering removes noise without darkening unrelated depths
     // across silhouettes. Background pixels are excluded from the blur.
+    // Filter occlusion with both screen-distance and view-depth agreement. This smooths the
+    // random kernel pattern without equally blending across a foreground/background boundary.
     float result = 0;
     float weights = 0;
-    for ( int y = -2; y <= 2; ++y ) {
-        for ( int x = -2; x <= 2; ++x ) {
+    for ( int y = -kSsaoBlurRadius; y <= kSsaoBlurRadius; ++y ) {
+        for ( int x = -kSsaoBlurRadius; x <= kSsaoBlurRadius; ++x ) {
             int2 samplePixel = clamp( pixel + int2( x, y ), int2( 0 ), int2( width, height ) - 1 );
             float depth = textures[parameters.mPositionID].Load( int3( samplePixel, 0 ) ).z;
 

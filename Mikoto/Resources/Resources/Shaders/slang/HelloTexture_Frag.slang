@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Frame-graph texture example: sample the selected texture and write its color to the current
+// render target.
+
 #pragma once
 
 #include "base/Base.slang"
@@ -20,18 +23,18 @@
 using namespace mikoto;
 
 struct FSInput {
-    float4 position : SV_Position;
-    float2 texCoord : ATTRIBUTE0;
-    float3 color : ATTRIBUTE1;
+    float4 mPosition : SV_Position;
+    float2 mTexCoord : ATTRIBUTE0;
+    float3 mColor : ATTRIBUTE1;
 };
 
 struct FSOutput {
-    float4 color : SV_Target;
+    float4 mColor : SV_Target;
 };
 
 struct DrawParams {
-    int TextureIndex;
-    int SamplerIndex;
+    int mTextureIndex;
+    int mSamplerIndex;
 };
 
 #if defined( MKT_SUPPORT_VULKAN ) || defined( MKT_SUPPORT_D3D12 )
@@ -46,10 +49,10 @@ FSOutput main( FSInput input ) {
     FSOutput o;
 
 #if defined( MKT_SUPPORT_VULKAN ) || defined( MKT_SUPPORT_D3D12 )
-    if ( uParams.TextureIndex != -1 ) {
-        o.color = textures[uParams.TextureIndex].Sample( samplers[uParams.SamplerIndex], input.texCoord );
+    if ( uParams.mTextureIndex != -1 ) {
+        o.mColor = textures[uParams.mTextureIndex].Sample( samplers[uParams.mSamplerIndex], input.mTexCoord );
     } else {
-        o.color = float4( input.color, 1.0 );
+        o.mColor = float4( input.mColor, 1.0 );
     }
 #endif
 

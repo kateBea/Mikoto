@@ -16,19 +16,20 @@
 
 #include <EASTL/algorithm.h>
 
+#include <Application/ParticleProperties.hh>
+#include <Application/PropertyWidgets.hh>
+
+#include <Assets/AssetRegistryService.hh>
+
 #include <Core/Exception.hh>
 #include <Core/LocalizationService.hh>
 #include <Core/String.hh>
 
 #include <Filesystem/FileSystem.hh>
 
-#include <Assets/AssetRegistryService.hh>
-
+#include <ImGui/IconsMaterialDesign.h>
 #include <ImGui/ImGuiService.hh>
 #include <ImGui/ImGuiWidget.hh>
-#include <ImGui/IconsMaterialDesign.h>
-
-#include <Application/ParticleProperties.hh>
 
 namespace mikoto::editor {
 
@@ -55,7 +56,7 @@ namespace mikoto::editor {
         return string::Format( "##{}", key );
     }
 
-    auto DrawParticleEmitterSettings( renderer::ParticleEmitterSettings& settings ) -> bool {
+    auto DrawParticleEmitterSettings( renderer::ParticleEmitterSettings &settings ) -> bool {
         bool changed{};
 
         if ( ImGui::CollapsingHeader( imgui::widget::LocalizedLabel( "particle_simulation_emission", "Emission" ).c_str(), ImGuiTreeNodeFlags_DefaultOpen ) &&
@@ -69,12 +70,12 @@ namespace mikoto::editor {
             settings.mMaxParticles = core::as<core::u32>( eastl::max( 1, capacity ) );
             settings.mBurstCount = core::as<core::u32>( eastl::max( 0, burst ) );
 
-            changed |= imgui::widget::CircleSlider( ParticleControlRow( "particle_simulation_particles_second" ), &settings.mEmissionRate, 0, 100000, "%.3f" );
-            changed |= imgui::widget::CircleSlider( ParticleControlRow( "particle_simulation_lifetime" ), &settings.mLifetime, 0.02f, 300, "%.3f" );
-            changed |= imgui::widget::CircleSlider( ParticleControlRow( "particle_simulation_lifetime_variation" ), &settings.mLifetimeVariation, 0, 0.95f, "%.3f" );
+            changed |= DrawFloatProperty( ParticleControlRow( "particle_simulation_particles_second" ), &settings.mEmissionRate, { 0, 100000 }, "%.3f", true );
+            changed |= DrawFloatProperty( ParticleControlRow( "particle_simulation_lifetime" ), &settings.mLifetime, { 0.02f, 300 }, "%.3f", true );
+            changed |= DrawFloatProperty( ParticleControlRow( "particle_simulation_lifetime_variation" ), &settings.mLifetimeVariation, { 0, 0.95f }, "%.3f", true );
 
             changed |= imgui::CheckBox( ParticleControlRow( "particle_simulation_loop" ), settings.mLooping );
-            changed |= imgui::widget::CircleSlider( ParticleControlRow( "particle_simulation_duration" ), &settings.mDuration, 0.02f, 3600, "%.3f" );
+            changed |= DrawFloatProperty( ParticleControlRow( "particle_simulation_duration" ), &settings.mDuration, { 0.02f, 3600 }, "%.3f", true );
             changed |= ImGui::InputScalar( ParticleControlRow( "particle_simulation_seed" ).c_str(), ImGuiDataType_U32, &settings.mSeed );
 
             ImGui::EndTable();
@@ -82,28 +83,28 @@ namespace mikoto::editor {
 
         if ( ImGui::CollapsingHeader( imgui::widget::LocalizedLabel( "particle_simulation_spawn_and_motion", "Spawn and motion" ).c_str(), ImGuiTreeNodeFlags_DefaultOpen ) &&
              BeginParticleSettingsRows( "##SpawnAndMotionSettings" ) ) {
-            changed |= imgui::widget::CircleSlider( ParticleControlRow( "particle_simulation_radius" ), &settings.mRadius, 0, 1000, "%.3f" );
-            changed |= ImGui::DragFloat3( ParticleControlRow( "particle_simulation_direction" ).c_str(), &settings.mDirection.x, 0.02f, -1, 1 );
-            changed |= imgui::widget::CircleSlider( ParticleControlRow( "particle_simulation_cone_angle" ), &settings.mConeAngle, 0, 180, "%.3f" );
-            changed |= imgui::widget::CircleSlider( ParticleControlRow( "particle_simulation_speed" ), &settings.mSpeed, 0, 1000, "%.3f" );
-            changed |= imgui::widget::CircleSlider( ParticleControlRow( "particle_simulation_speed_variation" ), &settings.mSpeedVariation, 0, 1, "%.3f" );
+            changed |= DrawFloatProperty( ParticleControlRow( "particle_simulation_radius" ), &settings.mRadius, { 0, 1000 }, "%.3f", true );
+            changed |= DrawFloatVectorProperty( ParticleControlRow( "particle_simulation_direction" ).c_str(), &settings.mDirection.x, 3, { -1, 1 }, "%.3f", false );
+            changed |= DrawFloatProperty( ParticleControlRow( "particle_simulation_cone_angle" ), &settings.mConeAngle, { 0, 180 }, "%.3f", true );
+            changed |= DrawFloatProperty( ParticleControlRow( "particle_simulation_speed" ), &settings.mSpeed, { 0, 1000 }, "%.3f", true );
+            changed |= DrawFloatProperty( ParticleControlRow( "particle_simulation_speed_variation" ), &settings.mSpeedVariation, { 0, 1 }, "%.3f", true );
 
-            changed |= ImGui::DragFloat3( ParticleControlRow( "particle_simulation_acceleration" ).c_str(), &settings.mAcceleration.x, 0.05f, -10000, 10000 );
-            changed |= imgui::widget::CircleSlider( ParticleControlRow( "particle_simulation_drag" ), &settings.mDrag, 0, 100, "%.3f" );
+            changed |= DrawFloatVectorProperty( ParticleControlRow( "particle_simulation_acceleration" ).c_str(), &settings.mAcceleration.x, 3, { -10000, 10000 }, "%.3f", false );
+            changed |= DrawFloatProperty( ParticleControlRow( "particle_simulation_drag" ), &settings.mDrag, { 0, 100 }, "%.3f", true );
 
             ImGui::EndTable();
         }
 
         if ( ImGui::CollapsingHeader( imgui::widget::LocalizedLabel( "particle_simulation_appearance_over_lifetime", "Appearance over lifetime" ).c_str(), ImGuiTreeNodeFlags_DefaultOpen ) &&
              BeginParticleSettingsRows( "##AppearanceSettings" ) ) {
-            changed |= imgui::widget::CircleSlider( ParticleControlRow( "particle_simulation_start_diameter" ), &settings.mStartSize, 0, 1000, "%.3f" );
-            changed |= imgui::widget::CircleSlider( ParticleControlRow( "particle_simulation_end_diameter" ), &settings.mEndSize, 0, 1000, "%.3f" );
+            changed |= DrawFloatProperty( ParticleControlRow( "particle_simulation_start_diameter" ), &settings.mStartSize, { 0, 1000 }, "%.3f", true );
+            changed |= DrawFloatProperty( ParticleControlRow( "particle_simulation_end_diameter" ), &settings.mEndSize, { 0, 1000 }, "%.3f", true );
 
             changed |= ImGui::ColorEdit4( ParticleControlRow( "particle_simulation_start_colour" ).c_str(), &settings.mStartColor.x, ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float );
             changed |= ImGui::ColorEdit4( ParticleControlRow( "particle_simulation_end_colour" ).c_str(), &settings.mEndColor.x, ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float );
 
-            changed |= imgui::widget::CircleSlider( ParticleControlRow( "particle_simulation_angular_speed" ), &settings.mAngularSpeed, -100, 100, "%.3f" );
-            changed |= imgui::widget::CircleSlider( ParticleControlRow( "particle_simulation_edge_softness" ), &settings.mSoftness, 0.01f, 1, "%.3f" );
+            changed |= DrawFloatProperty( ParticleControlRow( "particle_simulation_angular_speed" ), &settings.mAngularSpeed, { -100, 100 }, "%.3f", true );
+            changed |= DrawFloatProperty( ParticleControlRow( "particle_simulation_edge_softness" ), &settings.mSoftness, { 0.01f, 1 }, "%.3f", true );
 
             ImGui::EndTable();
         }
@@ -118,8 +119,8 @@ namespace mikoto::editor {
             auto fadeIn{ settings.mFadeIn * 100.0f };
             auto fadeOut{ settings.mFadeOut * 100.0f };
 
-            changed |= imgui::widget::CircleSlider( ParticleControlRow( "particle_fade_in" ), &fadeIn, 0, 100, "%.1f %%" );
-            changed |= imgui::widget::CircleSlider( ParticleControlRow( "particle_fade_out" ), &fadeOut, 0, 100, "%.1f %%" );
+            changed |= DrawFloatProperty( ParticleControlRow( "particle_fade_in" ), &fadeIn, { 0, 100 }, "%.1f %%", true );
+            changed |= DrawFloatProperty( ParticleControlRow( "particle_fade_out" ), &fadeOut, { 0, 100 }, "%.1f %%", true );
 
             settings.mFadeIn = fadeIn * 0.01f;
             settings.mFadeOut = fadeOut * 0.01f;
@@ -131,7 +132,7 @@ namespace mikoto::editor {
         return changed;
     }
 
-    auto DrawParticleMaterial( material::ParticleMaterial& material ) -> bool {
+    auto DrawParticleMaterial( material::ParticleMaterial &material ) -> bool {
         bool changed{};
 
         if ( BeginParticleSettingsRows( "##ParticleMaterialProperties" ) ) {
@@ -142,8 +143,21 @@ namespace mikoto::editor {
                 changed = true;
             }
 
+            bool bloom{ material.IsBloomEnabled() };
+            if ( imgui::CheckBox( ParticleControlRow( "particle_material_bloom" ).c_str(), bloom ) ) {
+                material.SetBloomEnabled( bloom );
+                changed = true;
+            }
+            ImGui::BeginDisabled( !bloom );
+            float intensity{ material.GetBloomIntensity() };
+            if ( DrawFloatProperty( ParticleControlRow( "particle_material_bloom_intensity" ).c_str(), &intensity, { 0.0f, 64.0f }, "%.2f", false ) ) {
+                material.SetBloomIntensity( intensity );
+                changed = true;
+            }
+            ImGui::EndDisabled();
             ImGui::EndTable();
         }
+        ImGui::TextWrapped( "%s", MKT_LOC( "particle_material_bloom_help" ).c_str() );
 
         ImGui::TextUnformatted( MKT_LOC( "particle_effect_billboard_texture" ).c_str() );
 
@@ -158,7 +172,7 @@ namespace mikoto::editor {
         // Both the thumbnail and filename accept the same content-browser texture payload.
         const auto acceptDrop{ [&]() {
             if ( ImGui::BeginDragDropTarget() ) {
-                if ( const auto* payload{ ImGui::AcceptDragDropPayload( "CONTENT_BROWSER_TEXT_IMAGE" ) } ) {
+                if ( const auto *payload{ ImGui::AcceptDragDropPayload( "CONTENT_BROWSER_TEXT_IMAGE" ) } ) {
                     droppedPath = filesystem::Path{ static_cast<core::cstr>( payload->Data ) };
                 }
 
@@ -206,9 +220,7 @@ namespace mikoto::editor {
 
         // Finish the ImGui table before asset loading can throw.
         if ( chooseTexture ) {
-            droppedPath = filesystem::OpenFileDialog( {
-                { MKT_LOC( "material_editor_texture" ).c_str(), "png,jpg,jpeg,tga,bmp,ktx2" }
-            } );
+            droppedPath = filesystem::OpenFileDialog( { { MKT_LOC( "material_editor_texture" ).c_str(), "png,jpg,jpeg,tga,bmp,ktx2" } } );
         }
 
         if ( !droppedPath.IsEmpty() ) {
@@ -231,24 +243,49 @@ namespace mikoto::editor {
         return changed;
     }
 
-    auto DrawParticleEmitterMaterial( material::ParticleMaterialHandle& material, bool sandbox ) -> bool {
+    auto DrawParticleEmitterMaterial( material::ParticleMaterialHandle &material, bool sandbox ) -> bool {
         bool changed{};
         bool choose{};
         bool create{};
         bool clear{};
+        filesystem::Path materialPath{};
+
+        const auto acceptDrop{ [&]() {
+            if ( ImGui::BeginDragDropTarget() ) {
+                if ( const auto *payload{ ImGui::AcceptDragDropPayload( "CONTENT_BROWSER_TEXT_MATERIAL" ) } ) {
+                    if ( payload->DataSize > 0 && static_cast<core::cstr>( payload->Data )[payload->DataSize - 1] == '\0' ) {
+                        materialPath = filesystem::Path{ static_cast<core::cstr>( payload->Data ) };
+                    }
+                }
+
+                ImGui::EndDragDropTarget();
+            }
+        } };
 
         ImGui::SeparatorText( MKT_LOC( "material_editor_particle_material" ).c_str() );
 
         if ( BeginParticleSettingsRows( "##EmitterMaterialActions" ) ) {
             ( void )ParticleControlRow( "material_editor_name" );
             ImGui::TextWrapped( "%s", material ? material->GetName().c_str() : MKT_LOC( "texture_render_no_material" ).c_str() );
+            acceptDrop();
 
             ( void )ParticleControlRow( "material_editor_material" );
 
             const auto clearWidth{ ImGui::GetFrameHeight() };
             const auto chooseWidth{ eastl::max( 1.0f, ImGui::GetContentRegionAvail().x - clearWidth - ImGui::GetStyle().ItemSpacing.x ) };
 
-            choose = ImGui::Button( imgui::widget::LocalizedLabel( "volume_choose_material", "Choose##EmitterMaterial" ).c_str(), { chooseWidth, 0 } );
+            // The material's internal name can be identical in several assets.
+            // Show the assigned file while keeping this picker/drop target's ID stable.
+            const auto source{ material ? material->GetSourcePath() : filesystem::Path{} };
+            const auto label{ material
+                                  ? source.IsEmpty() ? material->GetName() : eastl::string{ source.GetFilename() }
+                                  : MKT_LOC( "volume_choose_material" ) };
+            const auto buttonLabel{ string::Format( "{}###EmitterMaterial", label ) };
+            choose = ImGui::Button( buttonLabel.c_str(), { chooseWidth, 0 } );
+            if ( material ) {
+                imgui::widget::ItemTooltip( "%s", source.IsEmpty() ? material->GetName().c_str() : source.GetC_Str() );
+            }
+            acceptDrop();
             ImGui::SameLine();
             ImGui::BeginDisabled( !material );
 
@@ -262,20 +299,21 @@ namespace mikoto::editor {
             ImGui::EndTable();
         }
 
+        // Finish the table before the shared picker/drop load can throw.
         if ( choose ) {
-            const auto file{ filesystem::OpenFileDialog( { { MKT_LOC( "material_editor_mikoto_material" ).c_str(), "mktmtl" } } ) };
+            materialPath = filesystem::OpenFileDialog( { { MKT_LOC( "material_editor_mikoto_material" ).c_str(), "mktmtl" } } );
+        }
 
-            if ( !file.IsEmpty() ) {
-                const auto asset{ asset::AssetRegistryService::Get()->LoadAsset<asset::Material>( file ) };
-                const auto loaded{ asset ? asset->GetResource() : material::MaterialHandle{} };
+        if ( !materialPath.IsEmpty() ) {
+            const auto asset{ asset::AssetRegistryService::Get()->LoadAsset<asset::Material>( materialPath ) };
+            const auto loaded{ asset ? asset->GetResource() : material::MaterialHandle{} };
 
-                if ( !dynamic_cast<const material::ParticleMaterial*>( loaded.GetPtr() ) ) {
-                    MKT_THROW_RUNTIME_ERROR( MKT_LOC( "particle_effect_invalid_material" ).c_str() );
-                }
-
-                material = loaded.As<material::ParticleMaterial>();
-                changed = true;
+            if ( !dynamic_cast<const material::ParticleMaterial *>( loaded.GetPtr() ) ) {
+                MKT_THROW_RUNTIME_ERROR( MKT_LOC( "particle_effect_invalid_material" ).c_str() );
             }
+
+            material = loaded.As<material::ParticleMaterial>();
+            changed = true;
         }
 
         if ( create ) {

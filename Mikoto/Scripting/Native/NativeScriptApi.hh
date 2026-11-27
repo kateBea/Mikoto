@@ -24,7 +24,7 @@
 // shared-library boundary. Instance allocation and destruction stay in the module.
 // https://docs.godotengine.org/en/stable/engine_details/engine_api/gdextension/what_is_gdextension.html
 namespace mikoto::scripting::native {
-    inline constexpr std::uint32_t kApiVersion{ 1 };
+    inline constexpr std::uint32_t kApiVersion{ 2 };
     inline constexpr char kModuleEntryPoint[]{ "MikotoGetNativeScriptModule" };
 
     enum class TransformField : std::uint32_t {
@@ -59,6 +59,16 @@ namespace mikoto::scripting::native {
         std::uint64_t mValue{};
     };
 
+    // Values match ContactEvent::GetCallbackIndex() in the engine.
+    enum class PhysicsEvent : std::uint32_t {
+        eCollisionEnter,
+        eCollisionStay,
+        eCollisionExit,
+        eTriggerEnter,
+        eTriggerStay,
+        eTriggerExit
+    };
+
     struct HostApi {
         void ( *mReadTransform )( void*, TransformField, Vector3* ) noexcept;
         void ( *mWriteTransform )( void*, TransformField, const Vector3* ) noexcept;
@@ -76,6 +86,18 @@ namespace mikoto::scripting::native {
 
         virtual auto OnCreate() -> void {}
         virtual auto OnUpdate( [[maybe_unused]] float timeStep ) -> void {}
+        virtual auto OnCollisionEnter( [[maybe_unused]] EntityId other ) -> void {
+        }
+        virtual auto OnCollisionStay( [[maybe_unused]] EntityId other ) -> void {
+        }
+        virtual auto OnCollisionExit( [[maybe_unused]] EntityId other ) -> void {
+        }
+        virtual auto OnTriggerEnter( [[maybe_unused]] EntityId other ) -> void {
+        }
+        virtual auto OnTriggerStay( [[maybe_unused]] EntityId other ) -> void {
+        }
+        virtual auto OnTriggerExit( [[maybe_unused]] EntityId other ) -> void {
+        }
         virtual auto OnDestroy() -> void {}
         virtual ~EntityScript() = default;
 
@@ -188,6 +210,7 @@ namespace mikoto::scripting::native {
         bool ( *mStart )( void* ) noexcept;
         bool ( *mUpdate )( void*, float ) noexcept;
         bool ( *mStop )( void* ) noexcept;
+        bool ( *mPhysicsEvent )( void *, PhysicsEvent, EntityId ) noexcept;
     };
 
     using GetScriptModule = const ScriptModule* ( * )( std::uint32_t ) noexcept;
@@ -207,22 +230,71 @@ namespace mikoto::scripting::native {
             .mName = name,
             .mFields = fields.data(),
             .mFieldCount = static_cast<std::uint32_t>( fields.size() ),
-            .mCreate = []( const HostApi* api, void* entity ) noexcept -> void* {
+            .mCreate = []( const HostApi *api, void *entity ) noexcept -> void * {
                 try {
                     auto* script{ new T{} };
                     script->Bind( *api, entity );
                     return script;
-                } catch ( ... ) { return nullptr; }
+                } catch ( ... ) {
+                    return nullptr;
+                }
             },
-            .mDestroy = []( void* script ) noexcept { delete static_cast<T*>( script ); },
-            .mStart = []( void* script ) noexcept {
-                try { static_cast<T*>( script )->OnCreate(); return true; } catch ( ... ) { return false; }
+            .mDestroy = []( void *script ) noexcept {
+                delete static_cast<T *>( script );
             },
-            .mUpdate = []( void* script, float delta ) noexcept {
-                try { static_cast<T*>( script )->OnUpdate( delta ); return true; } catch ( ... ) { return false; }
+            .mStart = []( void *script ) noexcept {
+                try {
+                    static_cast<T *>( script )->OnCreate();
+                    return true;
+                } catch ( ... ) {
+                    return false;
+                }
             },
-            .mStop = []( void* script ) noexcept {
-                try { static_cast<T*>( script )->OnDestroy(); return true; } catch ( ... ) { return false; }
+            .mUpdate = []( void *script, float delta ) noexcept {
+                try {
+                    static_cast<T *>( script )->OnUpdate( delta );
+                    return true;
+                } catch ( ... ) {
+                    return false;
+                }
+            },
+            .mStop = []( void *script ) noexcept {
+                try {
+                    static_cast<T *>( script )->OnDestroy();
+                    return true;
+                } catch ( ... ) {
+                    return false;
+                }
+            },
+            .mPhysicsEvent = []( void *instance, PhysicsEvent event, EntityId other ) noexcept {
+                try {
+                    auto *script{ static_cast<T *>( instance ) };
+                    switch ( event ) {
+                        case PhysicsEvent::eCollisionEnter:
+                            script->OnCollisionEnter( other );
+                            break;
+                        case PhysicsEvent::eCollisionStay:
+                            script->OnCollisionStay( other );
+                            break;
+                        case PhysicsEvent::eCollisionExit:
+                            script->OnCollisionExit( other );
+                            break;
+                        case PhysicsEvent::eTriggerEnter:
+                            script->OnTriggerEnter( other );
+                            break;
+                        case PhysicsEvent::eTriggerStay:
+                            script->OnTriggerStay( other );
+                            break;
+                        case PhysicsEvent::eTriggerExit:
+                            script->OnTriggerExit( other );
+                            break;
+                        default:
+                            return false;
+                    }
+                    return true;
+                } catch ( ... ) {
+                    return false;
+                }
             }
         };
 

@@ -1,0 +1,13 @@
+SELECTED ISLAND VEGETATION
+
+Various Forest Assets Pack by Dari (@dariiiii), CC BY 4.0:
+https://sketchfab.com/3d-models/various-forest-assets-pack-cf138b8eb2d340cda643ed59f824989c
+
+Flower by PropShop (@syedabbas0815), CC BY 4.0:
+https://sketchfab.com/3d-models/flower-8285d71edcaf47ac9b54b5619704f8db
+
+License: https://creativecommons.org/licenses/by/4.0/
+Changes: selected subset, 1K texture downloads, baked transforms, root pivots,
+metallic-roughness conversion, alpha testing, shared textures and wind materials.
+The original download archives are not included. These are representative game
+assets, not a botanical reconstruction of Tanegashima's native species.

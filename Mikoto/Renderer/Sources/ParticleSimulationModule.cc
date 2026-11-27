@@ -12,28 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <EASTL/sort.h>
+#include <bit>
+
+#include <EASTL/algorithm.h>
 #include <EASTL/bitset.h>
 #include <EASTL/hash_map.h>
-#include <EASTL/algorithm.h>
+#include <EASTL/sort.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtx/compatibility.hpp>
 
-#include <Core/String.hh>
 #include <Core/Profiler.hh>
-
-#include <Scene/Scene.hh>
-#include <Scene/Camera.hh>
-#include <Scene/Component.hh>
+#include <Core/String.hh>
 
 #include <Renderer/Core/CommandContext.hh>
-#include <Renderer/Particle/ParticleSystem.hh>
-
 #include <Renderer/ForwardRenderer/Passes/CameraModule.hh>
-#include <Renderer/ForwardRenderer/Passes/PrepassModule.hh>
 #include <Renderer/ForwardRenderer/Passes/GeometryShadingModule.hh>
 #include <Renderer/ForwardRenderer/Passes/ParticleSimulationModule.hh>
+#include <Renderer/ForwardRenderer/Passes/PrepassModule.hh>
+#include <Renderer/Particle/ParticleSystem.hh>
+
+#include <Scene/Camera.hh>
+#include <Scene/Component.hh>
+#include <Scene/Scene.hh>
 
 namespace mikoto::renderer {
 
@@ -43,7 +44,7 @@ namespace mikoto::renderer {
     struct ParticleState {
         core::float4 mPositionAge{};
         core::float4 mVelocityLifetime{};
-        core::float4 mRotationFade{}; // Rotation, fade-in fraction, fade-out fraction, reserved.
+        core::float4 mRotationFade{};// Rotation, fade-in fraction, fade-out fraction, bloom intensity.
         core::float4 mAccelerationDrag{};
         core::float4 mSizeRotationSoftness{};
         core::float4 mStartColor{};
@@ -67,9 +68,9 @@ namespace mikoto::renderer {
         core::u32 mClear{};
     };
 
-    using TextureDescriptors = eastl::hash_map<const rhi::ITexture*, core::u32>;
+    using TextureDescriptors = eastl::hash_map<const rhi::ITexture *, core::u32>;
 
-    MKT_NODISCARD static auto GetBillboardDescriptor( CommandContext& ctx, const rhi::TextureHandle& texture, TextureDescriptors& descriptors ) -> core::u32 {
+    MKT_NODISCARD static auto GetBillboardDescriptor( CommandContext &ctx, const rhi::TextureHandle &texture, TextureDescriptors &descriptors ) -> core::u32 {
         if ( !texture ) {
             return kInvalidParticleTextureIndex;
         }
@@ -86,14 +87,14 @@ namespace mikoto::renderer {
         : mResolution{ resolution } {
     }
 
-    auto ParticleSimulationModule::SetScene( const scene::Scene* scene ) -> void {
+    auto ParticleSimulationModule::SetScene( const scene::Scene *scene ) -> void {
         if ( mScene != scene ) {
             mSlots.fill( {} );
             mScene = scene;
         }
     }
 
-    auto ParticleSimulationModule::SetCamera( const scene::Camera* camera ) -> void {
+    auto ParticleSimulationModule::SetCamera( const scene::Camera *camera ) -> void {
         mCamera = camera;
     }
 
@@ -109,7 +110,7 @@ namespace mikoto::renderer {
         return mDroppedCount;
     }
 
-    auto ParticleSimulationModule::GatherCpuParticles( CommandContext& ctx ) -> void {
+    auto ParticleSimulationModule::GatherCpuParticles( CommandContext &ctx ) -> void {
         MKT_BEGIN_PROFILER();
         mRenderData.clear();
         mDroppedCount = 0;
@@ -118,7 +119,7 @@ namespace mikoto::renderer {
             return;
         }
 
-        const auto& view{ mCamera->GetViewMatrix() };
+        const auto &view{ mCamera->GetViewMatrix() };
         TextureDescriptors descriptors{};
 
         for ( const auto [entity, simulator, tag]:
@@ -127,8 +128,8 @@ namespace mikoto::renderer {
                 continue;
             }
 
-            for ( const auto& instance: simulator.GetInstances() ) {
-                for ( const auto& p: instance.GetParticles() ) {
+            for ( const auto &instance: simulator.GetInstances() ) {
+                for ( const auto &p: instance.GetParticles() ) {
                     const auto viewPosition{ view * core::float4{ p.mPosition, 1 } };
                     const auto age{ glm::clamp( p.mAge / p.mLifetime, 0.0f, 1.0f ) };
                     const auto size{ glm::mix( p.mStartSize, p.mEndSize, age ) };
@@ -143,12 +144,10 @@ namespace mikoto::renderer {
                         continue;
                     }
 
-                    mRenderData.push_back( {
-                        .mPositionSize = { p.mPosition, size },
+                    mRenderData.push_back( { .mPositionSize = { p.mPosition, size },
                         .mColor = color,
                         .mRotationSoftness = { p.mRotation, p.mSoftness, -viewPosition.z, core::as<core::f32>( mRenderData.size() ) },
-                        .mTexture = { GetBillboardDescriptor( ctx, instance.GetParticleTexture( p.mTextureIndex ), descriptors ), 0, 0, 0 }
-                    } );
+                        .mTexture = { GetBillboardDescriptor( ctx, instance.GetParticleTexture( p.mTextureIndex ), descriptors ), std::bit_cast<core::u32>( p.mBloomIntensity ), 0, 0 } } );
                 }
             }
         }
@@ -156,18 +155,18 @@ namespace mikoto::renderer {
         // Straight-alpha quads require back-to-front ordering across all emitters.
         // Equal depths retain gather order without an allocating stable_sort.
         eastl::sort( mRenderData.begin(), mRenderData.end(),
-            []( const auto& a, const auto& b ) {
-            return a.mRotationSoftness.z != b.mRotationSoftness.z
-                       ? a.mRotationSoftness.z > b.mRotationSoftness.z
-                       : a.mRotationSoftness.w < b.mRotationSoftness.w;
-        } );
+            []( const auto &a, const auto &b ) {
+                return a.mRotationSoftness.z != b.mRotationSoftness.z
+                           ? a.mRotationSoftness.z > b.mRotationSoftness.z
+                           : a.mRotationSoftness.w < b.mRotationSoftness.w;
+            } );
     }
 
     auto ParticleSimulationModule::SetSimulationMode( ParticleSimulationMode mode ) -> void {
         mSimulationMode = mode;
     }
 
-    auto ParticleSimulationModule::RegisterSimulationPasses( FrameGraph& graph ) -> void {
+    auto ParticleSimulationModule::RegisterSimulationPasses( FrameGraph &graph ) -> void {
         if ( mSimulationMode == ParticleSimulationMode::eGpu ) {
             RegisterParameterUploadPass( graph );
             RegisterSnapshotClearPass( graph );
@@ -179,23 +178,23 @@ namespace mikoto::renderer {
         }
     }
 
-    auto ParticleSimulationModule::RegisterUploadPass( FrameGraph& graph ) -> void {
-        auto& info{ graph.GetOrCreate<ParticleSimulationInfo>() };
+    auto ParticleSimulationModule::RegisterUploadPass( FrameGraph &graph ) -> void {
+        auto &info{ graph.GetOrCreate<ParticleSimulationInfo>() };
 
         info.mParticlesBuffer = graph.Create( FGBufferDescription{}
             .SetName( "ParticleSimulation_Instances" )
             .SetUsage( renderer::rhi::BufferUsageFlagsBits::Structured |
-                renderer::rhi::BufferUsageFlagsBits::CopyDest )
+                           renderer::rhi::BufferUsageFlagsBits::CopyDest )
             .SetElementsSize( kMaxRenderedParticles, sizeof( ParticleRenderData ) )
             .SetHeapType( renderer::rhi::HeapType::eDeviceLocal ) );
 
         graph.RegisterPass(
             "ParticleSimulation_Upload",
             FGPassType::eTransfer,
-            []( FGNodeBuilder& builder, core::Blackboard& b ) {
+            []( FGNodeBuilder &builder, core::Blackboard &b ) {
                 builder.UseResource( b.Get<ParticleSimulationInfo>().mParticlesBuffer, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
             },
-            [this]( CommandContext& ctx, core::Blackboard& b ) {
+            [this]( CommandContext &ctx, core::Blackboard &b ) {
                 GatherCpuParticles( ctx );
 
                 if ( !mRenderData.empty() ) {
@@ -204,8 +203,8 @@ namespace mikoto::renderer {
             } );
     }
 
-    auto ParticleSimulationModule::RegisterRenderPass( FrameGraph& graph ) -> void {
-        auto& info{ graph.GetOrCreate<ParticleSimulationInfo>() };
+    auto ParticleSimulationModule::RegisterRenderPass( FrameGraph &graph ) -> void {
+        auto &info{ graph.GetOrCreate<ParticleSimulationInfo>() };
 
         info.mSampler = graph.Create( FGSamplerDescription{}
             .SetFilter( rhi::SamplerFilter::eLinear )
@@ -221,26 +220,28 @@ namespace mikoto::renderer {
             .SetDepthFormat( renderer::rhi::Format::eD32 )
             .SetBlendEnable( true )
             .AddColorFormat( renderer::rhi::Format::eRGBA16_FLOAT )
+            .AddColorFormat( renderer::rhi::Format::eRGBA16_FLOAT )
             .PushShader( "Particle_Vert.slang", FGStageType::eVertex )
             .PushShader( "Particle_Frag.slang", FGStageType::ePixel ) );
 
         graph.RegisterPass(
             "ParticleSimulation_Graphics",
             FGPassType::eGraphics,
-            []( FGNodeBuilder& builder, core::Blackboard& b ) {
+            []( FGNodeBuilder &builder, core::Blackboard &b ) {
                 builder.UseResource( b.Get<ParticleSimulationInfo>().mParticlesBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
                 builder.UseResource( b.Get<CameraModuleInfo>().mCameraData, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
                 builder.UseResource( b.Get<PrepassModuleInfo>().mPrepassDepthTarget, FGPipelineStage::eDepthTarget, FGResourceAccess::eRead );
                 builder.UseResource( b.Get<GeomShadingModuleInfo>().mColorImage, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
+                builder.UseResource( b.Get<PrepassModuleInfo>().mGBufferEmissiveTarget, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
             },
-            [this]( CommandContext& ctx, core::Blackboard& b ) {
+            [this]( CommandContext &ctx, core::Blackboard &b ) {
                 const auto drawCount{ mSimulationMode == ParticleSimulationMode::eGpu ? mGpuDrawCount : core::as<core::u32>( mRenderData.size() ) };
 
                 if ( !drawCount ) {
                     return;
                 }
 
-                const auto& info{ b.Get<ParticleSimulationInfo>() };
+                const auto &info{ b.Get<ParticleSimulationInfo>() };
                 struct DrawParams {
                     SPointer mParticles{};
                     SPointer mCamera{};
@@ -257,10 +258,11 @@ namespace mikoto::renderer {
                 ctx.BeginRender( RenderBeginDescription{}
                     .SetRenderArea( renderer::rhi::Rect{ static_cast<core::i32>( width ), static_cast<core::i32>( height ) } )
                     .AddDepthTarget( b.Get<PrepassModuleInfo>().mPrepassDepthTarget, renderer::rhi::LoadOp::eLoad )
-                    .AddRenderTarget( b.Get<GeomShadingModuleInfo>().mColorImage, renderer::rhi::Color{}, renderer::rhi::LoadOp::eLoad ) );
+                    .AddRenderTarget( b.Get<GeomShadingModuleInfo>().mColorImage, renderer::rhi::Color{}, renderer::rhi::LoadOp::eLoad )
+                    .AddRenderTarget( b.Get<PrepassModuleInfo>().mGBufferEmissiveTarget, renderer::rhi::Color{}, renderer::rhi::LoadOp::eLoad ) );
 
                 ctx.SetViewportState( renderer::rhi::ViewportState{}
-                    .AddViewportAndScissorRect( renderer::rhi::Viewport( width, height ) ) );
+                        .AddViewportAndScissorRect( renderer::rhi::Viewport( width, height ) ) );
 
                 ctx.BindPipeline( info.mGraphicsPipeline );
                 ctx.Draw( 6, drawCount );
@@ -269,7 +271,7 @@ namespace mikoto::renderer {
             } );
     }
 
-    auto ParticleSimulationModule::GatherGpuEmitters( CommandContext& ctx ) -> void {
+    auto ParticleSimulationModule::GatherGpuEmitters( CommandContext &ctx ) -> void {
         MKT_BEGIN_PROFILER();
 
         mGpuDrawCount = 0;
@@ -283,17 +285,17 @@ namespace mikoto::renderer {
 
         const auto view{ mScene->GetRegistry().view<scene::ParticleSimulatorComponent, scene::TransformComponent, scene::TagComponent>() };
 
-        for ( auto& slot: mSlots ) {
+        for ( auto &slot: mSlots ) {
             slot.mSeen = false;
         }
 
         for ( const auto [entity, simulator, transform, tag]: view.each() ) {
-            for ( const auto& instance: simulator.GetInstances() ) {
+            for ( const auto &instance: simulator.GetInstances() ) {
                 if ( instance.GetSimulationMode() != ParticleSimulationMode::eGpu || instance.GetPlayback() == ParticlePlayback::eStopped ) {
                     continue;
                 }
 
-                const auto slot{ eastl::find_if( mSlots.begin(), mSlots.end(), [&]( const EmitterSlot& value ) {
+                const auto slot{ eastl::find_if( mSlots.begin(), mSlots.end(), [&]( const EmitterSlot &value ) {
                     return value.mInstanceID == instance.GetID();
                 } ) };
 
@@ -305,7 +307,7 @@ namespace mikoto::renderer {
 
         eastl::bitset<kMaxRenderedParticles> used{};
         core::usize textureBindingCount{};
-        for ( auto& slot: mSlots ) {
+        for ( auto &slot: mSlots ) {
             if ( !slot.mSeen ) {
                 slot = {};
                 continue;
@@ -321,20 +323,20 @@ namespace mikoto::renderer {
         TextureDescriptors descriptors{};
         for ( const auto [entity, simulator, transform, tag]: view.each() ) {
             core::u64 seed{ tag.GetGuid() };
-            for ( const auto& instance: simulator.GetInstances() ) {
+            for ( const auto &instance: simulator.GetInstances() ) {
                 const auto emitterSeed{ seed++ };
 
                 if ( instance.GetSimulationMode() != ParticleSimulationMode::eGpu || instance.GetPlayback() == ParticlePlayback::eStopped ) {
                     continue;
                 }
 
-                auto slot{ eastl::find_if( mSlots.begin(), mSlots.end(), [&]( const EmitterSlot& value ) {
+                auto slot{ eastl::find_if( mSlots.begin(), mSlots.end(), [&]( const EmitterSlot &value ) {
                     return value.mInstanceID == instance.GetID();
                 } ) };
 
                 const bool newSlot{ slot == mSlots.end() };
                 if ( newSlot ) {
-                    slot = eastl::find_if( mSlots.begin(), mSlots.end(), []( const EmitterSlot& value ) {
+                    slot = eastl::find_if( mSlots.begin(), mSlots.end(), []( const EmitterSlot &value ) {
                         return value.mInstanceID == 0;
                     } );
 
@@ -343,8 +345,8 @@ namespace mikoto::renderer {
                     }
                 }
 
-                const auto& recipe{ instance.GetEmitter() };
-                const auto& s{ recipe->GetSettings() };
+                const auto &recipe{ instance.GetEmitter() };
+                const auto &s{ recipe->GetSettings() };
                 const auto previousCapacity{ core::as<core::u32>( slot->mIndices.size() ) };
 
                 // Grow into free slots without moving live GPU particles. A lower
@@ -384,7 +386,7 @@ namespace mikoto::renderer {
                 core::u32 freeBinding{ kInvalidParticleTextureIndex };
 
                 for ( core::u32 index{}; index < slot->mTextures.size(); ++index ) {
-                    auto& binding{ slot->mTextures[index] };
+                    auto &binding{ slot->mTextures[index] };
                     if ( texture && binding.mTexture == texture ) {
                         textureIndex = index;
                     }
@@ -409,24 +411,25 @@ namespace mikoto::renderer {
 
                 slot->mSimulatedTicks += steps;
                 if ( textureIndex != kInvalidParticleTextureIndex && steps != 0 ) {
-                    auto& binding{ slot->mTextures[textureIndex] };
+                    auto &binding{ slot->mTextures[textureIndex] };
                     const auto lifetimeTicks{ core::as<core::u64>( glm::ceil( s.mLifetime * ( 1.0f + s.mLifetimeVariation ) * 60.0f ) ) };
                     binding.mExpiresAtTick = eastl::max( binding.mExpiresAtTick, slot->mSimulatedTicks + lifetimeTicks + 1 );
                 }
 
                 const auto textureOffset{ core::as<core::u32>( mTextureDescriptors.size() ) };
-                for ( const auto& binding: slot->mTextures ) {
+                for ( const auto &binding: slot->mTextures ) {
                     mTextureDescriptors.push_back( GetBillboardDescriptor( ctx, binding.mTexture, descriptors ) );
                 }
 
                 const auto tint{ recipe->GetTint() };
-                auto& parameters{ mParameters[slot - mSlots.begin()] };
+                auto &parameters{ mParameters[slot - mSlots.begin()] };
                 parameters = {
                     .mWorld = transform.GetWorldTransform(),
                     .mDirectionCone = { s.mDirection, glm::radians( s.mConeAngle ) },
                     .mAccelerationDrag = { s.mAcceleration, s.mDrag },
                     .mLifetimeSpeed = { s.mLifetime, s.mLifetimeVariation, s.mSpeed, s.mSpeedVariation },
-                    .mEmission = { s.mEmissionRate, s.mRadius, s.mDuration, 0.0f },
+                    .mEmission = { s.mEmissionRate, s.mRadius, s.mDuration,
+                        recipe->GetMaterial() && recipe->GetMaterial()->IsBloomEnabled() ? recipe->GetMaterial()->GetBloomIntensity() : 0.0f },
                     .mSizeRotationSoftness = { s.mStartSize, s.mEndSize, s.mAngularSpeed, s.mSoftness },
                     .mStartColor = s.mStartColor * tint,
                     .mEndColor = s.mEndColor * tint,
@@ -465,14 +468,14 @@ namespace mikoto::renderer {
         }
     }
 
-    auto ParticleSimulationModule::RegisterParameterUploadPass( FrameGraph& graph ) -> void {
+    auto ParticleSimulationModule::RegisterParameterUploadPass( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER();
 
-        auto& simModuleInfo{ graph.GetOrCreate<ParticleSimulationInfo>() };
+        auto &simModuleInfo{ graph.GetOrCreate<ParticleSimulationInfo>() };
         simModuleInfo.mParticlesBuffer = graph.Create( FGBufferDescription{}
             .SetName( "ParticleSimulation_Instances" )
             .SetUsage( renderer::rhi::BufferUsageFlagsBits::Structured |
-                renderer::rhi::BufferUsageFlagsBits::CopyDest )
+                           renderer::rhi::BufferUsageFlagsBits::CopyDest )
             .SetElementsSize( kMaxRenderedParticles, sizeof( ParticleRenderData ) )
             .SetHeapType( renderer::rhi::HeapType::eDeviceLocal ) );
 
@@ -493,17 +496,17 @@ namespace mikoto::renderer {
         graph.RegisterPass<ParticleSimulationInfo>(
             "ParticleGpu_Parameters",
             FGPassType::eTransfer,
-            []( FGNodeBuilder& builder, ParticleSimulationInfo& info ) {
+            []( FGNodeBuilder &builder, ParticleSimulationInfo &info ) {
                 builder.UseResource( info.mEmitterParameters, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
                 builder.UseResource( info.mParticleIndices, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
                 builder.UseResource( info.mTextureDescriptors, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
             },
-            [this, &graph]( CommandContext& ctx, core::Blackboard& blackboard ) {
+            [this, &graph]( CommandContext &ctx, core::Blackboard &blackboard ) {
                 const auto previousDrawCount{ mGpuDrawCount };
                 GatherGpuEmitters( ctx );
 
                 if ( previousDrawCount != mGpuDrawCount ) {
-                    for ( const auto& stage: mSortStages ) {
+                    for ( const auto &stage: mSortStages ) {
                         if ( stage.mRequiredCount <= mGpuDrawCount ) {
                             graph.EnablePass( stage.mName );
                         }
@@ -514,7 +517,7 @@ namespace mikoto::renderer {
                 }
 
                 if ( mGpuDrawCount ) {
-                    const auto& info{ blackboard.Get<ParticleSimulationInfo>() };
+                    const auto &info{ blackboard.Get<ParticleSimulationInfo>() };
                     ctx.CopyBuffer( info.mEmitterParameters, 0, mParameters.data(), sizeof( mParameters ) );
                     ctx.CopyBuffer( info.mParticleIndices, 0, mParticleIndices.data(), MKT_VECTOR_SIZE_BYTES( mParticleIndices ) );
                     if ( !mTextureDescriptors.empty() ) {
@@ -524,10 +527,10 @@ namespace mikoto::renderer {
             } );
     }
 
-    auto ParticleSimulationModule::RegisterSnapshotClearPass( FrameGraph& graph ) -> void {
+    auto ParticleSimulationModule::RegisterSnapshotClearPass( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER();
 
-        auto& info{ graph.GetOrCreate<ParticleSimulationInfo>() };
+        auto &info{ graph.GetOrCreate<ParticleSimulationInfo>() };
         info.mSortPipeline = graph.Create( FGPipelineDescription{}
             .SetName( "ParticleGpu_Sort" )
             .SetPipelineType( renderer::rhi::PipelineType::eCompute )
@@ -537,32 +540,38 @@ namespace mikoto::renderer {
         graph.RegisterPass<ParticleSimulationInfo>(
             "ParticleGpu_ClearSnapshot",
             FGPassType::eCompute,
-            []( FGNodeBuilder& builder, ParticleSimulationInfo& info ) {
+            []( FGNodeBuilder &builder, ParticleSimulationInfo &info ) {
                 builder.UseResource( info.mEmitterParameters, FGPipelineStage::eComputeShader, FGResourceAccess::eRead );
                 builder.UseResource( info.mParticlesBuffer, FGPipelineStage::eComputeShader, FGResourceAccess::eWrite );
             },
-            [this]( CommandContext& ctx, core::Blackboard& blackboard ) {
+            [this]( CommandContext &ctx, core::Blackboard &blackboard ) {
                 if ( !mGpuDrawCount ) {
                     return;
                 }
 
-                const auto& info{ blackboard.Get<ParticleSimulationInfo>() };
+                const auto &info{ blackboard.Get<ParticleSimulationInfo>() };
                 ctx.BindPipeline( info.mSortPipeline );
-                ctx.PushConstants( SortParameters{ ctx.GetDeviceBufferAddress( info.mParticlesBuffer ), mGpuDrawCount, 0, 0, 1 } );
+                ctx.PushConstants( SortParameters{
+                    .mOutput = ctx.GetDeviceBufferAddress( info.mParticlesBuffer ),
+                    .mCount = mGpuDrawCount,
+                    .mStage = 0,
+                    .mStride = 0,
+                    .mClear = 1,
+                } );
                 ctx.Dispatch( ( mGpuDrawCount + 127 ) / 128, 1, 1 );
             } );
     }
 
-    auto ParticleSimulationModule::RegisterSimulationPass( FrameGraph& graph ) -> void {
+    auto ParticleSimulationModule::RegisterSimulationPass( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER();
 
-        auto& info{ graph.GetOrCreate<ParticleSimulationInfo>() };
+        auto &info{ graph.GetOrCreate<ParticleSimulationInfo>() };
 
         const auto createBuffer{ [&]( core::cstr name, core::u32 count, core::u32 stride ) {
             return graph.Create( FGBufferDescription{}
                 .SetName( name )
                 .SetUsage( renderer::rhi::BufferUsageFlagsBits::Structured |
-                    renderer::rhi::BufferUsageFlagsBits::CopyDest )
+                               renderer::rhi::BufferUsageFlagsBits::CopyDest )
                 .SetElementsSize( count, stride )
                 .SetHeapType( renderer::rhi::HeapType::eDeviceLocal ) );
         } };
@@ -579,7 +588,7 @@ namespace mikoto::renderer {
         graph.RegisterPass<ParticleSimulationInfo>(
             "ParticleGpu_Simulate",
             FGPassType::eCompute,
-            []( FGNodeBuilder& builder, ParticleSimulationInfo& info ) {
+            []( FGNodeBuilder &builder, ParticleSimulationInfo &info ) {
                 builder.UseResource( info.mEmitterParameters, FGPipelineStage::eComputeShader, FGResourceAccess::eRead );
                 builder.UseResource( info.mParticleIndices, FGPipelineStage::eComputeShader, FGResourceAccess::eRead );
                 builder.UseResource( info.mTextureDescriptors, FGPipelineStage::eComputeShader, FGResourceAccess::eRead );
@@ -587,12 +596,12 @@ namespace mikoto::renderer {
                 builder.UseResource( info.mEmitterStates, FGPipelineStage::eComputeShader, FGResourceAccess::eWrite );
                 builder.UseResource( info.mParticlesBuffer, FGPipelineStage::eComputeShader, FGResourceAccess::eWrite );
             },
-            [this]( CommandContext& ctx, core::Blackboard& blackboard ) {
+            [this]( CommandContext &ctx, core::Blackboard &blackboard ) {
                 if ( !mGpuDrawCount ) {
                     return;
                 }
 
-                const auto& info{ blackboard.Get<ParticleSimulationInfo>() };
+                const auto &info{ blackboard.Get<ParticleSimulationInfo>() };
 
                 struct Parameters {
                     SPointer mStates{};
@@ -602,7 +611,7 @@ namespace mikoto::renderer {
                     SPointer mIndices{};
                     SPointer mTextureDescriptors{};
                     core::float4x4 mView{};
-                } params {
+                } params{
                     .mStates = ctx.GetDeviceBufferAddress( info.mParticleStates ),
                     .mHeaders = ctx.GetDeviceBufferAddress( info.mEmitterStates ),
                     .mEmitters = ctx.GetDeviceBufferAddress( info.mEmitterParameters ),
@@ -619,32 +628,30 @@ namespace mikoto::renderer {
             } );
     }
 
-    auto ParticleSimulationModule::RegisterSortPass( FrameGraph& graph ) -> void {
+    auto ParticleSimulationModule::RegisterSortPass( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER();
 
         // Each compare step needs a barrier before the next one can read its
         // results. Declaring separate passes lets the graph synchronize them.
         for ( core::u32 stage{ 2 }; stage <= kMaxRenderedParticles; stage <<= 1 ) {
             for ( core::u32 stride{ stage >> 1 }; stride; stride >>= 1 ) {
-                const auto& sort{ mSortStages.emplace_back( SortStage{
+                const auto &sort{ mSortStages.emplace_back( SortStage{
                     .mName = string::Format( "ParticleGpu_Sort_{}_{}", stage, stride ),
-                    .mRequiredCount = stage
-                } ) };
+                    .mRequiredCount = stage } ) };
                 graph.RegisterPass<ParticleSimulationInfo>(
                     sort.mName,
                     FGPassType::eCompute,
-                    []( FGNodeBuilder& builder, ParticleSimulationInfo& info ) {
+                    []( FGNodeBuilder &builder, ParticleSimulationInfo &info ) {
                         builder.UseResource( info.mParticlesBuffer, FGPipelineStage::eComputeShader, FGResourceAccess::eWrite );
                     },
-                    [this, stage, stride]( CommandContext& ctx, core::Blackboard& blackboard ) {
-                        const auto& info{ blackboard.Get<ParticleSimulationInfo>() };
+                    [this, stage, stride]( CommandContext &ctx, core::Blackboard &blackboard ) {
+                        const auto &info{ blackboard.Get<ParticleSimulationInfo>() };
                         ctx.BindPipeline( info.mSortPipeline );
                         ctx.PushConstants( SortParameters{
                             .mOutput = ctx.GetDeviceBufferAddress( info.mParticlesBuffer ),
                             .mCount = mGpuDrawCount,
                             .mStage = stage,
-                            .mStride = stride
-                        } );
+                            .mStride = stride } );
                         ctx.Dispatch( ( mGpuDrawCount + 127 ) / 128, 1, 1 );
                     } );
                 graph.DisablePass( sort.mName );

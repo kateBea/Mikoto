@@ -15,20 +15,24 @@
 #ifndef MIKOTO_RENDERER_RHI_TEXTURE_HH
 #define MIKOTO_RENDERER_RHI_TEXTURE_HH
 
-#include <EASTL/string.h>
+#include <stdexcept>
+#include <string>
+
 #include <EASTL/optional.h>
+#include <EASTL/string.h>
 #include <EASTL/string_view.h>
+#include <EASTL/vector.h>
+
+#include <Assets/Image.hh>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
 
 #include <Memory/BufferSpan.hh>
 
-#include <Assets/Image.hh>
-
+#include <Renderer/Rhi/DeviceObject.hh>
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/Utility.hh>
-#include <Renderer/Rhi/DeviceObject.hh>
 
 namespace mikoto::renderer::rhi {
 
@@ -40,6 +44,7 @@ namespace mikoto::renderer::rhi {
 
         core::u32 mWidth{};
         core::u32 mHeight{};
+        core::u32 mDepth{ 1 };// Voxel depth for Texture3D; other dimensions retain one.
         core::u32 mMipCount{ 1 };
 
         bool mTrackState{ true };
@@ -71,7 +76,7 @@ namespace mikoto::renderer::rhi {
          * @param name Input value used by this operation.
          * @returns The result of SetName.
          */
-        auto SetName( eastl::string_view name ) -> TextureCreateDescription&;
+        auto SetName( eastl::string_view name ) -> TextureCreateDescription &;
 
         /**
          * Sets the value handled by SetWidth.
@@ -79,7 +84,7 @@ namespace mikoto::renderer::rhi {
          * @param width Input value used by this operation.
          * @returns The result of SetWidth.
          */
-        auto SetWidth( core::u32 width ) -> TextureCreateDescription&;
+        auto SetWidth( core::u32 width ) -> TextureCreateDescription &;
 
         /**
          * Sets the value handled by SetHeight.
@@ -87,7 +92,10 @@ namespace mikoto::renderer::rhi {
          * @param height Input value used by this operation.
          * @returns The result of SetHeight.
          */
-        auto SetHeight( core::u32 height ) -> TextureCreateDescription&;
+        auto SetHeight( core::u32 height ) -> TextureCreateDescription &;
+
+        /** Sets the voxel depth of a 3D texture, independently of array layers. */
+        auto SetDepth( core::u32 depth ) -> TextureCreateDescription &;
 
         /**
          * Sets the value handled by SetMipCount.
@@ -95,15 +103,16 @@ namespace mikoto::renderer::rhi {
          * @param count Input value used by this operation.
          * @returns The result of SetMipCount.
          */
-        auto SetMipCount( core::u32 count ) -> TextureCreateDescription&;
+        auto SetMipCount( core::u32 count ) -> TextureCreateDescription &;
 
         /**
          * Uses @p image as initialization data and enables copy-destination usage.
+         * Allocates at least the image's stored mip count, preserving larger explicit allocations.
          *
          * @param image Input value used by this operation.
          * @returns The result of SetImageData.
          */
-        auto SetImageData( asset::ImageHandle image) -> TextureCreateDescription&;
+        auto SetImageData( asset::ImageHandle image ) -> TextureCreateDescription &;
 
         /**
          * Uses @p buffer as initialization data and enables copy-destination usage.
@@ -111,7 +120,7 @@ namespace mikoto::renderer::rhi {
          * @param buffer Input value used by this operation.
          * @returns The result of SetBufferData.
          */
-        auto SetBufferData( memory::BufferSpanHandle buffer) -> TextureCreateDescription&;
+        auto SetBufferData( memory::BufferSpanHandle buffer ) -> TextureCreateDescription &;
 
         /**
          * Sets the value handled by SetHeapType.
@@ -119,7 +128,7 @@ namespace mikoto::renderer::rhi {
          * @param heapType Input value used by this operation.
          * @returns The result of SetHeapType.
          */
-        auto SetHeapType( HeapType heapType) -> TextureCreateDescription&;
+        auto SetHeapType( HeapType heapType ) -> TextureCreateDescription &;
 
         /**
          * Sets the value handled by SetMultisampling.
@@ -127,7 +136,7 @@ namespace mikoto::renderer::rhi {
          * @param sampleCount Input value used by this operation.
          * @returns The result of SetMultisampling.
          */
-        auto SetMultisampling( Multisampling sampleCount ) -> TextureCreateDescription&;
+        auto SetMultisampling( Multisampling sampleCount ) -> TextureCreateDescription &;
 
         /**
          * Sets the value handled by SetFormat.
@@ -135,7 +144,7 @@ namespace mikoto::renderer::rhi {
          * @param usage Input value used by this operation.
          * @returns The result of SetFormat.
          */
-        auto SetFormat( Format usage ) -> TextureCreateDescription&;
+        auto SetFormat( Format usage ) -> TextureCreateDescription &;
 
         /**
          * Sets the value handled by SetDimensions.
@@ -143,7 +152,7 @@ namespace mikoto::renderer::rhi {
          * @param dimensions Input value used by this operation.
          * @returns The result of SetDimensions.
          */
-        auto SetDimensions( TextureDimension dimensions ) -> TextureCreateDescription&;
+        auto SetDimensions( TextureDimension dimensions ) -> TextureCreateDescription &;
 
         /**
          * Adds one or more intended texture usages.
@@ -151,7 +160,7 @@ namespace mikoto::renderer::rhi {
          * @param usage Input value used by this operation.
          * @returns The result of SetUsage.
          */
-        auto SetUsage( TextureUsageFlags usage ) -> TextureCreateDescription&;
+        auto SetUsage( TextureUsageFlags usage ) -> TextureCreateDescription &;
 
         /**
          * Sets the value handled by SetResourceType.
@@ -159,7 +168,7 @@ namespace mikoto::renderer::rhi {
          * @param usage Input value used by this operation.
          * @returns The result of SetResourceType.
          */
-        auto SetResourceType( ResourceType usage ) -> TextureCreateDescription&;
+        auto SetResourceType( ResourceType usage ) -> TextureCreateDescription &;
 
         /**
          * Sets the value handled by SetSubResources.
@@ -167,7 +176,7 @@ namespace mikoto::renderer::rhi {
          * @param subResources Input value used by this operation.
          * @returns The result of SetSubResources.
          */
-        auto SetSubResources( const TextureSubresourceSet& subResources ) -> TextureCreateDescription&;
+        auto SetSubResources( const TextureSubresourceSet &subResources ) -> TextureCreateDescription &;
 
         /**
          * Sets the value handled by SetInitialState.
@@ -175,7 +184,10 @@ namespace mikoto::renderer::rhi {
          * @param value Input value used by this operation.
          * @returns The result of SetInitialState.
          */
-        constexpr auto SetInitialState(ResourceStates value) -> TextureCreateDescription& { mInitialState = value; return *this; }
+        constexpr auto SetInitialState( ResourceStates value ) -> TextureCreateDescription & {
+            mInitialState = value;
+            return *this;
+        }
 
         /**
          * Performs the operation represented by EnableAutomaticStateTracking.
@@ -183,7 +195,7 @@ namespace mikoto::renderer::rhi {
          * @param initialState Input value used by this operation.
          * @returns The result of EnableAutomaticStateTracking.
          */
-        constexpr auto EnableAutomaticStateTracking(ResourceStates initialState) -> TextureCreateDescription& {
+        constexpr auto EnableAutomaticStateTracking( ResourceStates initialState ) -> TextureCreateDescription & {
             mInitialState = initialState;
             mTrackState = true;
             return *this;
@@ -195,6 +207,7 @@ namespace mikoto::renderer::rhi {
      */
     struct SamplerCreateDescription {
         core::f32 mMipLevels{ 1.0f };
+        core::f32 mMaxAnisotropy{ 1.0f };
 
         CompareOp mCompareOp{ CompareOp::eNever };
 
@@ -214,7 +227,8 @@ namespace mikoto::renderer::rhi {
          * @param mipLevels Input value used by this operation.
          * @returns The result of SetMipLevels.
          */
-        auto SetMipLevels( float mipLevels) -> SamplerCreateDescription&;
+        auto SetMipLevels( float mipLevels ) -> SamplerCreateDescription &;
+        auto SetMaxAnisotropy( float anisotropy ) -> SamplerCreateDescription &;
 
         /**
          * Sets the value handled by SetBorderColor.
@@ -222,7 +236,7 @@ namespace mikoto::renderer::rhi {
          * @param color Input value used by this operation.
          * @returns The result of SetBorderColor.
          */
-        auto SetBorderColor( const Color& color ) -> SamplerCreateDescription&;
+        auto SetBorderColor( const Color &color ) -> SamplerCreateDescription &;
 
         /**
          * Sets the value handled by SetMipmapMode.
@@ -230,7 +244,7 @@ namespace mikoto::renderer::rhi {
          * @param mode Input value used by this operation.
          * @returns The result of SetMipmapMode.
          */
-        auto SetMipmapMode( SamplerMipmapMode mode ) -> SamplerCreateDescription&;
+        auto SetMipmapMode( SamplerMipmapMode mode ) -> SamplerCreateDescription &;
 
         /**
          * Sets the value handled by SetFilter.
@@ -238,7 +252,7 @@ namespace mikoto::renderer::rhi {
          * @param filter Input value used by this operation.
          * @returns The result of SetFilter.
          */
-        auto SetFilter( SamplerFilter filter ) -> SamplerCreateDescription&;
+        auto SetFilter( SamplerFilter filter ) -> SamplerCreateDescription &;
 
         /**
          * Sets the value handled by SetMinFilter.
@@ -246,7 +260,7 @@ namespace mikoto::renderer::rhi {
          * @param filter Input value used by this operation.
          * @returns The result of SetMinFilter.
          */
-        auto SetMinFilter( SamplerFilter filter ) -> SamplerCreateDescription&;
+        auto SetMinFilter( SamplerFilter filter ) -> SamplerCreateDescription &;
 
         /**
          * Sets the value handled by SetMagFilter.
@@ -254,7 +268,7 @@ namespace mikoto::renderer::rhi {
          * @param filter Input value used by this operation.
          * @returns The result of SetMagFilter.
          */
-        auto SetMagFilter( SamplerFilter filter ) -> SamplerCreateDescription&;
+        auto SetMagFilter( SamplerFilter filter ) -> SamplerCreateDescription &;
 
         /**
          * Sets the value handled by SetWrap.
@@ -262,7 +276,7 @@ namespace mikoto::renderer::rhi {
          * @param wrap Input value used by this operation.
          * @returns The result of SetWrap.
          */
-        auto SetWrap( SamplerWrapMode wrap ) -> SamplerCreateDescription&;
+        auto SetWrap( SamplerWrapMode wrap ) -> SamplerCreateDescription &;
 
         /**
          * Sets the value handled by SetWrapU.
@@ -270,7 +284,7 @@ namespace mikoto::renderer::rhi {
          * @param wrap Input value used by this operation.
          * @returns The result of SetWrapU.
          */
-        auto SetWrapU( SamplerWrapMode wrap ) -> SamplerCreateDescription&;
+        auto SetWrapU( SamplerWrapMode wrap ) -> SamplerCreateDescription &;
 
         /**
          * Sets the value handled by SetWrapV.
@@ -278,7 +292,7 @@ namespace mikoto::renderer::rhi {
          * @param wrap Input value used by this operation.
          * @returns The result of SetWrapV.
          */
-        auto SetWrapV( SamplerWrapMode wrap ) -> SamplerCreateDescription&;
+        auto SetWrapV( SamplerWrapMode wrap ) -> SamplerCreateDescription &;
 
         /**
          * Sets the value handled by SetWrapW.
@@ -286,7 +300,7 @@ namespace mikoto::renderer::rhi {
          * @param wrap Input value used by this operation.
          * @returns The result of SetWrapW.
          */
-        auto SetWrapW( SamplerWrapMode wrap ) -> SamplerCreateDescription&;
+        auto SetWrapW( SamplerWrapMode wrap ) -> SamplerCreateDescription &;
     };
 
     /**
@@ -294,7 +308,6 @@ namespace mikoto::renderer::rhi {
      */
     class ISampler : public DeviceObject {
     public:
-
         /**
          * Returns the minification filter.
          * @returns The result of GetMinFilter.
@@ -334,7 +347,6 @@ namespace mikoto::renderer::rhi {
         using DeviceObject::Initialize;
 
     protected:
-
         /**
          * Creates immutable sampler state in the active backend.
          */
@@ -356,7 +368,6 @@ namespace mikoto::renderer::rhi {
      */
     class ITexture : public DeviceObject {
     public:
-
         /**
          * Returns the texture format.
          * @returns The result of GetFormat.
@@ -374,6 +385,9 @@ namespace mikoto::renderer::rhi {
          * @returns The result of GetHeight.
          */
         MKT_NODISCARD virtual auto GetHeight() const -> core::u32 = 0;
+
+        /** Returns mip-zero voxel depth. Non-volume textures return one. */
+        MKT_NODISCARD virtual auto GetDepth() const -> core::u32 = 0;
 
         /**
          * Returns the declared texture usages.
@@ -420,8 +434,68 @@ namespace mikoto::renderer::rhi {
         ~ITexture() override = default;
     };
 
+    // Uploads are packed layer-major, then mip-major. A base-only upload is
+    // still valid for render targets whose remaining levels are generated later.
+    struct TextureUploadRegion {
+        core::u32 mMip{};
+        core::u32 mLayer{};
+        core::u32 mWidth{}, mHeight{}, mDepth{};
+        core::usize mOffset{}, mRowPitch{}, mSlicePitch{}, mSize{};
+    };
+
+    template<typename Texture>
+    MKT_NODISCARD inline auto GetTextureUploadRegions( const Texture &texture, core::usize bytes ) -> eastl::vector<TextureUploadRegion> {
+        if ( !texture.GetMipLevelCount() || texture.GetMipLevelCount() > 32 ) {
+            throw std::invalid_argument( "Invalid mip count for a texture upload." );
+        }
+        const auto &format{ GetFormatInfo( texture.GetFormat() ) };
+        const core::u32 block{ eastl::max( 1u, core::u32( format.mBlockSize ) ) };
+        const core::u32 layers{ texture.GetDimension() == TextureDimension::eTextureCube ? 6u : 1u };
+        const auto makeRegion{ [&]( core::u32 mip, core::u32 layer ) {
+            TextureUploadRegion r{};
+            r.mMip = mip;
+            r.mLayer = layer;
+            r.mWidth = eastl::max( 1u, texture.GetWidth() >> mip );
+            r.mHeight = eastl::max( 1u, texture.GetHeight() >> mip );
+            r.mDepth = texture.GetDimension() == TextureDimension::eTexture3D ? eastl::max( 1u, texture.GetDepth() >> mip ) : 1u;
+            r.mRowPitch = core::usize( ( r.mWidth + block - 1 ) / block ) * format.mBytesPerBlock;
+            r.mSlicePitch = r.mRowPitch * ( ( r.mHeight + block - 1 ) / block );
+            r.mSize = r.mSlicePitch * r.mDepth;
+            return r;
+        } };
+        core::usize complete{};
+        for ( core::u32 mip{}; mip < texture.GetMipLevelCount(); ++mip ) {
+            complete += makeRegion( mip, 0 ).mSize * layers;
+        }
+        const auto base{ makeRegion( 0, 0 ).mSize * layers };
+        if ( bytes != base && bytes != complete ) {
+            std::string name{ "<unnamed>" };
+            if constexpr ( requires { texture.GetDebugName(); } ) {
+                const auto debugName{ texture.GetDebugName() };
+                if ( !debugName.empty() ) {
+                    name.assign( debugName.data(), debugName.size() );
+                }
+            }
+            throw std::invalid_argument( "Texture upload '" + name + "' (" +
+                                         std::to_string( texture.GetWidth() ) + "x" + std::to_string( texture.GetHeight() ) + "x" + std::to_string( texture.GetDepth() ) +
+                                         ", " + format.mName + ", " + std::to_string( texture.GetMipLevelCount() ) + " mips): received " + std::to_string( bytes ) +
+                                         " bytes; expected " + std::to_string( base ) + " for mip zero or " + std::to_string( complete ) + " for the complete mip chain." );
+        }
+        const auto mips{ bytes == complete ? texture.GetMipLevelCount() : 1u };
+        eastl::vector<TextureUploadRegion> result{};
+        core::usize offset{};
+        for ( core::u32 layer{}; layer < layers; ++layer ) {
+            for ( core::u32 mip{}; mip < mips; ++mip ) {
+                auto r{ makeRegion( mip, layer ) };
+                r.mOffset = offset;
+                offset += r.mSize;
+                result.push_back( r );
+            }
+        }
+        return result;
+    }
+
     using TextureHandle = core::Ref<ITexture>;
-}
+}// namespace mikoto::renderer::rhi
 
 #endif// MIKOTO_RENDERER_RHI_TEXTURE_HH
-

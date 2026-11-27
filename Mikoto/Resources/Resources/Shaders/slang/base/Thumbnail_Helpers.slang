@@ -163,11 +163,12 @@ float3 PreviewBlurredEnvironment( float3 direction, float roughness ) {
 // transparent meshes, so particles/glass can blend over the reference plane.
 float4 PreviewGrid( float3 world, float2 footprint, float3 eye ) {
     GridDrawParams grid = (GridDrawParams)0;
-    grid.MinorColor = float4( 0.45, 0.45, 0.45, 0.35 );
-    grid.MajorColor = float4( 0.65, 0.65, 0.65, 0.5 );
-    grid.XAxisColor = float4( 0.7, 0.15, 0.15, 0.65 );
-    grid.ZAxisColor = float4( 0.15, 0.3, 0.7, 0.65 );
-    grid.Widths = float4( 1, 1.5, 1.5, 1.5 );
+    grid.mMinorColor = float4( 0.45, 0.45, 0.45, 0.35 );
+    grid.mMajorColor = float4( 0.65, 0.65, 0.65, 0.5 );
+    grid.mXAxisColor = float4( 0.7, 0.15, 0.15, 0.65 );
+    grid.mZAxisColor = float4( 0.15, 0.3, 0.7, 0.65 );
+    grid.mWidths = float4( 1, 1.5, 1.5, 1.5 );
+    grid.mGrid = float4( 1, 1, 0, 0 );
     float4 color = InfiniteGridColor( world.xz, footprint, grid );
     float3 ray = world - eye;
     float fade = ( 1 - smoothstep( 12.5, 45, length( ray ) ) ) *

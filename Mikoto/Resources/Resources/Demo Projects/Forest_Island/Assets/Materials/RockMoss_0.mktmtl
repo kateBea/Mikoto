@@ -1,0 +1,42 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "RockMoss bark",
+  "Material": {
+    "BaseColorFactor": [
+      1.0,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "MetallicFactor": 0,
+    "RoughnessFactor": 0.9,
+    "AlphaMask": 0,
+    "AlphaMaskCutoff": 0.4,
+    "DoubleSided": 0,
+    "ShadingModel": 0,
+    "Textures": [
+      {
+        "Map": 1,
+        "Present": true,
+        "Used": true,
+        "TexturePath": "../../../Tanegashima_Highlands/Assets/Models/IslandVegetation/textures/forest_16.jpg"
+      },
+      {
+        "Map": 2,
+        "Present": true,
+        "Used": true,
+        "TexturePath": "../../../Tanegashima_Highlands/Assets/Models/IslandVegetation/textures/forest_17.jpg"
+      }
+    ],
+    "FoliageWind": {
+      "Enabled": false,
+      "Height": 2.8853529691696167,
+      "RootHeight": 0,
+      "TrunkBend": 0.05,
+      "BranchMotion": 0.06,
+      "LeafFlutter": 0,
+      "Frequency": 1
+    }
+  }
+}

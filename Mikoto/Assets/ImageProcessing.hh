@@ -15,8 +15,8 @@
 #ifndef MIKOTO_ASSETS_IMAGE_PROCESSING_HH
 #define MIKOTO_ASSETS_IMAGE_PROCESSING_HH
 
-#include <EASTL/vector.h>
 #include <EASTL/fixed_hash_map.h>
+#include <EASTL/vector.h>
 
 #include <Filesystem/File.hh>
 
@@ -44,7 +44,7 @@ namespace mikoto::asset {
     // Using STB_Image for the time being
 
     /**
-     * @brief Reads a single-level 2D BC6H/BC7 or uncompressed RGBA KTX2 cache without transcoding.
+     * @brief Reads a 2D BC6H/BC7 or uncompressed RGBA KTX2 mip chain without transcoding.
      * @param file Retained file supplying encoded or serialized data.
      * @returns Image metadata and retained compressed or RGBA pixels.
      */
@@ -52,16 +52,37 @@ namespace mikoto::asset {
 
 
     /**
-     * @brief Decodes compressed pixels when a device cannot upload them directly.
-     * @param image Source image and its CPU-owned pixels.
-     * @param device Target rendering device and its texture capabilities.
-     * @returns Original image when supported, otherwise a decompressed image.
+     * @brief Area-filters one tightly packed, four-channel image into a smaller mip level.
+     * @details Weights source texels by their exact overlap with each destination texel,
+     * retaining odd-sized edges. Channels, including alpha, are averaged independently
+     * in their stored numeric space, without gamma conversion or alpha premultiplication.
+     * Byte results are rounded and clamped to [0, 255]; float results remain unclamped.
+     * @param source Borrowed source pixels in row-major RGBA8 or RGBA32_FLOAT storage.
+     * @param width Source width in texels.
+     * @param height Source height in texels.
+     * @param destination Writable destination pixels, using the same storage as source.
+     * @param nextWidth Destination mip width in texels.
+     * @param nextHeight Destination mip height in texels.
+     * @param floating True for four float channels per texel; false for four byte channels.
+     * @pre All dimensions are positive. Source and destination ranges must not overlap
+     * and must hold their full width times height times four channels, without row padding.
      */
+    auto FilterImageMipLevel( const void *source, core::u32 width, core::u32 height,
+        void *destination, core::u32 nextWidth, core::u32 nextHeight, bool floating ) -> void;
+
+
+    /** Builds a complete, area-filtered chain in the image's numeric channel space.
+     * Compressed images keep their original base level and encode the smaller levels.
+     * Fonts and numeric lookup tables opt out by bypassing this asset upload helper.
+     */
+    MKT_NODISCARD auto GenerateImageMipChain( const ImageHandle &image ) -> ImageHandle;
+
+    /** Builds missing mips and decompresses formats the target device cannot upload. */
     MKT_NODISCARD auto PrepareImageForUpload( const asset::ImageHandle& image, renderer::rhi::IGpuDevice& device ) -> asset::ImageHandle;
 
 
     /**
-     * @brief Reads a single-level KTX2 image without transcoding stored pixels.
+     * @brief Reads a 2D KTX2 image and its mip chain without transcoding stored pixels.
      * @param data Encoded KTX2 bytes borrowed for this call.
      * @param sizeBytes Readable byte count.
      * @returns Image metadata and retained compressed or RGBA pixels.
@@ -88,8 +109,8 @@ namespace mikoto::asset {
     /**
      * @brief Encodes RGBA8 as BC7, or opaque nonnegative float HDR as BC6H.
      * @details Retains dimensions and pads only the partial edge blocks.
-     * HDR outside the UF16 range and HDR alpha remain float RGBA. The current
-     * texture import path contains mip zero only; this does not generate mipmaps.
+     * HDR outside the UF16 range and HDR alpha remain float RGBA. Mip chains are retained;
+     * mip generation runs separately before compression.
      * Large images encode independent groups of blocks on a shared bounded worker
      * pool. Small images encode on the caller. The call waits for complete output;
      * concurrent calls must keep their source pixels immutable until it returns.

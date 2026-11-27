@@ -1,0 +1,36 @@
+{
+  "Version": 1,
+  "Type": "VolumeMaterial",
+  "Name": "Procedural Cumulus Sky",
+  "Material": {
+    "DensityModel": 2,
+    "Absorption": [
+      0.0001,
+      0.0001,
+      0.0001
+    ],
+    "Scattering": [
+      0.0099,
+      0.0099,
+      0.0099
+    ],
+    "Anisotropy": 0.65,
+    "Density": 2,
+    "NoiseScale": 0.001,
+    "ErosionScale": 0.0017,
+    "Erosion": 0.9,
+    "Coverage": 0.72,
+    "CloudDetailType": 0.7,
+    "CloudForm": 2,
+    "CloudFormationCount": 9,
+    "CloudFormationScale": 0.52,
+    "CloudFormationVariation": 0.8,
+    "CloudSeed": 21,
+    "WeatherScale": 3.5e-05,
+    "CoverageVariation": 0.3,
+    "CloudTypeVariation": 0.2,
+    "CloudHeightVariation": 0.2,
+    "WindShear": 80,
+    "CloudProfileDepth": 0.14
+  }
+}

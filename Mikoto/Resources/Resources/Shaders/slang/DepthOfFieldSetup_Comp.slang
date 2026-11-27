@@ -12,12 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Convert scene depth into a signed circle of confusion and attach it to HDR color. Negative
+// radii identify foreground blur; positive radii identify background blur.
+
 #include "base/DepthOfField_Helpers.slang"
 
 MKT_DECLARE_PUSH_CONSTANT( DepthOfFieldParameters, parameters );
 
 [shader( "compute" )]
-[numthreads( 8, 8, 1 )]
+[numthreads( kImageGroupWidth, kImageGroupHeight, 1 )]
 void main( uint3 thread : SV_DispatchThreadID ) {
     uint2 pixel = thread.xy;
     if ( any( pixel >= uint2( parameters.mWidth, parameters.mHeight ) ) ) { return; }
@@ -27,10 +30,10 @@ void main( uint3 thread : SV_DispatchThreadID ) {
 
     if ( any( pixel >= DoFHalfSize( parameters ) ) ) { return; }
 
-    float4 samples[4];
+    float4 samples[kBilinearTapCount];
     float minimum = parameters.mMaxRadius;
     float maximum = -parameters.mMaxRadius;
-    for ( uint i = 0; i < 4; ++i ) {
+    for ( uint i = 0; i < kBilinearTapCount; ++i ) {
         int2 source = int2( pixel * 2 + uint2( i & 1, i >> 1 ) );
         float sampleCoC = DoFCoC( DoFLoad( parameters.mInputs[1], source ).x, parameters );
         samples[i] = float4( DoFClampColor( DoFLoad( parameters.mInputs[0], source ).rgb ), sampleCoC );
@@ -43,7 +46,7 @@ void main( uint3 thread : SV_DispatchThreadID ) {
     float referenceCoC = minimum < -0.5 ? minimum : maximum;
     float3 color = 0.0;
     float weightSum = 0.0;
-    for ( uint i = 0; i < 4; ++i ) {
+    for ( uint i = 0; i < kBilinearTapCount; ++i ) {
         float weight = saturate( 1.0 - abs( samples[i].a - referenceCoC ) / max( abs( referenceCoC ), 1.0 ) );
         color += samples[i].rgb * weight;
         weightSum += weight;

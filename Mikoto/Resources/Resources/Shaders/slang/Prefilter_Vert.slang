@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Pull the environment cube geometry and project the requested capture view. The interpolated
+// local direction identifies the cubemap sample evaluated by the fragment stage.
+
 #pragma once
 
 #include "base/Base.slang"
@@ -19,9 +22,9 @@
 #include "base/Memory_Helpers.slang"
 
 struct DrawParams {
-    PushConstantMatrix4x4 MVP;
-    float Roughness;
-    uint NumSamples;
+    PushConstantMatrix4x4 mMVP;
+    float mRoughness;
+    uint mNumSamples;
 
     uint mCubeID;
     uint mSamplerID;
@@ -31,8 +34,8 @@ struct DrawParams {
 };
 
 struct VSOutput {
-    float3 Pos : TEXCOORD0;
-    float4 PositionH : SV_Position;
+    float3 mPos : TEXCOORD0;
+    float4 mPositionH : SV_Position;
 };
 
 MKT_DECLARE_STRUCTURED_SRV buffers;
@@ -48,17 +51,17 @@ VSOutput main( uint vertexID : SV_VertexID ) {
     uint index = indexBuffer.Read<uint>( 0, vertexID );
     VertexDescription vertex = vertexBuffer.Read<VertexDescription>( 0, index );
 
-    o.Pos = vertex.position;
+    o.mPos = vertex.mPosition;
 
     // Rotate by the Y axis for Vulkan otherwise cube appears upside down
     // Vulkan uses a different coordinate system than OpenGL, Y is flipped
     // https://www.sctheblog.com/blog/vulkan-frame/
     // https://johannesugb.github.io/gpu-programming/setting-up-a-proper-vulkan-projection-matrix/
 #if defined( MKT_SUPPORT_VULKAN ) || defined( MKT_SUPPORT_D3D12 )
-    o.Pos.y *= -1.0;
+    o.mPos.y *= -1.0;
 #endif
 
-    o.PositionH = mul( parameters.MVP.Load(), float4( vertex.position, 1.0 ) );
+    o.mPositionH = mul( parameters.mMVP.Load(), float4( vertex.mPosition, 1.0 ) );
 
     return o;
 }

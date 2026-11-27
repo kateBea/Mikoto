@@ -13,8 +13,8 @@
 // limitations under the License.
 
 #include <Core/Core.hh>
-#include <Core/Types.hh>
 #include <Core/Profiler.hh>
+#include <Core/Types.hh>
 
 #include <Logging/Assert.hh>
 #include <Logging/Logger.hh>
@@ -31,8 +31,9 @@ namespace mikoto::renderer::d3d11 {
 
     using namespace mikoto::core;
 
-    Sampler::Sampler( const rhi::SamplerCreateDescription& desc )
+    Sampler::Sampler( const rhi::SamplerCreateDescription &desc )
         : mMipLevels{ desc.mMipLevels },
+          mMaxAnisotropy{ desc.mMaxAnisotropy },
           mMinFilter{ desc.mMinFilter },
           mMagFilter{ desc.mMagFilter },
           mWrapU{ desc.mWrapU },
@@ -85,7 +86,10 @@ namespace mikoto::renderer::d3d11 {
         samplerDesc.AddressW = GetAddressMode( mWrapW );
 
         samplerDesc.MipLODBias = 0.0f;
-        samplerDesc.MaxAnisotropy = 1;
+        samplerDesc.MaxAnisotropy = static_cast<UINT>( glm::clamp( mMaxAnisotropy, 1.0f, 16.0f ) );
+        if ( mMaxAnisotropy > 1 && mMinFilter == rhi::SamplerFilter::eLinear && mMagFilter == rhi::SamplerFilter::eLinear ) {
+            samplerDesc.Filter = D3D11_FILTER_ANISOTROPIC;
+        }
 
         samplerDesc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
 
@@ -98,7 +102,7 @@ namespace mikoto::renderer::d3d11 {
         samplerDesc.BorderColor[3] = mBorderColor.mA;
 
         if ( FAILED(
-                 core::checked_cast<Device*>( mDevice )->GetDevice()->CreateSamplerState(
+                 core::checked_cast<Device *>( mDevice )->GetDevice()->CreateSamplerState(
                      &samplerDesc,
                      &mSampler ) ) ) {
             MKT_ASSERT( false, "Failed to create sampler state" );
@@ -112,8 +116,8 @@ namespace mikoto::renderer::d3d11 {
         mSampler->SetPrivateData( WKPDID_D3DDebugObjectName, core::as<UINT>( name.size() ), name.data() );
     }
 
-    Texture::Texture( const renderer::rhi::TextureCreateDescription& data )
-        : mWidth{ data.mWidth }, mHeight{ data.mHeight }, mMipCount{ data.mMipCount }, mImageData{ data.mImageHandle }, mBufferSpan{ data.mBufferSpan }, mFormat{ data.mFormat }, mDimension{ data.mDimension }, mTextureUsage{ data.mUsage }, mMultisampling{ data.mMultisampling }, mInitialState{ data.mInitialState }, mSubResources{ data.mSubresourceSet }, mKeepInitializerResources{ data.mKeepInitializerResources } {
+    Texture::Texture( const renderer::rhi::TextureCreateDescription &data )
+        : mWidth{ data.mWidth }, mHeight{ data.mHeight }, mDepth{ data.mDimension == rhi::TextureDimension::eTexture3D ? data.mDepth : 1u }, mMipCount{ data.mMipCount }, mImageData{ data.mImageHandle }, mBufferSpan{ data.mBufferSpan }, mFormat{ data.mFormat }, mDimension{ data.mDimension }, mTextureUsage{ data.mUsage }, mMultisampling{ data.mMultisampling }, mInitialState{ data.mInitialState }, mSubResources{ data.mSubresourceSet }, mKeepInitializerResources{ data.mKeepInitializerResources } {
         mHeapType = data.mHeapType;
         mResourceType = data.mResourceType;
     }
@@ -177,7 +181,7 @@ namespace mikoto::renderer::d3d11 {
             case renderer::rhi::ResourceStates::eShaderResource:
                 if ( mShaderResourceView == nullptr ) {
                     // Create the shader target view.
-                    HRESULT result{ core::as<Device*>( mDevice )->GetDevice()->CreateShaderResourceView( mTexture.Get(),
+                    HRESULT result{ core::as<Device *>( mDevice )->GetDevice()->CreateShaderResourceView( mTexture.Get(),
                         nullptr, mShaderResourceView.GetAddressOf() ) };
 
                     if ( FAILED( result ) ) {
@@ -191,12 +195,12 @@ namespace mikoto::renderer::d3d11 {
         }
     }
 
-    Texture::operator ID3D11Resource*() const {
+    Texture::operator ID3D11Resource *() const {
         MKT_BEGIN_PROFILER();
         return mTexture.Get();
     }
 
-    Texture::operator ID3D11RenderTargetView*() const {
+    Texture::operator ID3D11RenderTargetView *() const {
         MKT_BEGIN_PROFILER();
         return mRenderTargetView.Get();
     }
@@ -214,6 +218,10 @@ namespace mikoto::renderer::d3d11 {
         // Assumes everything went right
         // unless otherwise specified, some checks are done on the fly
         mIsAllocated = true;
+
+        if ( mDimension == rhi::TextureDimension::eTexture3D ) {
+            MKT_THROW_RUNTIME_ERROR( "D3D11 compatibility textures do not support volume resources." );
+        }
 
         D3D11_TEXTURE2D_DESC textureDesc{};
 
@@ -238,25 +246,24 @@ namespace mikoto::renderer::d3d11 {
         // Populate initial data. Of the sources needs to be empty
         MKT_ASSERT( mImageData.IsEmpty() || mBufferSpan.IsEmpty(), "Cannot provide buffer data and image at the same time" );
 
-        D3D11_SUBRESOURCE_DATA initialData{};
-
-        if ( !mImageData.IsEmpty() ) {
-            const UINT bytesPerPixel{ GetBytesPerPixel( mFormat ) };
-
-            initialData.pSysMem = mImageData->mBufferSpan->GetData();
-            initialData.SysMemPitch = bytesPerPixel * mWidth;
+        const auto bytes{ mImageData ? mImageData->mBufferSpan : mBufferSpan };
+        eastl::vector<D3D11_SUBRESOURCE_DATA> initialData{};
+        if ( bytes ) {
+            const auto regions{ rhi::GetTextureUploadRegions( *this, bytes->GetSize() ) };
+            initialData.resize( mMipCount * textureDesc.ArraySize );
+            // D3D11 expects an initializer for every mip and array layer.
+            if ( regions.size() == initialData.size() ) {
+                for ( const auto &r: regions ) {
+                    initialData[r.mLayer * mMipCount + r.mMip] = { static_cast<const core::u8 *>( bytes->GetData() ) + r.mOffset,
+                        static_cast<UINT>( r.mRowPitch ), static_cast<UINT>( r.mSlicePitch ) };
+                }
+            }
+            else {
+                MKT_THROW_RUNTIME_ERROR( "D3D11 texture initializer must contain every mip and layer; use a command upload for mip zero only." );
+            }
         }
-
-        if ( !mBufferSpan.IsEmpty() ) {
-            const UINT bytesPerPixel{ GetBytesPerPixel( mFormat ) };
-
-            initialData.pSysMem = mBufferSpan->GetData();
-            initialData.SysMemPitch = bytesPerPixel * mWidth;
-        }
-
-        // Create the render target texture.
-        HRESULT result{ core::checked_cast<Device*>( mDevice )->GetDevice()->CreateTexture2D( &textureDesc,
-            mImageData.IsEmpty() ? nullptr : MKT_ADDRESSOF( initialData ), mTexture.GetAddressOf() ) };
+        HRESULT result{ core::checked_cast<Device *>( mDevice )->GetDevice()->CreateTexture2D( &textureDesc,
+            initialData.empty() ? nullptr : initialData.data(), mTexture.GetAddressOf() ) };
 
         if ( FAILED( result ) ) {
             MKT_CORE_LOGGER_ERROR( "D3D11Texture::Initialize CreateTexture2D failed" );
@@ -269,7 +276,7 @@ namespace mikoto::renderer::d3d11 {
             rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
             rtvDesc.Texture2D.MipSlice = 0;
 
-            result = core::checked_cast<Device*>( mDevice )->GetDevice()->CreateRenderTargetView(
+            result = core::checked_cast<Device *>( mDevice )->GetDevice()->CreateRenderTargetView(
                 mTexture.Get(), MKT_ADDRESSOF( rtvDesc ), mRenderTargetView.GetAddressOf() );
 
             if ( FAILED( result ) ) {
@@ -287,7 +294,7 @@ namespace mikoto::renderer::d3d11 {
             dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
             dsvDesc.Texture2D.MipSlice = 0;
 
-            result = core::checked_cast<Device*>( mDevice )->GetDevice()->CreateDepthStencilView( mTexture.Get(),
+            result = core::checked_cast<Device *>( mDevice )->GetDevice()->CreateDepthStencilView( mTexture.Get(),
                 MKT_ADDRESSOF( dsvDesc ), mDepthStencilTargetView.GetAddressOf() );
 
             if ( FAILED( result ) ) {
@@ -299,7 +306,7 @@ namespace mikoto::renderer::d3d11 {
 
         if ( mTextureUsage.Has( renderer::rhi::TextureUsageFlagsBits::ShaderResource ) ) {
             // Create the shader target view.
-            result = core::checked_cast<Device*>( mDevice )->GetDevice()->CreateShaderResourceView( mTexture.Get(),
+            result = core::checked_cast<Device *>( mDevice )->GetDevice()->CreateShaderResourceView( mTexture.Get(),
                 nullptr, mShaderResourceView.GetAddressOf() );
 
             if ( FAILED( result ) ) {
@@ -344,16 +351,18 @@ namespace mikoto::renderer::d3d11 {
     }
 
     auto Texture::GetStorageSizeBytes() const -> core::usize {
-        const auto& format{ rhi::GetFormatInfo( mFormat ) };
+        const auto &format{ rhi::GetFormatInfo( mFormat ) };
         const core::usize block{ eastl::max<core::usize>( 1, format.mBlockSize ) };
         core::usize width{ mWidth };
         core::usize height{ mHeight };
+        core::usize depth{ mDepth };
         core::usize result{};
 
         for ( core::u32 mip{}; mip < mMipCount; ++mip ) {
-            result += ( ( width + block - 1 ) / block ) * ( ( height + block - 1 ) / block ) * format.mBytesPerBlock;
+            result += ( ( width + block - 1 ) / block ) * ( ( height + block - 1 ) / block ) * depth * format.mBytesPerBlock;
             width = eastl::max<core::usize>( 1, width / 2 );
             height = eastl::max<core::usize>( 1, height / 2 );
+            depth = eastl::max<core::usize>( 1, depth / 2 );
         }
 
         return result * ( mDimension == rhi::TextureDimension::eTextureCube ? 6 : 1 );
@@ -369,6 +378,10 @@ namespace mikoto::renderer::d3d11 {
 
     auto Texture::GetHeight() const -> core::u32 {
         return mHeight;
+    }
+
+    auto Texture::GetDepth() const -> core::u32 {
+        return mDepth;
     }
 
     auto Texture::GetTextureUsage() const -> rhi::TextureUsageFlags {
@@ -398,5 +411,5 @@ namespace mikoto::renderer::d3d11 {
     auto Texture::GetMipLevelCount() const -> core::u32 {
         return mMipCount;
     }
-}
+}// namespace mikoto::renderer::d3d11
 #endif

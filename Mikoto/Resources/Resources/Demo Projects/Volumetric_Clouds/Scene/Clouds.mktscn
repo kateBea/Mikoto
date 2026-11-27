@@ -1,0 +1,798 @@
+{
+  "Scene": "Volumetric Clouds",
+  "Version": 5,
+  "RelativeAssetPaths": true,
+  "EnvironmentLightingSource": 2,
+  "ToneMapping": 0,
+  "Atmosphere": {
+    "PlanetRadius": 6360,
+    "AtmosphereHeight": 100,
+    "WorldUnitsPerKilometer": 1000,
+    "GroundHeight": 0.1,
+    "RayleighScale": 1,
+    "MieScale": 1,
+    "OzoneScale": 1,
+    "MieAnisotropy": 0.8,
+    "GroundAlbedo": 0.1,
+    "SunElevation": 26,
+    "SunAzimuth": 135,
+    "SunIlluminance": 8,
+    "SunAngularRadius": 0.266,
+    "AerialDistance": 80,
+    "UseDirectionalLight": true,
+    "AerialPerspective": true
+  },
+  "Materials": [
+    {
+      "MaterialPath": "../Assets/Materials/Ground.mktmtl"
+    }
+  ],
+  "Objects": [
+    {
+      "ID": 1,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "Cloud shadow observation ground",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          -4.9,
+          -1000
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          10000,
+          10,
+          10000
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "ModelPath": "../Assets/Models/Box.gltf",
+        "MeshIndex": 0
+      },
+      "MaterialComponent": {
+        "Reference": 0
+      }
+    },
+    {
+      "ID": 20,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Sun",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0.1,
+          0
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "LightComponent": {
+        "Type": 0,
+        "Directional": {
+          "Color": [
+            1,
+            0.95,
+            0.85
+          ],
+          "Direction": [
+            -0.65,
+            -0.44,
+            -0.62
+          ],
+          "Intensity": 8,
+          "CastShadows": true,
+          "AngularRadius": 0.266
+        }
+      }
+    },
+    {
+      "ID": 21,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Seeded cumulus field - GPU cone and lobe formations",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0.1,
+          0
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "CloudComponent": {
+        "Shape": 0,
+        "Dimensions": [
+          100,
+          100,
+          100
+        ],
+        "HorizonRadius": 6500,
+        "MaterialPath": "../Assets/Materials/Cumulus.mktmtl",
+        "DensityMultiplier": 1,
+        "CastShadows": true,
+        "ReceiveShadows": true,
+        "BottomAltitude": 1400.1,
+        "LayerThickness": 1800,
+        "WindDirection": [
+          1,
+          0.2
+        ],
+        "WindSpeed": 18
+      }
+    },
+    {
+      "ID": 22,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Storm bank â€” automatic internal lightning",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -1500,
+          950.1,
+          -2000
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "CloudComponent": {
+        "Shape": 1,
+        "Dimensions": [
+          1700,
+          800,
+          2200
+        ],
+        "HorizonRadius": 10000,
+        "MaterialPath": "../Assets/Materials/Baked_Bank.mktmtl",
+        "DensityMultiplier": 1.4,
+        "CastShadows": true,
+        "ReceiveShadows": true,
+        "WindDirection": [
+          1,
+          0
+        ],
+        "WindSpeed": 12,
+        "Lightning": {
+          "Enabled": true,
+          "Automatic": true,
+          "Position": [
+            0,
+            0,
+            0
+          ],
+          "Color": [
+            0.65,
+            0.78,
+            1
+          ],
+          "Intensity": 200,
+          "Radius": 1800,
+          "Interval": 6,
+          "Duration": 0.35,
+          "Seed": 17,
+          "BoltsEnabled": true,
+          "BoltLength": 700,
+          "BoltWidth": 1.8,
+          "BoltBranches": 5
+        }
+      }
+    },
+    {
+      "ID": 100,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "Altitude marker 180 m",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -300,
+          90.1,
+          100
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          50,
+          180,
+          50
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "ModelPath": "../Assets/Models/Box.gltf",
+        "MeshIndex": 0
+      },
+      "MaterialComponent": {
+        "Reference": 0
+      }
+    },
+    {
+      "ID": 101,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "Altitude marker 260 m",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          300,
+          130.1,
+          -200
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          50,
+          260,
+          50
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "ModelPath": "../Assets/Models/Box.gltf",
+        "MeshIndex": 0
+      },
+      "MaterialComponent": {
+        "Reference": 0
+      }
+    },
+    {
+      "ID": 102,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "Altitude marker 350 m",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -600,
+          175.1,
+          -700
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          50,
+          350,
+          50
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "ModelPath": "../Assets/Models/Box.gltf",
+        "MeshIndex": 0
+      },
+      "MaterialComponent": {
+        "Reference": 0
+      }
+    },
+    {
+      "ID": 103,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "Altitude marker 500 m",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          800,
+          250.1,
+          -1300
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          50,
+          500,
+          50
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "ModelPath": "../Assets/Models/Box.gltf",
+        "MeshIndex": 0
+      },
+      "MaterialComponent": {
+        "Reference": 0
+      }
+    },
+    {
+      "ID": 25,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Cloud flight camera",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          320.1,
+          2200
+        ],
+        "Rotation": [
+          8.6269,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "CameraComponent": {
+        "Projection": 1,
+        "Fov": 60,
+        "Near": 0.1,
+        "Far": 60000,
+        "Main": true,
+        "FixedAspect": false,
+        "Viewport": [
+          1920,
+          1080,
+          0
+        ],
+        "Gamma": 2.2,
+        "Exposure": 1,
+        "SkyboxBlur": 0,
+        "ClearFlags": 2
+      }
+    },
+    {
+      "ID": 23,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Baked fluid updraft - authored density with filtered detail",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          1700,
+          500.1,
+          400
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "CloudComponent": {
+        "Shape": 1,
+        "Dimensions": [
+          1600,
+          800,
+          1600
+        ],
+        "HorizonRadius": 10000,
+        "MaterialPath": "../Assets/Materials/Baked_Updraft.mktmtl",
+        "DensityMultiplier": 1,
+        "CastShadows": true,
+        "ReceiveShadows": true,
+        "WindDirection": [
+          1,
+          0
+        ],
+        "WindSpeed": 8
+      }
+    },
+    {
+      "ID": 104,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Baked stratocumulus bank â€” authored fluid density",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -1700,
+          650.1,
+          1000
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": true
+      },
+      "Children": [],
+      "CloudComponent": {
+        "Shape": 1,
+        "Dimensions": [
+          2400,
+          450,
+          2000
+        ],
+        "HorizonRadius": 10000,
+        "MaterialPath": "../Assets/Materials/Baked_Bank.mktmtl",
+        "DensityMultiplier": 1,
+        "CastShadows": true,
+        "ReceiveShadows": true,
+        "WindDirection": [
+          1,
+          0
+        ],
+        "WindSpeed": 8
+      }
+    },
+    {
+      "ID": 110,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Terrain shadow ridge â€” casts into the low cloud bank",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0.1,
+          0
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": true
+      },
+      "Children": [],
+      "LandscapeComponent": {
+        "Origin": [
+          -1600,
+          -2000
+        ],
+        "QuadsPerSection": 64,
+        "SectionsPerComponent": 1,
+        "ComponentsX": 2,
+        "ComponentsY": 2,
+        "VertexSpacing": 16,
+        "HeightScale": 2300,
+        "BaseElevation": 0,
+        "LowColor": [
+          0.2,
+          0.27,
+          0.17
+        ],
+        "MiddleColor": [
+          0.3,
+          0.31,
+          0.27
+        ],
+        "HighColor": [
+          0.55,
+          0.57,
+          0.6
+        ],
+        "TexturePath": "../Assets/Textures/Cloud_Shadow_Ridge.png",
+        "ShowGrid": false,
+        "ShowVertices": false,
+        "Surface": {
+          "ElevationDebug": true
+        }
+      }
+    },
+    {
+      "ID": 111,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "Mesh cloud shadow — suspended canopy",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          2050,
+          900.1,
+          750
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          900,
+          50,
+          700
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "ModelPath": "../Assets/Models/Box.gltf",
+        "MeshIndex": 0
+      },
+      "MaterialComponent": {
+        "Reference": 0
+      }
+    },
+    {
+      "ID": 112,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "Local-light occluder — cloud shadow study",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          1750,
+          450.1,
+          400
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          30,
+          550,
+          900
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "ModelPath": "../Assets/Models/Box.gltf",
+        "MeshIndex": 0
+      },
+      "MaterialComponent": {
+        "Reference": 0
+      }
+    },
+    {
+      "ID": 113,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Cloud light — shadowed amber point",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          1500,
+          480.1,
+          450
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "LightComponent": {
+        "Type": 1,
+        "Point": {
+          "Color": [
+            1,
+            0.32,
+            0.08
+          ],
+          "Intensity": 1600000,
+          "Radius": 1200,
+          "SourceRadius": 2,
+          "CastShadows": true
+        }
+      }
+    },
+    {
+      "ID": 114,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Cloud light — shadowed blue spotlight",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          2200,
+          350.1,
+          800
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "LightComponent": {
+        "Type": 2,
+        "Spot": {
+          "Color": [
+            0.15,
+            0.45,
+            1
+          ],
+          "Direction": [
+            -1,
+            0.15,
+            -0.5
+          ],
+          "Intensity": 8000000,
+          "Radius": 1800,
+          "Angle": 40,
+          "Softness": 0.2,
+          "CastShadows": true
+        }
+      }
+    },
+    {
+      "ID": 115,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Authored RGB slice formation - import and rebake",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          3600,
+          900.1,
+          2000
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "CloudComponent": {
+        "Shape": 1,
+        "Dimensions": [
+          1200,
+          1200,
+          1200
+        ],
+        "HorizonRadius": 6500,
+        "MaterialPath": "../Assets/Materials/Authored_Slices.mktmtl",
+        "DensityMultiplier": 1,
+        "CastShadows": true,
+        "ReceiveShadows": true,
+        "BottomAltitude": 1400,
+        "LayerThickness": 1800,
+        "WindDirection": [
+          1,
+          0.2
+        ],
+        "WindSpeed": 0
+      }
+    },
+    {
+      "ID": 116,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Cloud interaction - move to displace authored cloud",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          3600,
+          900.1,
+          2300
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "CloudInteractionComponent": {
+        "Enabled": true,
+        "Shape": 0,
+        "Dimensions": [
+          450,
+          450,
+          450
+        ],
+        "Strength": 1,
+        "Feather": 0.25
+      }
+    }
+  ]
+}

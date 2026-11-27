@@ -12,11 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Estimate local occlusion by projecting a hemisphere kernel around the visible surface. Depth
+// comparisons and range weights distinguish nearby blockers from unrelated distant geometry.
+
 #pragma once
 
 #include "base/Base.slang"
 #include "base/Camera_Helpers.slang"
 #include "base/Memory_Helpers.slang"
+
+// Matches the hemisphere kernel uploaded by PrepassModule.
+static const uint kSsaoKernelSampleCount = 64;
 
 struct DrawParams {
     uint mSamplerID;
@@ -37,7 +43,8 @@ MKT_DECLARE_PUSH_CONSTANT( DrawParams, parameters );
 float main( float2 uv : TEXCOORD0 ) : SV_Target0 {
     CameraInfo camera = buffers[parameters.mCameraBufferID].Read<CameraInfo>( 0, 0 );
 
-    uint width, height;
+    uint width;
+    uint height;
     textures[parameters.mGBufferPositionsID].GetDimensions( width, height );
 
     int2 pixel = clamp( int2( uv * float2( width, height ) ), int2( 0 ), int2( width, height ) - 1 );
@@ -50,12 +57,15 @@ float main( float2 uv : TEXCOORD0 ) : SV_Target0 {
     float3 encodedNormal = textures[parameters.mGBufferNormalsID].Load( int3( pixel, 0 ) ).xyz;
     float3 normal = normalize( mul( ( float3x3 )camera.mViewMatrix, encodedNormal * 2 - 1 ) );
 
-    uint noiseWidth, noiseHeight;
+    uint noiseWidth;
+    uint noiseHeight;
     textures[parameters.mNoiseTextureID].GetDimensions( noiseWidth, noiseHeight );
 
     // Noise is already signed. Wrap only noise, never projected scene samples.
     float3 randomVector = textures[parameters.mNoiseTextureID]
         .Load( int3( pixel % int2( noiseWidth, noiseHeight ), 0 ) ).xyz;
+    // Rotate the hemisphere kernel around the visible normal using tiled noise. The fallback
+    // tangent handles noise directions nearly parallel to the surface normal.
     float3 tangent = randomVector - normal * dot( randomVector, normal );
 
     if ( dot( tangent, tangent ) < 1e-6 ) {
@@ -69,7 +79,10 @@ float main( float2 uv : TEXCOORD0 ) : SV_Target0 {
     const float bias = 0.025;
     float3 bitangent = cross( normal, tangent );
 
-    for ( uint i = 0; i < 64; ++i ) {
+    // Project each local hemisphere sample back into the depth buffer. Nearby depth
+    // disagreement contributes occlusion; range weighting suppresses unrelated distant
+    // surfaces.
+    for ( uint i = 0; i < kSsaoKernelSampleCount; ++i ) {
         float3 kernel = buffers[parameters.mKernelBufferID].Read<float4>( 0, i ).xyz;
 
         // Explicit basis combination avoids transposing the tangent frame.
@@ -95,5 +108,5 @@ float main( float2 uv : TEXCOORD0 ) : SV_Target0 {
         occlusion += ( sampleDepth >= samplePosition.z + bias ? 1.0 : 0.0 ) * rangeWeight;
     }
 
-    return saturate( 1 - occlusion / 64.0 );
+    return saturate( 1 - occlusion / float( kSsaoKernelSampleCount ) );
 }

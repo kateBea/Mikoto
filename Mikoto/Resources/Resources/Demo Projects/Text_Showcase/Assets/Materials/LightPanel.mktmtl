@@ -1,0 +1,15 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "LightPanel",
+  "Material": {
+    "BaseColorFactor": [
+      0.78,
+      0.82,
+      0.86,
+      1
+    ],
+    "RoughnessFactor": 0.85,
+    "MetallicFactor": 0
+  }
+}

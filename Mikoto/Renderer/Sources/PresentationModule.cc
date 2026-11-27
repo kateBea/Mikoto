@@ -19,6 +19,7 @@
 
 #include <Renderer/ForwardRenderer/Passes/DebugModule.hh>
 #include <Renderer/Core/CommandContext.hh>
+#include <Renderer/Denoising/Denoiser.hh>
 #include <Renderer/ForwardRenderer/Passes/CameraModule.hh>
 #include <Renderer/ForwardRenderer/Passes/PrepassModule.hh>
 #include <Renderer/ForwardRenderer/Passes/RayTracingModule.hh>
@@ -81,6 +82,14 @@ namespace mikoto::renderer {
                 return b.Get<PostProcessModuleInfo>().mSsaoBlurColorTarget;
             case FinalImageType::eRayTracedAmbientOcclusion:
                 return b.Get<RayTracingInfo>().mAmbientOcclusion;
+            case FinalImageType::eDenoiserValidation:
+                if ( b.Contains<DenoiserModuleInfo>() ) {
+                    const auto &denoiser{ b.Get<DenoiserModuleInfo>() };
+                    if ( denoiser.mValidationReady ) {
+                        return denoiser.mValidation;
+                    }
+                }
+                return b.Get<PostProcessModuleInfo>().mAfterToneMapping.mColorImage;
             case FinalImageType::eGBuffer_Color:
                 return b.Get<PrepassModuleInfo>().mGBufferColorTarget;
             case FinalImageType::eGBuffer_Position:
@@ -171,6 +180,12 @@ namespace mikoto::renderer {
             "FinalImage_Resolve",
             FGPassType::eGraphics,
             [source]( FGNodeBuilder& builder, core::Blackboard& blackboard ) {
+                // Both the raster and fixed path-tracing source can be replaced
+                // by the raw validation attachment. Declare its compute-to-fragment read.
+                if ( blackboard.Contains<DenoiserModuleInfo>() ) {
+                    builder.UseResource( blackboard.Get<DenoiserModuleInfo>().mValidation, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                }
+
                 if ( source.mHandle != FGResourceManager::kInvalidResourceHandle ) {
                     builder.UseResource( source, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
                     if ( blackboard.Contains<RayTracingInfo>() ) {
@@ -236,6 +251,7 @@ namespace mikoto::renderer {
                 const bool fixedSource{ source.mHandle != FGResourceManager::kInvalidResourceHandle };
                 const bool heatmap{ !fixedSource && ( mPresentTarget == FinalImageType::eClusterHeatmap || mPresentTarget == FinalImageType::eClusterHeatmapOverlay ) };
                 const bool rayAoDebug{ mPresentTarget == FinalImageType::eRayTracedAmbientOcclusion };
+                const bool denoiserDebug{ mPresentTarget == FinalImageType::eDenoiserValidation };
                 const bool ssaoDebug{ rayAoDebug || ( !fixedSource && mPresentTarget == FinalImageType::eSsao ) };
 
                 if ( heatmap ) {
@@ -267,7 +283,7 @@ namespace mikoto::renderer {
                         core::u32 mTextureIndex{};
                         core::u32 mSamplerIndex{};
                     } params{
-                        .mTextureIndex = ctx.PushTexture_SRV( fixedSource && !rayAoDebug ? source : GetTargetImage( b ) ),
+                        .mTextureIndex = ctx.PushTexture_SRV( fixedSource && !rayAoDebug && !denoiserDebug ? source : GetTargetImage( b ) ),
                         .mSamplerIndex = ctx.PushSampler( geometryData.mBasicSampler )
                     };
                     ctx.PushConstants( params );

@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Fog frame layout, camera-ray reconstruction and cumulative froxel sampling. Integrated
+// radiance/transmittance can be queried at any surface distance along a pixel ray.
+
 #pragma once
 
 #include "BufferReference.slang"
@@ -23,13 +26,13 @@
 // https://pbr-book.org/4ed/Volume_Scattering/Transmittance
 
 struct FogFrameData {
-    float4x4 PreviousViewProjection;
-    float4x4 PreviousInverseViewProjection;
-    float4 PreviousCamera;
-    uint4 Grid;
-    float4 Range;
-    uint4 Frame;
-    uint4 Textures;
+    float4x4 mPreviousViewProjection;
+    float4x4 mPreviousInverseViewProjection;
+    float4 mPreviousCamera;
+    uint4 mGrid;
+    float4 mRange;
+    uint4 mFrame;
+    uint4 mTextures;
 };
 
 float4 ReadFogSlice( Texture2D<float4> texture, SamplerState sampler, float2 uv, uint slice, uint4 grid ) {
@@ -48,23 +51,23 @@ void FogCameraRay( float4x4 inverseViewProjection, float3 camera, bool orthograp
 }
 
 float FogSliceDistance( float slice, FogFrameData frame ) {
-    float t = slice / float( frame.Grid.z );
-    return frame.Range.y * t * t;
+    float t = slice / float( frame.mGrid.z );
+    return frame.mRange.y * t * t;
 }
 
 // Interpolate in physical distance with Beer transmission within the final cell.
 // This also handles camera-near fragments without linearly interpolating opacity.
 void ReadIntegratedFog( Texture2D<float4> radianceImage, Texture2D<float4> transmittanceImage,
                         SamplerState sampler, float2 uv, float distance, FogFrameData frame, out float3 radiance, out float3 transmittance ) {
-    distance = clamp( distance, 0.0, frame.Range.y );
-    uint cell = min( uint( sqrt( distance / frame.Range.y ) * frame.Grid.z ), frame.Grid.z - 1 );
+    distance = clamp( distance, 0.0, frame.mRange.y );
+    uint cell = min( uint( sqrt( distance / frame.mRange.y ) * frame.mGrid.z ), frame.mGrid.z - 1 );
     float start = FogSliceDistance( cell, frame );
     float end = FogSliceDistance( cell + 1, frame );
     float fraction = saturate( ( distance - start ) / ( end - start ) );
-    float3 a = cell == 0 ? float3( 0.0 ) : ReadFogSlice( radianceImage, sampler, uv, cell - 1, frame.Grid ).rgb;
-    float3 ta = cell == 0 ? float3( 1.0 ) : ReadFogSlice( transmittanceImage, sampler, uv, cell - 1, frame.Grid ).rgb;
-    float3 b = ReadFogSlice( radianceImage, sampler, uv, cell, frame.Grid ).rgb;
-    float3 tb = ReadFogSlice( transmittanceImage, sampler, uv, cell, frame.Grid ).rgb;
+    float3 a = cell == 0 ? float3( 0.0 ) : ReadFogSlice( radianceImage, sampler, uv, cell - 1, frame.mGrid ).rgb;
+    float3 ta = cell == 0 ? float3( 1.0 ) : ReadFogSlice( transmittanceImage, sampler, uv, cell - 1, frame.mGrid ).rgb;
+    float3 b = ReadFogSlice( radianceImage, sampler, uv, cell, frame.mGrid ).rgb;
+    float3 tb = ReadFogSlice( transmittanceImage, sampler, uv, cell, frame.mGrid ).rgb;
     float3 ratio = saturate( tb / max( ta, 1e-30 ) );
     float3 partial = fraction <= 0.0 ? float3( 1.0 ) : pow( ratio, fraction );
     radiance = a;

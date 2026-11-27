@@ -15,38 +15,38 @@
 #ifndef MIKOTO_RENDERER_FRAME_GRAPH_TYPES_HH
 #define MIKOTO_RENDERER_FRAME_GRAPH_TYPES_HH
 
-#include <EASTL/string.h>
-#include <EASTL/vector.h>
-#include <EASTL/unique_ptr.h>
-#include <EASTL/functional.h>
-#include <EASTL/string_view.h>
-#include <EASTL/fixed_vector.h>
-#include <EASTL/unordered_map.h>
-#include <EASTL/fixed_hash_map.h>
-
 #include <ankerl/unordered_dense.h>
+
+#include <EASTL/fixed_hash_map.h>
+#include <EASTL/fixed_vector.h>
+#include <EASTL/functional.h>
+#include <EASTL/string.h>
+#include <EASTL/string_view.h>
+#include <EASTL/unique_ptr.h>
+#include <EASTL/unordered_map.h>
+#include <EASTL/vector.h>
 
 #include <taskflow/taskflow.hpp>
 
+#include <Assets/AssetRegistryService.hh>
+
+#include <Core/Blackboard.hh>
 #include <Core/Core.hh>
-#include <Core/Types.hh>
 #include <Core/Profiler.hh>
 #include <Core/Resource.hh>
-#include <Core/Blackboard.hh>
-
-#include <Memory/Allocator.hh>
-#include <Memory/MemoryArena.hh>
-#include <Memory/FreeListAllocator.hh>
+#include <Core/Types.hh>
 
 #include <Filesystem/Path.hh>
 
-#include <Assets/AssetRegistryService.hh>
+#include <Memory/Allocator.hh>
+#include <Memory/FreeListAllocator.hh>
+#include <Memory/MemoryArena.hh>
 
-#include <Renderer/Rhi/Types.hh>
-#include <Renderer/Rhi/Pipeline.hh>
-#include <Renderer/Rhi/GpuDevice.hh>
-#include <Renderer/Rhi/Descriptor.hh>
 #include <Renderer/Core/GpuQueryProfiler.hh>
+#include <Renderer/Rhi/Descriptor.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
+#include <Renderer/Rhi/Pipeline.hh>
+#include <Renderer/Rhi/Types.hh>
 
 namespace mikoto::renderer {
 
@@ -57,15 +57,29 @@ namespace mikoto::renderer {
     // Represents the handle for any resource
     using FGResourceHandle = core::u32;
 
-    struct FGTextureHandle { FGResourceHandle mHandle{}; };
-    struct FGBufferHandle { FGResourceHandle mHandle{};  };
-    struct FGSamplerHandle { FGResourceHandle mHandle{}; };
-    struct FGPipelineHandle { FGResourceHandle mHandle{}; };
-    
-    struct FGVideoHandle { FGResourceHandle mHandle{}; };
+    struct FGTextureHandle {
+        FGResourceHandle mHandle{};
+    };
+    struct FGBufferHandle {
+        FGResourceHandle mHandle{};
+    };
+    struct FGSamplerHandle {
+        FGResourceHandle mHandle{};
+    };
+    struct FGPipelineHandle {
+        FGResourceHandle mHandle{};
+    };
 
-    struct FGShaderTableHandle { FGResourceHandle mHandle{}; };
-    struct FGAccelerationStructureHandle { FGResourceHandle mHandle{}; };
+    struct FGVideoHandle {
+        FGResourceHandle mHandle{};
+    };
+
+    struct FGShaderTableHandle {
+        FGResourceHandle mHandle{};
+    };
+    struct FGAccelerationStructureHandle {
+        FGResourceHandle mHandle{};
+    };
 
     // Runtime video batches have no fixed image until a picture is decoded.
     struct FGVideoDescription {
@@ -151,12 +165,12 @@ namespace mikoto::renderer {
         eCompute,
         eTransfer,
         eVideo,
-        eGeneric, // For passes that not really need any kind of GPU work
+        eGeneric,// For passes that not really need any kind of GPU work
     };
 
     struct ResourceVersion {
-        eastl::string mWriterPass{};    // Each Read() links to the current version's writer -> automatic dependency edge.
-        eastl::vector<eastl::string> mReaderPasses{};  // Each Write() to a resource creates a new version.
+        eastl::string mWriterPass{};                 // Each Read() links to the current version's writer -> automatic dependency edge.
+        eastl::vector<eastl::string> mReaderPasses{};// Each Write() to a resource creates a new version.
 
         MKT_NODISCARD auto HasWriter() const -> bool;
     };
@@ -164,8 +178,8 @@ namespace mikoto::renderer {
     struct FGNodeResource {
         eastl::string mName{};
         eastl::any mDescription{};
-        eastl::vector<ResourceVersion> mVersions{};  // version 0, 1, 2...
-        bool mIsImported{ false };  // imported = externally owned (e.g. swapchain)
+        eastl::vector<ResourceVersion> mVersions{};// version 0, 1, 2...
+        bool mIsImported{ false };                 // imported = externally owned (e.g. swapchain)
 
         // Rebuilds must reload or replace initializer data released after upload.
         bool mInitializersReleased{};
@@ -182,6 +196,7 @@ namespace mikoto::renderer {
         eastl::string mName{};
 
         float mMipLevels{ 1.0f };
+        float mMaxAnisotropy{ 1.0f };
 
         renderer::rhi::SamplerFilter mMinFilter{ renderer::rhi::SamplerFilter::eNearest };
         renderer::rhi::SamplerFilter mMagFilter{ renderer::rhi::SamplerFilter::eNearest };
@@ -191,19 +206,20 @@ namespace mikoto::renderer {
 
         renderer::rhi::Color mBorderColor{ 0.0f, 0.0f, 0.0f, 1.0f };
 
-        auto SetMipLevels( float mipLevels) -> FGSamplerDescription&;
+        auto SetMipLevels( float mipLevels ) -> FGSamplerDescription &;
+        auto SetMaxAnisotropy( float anisotropy ) -> FGSamplerDescription &;
 
-        auto SetBorderColor( const renderer::rhi::Color& color ) -> FGSamplerDescription&;
+        auto SetBorderColor( const renderer::rhi::Color &color ) -> FGSamplerDescription &;
 
-        auto SetName( eastl::string_view name ) -> FGSamplerDescription&;
-        auto SetFilter( renderer::rhi::SamplerFilter filter ) -> FGSamplerDescription&;
-        auto SetMinFilter( renderer::rhi::SamplerFilter filter ) -> FGSamplerDescription&;
-        auto SetMagFilter( renderer::rhi::SamplerFilter filter ) -> FGSamplerDescription&;
+        auto SetName( eastl::string_view name ) -> FGSamplerDescription &;
+        auto SetFilter( renderer::rhi::SamplerFilter filter ) -> FGSamplerDescription &;
+        auto SetMinFilter( renderer::rhi::SamplerFilter filter ) -> FGSamplerDescription &;
+        auto SetMagFilter( renderer::rhi::SamplerFilter filter ) -> FGSamplerDescription &;
 
-        auto SetWrap( renderer::rhi::SamplerWrapMode wrap ) -> FGSamplerDescription&;
-        auto SetWrapU( renderer::rhi::SamplerWrapMode wrap ) -> FGSamplerDescription&;
-        auto SetWrapV( renderer::rhi::SamplerWrapMode wrap ) -> FGSamplerDescription&;
-        auto SetWrapW( renderer::rhi::SamplerWrapMode wrap ) -> FGSamplerDescription&;
+        auto SetWrap( renderer::rhi::SamplerWrapMode wrap ) -> FGSamplerDescription &;
+        auto SetWrapU( renderer::rhi::SamplerWrapMode wrap ) -> FGSamplerDescription &;
+        auto SetWrapV( renderer::rhi::SamplerWrapMode wrap ) -> FGSamplerDescription &;
+        auto SetWrapW( renderer::rhi::SamplerWrapMode wrap ) -> FGSamplerDescription &;
     };
 
     struct FGPipelineDescription {
@@ -214,7 +230,8 @@ namespace mikoto::renderer {
         renderer::rhi::PipelineType mPipelineType{ renderer::rhi::PipelineType::eInvalid };
 
         eastl::fixed_hash_map<FGStageType, filesystem::Path,
-            core::as<core::u32>( FGStageType::eCount )> mShaders{};
+            core::as<core::u32>( FGStageType::eCount )>
+            mShaders{};
 
         renderer::rhi::PolygonMode mPolygonMode{ renderer::rhi::PolygonMode::eFill };
         renderer::rhi::CullMode mCullMode{ renderer::rhi::CullMode::eNone };
@@ -230,42 +247,42 @@ namespace mikoto::renderer {
         bool mEnableDepthWrite{ true };
         rhi::BlendState mAlphaBlendState{};
 
-        auto SetCullMode( renderer::rhi::CullMode mode ) -> FGPipelineDescription&;
-        auto SetPolygonMode( renderer::rhi::PolygonMode mode ) -> FGPipelineDescription&;
+        auto SetCullMode( renderer::rhi::CullMode mode ) -> FGPipelineDescription &;
+        auto SetPolygonMode( renderer::rhi::PolygonMode mode ) -> FGPipelineDescription &;
 
-        auto SetMultisampling( renderer::rhi::Multisampling msaa ) -> FGPipelineDescription&;
+        auto SetMultisampling( renderer::rhi::Multisampling msaa ) -> FGPipelineDescription &;
 
-        auto SetDepthTest( bool value ) -> FGPipelineDescription&;
-        auto SetDepthWrite( bool value ) -> FGPipelineDescription&;
-        auto SetDepthFormat( renderer::rhi::Format format ) -> FGPipelineDescription&;
+        auto SetDepthTest( bool value ) -> FGPipelineDescription &;
+        auto SetDepthWrite( bool value ) -> FGPipelineDescription &;
+        auto SetDepthFormat( renderer::rhi::Format format ) -> FGPipelineDescription &;
 
-        auto SetAlphaBlendState( const rhi::BlendState& state ) -> FGPipelineDescription&;
-        auto SetBlendEnable( bool value ) -> FGPipelineDescription&;
+        auto SetAlphaBlendState( const rhi::BlendState &state ) -> FGPipelineDescription &;
+        auto SetBlendEnable( bool value ) -> FGPipelineDescription &;
 
-        auto AddColorFormat( renderer::rhi::Format format ) -> FGPipelineDescription&;
-        auto SetName( eastl::string_view name ) -> FGPipelineDescription&;
-        auto SetPipelineType( renderer::rhi::PipelineType type ) -> FGPipelineDescription&;
-        auto PushShader( const filesystem::Path& path, FGStageType stage, eastl::string_view entryPoint = "main" ) -> FGPipelineDescription&;
-        auto SetTopology(renderer::rhi::PrimitiveTopology) -> FGPipelineDescription&;
+        auto AddColorFormat( renderer::rhi::Format format ) -> FGPipelineDescription &;
+        auto SetName( eastl::string_view name ) -> FGPipelineDescription &;
+        auto SetPipelineType( renderer::rhi::PipelineType type ) -> FGPipelineDescription &;
+        auto PushShader( const filesystem::Path &path, FGStageType stage, eastl::string_view entryPoint = "main" ) -> FGPipelineDescription &;
+        auto SetTopology( renderer::rhi::PrimitiveTopology ) -> FGPipelineDescription &;
     };
 
     struct FGBufferDescription {
         eastl::string mName{};
 
         core::u32 mElementCount{};
-        core::u32 mElementSizeBytes{}; // If we do not know the size of individual elements this is equal to the whole range
+        core::u32 mElementSizeBytes{};// If we do not know the size of individual elements this is equal to the whole range
 
         rhi::HeapType mHeapType{ rhi::HeapType::eDeviceLocal };
         rhi::BufferUsageFlags mBufferUsageFlags{ renderer::rhi::BufferUsageFlagsBits::Structured };
 
         memory::BufferSpanHandle mInitialContents{};
 
-        auto SetName( eastl::string_view name ) -> FGBufferDescription&;
-        auto SetInitialData( memory::BufferSpanHandle data ) -> FGBufferDescription&;
-        auto SetUsage( rhi::BufferUsageFlags flags ) -> FGBufferDescription&;
-        auto SetSizeBytes( core::usize byteSize ) -> FGBufferDescription&;
-        auto SetElementsSize( core::u32 elementCount, core::usize elementSizeBytes ) -> FGBufferDescription&;
-        auto SetHeapType( rhi::HeapType heap ) -> FGBufferDescription&;
+        auto SetName( eastl::string_view name ) -> FGBufferDescription &;
+        auto SetInitialData( memory::BufferSpanHandle data ) -> FGBufferDescription &;
+        auto SetUsage( rhi::BufferUsageFlags flags ) -> FGBufferDescription &;
+        auto SetSizeBytes( core::usize byteSize ) -> FGBufferDescription &;
+        auto SetElementsSize( core::u32 elementCount, core::usize elementSizeBytes ) -> FGBufferDescription &;
+        auto SetHeapType( rhi::HeapType heap ) -> FGBufferDescription &;
     };
 
     struct FGAccelerationStructureDescription {
@@ -286,7 +303,7 @@ namespace mikoto::renderer {
         eastl::array<float, 12> mTransform{ 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0 };
         core::u32 mInstanceID{};
         core::u8 mMask{ 0xFF };
-        core::u64 mRevision{}; // Nonzero local-shape identity permits reuse of an unchanged BLAS.
+        core::u64 mRevision{};// Nonzero local-shape identity permits reuse of an unchanged BLAS.
     };
 
     struct FGTextureDescription {
@@ -294,6 +311,7 @@ namespace mikoto::renderer {
 
         core::u32 mWidth{};
         core::u32 mHeight{};
+        core::u32 mDepth{ 1 };
         core::u32 mMipCount{ 1 };
 
         rhi::Multisampling mMultisampling{ rhi::Multisampling::eMsaaX1 };
@@ -303,18 +321,19 @@ namespace mikoto::renderer {
         rhi::Format mFormat{ rhi::Format::eRGBA8_SNORM };
         rhi::HeapType mHeapType{ rhi::HeapType::eDeviceLocal };
 
-        auto SetName( eastl::string_view name ) -> FGTextureDescription&;
-        auto SetWidth( core::u32 width ) -> FGTextureDescription&;
-        auto SetHeight( core::u32 height ) -> FGTextureDescription&;
-        auto SetMipCount( core::u32 count ) -> FGTextureDescription&;
+        auto SetName( eastl::string_view name ) -> FGTextureDescription &;
+        auto SetWidth( core::u32 width ) -> FGTextureDescription &;
+        auto SetHeight( core::u32 height ) -> FGTextureDescription &;
+        auto SetDepth( core::u32 depth ) -> FGTextureDescription &;
+        auto SetMipCount( core::u32 count ) -> FGTextureDescription &;
 
-        auto SetHeapType( rhi::HeapType heapType) -> FGTextureDescription&;
-        auto SetMultisampling( rhi::Multisampling sampleCount ) -> FGTextureDescription&;
+        auto SetHeapType( rhi::HeapType heapType ) -> FGTextureDescription &;
+        auto SetMultisampling( rhi::Multisampling sampleCount ) -> FGTextureDescription &;
 
-        auto SetDimensions( rhi::TextureDimension dimensions ) -> FGTextureDescription&;
+        auto SetDimensions( rhi::TextureDimension dimensions ) -> FGTextureDescription &;
 
-        auto SetFormat( rhi::Format usage ) -> FGTextureDescription&;
-        auto SetUsage( rhi::TextureUsageFlags usage ) -> FGTextureDescription&;
+        auto SetFormat( rhi::Format usage ) -> FGTextureDescription &;
+        auto SetUsage( rhi::TextureUsageFlags usage ) -> FGTextureDescription &;
     };
 
     /** Access scopes recorded by graph passes and command-context helpers. */
@@ -340,7 +359,7 @@ namespace mikoto::renderer {
          * @returns Pending history; publish after recording the barrier.
          */
         MKT_NODISCARD auto Next( rhi::ResourceStates stateBefore,
-                                 rhi::ResourceStates stateAfter, rhi::PipelineStageFlags stages, rhi::BarrierAccessFlags accesses ) const -> FGBarrierHistory;
+            rhi::ResourceStates stateAfter, rhi::PipelineStageFlags stages, rhi::BarrierAccessFlags accesses ) const -> FGBarrierHistory;
     };
 
     struct FGResource {
@@ -368,6 +387,6 @@ namespace mikoto::renderer {
      */
     MKT_NODISCARD auto GetTextureLayout( rhi::ResourceStates state ) -> rhi::TextureLayoutFlags;
 
-}
+}// namespace mikoto::renderer
 
 #endif//MIKOTO_RENDERER_FRAME_GRAPH_TYPES_HH

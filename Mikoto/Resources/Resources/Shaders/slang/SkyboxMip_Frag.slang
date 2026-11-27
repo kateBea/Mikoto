@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Filter cubemap radiance into a smaller mip while reconstructing the destination face
+// direction. The face mapping remains consistent across cubemap seams.
+
 #pragma once
 
 #include "base/Base.slang"

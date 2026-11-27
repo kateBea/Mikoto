@@ -17,13 +17,13 @@
 #include <Renderer/Core/Light.hh>
 
 namespace mikoto::renderer {
-    auto LightObject::SetColor( const core::float3& color ) -> void {
+    auto LightObject::SetColor( const core::float3 &color ) -> void {
         MKT_BEGIN_PROFILER();
         mColor = color;
     }
 
 
-    auto LightObject::GetColor() const -> const core::float3& {
+    auto LightObject::GetColor() const -> const core::float3 & {
         MKT_BEGIN_PROFILER();
         return mColor;
     }
@@ -81,7 +81,7 @@ namespace mikoto::renderer {
     }
 
 
-    auto DirectionalLight::GetDirection() const -> const core::float3& {
+    auto DirectionalLight::GetDirection() const -> const core::float3 & {
         MKT_BEGIN_PROFILER();
         return mDirection;
     }
@@ -125,7 +125,7 @@ namespace mikoto::renderer {
     }
 
 
-    auto SpotLight::GetDirection() const -> const core::float3& {
+    auto SpotLight::GetDirection() const -> const core::float3 & {
         MKT_BEGIN_PROFILER();
         return mDirection;
     }
@@ -185,21 +185,21 @@ namespace mikoto::renderer {
         return length2 > 1e-12f ? direction / glm::sqrt( length2 ) : core::float3{ 0, -1, 0 };
     }
 
-    auto DirectionalLight::GetWorldDirection( const core::float4x4& world ) const -> core::float3 {
+    auto DirectionalLight::GetWorldDirection( const core::float4x4 &world ) const -> core::float3 {
         return NormalizeDirection( core::float3{ world * core::float4{ mDirection, 0.0f } } );
     }
 
-    auto SpotLight::GetWorldDirection( const core::float4x4& world ) const -> core::float3 {
+    auto SpotLight::GetWorldDirection( const core::float4x4 &world ) const -> core::float3 {
         return NormalizeDirection( core::float3{ world * core::float4{ mDirection, 0.0f } } );
     }
 
-    auto AreaLight::SetSize( const core::float2& size ) -> void {
+    auto AreaLight::SetSize( const core::float2 &size ) -> void {
         for ( int axis{}; axis < 2; ++axis ) {
             mSize[axis] = eastl::max( size[axis], 0.0f );
         }
     }
 
-    auto AreaLight::GetSize() const -> const core::float2& {
+    auto AreaLight::GetSize() const -> const core::float2 & {
         return mSize;
     }
 
@@ -229,6 +229,22 @@ namespace mikoto::renderer {
 
     auto AreaLight::SetShape( AreaLightShape shape ) -> void {
         mShape = shape <= AreaLightShape::eTube ? shape : AreaLightShape::eRectangle;
+    }
+
+    auto AreaLight::SetMaterialEmissionEnabled( bool enabled ) -> void {
+        mMaterialEmissionEnabled = enabled;
+    }
+
+    auto AreaLight::SetEmissionSourceEntityID( core::u64 entityID ) -> void {
+        mEmissionSourceEntityID = entityID;
+    }
+
+    auto AreaLight::GetEmissionSourceEntityID() const -> core::u64 {
+        return mEmissionSourceEntityID;
+    }
+
+    auto AreaLight::IsMaterialEmissionEnabled() const -> bool {
+        return mMaterialEmissionEnabled;
     }
 
     auto AreaLight::GetShape() const -> AreaLightShape {

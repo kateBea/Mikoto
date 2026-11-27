@@ -12,16 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// CPU-mirrored emitter, simulation and render-record layouts. Live simulation state is separate
+// from the compact appearance data consumed by particle billboards.
+
 #pragma once
 #include "Memory_Helpers.slang"
 
 static const uint kInvalidParticleTextureIndex = 0xffffffffu;
 
+// Matches the CPU simulation and sorting dispatch divisors in ParticleSimulationModule.
+static const uint kParticleSimulationGroupSize = 128;
+static const uint kParticleSortGroupSize = 128;
+
 struct ParticleRenderData {
     float4 mPositionSize;
     float4 mColor;
     float4 mRotationSoftness;
-    uint4 mTexture;
+    uint4 mTexture;// Descriptor/slot, bloom intensity bits (render data), reserved.
 };
 
 // Matches EmitterParameters in ParticleSimulationModule.hh.
@@ -30,21 +37,32 @@ struct ParticleEmitterParameters {
     float4 mDirectionCone;
     float4 mAccelerationDrag;
     float4 mLifetimeSpeed;
-    float4 mEmission;
+    float4 mEmission;// Rate, radius, duration, bloom intensity captured at spawn.
     float4 mSizeRotationSoftness;
     float4 mStartColor;
     float4 mEndColor;
-    uint mOffset, mCapacity, mSteps, mReset;
-    uint mSeed, mBurst, mEmitting, mVisible;
-    uint mLooping, mInitialize, mMaxParticles, mPreviousCapacity;
-    uint mTextureIndex, mTextureOffset;
-    float mFadeIn, mFadeOut;
+    uint mOffset;
+    uint mCapacity;
+    uint mSteps;
+    uint mReset;
+    uint mSeed;
+    uint mBurst;
+    uint mEmitting;
+    uint mVisible;
+    uint mLooping;
+    uint mInitialize;
+    uint mMaxParticles;
+    uint mPreviousCapacity;
+    uint mTextureIndex;
+    uint mTextureOffset;
+    float mFadeIn;
+    float mFadeOut;
 };
 
 struct ParticleGpuState {
     float4 mPositionAge;
     float4 mVelocityLifetime;
-    float4 mRotationFade; // Rotation, fade-in fraction, fade-out fraction, reserved.
+    float4 mRotationFade;// Rotation, fade-in fraction, fade-out fraction, bloom intensity.
     float4 mAccelerationDrag;
     float4 mSizeRotationSoftness;
     float4 mStartColor;

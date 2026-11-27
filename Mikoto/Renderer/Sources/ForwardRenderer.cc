@@ -12,23 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <chrono>
 #include <exception>
 
 #include <EASTL/string.h>
-#include <EASTL/unique_ptr.h>
 #include <EASTL/string_view.h>
+#include <EASTL/unique_ptr.h>
 
 #include <Core/Core.hh>
-#include <Core/Types.hh>
 #include <Core/Profiler.hh>
+#include <Core/Types.hh>
 
 #include <Logging/Logger.hh>
 
-#include <Renderer/Rhi/GpuDevice.hh>
 #include <Renderer/Core/RenderSystem.hh>
 #include <Renderer/ForwardRenderer/ForwardRenderer.hh>
-#include <Renderer/Particle/ParticleSystem.hh>
 #include <Renderer/ForwardRenderer/Passes/PostProcessModule.hh>
+#include <Renderer/Particle/ParticleSystem.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
 
 namespace mikoto::renderer {
 
@@ -37,7 +38,26 @@ namespace mikoto::renderer {
     using namespace mikoto::material;
     using namespace mikoto::renderer::rhi;
 
-    ForwardRenderer::ForwardRenderer( const SceneRendererCreateInfo& createInfo )
+    MKT_NODISCARD static auto SameRenderGraphSettings( const SceneRenderSettings &a, const SceneRenderSettings &b ) -> bool {
+        const auto usesDenoiser{ []( const SceneRenderSettings &value ) {
+            return value.mDenoiser.mEnabled && ( value.mRayTracing.mPathTracingEnabled ||
+                                                   value.mRayTracing.mGlobalIlluminationEnabled || value.mRayTracing.mReflectionsEnabled );
+        } };
+
+        return a.mRayTracing.mPathTracingEnabled == b.mRayTracing.mPathTracingEnabled &&
+               a.mDenoiser.mEnabled == b.mDenoiser.mEnabled && a.mDenoiser.mBackend == b.mDenoiser.mBackend &&
+               ( a.mDenoiser.mBackend != DenoiserBackend::eNrd || a.mDenoiser.mType == b.mDenoiser.mType ) &&
+               ( a.mDenoiser.mBackend != DenoiserBackend::eOidn || a.mDenoiser.mOidnQuality == b.mDenoiser.mOidnQuality ) &&
+               usesDenoiser( a ) == usesDenoiser( b ) &&
+               a.mScreenSpaceReflections.mEnabled == b.mScreenSpaceReflections.mEnabled &&
+               a.mScreenSpaceReflections.mHalfResolution == b.mScreenSpaceReflections.mHalfResolution &&
+               a.mClouds.mHalfResolution == b.mClouds.mHalfResolution &&
+               a.mClouds.mFieldResolution == b.mClouds.mFieldResolution &&
+               a.mShadowQuality == b.mShadowQuality && a.mCascadedShadowsEnabled == b.mCascadedShadowsEnabled &&
+               a.mResolution == b.mResolution && a.mMultisampling == b.mMultisampling;
+    }
+
+    ForwardRenderer::ForwardRenderer( const SceneRendererCreateInfo &createInfo )
         : mDevice{ createInfo.mDevice },
           mTargetResolution{ createInfo.mResolution },
           mViewportConvention{ createInfo.mViewportConvention },
@@ -54,6 +74,13 @@ namespace mikoto::renderer {
     auto ForwardRenderer::Initialize() -> void {
         MKT_BEGIN_PROFILER();
 
+        RegisterRenderState();
+        mState->mFrameGraph->Compile();
+        CompleteRenderState();
+        mRebuildPending = false;
+    }
+
+    auto ForwardRenderer::RegisterRenderState() -> void {
         ConfigureRenderState();
         mState->mVolumeModule.RegisterUpload( *mState->mFrameGraph );
 
@@ -63,22 +90,21 @@ namespace mikoto::renderer {
 
         if ( mState->mPathMode ) {
             RegisterPathTracingPasses();
-        } else {
+        }
+        else {
             RegisterRasterPasses();
         }
 
         mState->mVideoModule.RegisterPasses( *mState->mFrameGraph );
         mState->mDebugPasses.RegisterInfoOverlayPass( *mState->mFrameGraph );
         mState->mPresentationModule.RegisterTransition( *mState->mFrameGraph, mDevice->SupportsRayTracing() );
-        mState->mFrameGraph->Compile();
+    }
 
+    auto ForwardRenderer::CompleteRenderState() -> void {
         BindGeometryManagers();
-
         if ( !mState->mPathMode ) {
             ConfigureRasterExecutionPolicies();
         }
-
-        mRebuildPending = false;
     }
 
     auto ForwardRenderer::ConfigureRenderState() -> void {
@@ -88,8 +114,16 @@ namespace mikoto::renderer {
         mState->mMultisampling = mSettings.mMultisampling;
         mState->mShadowQuality = mSettings.mShadowQuality;
         mState->mCascadedShadowsEnabled = mSettings.mCascadedShadowsEnabled;
+        mState->mDenoiserSettings = mSettings.mDenoiser;
         mState->mPathMode = mSettings.mRayTracing.mPathTracingEnabled && mDevice->SupportsRayTracing();
+        mState->mGeometryManagement.SetFoliageWindEnabled( !mState->mPathMode );
         mState->mSkyboxStateInitialized = false;
+        auto denoiser{ mSettings.mDenoiser };
+        denoiser.mValidation = mFinalImageType == FinalImageType::eDenoiserValidation;
+        denoiser.mEnabled &= mSettings.mRayTracing.mPathTracingEnabled || mSettings.mRayTracing.mGlobalIlluminationEnabled || mSettings.mRayTracing.mReflectionsEnabled;
+        mState->mDenoiserModule.SetSettings( denoiser );
+        mState->mPathTracing.GetRayTracingModule().SetDenoiserSettings( denoiser );
+        mState->mRayTracingPass.SetDenoiserSettings( denoiser );
 
         // Shadow resources and editor selection appearance.
         mState->mShadowMapping.SetShadowMapsQuality( mSettings.mShadowQuality );
@@ -125,12 +159,13 @@ namespace mikoto::renderer {
         mState->mAtmosModule.RegisterMultipleScattering( *mState->mFrameGraph );
         mState->mAtmosModule.RegisterSkyView( *mState->mFrameGraph );
 
-        auto& pathTracing{ mState->mPathTracing.GetRayTracingModule() };
+        auto &pathTracing{ mState->mPathTracing.GetRayTracingModule() };
         pathTracing.RegisterUploadPass( *mState->mFrameGraph );
         pathTracing.RegisterBuildPass( *mState->mFrameGraph );
         pathTracing.RegisterFramePass( *mState->mFrameGraph );
         pathTracing.RegisterTracePass( *mState->mFrameGraph, true, true );
         pathTracing.RegisterHistoryPass( *mState->mFrameGraph );
+        mState->mDenoiserModule.RegisterPasses( *mState->mFrameGraph, mDevice, true );
 
         // Keep transport history in scene-linear HDR. Shared display passes consume the finished
         // accumulation, so bloom and exposure edits never feed back into subsequent path samples.
@@ -140,7 +175,7 @@ namespace mikoto::renderer {
 
         mState->mPostEffectsPasses.RegisterBloom( *mState->mFrameGraph,
             mState->mFrameGraph->GetData<PostProcessModuleInfo>().mBeforeToneMapping.mColorImage );
-        
+
         mState->mTonemapModule.RegisterTonemapPass( *mState->mFrameGraph );
         mState->mPostEffectsPasses.RegisterInfiniteGrid( *mState->mFrameGraph );
 
@@ -175,6 +210,17 @@ namespace mikoto::renderer {
     }
 
     auto ForwardRenderer::RegisterRasterPasses() -> void {
+        mState->mWeatherModule.RegisterWindSimulation( *mState->mFrameGraph );
+        // Cloud sunlight queries the generated terrain independently of CSMs.
+        mState->mTerrainGenerationModule.RegisterTerrainGeneration( *mState->mFrameGraph );
+        // Cloud light grids precede surface lighting; view reconstruction is
+        // registered after the last opaque/fog resolve so MSAA cannot erase it.
+        if ( mCloudVolumeCapacity ) {
+            mState->mCloudsModule.SetSettings( mSettings.mClouds );
+            mState->mCloudsModule.RegisterResources( *mState->mFrameGraph, mCloudVolumeCapacity );
+            mState->mCloudsModule.RegisterModelPasses( *mState->mFrameGraph );
+        }
+
         // Material previews and diagnostic targets.
         mState->mDebugPasses.RegisterTrianglePass( *mState->mFrameGraph );
         mState->mDebugPasses.RegisterTexturePass( *mState->mFrameGraph );
@@ -190,12 +236,20 @@ namespace mikoto::renderer {
         mState->mRenderPrepass.RegisterLightCulling( *mState->mFrameGraph );
         mState->mRenderPrepass.RegisterDepthPrepass( *mState->mFrameGraph );
         mState->mRenderPrepass.RegisterGBuffer( *mState->mFrameGraph );
+        // Terrain/blade depth precedes shadows and lighting; colour stays in
+        // the later HDR pass. This also gives Hi-Z the actual terrain surface.
+        mState->mTerrainGenerationModule.RegisterGrassPreparation( *mState->mFrameGraph );
         mState->mShadowMapping.RegisterUploadPass( *mState->mFrameGraph );
         mState->mShadowMapping.RegisterShadowMaps( *mState->mFrameGraph );
+        mState->mTerrainGenerationModule.RegisterGrassShadows( *mState->mFrameGraph );
         mState->mShadowMapping.RegisterDirectionalVisibility( *mState->mFrameGraph, mTargetResolution );
-        mState->mTerrainGenerationModule.RegisterTerrainGeneration( *mState->mFrameGraph );
+        if ( mCloudVolumeCapacity ) {
+            mState->mCloudsModule.RegisterMeshLighting( *mState->mFrameGraph );
+            mState->mCloudsModule.RegisterLightingPasses( *mState->mFrameGraph );
+        }
 
-        const auto* particleSystem{ ParticleSystem::GetPtr() };
+
+        const auto *particleSystem{ ParticleSystem::GetPtr() };
         mState->mParticleSimulation.SetSimulationMode(
             mParticleModeOverride.value_or( particleSystem ? particleSystem->GetSimulationMode() : ParticleSimulationMode::eCpu ) );
 
@@ -226,6 +280,7 @@ namespace mikoto::renderer {
             mState->mRayTracingPass.RegisterFramePass( *mState->mFrameGraph );
             mState->mRayTracingPass.RegisterTracePass( *mState->mFrameGraph );
             mState->mRayTracingPass.RegisterHistoryPass( *mState->mFrameGraph );
+            mState->mDenoiserModule.RegisterPasses( *mState->mFrameGraph, mDevice, false );
         }
 
         // Opaque lighting and material effects.
@@ -268,7 +323,7 @@ namespace mikoto::renderer {
         mState->mAtmosModule.RegisterSceneCopy( *mState->mFrameGraph );
         mState->mAtmosModule.RegisterComposite( *mState->mFrameGraph );
         mState->mAtmosModule.RegisterSun( *mState->mFrameGraph );
-        
+
         if ( mFogAllocated ) {
             mState->mVolumeModule.RegisterFog( *mState->mFrameGraph );
             if ( mSettings.mMultisampling != renderer::rhi::Multisampling::eMsaaX1 ) {
@@ -276,6 +331,10 @@ namespace mikoto::renderer {
                 mState->mGeometryShading.RegisterTransparentPass( *mState->mFrameGraph );
                 mState->mGeometryShading.RegisterResolve( *mState->mFrameGraph, true );
             }
+        }
+
+        if ( mCloudVolumeCapacity ) {
+            mState->mCloudsModule.RegisterViewPasses( *mState->mFrameGraph );
         }
 
         // The fog/MSAA branch can resolve the opaque target again. Trace only
@@ -343,6 +402,7 @@ namespace mikoto::renderer {
         // Raster modules also consume the geometry manager's GPU scene and indirect draws.
         mState->mGuiModule.SetGeometryManager( mState->mGeometryManagement );
         mState->mShadowMapping.SetGeometryManager( mState->mGeometryManagement );
+        mState->mCloudsModule.SetGeometryManager( mState->mGeometryManagement );
         mState->mGeometryShading.SetGeometryManager( mState->mGeometryManagement );
         mState->mDisplayEffectsModule.SetGeometryManager( mState->mGeometryManagement );
     }
@@ -359,33 +419,45 @@ namespace mikoto::renderer {
 
     auto ForwardRenderer::Shutdown() -> void {
         MKT_BEGIN_PROFILER();
+
+        // The device and shader library must outlive any pending compilation.
+        // Destroying the future joins its worker before releasing either graph.
+        mPendingRenderState.reset();
         mState->mFrameGraph = nullptr;
         mState->mGeometryShading.SetSkyboxMaterial( material::MaterialHandle::CreateEmpty() );
         mState->mSkyboxMaterial.Reset();
 
-        for ( auto& texture: mState->mSkyboxTextures ) {
+        for ( auto &texture: mState->mSkyboxTextures ) {
             texture.Reset();
         }
 
         mState->mSkyboxStateInitialized = false;
         mState->mMousePickingModule.Invalidate();
         mLastRenderedScene = nullptr;
+        mRequestedScene = nullptr;
+        mHasSceneOutput = false;
         mDevice = nullptr;
     }
 
-    auto ForwardRenderer::Render( const scene::Scene* scene ) -> void {
+    auto ForwardRenderer::Render( const scene::Scene *scene ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
+        if ( scene != mRequestedScene ) {
+            mRequestedScene = scene;
+            InvalidateSceneOutput();
+        }
         UpdateRenderRequirements( scene );
-        RebuildRenderState();
+        if ( !RebuildRenderState() ) {
+            // Retain a completed image only for a rebuild within the same scene.
+            return;
+        }
         ApplyFrameSettings();
 
         if ( !BindSceneToPasses( scene ) ) {
             return;
         }
 
-        const auto environment{ mState->mSkyboxType == material::SkyboxType::eEquirectangular ? 
-            mState->mSkyboxTextures[0] : rhi::TextureHandle::CreateEmpty() };
+        const auto environment{ mState->mSkyboxType == material::SkyboxType::eEquirectangular ? mState->mSkyboxTextures[0] : rhi::TextureHandle::CreateEmpty() };
 
         const core::f32 environmentScale{ mEnvironmentEnabled ? mAmbientScale : 0.0f };
 
@@ -400,9 +472,10 @@ namespace mikoto::renderer {
 
         mState->mFrameGraph->Execute();
         mState->mFrameGraph->ExecuteReadbacks();
+        mHasSceneOutput = true;
     }
 
-    auto ForwardRenderer::UpdateRenderRequirements( const scene::Scene* scene ) -> void {
+    auto ForwardRenderer::UpdateRenderRequirements( const scene::Scene *scene ) -> void {
         MKT_BEGIN_PROFILER();
 
         const auto revision{ mState->mVideoModule.PrepareFrame( mMainCamera ? scene : nullptr ) };
@@ -419,7 +492,7 @@ namespace mikoto::renderer {
         if ( scene && !mSettings.mRayTracing.mPathTracingEnabled ) {
             for ( const auto [entity, component]: scene->GetRegistry().view<scene::MaterialComponent>().each() ) {
                 const auto source{ component.GetMaterial() };
-                const auto* surface{ dynamic_cast<const material::SurfaceMaterial*>( source.GetPtr() ) };
+                const auto *surface{ dynamic_cast<const material::SurfaceMaterial *>( source.GetPtr() ) };
 
                 if ( surface && surface->GetShadingModel() == material::ShadingModel::eSubsurfaceScattering &&
                      surface->GetAlphaMask() != material::AlphaMode::eBlend ) {
@@ -435,7 +508,12 @@ namespace mikoto::renderer {
         }
 
         const bool needsFog{ scene && !mSettings.mRayTracing.mPathTracingEnabled &&
-            ( !scene->GetRegistry().view<scene::FogComponent>().empty() || !scene->GetRegistry().view<scene::CloudComponent>().empty() ) };
+                             !scene->GetRegistry().view<scene::FogComponent>().empty() };
+        const core::u32 cloudCapacity{ scene && !mSettings.mRayTracing.mPathTracingEnabled && mSettings.mClouds.mEnabled ? glm::min( core::as<core::u32>( scene->GetRegistry().view<scene::CloudComponent>().size() ), kMaxCloudVolumes ) : 0u };
+        if ( cloudCapacity != mCloudVolumeCapacity ) {
+            mCloudVolumeCapacity = cloudCapacity;
+            mRebuildPending = true;
+        }
         if ( mFogAllocated != needsFog ) {
             mFogAllocated = needsFog;
             mRebuildPending = true;
@@ -444,10 +522,12 @@ namespace mikoto::renderer {
         if ( scene && mMainCamera ) {
             // Off-screen geometry can still contribute to rays or be bent into
             // view. Keep it resident until those paths provide their own demands.
-            scene->UpdateStreamingView( this, *mMainCamera, mState->mPathMode );
+            const auto *sky{ scene->GetSkyLight() };
+            const bool skyRays{ sky && sky->IsEnabled() && sky->IsOcclusionEnabled() && mDevice->SupportsRayTracing() };
+            scene->UpdateStreamingView( this, *mMainCamera, mState->mPathMode || skyRays );
         }
 
-        if ( const auto* particles{ ParticleSystem::GetPtr() }; !mState->mPathMode ) {
+        if ( const auto *particles{ ParticleSystem::GetPtr() }; !mState->mPathMode ) {
             // Replacing the graph also fences its old particle buffers. Never mutate
             // buffers still consumed by the previous frame when switching backends.
             mRebuildPending |= mState->mParticleSimulation.GetSimulationMode() !=
@@ -455,72 +535,141 @@ namespace mikoto::renderer {
         }
     }
 
-    auto ForwardRenderer::RebuildRenderState() -> void {
+    auto ForwardRenderer::RebuildRenderState() -> bool {
         MKT_BEGIN_PROFILER();
 
+        if ( mPendingRenderState ) {
+            if ( mPendingRenderState->mCompilation.wait_for( std::chrono::seconds{ 0 } ) != std::future_status::ready ) {
+                return false;
+            }
+
+            auto pending{ eastl::move( mPendingRenderState ) };
+            const auto *particles{ ParticleSystem::GetPtr() };
+            const auto particleMode{ mParticleModeOverride.value_or( particles ? particles->GetSimulationMode() : ParticleSimulationMode::eCpu ) };
+            const bool current{ SameRenderGraphSettings( pending->mSettings, mSettings ) &&
+                                pending->mState->mTargetResolution == mTargetResolution &&
+                                pending->mEnvironmentAllocated == mEnvironmentAllocated &&
+                                pending->mSubsurfaceAllocated == mSubsurfaceAllocated && pending->mFogAllocated == mFogAllocated &&
+                                pending->mCloudVolumeCapacity == mCloudVolumeCapacity && pending->mParticleMode == particleMode };
+
+            try {
+                pending->mCompilation.get();
+            } catch ( const std::exception &error ) {
+                if ( current ) {
+                    RestoreRenderStateSettings();
+                }
+                mRebuildPending = !current;
+                MKT_CORE_LOGGER_ERROR( "Cannot rebuild scene render targets: {}. Keeping the previous targets.", error.what() );
+                return current;
+            }
+
+            // Settings can change while compiling. Never publish stale resources
+            // with a different resolution, denoiser method or scene allocation.
+            if ( !current ) {
+                mRebuildPending = true;
+                return false;
+            }
+
+            auto previous{ mState };
+            const bool previousHasOutput{ mHasSceneOutput };
+            try {
+                mState = eastl::move( pending->mState );
+                mHasSceneOutput = false;
+                CompleteRenderState();
+
+                SetMainCamera( mMainCamera );
+                SetClearColor( mClearColor );
+                SetGamma( mGamma );
+                SetExposure( mExposure );
+                SetSkyboxBlur( mSkyboxBlur );
+                SetAmbientScale( mAmbientScale );
+                SetTonemapType( mToneMapping );
+                SetRenderBackground( mBackground );
+                SetSkyboxMaterial( previous->mSkyboxMaterial );
+                SetEnvironmentLightingEnabled( mEnvironmentEnabled );
+                SetEnableInfiniteGrid( mInfiniteGrid );
+                SetEnablePolygonComplexity( mPolygonComplexity );
+
+                // These edits do not invalidate a build; apply their latest values
+                // rather than the values captured when registration started.
+                mState->mShadowMapping.SetSoftShadowsEnabled( mSettings.mSoftShadowsEnabled );
+                mState->mShadowMapping.SetShadowMappDistance( mSettings.mShadowDistance );
+                SetOutlineStyle( mSettings.mSelectionOutlineColor, mSettings.mSelectionOutlineWidth );
+                ( void )GetFinalImage( mFinalImageType );
+
+                mState->mDebugOverlayModule.GetPhysicsSettings() = previous->mDebugOverlayModule.GetPhysicsSettings();
+                mState->mDebugOverlayModule.GetSceneVolumeSettings() = previous->mDebugOverlayModule.GetSceneVolumeSettings();
+            } catch ( const std::exception &error ) {
+                mState = previous;
+                mHasSceneOutput = previousHasOutput;
+                RestoreRenderStateSettings();
+                MKT_CORE_LOGGER_ERROR( "Cannot activate scene render targets: {}. Keeping the previous targets.", error.what() );
+            }
+            mRebuildPending = false;
+            return true;
+        }
+
         if ( !mRebuildPending ) {
-            return;
+            return true;
         }
 
-        // Keep the previous graph available until initialization succeeds.
-        // Submitted command lists retain the resources they still reference.
         auto previous{ mState };
-        const auto skybox{ previous->mSkyboxMaterial };
-        const auto physicsDebug{ previous->mDebugOverlayModule.GetPhysicsSettings() };
-        const auto sceneVolumes{ previous->mDebugOverlayModule.GetSceneVolumeSettings() };
-        mState = eastl::make_shared<RenderState>( mTargetResolution );
-
         try {
-            Initialize();
+            // Registration stays on the render thread. Its callbacks retain the
+            // new module instances; the worker captures no renderer or scene pointer.
+            mState = eastl::make_shared<RenderState>( mTargetResolution );
+            RegisterRenderState();
 
-            SetMainCamera( mMainCamera );
-            SetClearColor( mClearColor );
-
-            SetGamma( mGamma );
-            SetExposure( mExposure );
-            SetSkyboxBlur( mSkyboxBlur );
-            SetAmbientScale( mAmbientScale );
-
-            SetTonemapType( mToneMapping );
-            SetRenderBackground( mBackground );
-
-            SetSkyboxMaterial( skybox );
-            SetEnvironmentLightingEnabled( mEnvironmentEnabled );
-
-            SetEnableInfiniteGrid( mInfiniteGrid );
-            SetEnablePolygonComplexity( mPolygonComplexity );
-
-            // Update current final target
-            // TODO: Use a setter in its place
-            ( void )GetFinalImage( mFinalImageType );
-
-            mState->mDebugOverlayModule.GetPhysicsSettings() = physicsDebug;
-            mState->mDebugOverlayModule.GetSceneVolumeSettings() = sceneVolumes;
-        } catch ( const std::exception& error ) {
+            auto pending{ eastl::make_unique<PendingRenderState>() };
+            pending->mState = mState;
+            pending->mSettings = mSettings;
+            pending->mEnvironmentAllocated = mEnvironmentAllocated;
+            pending->mSubsurfaceAllocated = mSubsurfaceAllocated;
+            pending->mFogAllocated = mFogAllocated;
+            pending->mCloudVolumeCapacity = mCloudVolumeCapacity;
+            const auto *particles{ ParticleSystem::GetPtr() };
+            pending->mParticleMode = mParticleModeOverride.value_or( particles ? particles->GetSimulationMode() : ParticleSimulationMode::eCpu );
             mState = previous;
-            mSubsurfaceAllocated = previous->mFrameGraph->GetBlackBoard().Contains<SubsurfaceScatteringInfo>();
-            mFogAllocated = previous->mFrameGraph->GetBlackBoard().Contains<FogModuleInfo>();
-            mTargetResolution = previous->mTargetResolution;
-            mSettings.mMultisampling = previous->mMultisampling;
-            mSettings.mShadowQuality = previous->mShadowQuality;
-            mSettings.mCascadedShadowsEnabled = previous->mCascadedShadowsEnabled;
-            mSettings.mResolution = mTargetResolution;
-            mSettings.mRayTracing.mPathTracingEnabled = previous->mPathMode;
 
-            if ( mParticleModeOverride ) {
-                mParticleModeOverride = previous->mParticleSimulation.GetSimulationMode();
-            }
-            else if ( auto* particles{ ParticleSystem::GetPtr() } ) {
-                particles->SetSimulationMode( previous->mParticleSimulation.GetSimulationMode() );
-            }
-
-            MKT_CORE_LOGGER_ERROR( "Cannot rebuild scene render targets: {}. Keeping the previous targets.", error.what() );
+            pending->mCompilation = std::async( std::launch::async, [state = pending->mState] {
+                state->mFrameGraph->Compile();
+            } );
+            mPendingRenderState = eastl::move( pending );
+            mRebuildPending = false;
+        } catch ( const std::exception &error ) {
+            mState = previous;
+            RestoreRenderStateSettings();
+            mRebuildPending = false;
+            MKT_CORE_LOGGER_ERROR( "Cannot prepare scene render targets: {}. Keeping the previous targets.", error.what() );
+            return true;
         }
 
-        mRebuildPending = false;
+        return false;
     }
 
-    auto ForwardRenderer::BindSceneToPasses( const scene::Scene* scene ) -> bool {
+    auto ForwardRenderer::RestoreRenderStateSettings() -> void {
+        mSubsurfaceAllocated = mState->mFrameGraph->GetBlackBoard().Contains<SubsurfaceScatteringInfo>();
+        mFogAllocated = mState->mFrameGraph->GetBlackBoard().Contains<FogModuleInfo>();
+        const auto *clouds{ mState->mFrameGraph->GetBlackBoard().TryGet<CloudsModuleInfo>() };
+        mCloudVolumeCapacity = clouds ? core::as<core::u32>( clouds->mVolumes.size() ) : 0u;
+        mSettings.mClouds = mState->mCloudsModule.GetSettings();
+        mSettings.mDenoiser = mState->mDenoiserSettings;
+        mTargetResolution = mState->mTargetResolution;
+        mSettings.mMultisampling = mState->mMultisampling;
+        mSettings.mShadowQuality = mState->mShadowQuality;
+        mSettings.mCascadedShadowsEnabled = mState->mCascadedShadowsEnabled;
+        mSettings.mResolution = mTargetResolution;
+        mSettings.mRayTracing.mPathTracingEnabled = mState->mPathMode;
+
+        if ( mParticleModeOverride ) {
+            mParticleModeOverride = mState->mParticleSimulation.GetSimulationMode();
+        }
+        else if ( auto *particles{ ParticleSystem::GetPtr() } ) {
+            particles->SetSimulationMode( mState->mParticleSimulation.GetSimulationMode() );
+        }
+    }
+
+    auto ForwardRenderer::BindSceneToPasses( const scene::Scene *scene ) -> bool {
         MKT_BEGIN_PROFILER();
 
         if ( !mState->mFrameGraph ) {
@@ -544,7 +693,7 @@ namespace mikoto::renderer {
         mState->mTerrainGenerationModule.SetScene( scene );
 
         mState->mOutlineModule.SetEnabled( mOverlaysEnabled && scene != nullptr );
-        if ( mState->mVolumeModule.Prepare( scene, mMainCamera, mEnvironmentEnabled ? mAmbientScale : 0.0f ) ) {
+        if ( mState->mVolumeModule.Prepare( scene, mMainCamera, mEnvironmentEnabled ? mAmbientScale : 0.0f, mState->mPathMode ) ) {
             mState->mPathTracing.GetRayTracingModule().ResetAccumulation();
             mState->mRayTracingPass.ResetAccumulation();
         }
@@ -569,28 +718,38 @@ namespace mikoto::renderer {
         return textures;
     }
 
-    auto ForwardRenderer::PreparePathTracingFrame( const scene::Scene* scene,
-        const rhi::TextureHandle& environment, core::f32 environmentScale ) -> bool {
+    auto ForwardRenderer::PreparePathTracingFrame( const scene::Scene *scene,
+        const rhi::TextureHandle &environment, core::f32 environmentScale ) -> bool {
         if ( !mMainCamera ) {
             return false;
         }
 
         ( void )mState->mAtmosModule.Prepare( scene, *mState->mFrameGraph );
 
-        const auto& atmosphere{ mState->mFrameGraph->GetOrCreate<AtmosphereModuleInfo>() };
+        const auto &atmosphere{ mState->mFrameGraph->GetOrCreate<AtmosphereModuleInfo>() };
         mState->mPathTracing.SetAtmosphere( mState->mAtmosModule.IsEnabled() ? &mState->mAtmosModule.GetData() : nullptr,
             { mState->mFrameGraph->GetTexture( atmosphere.mTransmittance ),
                 mState->mFrameGraph->GetTexture( atmosphere.mMultipleScattering ),
                 mState->mFrameGraph->GetTexture( atmosphere.mSkyView ) } );
         mState->mPathTracing.SetBackground( mBackground, mSkyboxBlur );
         mState->mPathTracing.SetEnvironmentFaces( GetEnvironmentFaces() );
+        auto denoiser{ mSettings.mDenoiser };
+        denoiser.mValidation = mFinalImageType == FinalImageType::eDenoiserValidation;
+        // A distant cloud must not disable denoising for every visible solid.
+        // Raygen rejects only primary segments that actually intersect a medium.
+        // A sampled lens still has no single surface guide for the entire view.
+        denoiser.mEnabled &= denoiser.mBackend == DenoiserBackend::eOidn ||
+                             !( mMainCamera->GetDepthOfFieldSettings().mEnabled && !mMainCamera->IsOrthographic() );
+        mState->mPathTracing.GetRayTracingModule().SetDenoiserSettings( denoiser );
         mState->mPathTracing.Prepare( *mState->mFrameGraph, scene, mMainCamera, mSettings.mRayTracing, environment, environmentScale, mExposure, mGamma );
+        mState->mDenoiserModule.SetSettings( denoiser );
+        mState->mDenoiserModule.Prepare( scene, mMainCamera, mState->mPathTracing.GetRayTracingModule() );
 
         return true;
     }
 
-    auto ForwardRenderer::PrepareRasterFrame( const scene::Scene* scene,
-        const rhi::TextureHandle& environment, core::f32 environmentScale ) -> void {
+    auto ForwardRenderer::PrepareRasterFrame( const scene::Scene *scene,
+        const rhi::TextureHandle &environment, core::f32 environmentScale ) -> void {
         MKT_BEGIN_PROFILER();
 
         mState->mShadowMapping.SetScene( scene );
@@ -606,20 +765,41 @@ namespace mikoto::renderer {
         const bool atmosphereEnabled{ mState->mAtmosModule.IsEnabled() };
 
         if ( mDevice->SupportsRayTracing() ) {
-            const auto& atmosphere{ mState->mFrameGraph->GetOrCreate<AtmosphereModuleInfo>() };
+            const auto &atmosphere{ mState->mFrameGraph->GetOrCreate<AtmosphereModuleInfo>() };
             mState->mRayTracingPass.SetAtmosphere( atmosphereEnabled ? &mState->mAtmosModule.GetData() : nullptr,
                 { mState->mFrameGraph->GetTexture( atmosphere.mTransmittance ),
                     mState->mFrameGraph->GetTexture( atmosphere.mMultipleScattering ),
                     mState->mFrameGraph->GetTexture( atmosphere.mSkyView ) } );
             mState->mRayTracingPass.SetEnvironmentFaces( GetEnvironmentFaces() );
-            mState->mRayTracingPass.Prepare( *mState->mFrameGraph, scene, mMainCamera, mSettings.mRayTracing, environment, environmentScale, mExposure, mGamma );
+            auto raySettings{ mSettings.mRayTracing };
+            if ( const auto *sky{ scene ? scene->GetSkyLight() : nullptr };
+                raySettings.mAmbientOcclusionEnabled && sky && sky->IsEnabled() && sky->IsOcclusionEnabled() ) {
+                // Honor the renderer's AO selection. Animated geometry resets
+                // progressive RT history, so a sky light must not silently
+                // introduce raw visibility samples into a raster scene.
+                raySettings.mUseCosineWeightedAoSampling = true;
+                raySettings.mAoMaxDistance = sky->GetOcclusionDistance();
+                raySettings.mAoSamplesPerFrame = sky->GetOcclusionSamplesPerFrame();
+            }
+            auto denoiser{ mSettings.mDenoiser };
+            denoiser.mValidation = mFinalImageType == FinalImageType::eDenoiserValidation;
+            mState->mRayTracingPass.SetDenoiserSettings( denoiser );
+            mState->mRayTracingPass.Prepare( *mState->mFrameGraph, scene, mMainCamera, raySettings, environment, environmentScale, mExposure, mGamma );
+            mState->mDenoiserModule.SetSettings( denoiser );
+            mState->mDenoiserModule.Prepare( scene, mMainCamera, mState->mRayTracingPass );
+        }
+
+        if ( mCloudVolumeCapacity ) {
+            mState->mCloudsModule.SetSettings( mSettings.mClouds );
+            mState->mCloudsModule.Prepare( scene, mMainCamera, atmosphereEnabled ? &mState->mAtmosModule.GetData() : nullptr,
+                scene && scene->GetAtmosphereSettings().mAerialPerspective );
         }
 
         mState->mGeometryShading.SetAtmosphereEnabled( atmosphereEnabled );
 
         if ( atmosphereEnabled ) {
             mState->mGeometryShading.SetEnvironmentLightingEnabled( true );
-            mState->mGeometryShading.SetAmbientScale( 1.0f );
+            mState->mGeometryShading.SetAmbientScale( mAmbientScale );
 
             // The atmosphere owns IBL until the lighting source changes back.
             // Do not project an unrelated panorama over its generated cubemap.
@@ -687,6 +867,7 @@ namespace mikoto::renderer {
         mState->mDisplayEffectsModule.SetChromaticAberration( mSettings.mChromaticAberration );
         mState->mDisplayEffectsModule.SetDepthOfFieldQuality( mSettings.mDepthOfFieldQuality, mSettings.mVisualizeDepthOfField );
         mState->mPostEffectsPasses.GetBloomSettings() = mSettings.mBloom;
+        mState->mPostEffectsPasses.SetInfiniteGridSettings( mSettings.mInfiniteGrid );
         mState->mGeometryShading.SetEnableSsao( mSettings.mSsaoEnabled );
         mState->mGeometryShading.SetSsaoIntensity( mSettings.mSsaoIntensity );
 
@@ -706,7 +887,7 @@ namespace mikoto::renderer {
                 return renderer::rhi::TextureHandle::CreateEmpty();
             }
 
-            return mState->mPresentationModule.GetFinalImage( *mState->mFrameGraph );
+            return mHasSceneOutput ? mState->mPresentationModule.GetFinalImage( *mState->mFrameGraph ) : rhi::TextureHandle{};
         }
 
         if ( !mState->mFrameGraph ) {
@@ -725,10 +906,10 @@ namespace mikoto::renderer {
         // but it is not until the next call to execute that we render it
         mState->mPresentationModule.SetFinalImageTarget( type );
 
-        return mState->mPresentationModule.GetFinalImage( *mState->mFrameGraph );
+        return mHasSceneOutput ? mState->mPresentationModule.GetFinalImage( *mState->mFrameGraph ) : rhi::TextureHandle{};
     }
 
-    auto ForwardRenderer::SetMainCamera( const scene::SceneCamera* camera ) -> void {
+    auto ForwardRenderer::SetMainCamera( const scene::SceneCamera *camera ) -> void {
         MKT_BEGIN_PROFILER();
         mMainCamera = camera;
 
@@ -750,7 +931,7 @@ namespace mikoto::renderer {
         mState->mIndirectIlluminationModule.SetCamera( camera );
     }
 
-    auto ForwardRenderer::SetClearColor( const renderer::rhi::Color& color ) -> void {
+    auto ForwardRenderer::SetClearColor( const renderer::rhi::Color &color ) -> void {
         MKT_BEGIN_PROFILER();
         mClearColor = color;
         mState->mGeometryShading.SetClearColor( color );
@@ -805,12 +986,12 @@ namespace mikoto::renderer {
         return mSettings.mSsaoIntensity;
     }
 
-    auto ForwardRenderer::GetBloomSettings() -> BloomSettings& {
+    auto ForwardRenderer::GetBloomSettings() -> BloomSettings & {
         MKT_BEGIN_PROFILER();
         return mSettings.mBloom;
     }
 
-    auto ForwardRenderer::GetShadowDiagnostics() const -> const ShadowDiagnostics& {
+    auto ForwardRenderer::GetShadowDiagnostics() const -> const ShadowDiagnostics & {
         MKT_BEGIN_PROFILER();
         return mState->mShadowMapping.GetDiagnostics();
     }
@@ -859,7 +1040,7 @@ namespace mikoto::renderer {
             return;
         }
 
-        auto* skybox{ material ? core::checked_cast<material::SkyboxMaterial*>( material.GetPtr() ) : nullptr };
+        auto *skybox{ material ? core::checked_cast<material::SkyboxMaterial *>( material.GetPtr() ) : nullptr };
 
         if ( skybox && !skybox->HasRequiredTextures() ) {
             material = material::MaterialHandle::CreateEmpty();
@@ -948,6 +1129,14 @@ namespace mikoto::renderer {
         return mSettings;
     }
 
+    auto ForwardRenderer::IsPreparing() const -> bool {
+        return mPendingRenderState != nullptr || mRebuildPending;
+    }
+
+    auto ForwardRenderer::IsDenoiserActive() const -> bool {
+        return mState->mDenoiserModule.IsActive();
+    }
+
     auto ForwardRenderer::GetPathSampleCount() const -> core::u32 {
         return mState->mPathTracing.GetSampleCount();
     }
@@ -956,7 +1145,19 @@ namespace mikoto::renderer {
         mState->mPathTracing.ResetAccumulation();
     }
 
-    auto ForwardRenderer::GetRayTracingError() const -> const eastl::string& {
+    auto ForwardRenderer::InvalidateSceneOutput() -> void {
+        ISceneRenderer::InvalidateSceneOutput();
+        mState->mRayTracingPass.ResetAccumulation();
+        // A scene replacement invalidates temporal guides as well as colour.
+        // This is separate from video-frame accumulation resets, which retain
+        // NRD's responsive history within the same scene.
+        ++mSettings.mDenoiser.mResetRevision;
+    }
+
+    auto ForwardRenderer::GetRayTracingError() const -> const eastl::string & {
+        if ( const auto &error{ mState->mDenoiserModule.GetError() }; !error.empty() ) {
+            return error;
+        }
         return mState->mPathMode ? mState->mPathTracing.GetError() : mState->mRayTracingPass.GetError();
     }
 
@@ -969,11 +1170,7 @@ namespace mikoto::renderer {
         settings.mRayTracing.mGlobalIlluminationEnabled &= mDevice->SupportsRayTracing();
         settings.mRayTracing.mAmbientOcclusionEnabled &= mDevice->SupportsRayTracing();
 
-        mRebuildPending |= settings.mRayTracing.mPathTracingEnabled != mSettings.mRayTracing.mPathTracingEnabled;
-        mRebuildPending |= settings.mScreenSpaceReflections.mEnabled != mSettings.mScreenSpaceReflections.mEnabled;
-        mRebuildPending |= settings.mScreenSpaceReflections.mHalfResolution != mSettings.mScreenSpaceReflections.mHalfResolution;
-        mRebuildPending |= settings.mShadowQuality != mSettings.mShadowQuality;
-        mRebuildPending |= settings.mCascadedShadowsEnabled != mSettings.mCascadedShadowsEnabled;
+        mRebuildPending |= !SameRenderGraphSettings( settings, mSettings );
 
         SetRenderResolution( settings.mResolution );
         SetMultisampling( settings.mMultisampling );
@@ -1045,11 +1242,11 @@ namespace mikoto::renderer {
         }
     }
 
-    auto ForwardRenderer::GetInstanceUploadStatistics() const -> const SceneUploadStatistics& {
+    auto ForwardRenderer::GetInstanceUploadStatistics() const -> const SceneUploadStatistics & {
         return mState->mGeometryManagement.GetInstanceUploadStatistics();
     }
 
-    auto ForwardRenderer::GetMaterialUploadStatistics() const -> const SceneUploadStatistics& {
+    auto ForwardRenderer::GetMaterialUploadStatistics() const -> const SceneUploadStatistics & {
         return mState->mGeometryManagement.GetMaterialUploadStatistics();
     }
 
@@ -1057,7 +1254,7 @@ namespace mikoto::renderer {
         return mState->mGeometryManagement.GetSharedMaterialCount();
     }
 
-    auto ForwardRenderer::GetSceneVolumeSettings() -> SceneVolumeSettings& {
+    auto ForwardRenderer::GetSceneVolumeSettings() -> SceneVolumeSettings & {
         MKT_BEGIN_PROFILER();
         return mState->mDebugOverlayModule.GetSceneVolumeSettings();
     }
@@ -1066,7 +1263,7 @@ namespace mikoto::renderer {
         mArmatureDebugMode = mode <= ArmatureDebugMode::eArmatureOnly ? mode : ArmatureDebugMode::eDisabled;
     }
 
-    auto ForwardRenderer::GetPhysicsDebugSettings() -> physics::PhysicsDebugDrawSettings& {
+    auto ForwardRenderer::GetPhysicsDebugSettings() -> physics::PhysicsDebugDrawSettings & {
         MKT_BEGIN_PROFILER();
         return mState->mDebugOverlayModule.GetPhysicsSettings();
     }
@@ -1106,9 +1303,9 @@ namespace mikoto::renderer {
         return mState->mMousePickingModule.ReadPixel( x, y );
     }
 
-    auto ForwardRenderer::RequestPick( const ReadPixelViewportInfo& viewport ) -> bool {
+    auto ForwardRenderer::RequestPick( const ReadPixelViewportInfo &viewport ) -> bool {
         MKT_BEGIN_PROFILER();
-        return mState->mFrameGraph && mState->mFrameGraph->IsPassPresent( "ObjectSelection_Render" ) &&
+        return mHasSceneOutput && mState->mFrameGraph && mState->mFrameGraph->IsPassPresent( "ObjectSelection_Render" ) &&
                mLastRenderedScene && mState->mMousePickingModule.RequestPixel( viewport );
     }
 
@@ -1117,7 +1314,7 @@ namespace mikoto::renderer {
         mState->mMousePickingModule.CancelPendingPick();
     }
 
-    auto ForwardRenderer::SetOutlineStyle( const core::float4& color, core::f32 width ) -> void {
+    auto ForwardRenderer::SetOutlineStyle( const core::float4 &color, core::f32 width ) -> void {
         MKT_BEGIN_PROFILER();
         // Keep style on the module so graph replacement cannot lose it during setup.
         mState->mOutlineModule.SetStyle( color, width );
@@ -1127,21 +1324,21 @@ namespace mikoto::renderer {
         mState->mOutlineModule.SetTextureDropHover( id );
     }
 
-    auto ForwardRenderer::ReadSelectionRectangle( const ReadPixelViewportInfo& first, const ReadPixelViewportInfo& last ) const -> eastl::vector<core::u32> {
-        return mState->mMousePickingModule.ReadRectangle( first,last );
+    auto ForwardRenderer::ReadSelectionRectangle( const ReadPixelViewportInfo &first, const ReadPixelViewportInfo &last ) const -> eastl::vector<core::u32> {
+        return mState->mMousePickingModule.ReadRectangle( first, last );
     }
 
     auto ForwardRenderer::GetPickResult() -> eastl::optional<core::u32> {
         MKT_BEGIN_PROFILER();
-        return mState->mMousePickingModule.TakePickResult();
+        return mState->mMousePickingModule.GetPickResult();
     }
 
-    auto ForwardRenderer::ReadPixel( const ReadPixelViewportInfo& ínfo ) const -> core::u32 {
+    auto ForwardRenderer::ReadPixel( const ReadPixelViewportInfo &ínfo ) const -> core::u32 {
         MKT_BEGIN_PROFILER();
         return mState->mMousePickingModule.ReadPixel( ínfo );
     }
 
-    auto ForwardRenderer::GetNodeControl() const -> const FGNodeControl& {
+    auto ForwardRenderer::GetNodeControl() const -> const FGNodeControl & {
         MKT_BEGIN_PROFILER();
 
         if ( !mState->mFrameGraph ) {
@@ -1157,12 +1354,12 @@ namespace mikoto::renderer {
         return mState->mFrameGraph != nullptr;
     }
 
-    auto ForwardRenderer::GetPassList() const -> const ankerl::unordered_dense::map<eastl::string, FrameGraphPass>& {
+    auto ForwardRenderer::GetPassList() const -> const ankerl::unordered_dense::map<eastl::string, FrameGraphPass> & {
         MKT_BEGIN_PROFILER();
         return GetNodeControl().mNodes;
     }
 
-    auto ForwardRenderer::GetPassStatistics() const -> const ankerl::unordered_dense::map<eastl::string, FGNodeStatistics>& {
+    auto ForwardRenderer::GetPassStatistics() const -> const ankerl::unordered_dense::map<eastl::string, FGNodeStatistics> & {
         MKT_BEGIN_PROFILER();
 
         if ( !mState->mFrameGraph ) {
@@ -1173,11 +1370,11 @@ namespace mikoto::renderer {
         return mState->mFrameGraph->GetStatisticsManager().GetStatistics();
     }
 
-    auto ForwardRenderer::GetGpuProfiler() const -> GpuQueryProfiler* {
+    auto ForwardRenderer::GetGpuProfiler() const -> GpuQueryProfiler * {
         return mState->mFrameGraph ? MKT_ADDRESSOF( mState->mFrameGraph->GetGpuProfiler() ) : nullptr;
     }
 
-    auto ForwardRenderer::SetCullingDebugCamera( const scene::Camera* camera ) -> void {
+    auto ForwardRenderer::SetCullingDebugCamera( const scene::Camera *camera ) -> void {
         mCullingDebugCamera = camera;
     }
 

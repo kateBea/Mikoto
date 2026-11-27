@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Apply material coverage and sidedness before accepting a shadow-map fragment. This preserves
+// cutout holes in the depth map used by light visibility queries.
+
 #pragma once
 
 #include "base/Base.slang"
@@ -26,32 +29,32 @@ MKT_DECLARE_PUSH_CONSTANT( ShadowDrawParams, parameters );
 
 [shader( "fragment" )]
 float main( ShadowVertexOutput input, bool frontFacing : SV_IsFrontFace ) : SV_Depth {
-    if ( MaterialBackfaceDiscard( input.FaceFlags, frontFacing ) ) {
+    if ( MaterialBackfaceDiscard( input.mFaceFlags, frontFacing ) ) {
         discard;
     }
 
     // Opaque fragments never fetch material data or sample an alpha texture.
     // BLEND assets can contain fully opaque cloth as well as transparent texels.
     // Match the depth prepass: only opaque coverage casts a depth-map shadow.
-    if ( input.AlphaMode != PBR_ALPHA_OPAQUE ) {
+    if ( input.mAlphaMode != PBR_ALPHA_OPAQUE ) {
         MaterialParameters material =
-                ( ( BufferReference<MaterialParameters> )parameters.Materials )[input.MaterialIndex];
+                ( ( BufferReference<MaterialParameters> )parameters.mMaterials )[input.mMaterialIndex];
         int index = MaterialAlphaTexture( material );
         float alpha = ( index == INVALID_TEXTURE_INDEX ) ? 1.0 :
             textures[NonUniformResourceIndex( index )]
-                .Sample( samplers[parameters.Sampler],
-                MaterialAlphaUV( material, input.Uv0, input.Uv1 ) ).a;
+                .Sample( samplers[parameters.mSampler],
+                MaterialAlphaUV( material, input.mUv0, input.mUv1 ) ).a;
 
-        if ( MaterialSurfaceDiscard( material, MaterialAlpha( material, alpha, input.VertexAlpha ), false ) ) {
+        if ( MaterialSurfaceDiscard( material, MaterialAlpha( material, alpha, input.mVertexAlpha ), false ) ) {
             discard;
         }
     }
 
-    if ( input.LightType == LIGHT_TYPE_DIRECTIONAL ) {
-        return input.Position.z;
+    if ( input.mLightType == LIGHT_TYPE_DIRECTIONAL ) {
+        return input.mPosition.z;
     }
 
-    float depth = LocalShadowDepth( input.WorldPosition, input.LightPositionRange );
+    float depth = LocalShadowDepth( input.mWorldPosition, input.mLightPositionRange );
 
     if ( depth >= 1.0 ) {
         discard;

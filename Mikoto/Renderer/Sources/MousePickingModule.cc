@@ -12,35 +12,35 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <EASTL/optional.h>
-#include <EASTL/algorithm.h>
-
 #include <ankerl/unordered_dense.h>
+
+#include <EASTL/algorithm.h>
+#include <EASTL/optional.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtx/compatibility.hpp>
 
+#include <Assets/Utility.hh>
+
 #include <Core/Core.hh>
-#include <Core/Types.hh>
 #include <Core/Profiler.hh>
+#include <Core/Types.hh>
 
 #include <Memory/Allocator.hh>
 
-#include <Assets/Utility.hh>
-
-#include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Core/CommandContext.hh>
+#include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/ForwardRenderer/Passes/CameraModule.hh>
-#include <Renderer/ForwardRenderer/Passes/PrepassModule.hh>
 #include <Renderer/ForwardRenderer/Passes/GeometryCullModule.hh>
 #include <Renderer/ForwardRenderer/Passes/MousePickingModule.hh>
+#include <Renderer/ForwardRenderer/Passes/PrepassModule.hh>
 
 namespace mikoto::renderer {
 
     using namespace mikoto::core;
     using namespace mikoto::renderer::rhi;
 
-    auto MousePickingModule::MapPickingPixel( const ReadPixelViewportInfo& viewport,
+    auto MousePickingModule::MapPickingPixel( const ReadPixelViewportInfo &viewport,
         core::u32 width, core::u32 height ) -> eastl::optional<PickingPixel> {
         MKT_BEGIN_PROFILER();
 
@@ -90,7 +90,7 @@ namespace mikoto::renderer {
         return mData[y * width + x];
     }
 
-    auto MousePickingModule::ReadPixel( const ReadPixelViewportInfo& viewport ) const -> core::u32 {
+    auto MousePickingModule::ReadPixel( const ReadPixelViewportInfo &viewport ) const -> core::u32 {
         MKT_BEGIN_PROFILER();
         const auto dimensions{ InferDimensions( mResolution ) };
         const auto pixel{ MapPickingPixel( viewport, core::as<core::u32>( dimensions.first ), core::as<core::u32>( dimensions.second ) ) };
@@ -98,7 +98,7 @@ namespace mikoto::renderer {
         return pixel ? ReadPixel( pixel->mX, pixel->mY ) : 0;
     }
 
-    auto MousePickingModule::RequestPixel( const ReadPixelViewportInfo& viewport ) -> bool {
+    auto MousePickingModule::RequestPixel( const ReadPixelViewportInfo &viewport ) -> bool {
         MKT_BEGIN_PROFILER();
         const auto dimensions{ InferDimensions( mResolution ) };
         const auto pixel{ MapPickingPixel( viewport, core::as<core::u32>( dimensions.first ), core::as<core::u32>( dimensions.second ) ) };
@@ -113,16 +113,16 @@ namespace mikoto::renderer {
         return true;
     }
 
-    auto MousePickingModule::TakePickResult() -> eastl::optional<core::u32> {
+    auto MousePickingModule::GetPickResult() -> eastl::optional<core::u32> {
         MKT_BEGIN_PROFILER();
 
         auto result = mPickResult;
         mPickResult.reset();
-        
+
         return result;
     }
 
-    auto MousePickingModule::ReadRectangle( const ReadPixelViewportInfo& first, const ReadPixelViewportInfo& last ) const -> eastl::vector<u32> {
+    auto MousePickingModule::ReadRectangle( const ReadPixelViewportInfo &first, const ReadPixelViewportInfo &last ) const -> eastl::vector<u32> {
         MKT_BEGIN_PROFILER();
 
         const auto [width, height]{ InferDimensions( mResolution ) };
@@ -145,7 +145,7 @@ namespace mikoto::renderer {
 
         // Scan the completed snapshot directly instead of profiling a point query per pixel.
         for ( u32 y{ top }; y <= bottom; ++y ) {
-            const auto* row{ mData.data() + static_cast<usize>( y ) * stride };
+            const auto *row{ mData.data() + static_cast<usize>( y ) * stride };
 
             for ( u32 x{ left }; x <= right; ++x ) {
                 const auto id{ row[x] };
@@ -176,7 +176,7 @@ namespace mikoto::renderer {
         // An outstanding GPU copy must finish before this staging buffer is reused.
     }
 
-    auto MousePickingModule::SetGeometryManager( GeometryCullModule& geom ) -> void {
+    auto MousePickingModule::SetGeometryManager( GeometryCullModule &geom ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( mGeometryCullModule != MKT_ADDRESSOF( geom ) ) {
@@ -185,10 +185,16 @@ namespace mikoto::renderer {
         }
     }
 
-    auto MousePickingModule::RegisterSelectionBuffer( FrameGraph& graph ) -> void {
+    auto MousePickingModule::RegisterSelectionBuffer( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        auto& info{ graph.GetOrCreate<MousePickingModuleInfo>() };
+        // A rebuilt graph owns a new staging buffer. Its requests must not wait
+        // for a callback belonging to the graph that has just been retired.
+        Invalidate();
+        ++mReadbackGeneration;
+        mIsReadbackInFlight = false;
+
+        auto &info{ graph.GetOrCreate<MousePickingModuleInfo>() };
         auto dimensions{ InferDimensions( mResolution ) };
 
         renderer::rhi::Format format{ renderer::rhi::Format::eR32_UINT };
@@ -197,9 +203,9 @@ namespace mikoto::renderer {
             .SetWidth( core::as<core::i32>( dimensions.first ) )
             .SetHeight( core::as<core::i32>( dimensions.second ) )
             .SetDimensions( renderer::rhi::TextureDimension::eTexture2D )
-            .SetUsage( renderer::rhi::TextureUsageFlagsBits::RenderTarget | 
-                renderer::rhi::TextureUsageFlagsBits::ShaderResource | 
-                renderer::rhi::TextureUsageFlagsBits::CopySource )
+            .SetUsage( renderer::rhi::TextureUsageFlagsBits::RenderTarget |
+                           renderer::rhi::TextureUsageFlagsBits::ShaderResource |
+                           renderer::rhi::TextureUsageFlagsBits::CopySource )
             .SetFormat( format ) };
         info.mColorImage = graph.Create( imageDesc );
 
@@ -212,11 +218,11 @@ namespace mikoto::renderer {
             .SetFormat( renderer::rhi::Format::eD32 )
             .SetUsage( renderer::rhi::TextureUsageFlagsBits::DepthTarget ) );
 
-        const auto& formatInfo{ rhi::GetFormatInfo( format ) };
+        const auto &formatInfo{ rhi::GetFormatInfo( format ) };
         auto bufferDesc{ FGBufferDescription{}
             .SetName( "ObjectSelection_ReadbackBuffer" )
-            .SetUsage( renderer::rhi::BufferUsageFlagsBits::Structured | 
-                renderer::rhi::BufferUsageFlagsBits::CopyDest )
+            .SetUsage( renderer::rhi::BufferUsageFlagsBits::Structured |
+                           renderer::rhi::BufferUsageFlagsBits::CopyDest )
             .SetSizeBytes( dimensions.first * dimensions.second * formatInfo.mBytesPerBlock )
             .SetHeapType( renderer::rhi::HeapType::eReadback ) };
         info.mReadBackBuffer = graph.Create( bufferDesc );
@@ -241,10 +247,10 @@ namespace mikoto::renderer {
         graph.RegisterPass(
             "ObjectSelection_Render",
             FGPassType::eGraphics,
-            []( FGNodeBuilder& builder, core::Blackboard& blackboard ) {
-                const auto& cameraData{ blackboard.Get<CameraModuleInfo>() };
-                const auto& mousePickingData{ blackboard.Get<MousePickingModuleInfo>() };
-                const auto& geometryData{ blackboard.Get<GeometryCullModuleInfo>() };
+            []( FGNodeBuilder &builder, core::Blackboard &blackboard ) {
+                const auto &cameraData{ blackboard.Get<CameraModuleInfo>() };
+                const auto &mousePickingData{ blackboard.Get<MousePickingModuleInfo>() };
+                const auto &geometryData{ blackboard.Get<GeometryCullModuleInfo>() };
 
                 builder.UseResource( cameraData.mCameraData, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
 
@@ -264,10 +270,10 @@ namespace mikoto::renderer {
 
                 builder.UseResource( mousePickingData.mColorImage, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
             },
-            [this]( CommandContext& ctx, core::Blackboard& b ) {
-                const auto& mousePickingData{ b.Get<MousePickingModuleInfo>() };
-                const auto& cameraPassData{ b.Get<CameraModuleInfo>() };
-                const auto& geometryData{ b.Get<GeometryCullModuleInfo>() };
+            [this]( CommandContext &ctx, core::Blackboard &b ) {
+                const auto &mousePickingData{ b.Get<MousePickingModuleInfo>() };
+                const auto &cameraPassData{ b.Get<CameraModuleInfo>() };
+                const auto &geometryData{ b.Get<GeometryCullModuleInfo>() };
 
                 struct DrawParams {
                     SPointer mGeometryBuffer{};
@@ -298,7 +304,7 @@ namespace mikoto::renderer {
                 ctx.BeginRender( graphicsState );
 
                 ctx.SetViewportState( renderer::rhi::ViewportState{}
-                    .AddViewportAndScissorRect( renderer::rhi::Viewport( core::as<core::f32>( dimensions.first ), core::as<core::f32>( dimensions.second ) ) ) );
+                        .AddViewportAndScissorRect( renderer::rhi::Viewport( core::as<core::f32>( dimensions.first ), core::as<core::f32>( dimensions.second ) ) ) );
 
                 ctx.BindPipeline( mousePickingData.mPipeline );
 
@@ -311,19 +317,20 @@ namespace mikoto::renderer {
         graph.RegisterPass(
             "ObjectSelection_Readback",
             FGPassType::eTransfer,
-            []( FGNodeBuilder& builder, core::Blackboard& blackboard ) {
-                const auto& mousePicking{ blackboard.Get<MousePickingModuleInfo>() };
+            []( FGNodeBuilder &builder, core::Blackboard &blackboard ) {
+                const auto &mousePicking{ blackboard.Get<MousePickingModuleInfo>() };
 
                 builder.UseResource( mousePicking.mReadBackBuffer, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
                 builder.UseResource( mousePicking.mColorImage, FGPipelineStage::eCopy, FGResourceAccess::eRead );
             },
-            [this, &graph]( CommandContext& ctx, core::Blackboard& b ) {
+            [this, &graph]( CommandContext &ctx, core::Blackboard &b ) {
                 if ( !mQueuedPick || mIsReadbackInFlight ) {
                     return;
                 }
 
                 const auto pixel{ *mQueuedPick };
                 const auto revision{ GetRevision() };
+                const auto generation{ mReadbackGeneration };
                 const auto &data{ b.Get<MousePickingModuleInfo>() };
 
                 mQueuedPick.reset();
@@ -334,10 +341,16 @@ namespace mikoto::renderer {
                 // Register only after recording a copy. This is an asynchronous operation
                 // we do not know when the above copy will be done for us to memcpy back.
                 graph.RegisterReadback(
-                    [this, pixel, revision]( core::Blackboard& blackboard, const FGResourceManager& manager ) {
+                    [this, pixel, revision, generation]( core::Blackboard &blackboard, const FGResourceManager &manager ) {
+                        // An old completion must never publish into, or release,
+                        // a newer graph's selection buffer.
+                        if ( generation != mReadbackGeneration ) {
+                            return;
+                        }
+
                         const auto &data{ blackboard.Get<MousePickingModuleInfo>() };
 
-                        if ( const void* address{ manager.GetBufferMappedAddress( data.mReadBackBuffer ) } ) {
+                        if ( const void *address{ manager.GetBufferMappedAddress( data.mReadBackBuffer ) } ) {
                             if ( IsRevision( revision ) ) {
                                 std::memcpy( mData.data(), address, mData.size() * MKT_SIZEOF( core::u32 ) );
 
@@ -350,4 +363,4 @@ namespace mikoto::renderer {
                     } );
             } );
     }
-}// namespace mikoto
+}// namespace mikoto::renderer

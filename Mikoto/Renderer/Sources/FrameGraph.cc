@@ -12,45 +12,45 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <EASTL/algorithm.h>
 #include <EASTL/sort.h>
 #include <EASTL/string.h>
-#include <EASTL/vector.h>
-#include <EASTL/algorithm.h>
-#include <EASTL/unique_ptr.h>
 #include <EASTL/string_view.h>
+#include <EASTL/unique_ptr.h>
+#include <EASTL/vector.h>
 
 #include <taskflow/taskflow.hpp>
 
+#include <Assets/AssetRegistryService.hh>
+#include <Assets/ImageProcessing.hh>
+#include <Assets/ShaderLibrary.hh>
+#include <Assets/Utility.hh>
+
 #include <Core/Core.hh>
+#include <Core/DotGraph.hh>
+#include <Core/Exception.hh>
+#include <Core/Profiler.hh>
 #include <Core/Timer.hh>
 #include <Core/Types.hh>
-#include <Core/DotGraph.hh>
-#include <Core/Profiler.hh>
-#include <Core/Exception.hh>
+
+#include <Filesystem/File.hh>
+#include <Filesystem/FileService.hh>
+#include <Filesystem/Path.hh>
 
 #include <Logging/Assert.hh>
 #include <Logging/Logger.hh>
 
 #include <Memory/Allocator.hh>
-#include <Memory/MemoryArena.hh>
 #include <Memory/FreeListAllocator.hh>
+#include <Memory/MemoryArena.hh>
 
-#include <Threading/Utility.hh>
-#include <Threading/TaskService.hh>
-
-#include <Filesystem/File.hh>
-#include <Filesystem/Path.hh>
-#include <Filesystem/FileService.hh>
-
-#include <Assets/Utility.hh>
-#include <Assets/ShaderLibrary.hh>
-#include <Assets/ImageProcessing.hh>
-#include <Assets/AssetRegistryService.hh>
-
-#include <Renderer/Core/FrameGraph.hh>
-#include <Renderer/Core/RenderSystem.hh>
 #include <Renderer/Core/CommandContext.hh>
+#include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Core/FrameGraphTypes.hh>
+#include <Renderer/Core/RenderSystem.hh>
+
+#include <Threading/TaskService.hh>
+#include <Threading/Utility.hh>
 
 namespace mikoto::renderer {
 
@@ -80,29 +80,29 @@ namespace mikoto::renderer {
         ankerl::unordered_dense::map<eastl::string, CommandContext> mValues{};
     };
 
-    auto FGStatisticsManager::GetNode( eastl::string_view name ) -> FGNodeStatistics* {
+    auto FGStatisticsManager::GetNode( eastl::string_view name ) -> FGNodeStatistics * {
         MKT_BEGIN_PROFILER();
         MKT_ASSERT( mGraphNodes.contains( name.data() ), "Node does not exists" );
         return MKT_ADDRESSOF( mGraphNodes.at( name.data() ) );
     }
 
-    auto FGStatisticsManager::GetNode( eastl::string_view name ) const -> const FGNodeStatistics* {
+    auto FGStatisticsManager::GetNode( eastl::string_view name ) const -> const FGNodeStatistics * {
         MKT_BEGIN_PROFILER();
         MKT_ASSERT( mGraphNodes.contains( name.data() ), "Node does not exists" );
         return MKT_ADDRESSOF( mGraphNodes.at( name.data() ) );
     }
 
-    auto FGStatisticsManager::RegisterNode( eastl::string_view name ) -> FGNodeStatistics* {
+    auto FGStatisticsManager::RegisterNode( eastl::string_view name ) -> FGNodeStatistics * {
         MKT_BEGIN_PROFILER();
         return MKT_ADDRESSOF( mGraphNodes[name.data()] );
     }
 
-    auto FGStatisticsManager::GetStatistics() const -> const ankerl::unordered_dense::map<eastl::string, FGNodeStatistics>& {
+    auto FGStatisticsManager::GetStatistics() const -> const ankerl::unordered_dense::map<eastl::string, FGNodeStatistics> & {
         MKT_BEGIN_PROFILER();
         return mGraphNodes;
     }
 
-    FGReadbackManager::FGReadbackManager( core::Blackboard& blackboard, FGResourceManager& manager )
+    FGReadbackManager::FGReadbackManager( core::Blackboard &blackboard, FGResourceManager &manager )
         : mBlackboard{ MKT_ADDRESSOF( blackboard ) }, mResourceManager{ MKT_ADDRESSOF( manager ) } {
     }
 
@@ -111,7 +111,7 @@ namespace mikoto::renderer {
         auto it{ mReadbackTasks.begin() };
 
         while ( it != mReadbackTasks.end() ) {
-            auto& pair{ *it };
+            auto &pair{ *it };
 
             if ( !pair.second.mIsReady && fenceValue >= pair.second.mFenceValue ) {
                 pair.second.mCallback( *mBlackboard, *mResourceManager );
@@ -140,7 +140,7 @@ namespace mikoto::renderer {
         }
     }
 
-    auto FGReadbackManager::RegisterCallback( const FGReadbackTask::Callback& callback, bool runEveryFrame ) -> core::u32 {
+    auto FGReadbackManager::RegisterCallback( const FGReadbackTask::Callback &callback, bool runEveryFrame ) -> core::u32 {
         MKT_BEGIN_PROFILER();
         const core::u32 taskID{ mNextTaskID++ };
         mReadbackTasks[taskID] = FGReadbackTask{
@@ -159,17 +159,17 @@ namespace mikoto::renderer {
     // Destruction must also see ContextStorage and CommandContext's definitions.
     FGNodeControl::~FGNodeControl() = default;
 
-    auto FGNodeControl::GetContext( const eastl::string& name ) -> CommandContext& {
+    auto FGNodeControl::GetContext( const eastl::string &name ) -> CommandContext & {
         return mContexts->mValues.at( name );
     }
 
-    auto FGNodeControl::RegisterContext( const eastl::string& name, FrameGraphPass& node,
-        FGResourceManager& resources, FrameGraphDescriptorAllocator& descriptors,
-        rhi::PipelineLayoutHandle pipelineLayout, FGStatisticsManager& statistics ) -> void {
+    auto FGNodeControl::RegisterContext( const eastl::string &name, FrameGraphPass &node,
+        FGResourceManager &resources, FrameGraphDescriptorAllocator &descriptors,
+        rhi::PipelineLayoutHandle pipelineLayout, FGStatisticsManager &statistics ) -> void {
         // Recompilation can replace GPU generations; recreate contexts to discard
         // cached native pointers and BLASes before the next execution.
         mContexts->mValues.insert_or_assign( name, CommandContext{
-            &node, &resources, &descriptors, eastl::move( pipelineLayout ), &statistics } );
+                                                       &node, &resources, &descriptors, eastl::move( pipelineLayout ), &statistics } );
     }
 
     auto FGNodeControl::Clear() -> void {
@@ -179,7 +179,7 @@ namespace mikoto::renderer {
         mNodes.clear();
     }
 
-    FGNodeBuilder::FGNodeBuilder( FrameGraphPass& node, FGNodeControl& control )
+    FGNodeBuilder::FGNodeBuilder( FrameGraphPass &node, FGNodeControl &control )
         : mGraphNode{ MKT_ADDRESSOF( node ) }, mNodeControl{ MKT_ADDRESSOF( control ) } {
     }
 
@@ -202,7 +202,7 @@ namespace mikoto::renderer {
     }
 
     auto FGNodeBuilder::UseTextures( FGVideoHandle batch, FGPipelineStage stage, FGResourceAccess access,
-        const eastl::function<void( eastl::vector<rhi::TextureHandle>& )>& resolveTextures ) -> void {
+        const eastl::function<void( eastl::vector<rhi::TextureHandle> & )> &resolveTextures ) -> void {
         if ( !resolveTextures ) {
             MKT_THROW_INVALID_ARGUMENT( "A runtime texture declaration requires a resolver." );
         }
@@ -220,8 +220,15 @@ namespace mikoto::renderer {
             MKT_THROW_RUNTIME_ERROR( "A graph resource use needs a pipeline stage and access." );
         }
 
+        const auto resource{ mNodeControl->mResources.find( handle ) };
+        if ( handle == 0 || resource == mNodeControl->mResources.end() || resource->second.mVersions.empty() ) {
+            MKT_THROW_RUNTIME_ERROR( string::Format( "Frame graph pass '{}' uses an unregistered resource (handle {}).",
+                mGraphNode->mName.c_str(), handle )
+                    .c_str() );
+        }
+
         if ( const auto existing{ mGraphNode->mResourceStates.find( handle ) }; existing != mGraphNode->mResourceStates.end() ) {
-            auto& usage{ existing->second };
+            auto &usage{ existing->second };
             // A pass-boundary barrier cannot represent conflicting layouts or
             // order a read followed by a write inside the pass. Reject that case
             // instead of silently replacing an earlier declaration.
@@ -247,14 +254,14 @@ namespace mikoto::renderer {
         }
 
         mGraphNode->mResourceStates.emplace( handle, FGResourceTrack{
-            .mStages = { stage },
-            .mAccess = access } );
+                                                         .mStages = { stage },
+                                                         .mAccess = access } );
     }
 
     auto FGNodeBuilder::TrackRead( FGResourceHandle handle ) -> void {
         MKT_BEGIN_PROFILER();
         MKT_ASSERT( handle != 0, "Invalid resource handle" );
-        auto& resourceLatestVersion{ mNodeControl->mResources[handle].mVersions.back() };
+        auto &resourceLatestVersion{ mNodeControl->mResources[handle].mVersions.back() };
 
         // Let writer finish first before we start reading to it (READ-AFTER-WRITE)
         if ( resourceLatestVersion.HasWriter() ) {
@@ -271,7 +278,7 @@ namespace mikoto::renderer {
     auto FGNodeBuilder::TrackWrite( FGResourceHandle handle ) -> void {
         MKT_BEGIN_PROFILER();
         MKT_ASSERT( handle != 0, "Invalid resource handle" );
-        auto& resourceLatestVersion{ mNodeControl->mResources[handle].mVersions.back() };
+        auto &resourceLatestVersion{ mNodeControl->mResources[handle].mVersions.back() };
 
         // We depend on previous writer, let
         // it finish first (WRITE-AFTER-WRITE)
@@ -280,7 +287,7 @@ namespace mikoto::renderer {
         }
 
         // Readers must finish before this pass writes to the resource (WRITE-AFTER-READ)
-        for ( const auto& reader: resourceLatestVersion.mReaderPasses ) {
+        for ( const auto &reader: resourceLatestVersion.mReaderPasses ) {
             mGraphNode->mDependsOn.emplace( reader );
         }
 
@@ -297,7 +304,7 @@ namespace mikoto::renderer {
         mGraphNode->mWriteResources.push_back( handle );
     }
 
-    FrameGraph::FrameGraph( renderer::rhi::IGpuDevice* device, asset::ShaderLibrary* library )
+    FrameGraph::FrameGraph( renderer::rhi::IGpuDevice *device, asset::ShaderLibrary *library )
         : mDevice{ device }, mShaderLibrary{ library } {
         MKT_BEGIN_PROFILER();
         mNodeControl = eastl::make_unique<FGNodeControl>();
@@ -345,7 +352,7 @@ namespace mikoto::renderer {
         mGraphCompiler = eastl::make_unique<FGCompiler>( mDevice );
     }
 
-    auto FrameGraph::GetNodeControl() -> FGNodeControl& {
+    auto FrameGraph::GetNodeControl() -> FGNodeControl & {
         return *mNodeControl;
     }
 
@@ -354,7 +361,7 @@ namespace mikoto::renderer {
         mExecutionPlan = mGraphCompiler->Compile( *this );
 
         // The compiler owns the plan; recording contexts use this graph's runtime objects.
-        for ( auto& [passName, node]: mNodeControl->mNodes ) {
+        for ( auto &[passName, node]: mNodeControl->mNodes ) {
             if ( node.mType == FGPassType::eVideo && !mVideoCommands ) {
                 mVideoCommands = mDevice->CreateCommandList( rhi::QueueType::eVideoDecode );
                 mVideoCommands->SetEnableAutomaticBarriers( false );
@@ -378,17 +385,19 @@ namespace mikoto::renderer {
             MKT_THROW_RUNTIME_ERROR( "Frame graph must be compiled before execution." );
         }
 
+        CollectRetiredResources();
+
         mExecutedPassCount = 0;
         mGraphicsRecordedThisFrame = false;
         mVideoRecordedThisFrame = false;
 
-        for ( auto& [texture, entry]: mRuntimeTextures ) {
+        for ( auto &[texture, entry]: mRuntimeTextures ) {
             entry->mUsedThisFrame = false;
         }
 
         // Reset stats
-        for ( const auto& [name, node]: mNodeControl->mNodes ) {
-            if ( auto* stats = mStatisticsManager->GetNode( name ) ) {
+        for ( const auto &[name, node]: mNodeControl->mNodes ) {
+            if ( auto *stats = mStatisticsManager->GetNode( name ) ) {
                 stats->mExecutedThisFrame = false;
                 stats->mCommands = {};
                 stats->mDrawCallCount = stats->mDispatchCallCount = 0;
@@ -424,28 +433,29 @@ namespace mikoto::renderer {
         }
 
 
-        for ( const auto& name: mExecutionPlan->mSortedPasses ) {
-            auto& pass{ mNodeControl->mNodes.at( name ) };
+        for ( const auto &name: mExecutionPlan->mSortedPasses ) {
+            auto &pass{ mNodeControl->mNodes.at( name ) };
 
             if ( pass.mType != FGPassType::eVideo || !pass.mIsAlive ) {
                 continue;
             }
 
-            for ( const auto& dependency: pass.mDependsOn ) {
+            for ( const auto &dependency: pass.mDependsOn ) {
                 if ( mNodeControl->mNodes.at( dependency ).mType != FGPassType::eVideo ) {
                     MKT_THROW_RUNTIME_ERROR( "A video prelude cannot depend on a graphics pass in the same graph." );
                 }
             }
 
-            auto& context{ mNodeControl->GetContext( name ) };
+            auto &context{ mNodeControl->GetContext( name ) };
             // The first decode may open a new command buffer inside its callback.
             context.ResetCallCounts( !mScheduler->HasVideoWork() );
             pass.mExecuteCallback( context, mBlackboard );
             ++mExecutedPassCount;
 
-            auto& statistics{ *mStatisticsManager->GetNode( pass.mName ) };
+            auto &statistics{ *mStatisticsManager->GetNode( pass.mName ) };
             statistics.mCommands = mScheduler->HasVideoWork()
-                ? context.GetStatistics() : rhi::CommandListStatistics{};
+                                       ? context.GetStatistics()
+                                       : rhi::CommandListStatistics{};
             statistics.mDrawCallCount = core::as<core::u32>( statistics.mCommands.mDrawCallCount );
             statistics.mDispatchCallCount = core::as<core::u32>( statistics.mCommands.mDispatchCallCount );
             statistics.mExecutedThisFrame = true;
@@ -473,17 +483,17 @@ namespace mikoto::renderer {
         }
         BindResources( mGraphicsCommands );
 
-        for ( const auto& passName: mExecutionPlan->mSortedPasses ) {
+        for ( const auto &passName: mExecutionPlan->mSortedPasses ) {
             if ( !mNodeControl->mNodes[passName].mIsAlive ) {
                 continue;
             }
 
-            auto& pass{ mNodeControl->mNodes[passName] };
+            auto &pass{ mNodeControl->mNodes[passName] };
             if ( pass.mType == FGPassType::eVideo ) {
                 continue;
             }
 
-            auto& ctx{ mNodeControl->GetContext( passName ) };
+            auto &ctx{ mNodeControl->GetContext( passName ) };
 
 #if defined( MIKOTO_ENABLE_TRACY )
             // Attribute CPU command recording to the pass declaration.
@@ -502,7 +512,7 @@ namespace mikoto::renderer {
             mGraphicsCommands->BeginGpuProfileZone( pass.mName, pass.mSourceLocation );
 #endif
             mGpuProfiler->BeginPass( *mGraphicsCommands, pass.mName );
-            const auto& barriers{ mExecutionPlan->mBarriers.at( passName ) };
+            const auto &barriers{ mExecutionPlan->mBarriers.at( passName ) };
             ctx.ResetCallCounts();
             ctx.SubmitBarriers( barriers );
             SubmitRuntimeTextureBarriers( pass, ctx );
@@ -517,7 +527,7 @@ namespace mikoto::renderer {
 #endif
             const double elapsed{ timer.GetCurrentProgress( core::TimeUnit::eMilliseconds ) };
 
-            FGNodeStatistics& stats{ *mStatisticsManager->GetNode( pass.mName ) };
+            FGNodeStatistics &stats{ *mStatisticsManager->GetNode( pass.mName ) };
 
             stats.mLastExecutionTime = elapsed;
             stats.mCommands = ctx.GetStatistics();
@@ -549,26 +559,26 @@ namespace mikoto::renderer {
         mGraphicsCommands->Close();
     }
 
-    auto FrameGraph::SubmitRuntimeTextureBarriers( const FrameGraphPass& pass, CommandContext& context ) -> void {
+    auto FrameGraph::SubmitRuntimeTextureBarriers( const FrameGraphPass &pass, CommandContext &context ) -> void {
         if ( pass.mRuntimeTextureUses.empty() ) {
             return;
         }
 
-        ankerl::unordered_dense::map<const rhi::ITexture*, FGBarrier> uses{};
+        ankerl::unordered_dense::map<const rhi::ITexture *, FGBarrier> uses{};
         eastl::vector<rhi::TextureHandle> textures{};
 
-        for ( const auto& declaration: pass.mRuntimeTextureUses ) {
+        for ( const auto &declaration: pass.mRuntimeTextureUses ) {
             textures.clear();
             declaration.mResolveTextures( textures );
 
-            for ( auto& texture: textures ) {
+            for ( auto &texture: textures ) {
                 if ( !texture ) {
                     continue;
                 }
 
                 auto [use, added]{ uses.try_emplace( texture.GetPtr(), FGBarrier{
-                    .mNewStages = declaration.mUsage.mStages,
-                    .mNewAccess = declaration.mUsage.mAccess } ) };
+                                                                           .mNewStages = declaration.mUsage.mStages,
+                                                                           .mNewAccess = declaration.mUsage.mAccess } ) };
 
                 if ( !added ) {
                     if ( use->second.mNewAccess != declaration.mUsage.mAccess ||
@@ -584,7 +594,7 @@ namespace mikoto::renderer {
                     }
                 }
 
-                auto& entry{ mRuntimeTextures[texture.GetPtr()] };
+                auto &entry{ mRuntimeTextures[texture.GetPtr()] };
 
                 if ( !entry ) {
                     entry = eastl::make_unique<RuntimeTexture>();
@@ -597,10 +607,10 @@ namespace mikoto::renderer {
             }
         }
 
-        eastl::vector<eastl::pair<FGResource*, FGBarrier>> barriers{};
+        eastl::vector<eastl::pair<FGResource *, FGBarrier>> barriers{};
         barriers.reserve( uses.size() );
 
-        for ( const auto& [texture, usage]: uses ) {
+        for ( const auto &[texture, usage]: uses ) {
             barriers.emplace_back( &mRuntimeTextures.at( texture )->mResource, usage );
         }
 
@@ -610,15 +620,40 @@ namespace mikoto::renderer {
     auto FrameGraph::SubmitRecordedCommands() -> void {
         const core::u64 submissionFenceValue{ mFenceValue++ };
         auto submitInfoGraphics{ renderer::rhi::SubmitInfo{}
-            .AddSignal( mFence, submissionFenceValue )
-            .AddCommandList( mGraphicsCommands ) };
+                .AddSignal( mFence, submissionFenceValue )
+                .AddCommandList( mGraphicsCommands ) };
 
         mScheduler->PushRenderCommandList( submitInfoGraphics );
         mScheduler->Execute();
 
+        // A replacement may happen during this recording. Its old descriptor
+        // stays intact until the fence covering the entire recording completes.
+        // Cached indices for unchanged resources remain allocated.
+        for ( auto &resource: mResourceManager->GetReplacedResources() ) {
+            mRetiredResources.push_back( { eastl::move( resource ), submissionFenceValue } );
+        }
+
         mGpuProfiler->Submitted( submissionFenceValue );
 
         ProcessReadbackTasks( submissionFenceValue );
+    }
+
+    auto FrameGraph::CollectRetiredResources() -> void {
+        const auto completed{ mFence->GetCompletionValue() };
+
+        for ( auto entry{ mRetiredResources.begin() }; entry != mRetiredResources.end(); ) {
+            if ( entry->mFenceValue <= completed ) {
+                // A physical allocation can be aliased or republished while
+                // this fence is pending. Its live descriptor must stay cached.
+                if ( !mResourceManager->IsResourceReferenced( entry->mResource.GetPtr() ) ) {
+                    mDescriptorAllocator->ReleaseResource( entry->mResource.GetPtr() );
+                }
+                entry = mRetiredResources.erase( entry );
+            }
+            else {
+                ++entry;
+            }
+        }
     }
 
     auto FrameGraph::RestoreGraphicsResources() -> void {
@@ -706,7 +741,7 @@ namespace mikoto::renderer {
         names.reserve( mNodeControl->mNodes.size() );
         nodes.reserve( mNodeControl->mNodes.size() );
 
-        for ( const auto& entry: mNodeControl->mNodes ) {
+        for ( const auto &entry: mNodeControl->mNodes ) {
             names.emplace_back( entry.first.data(), entry.first.size() );
         }
 
@@ -715,7 +750,7 @@ namespace mikoto::renderer {
         eastl::sort( names.begin(), names.end() );
 
         for ( const auto name: names ) {
-            const auto& pass{ mNodeControl->mNodes.at( eastl::string{ name.data(), name.size() } ) };
+            const auto &pass{ mNodeControl->mNodes.at( eastl::string{ name.data(), name.size() } ) };
             auto label{ eastl::string{ name.data(), name.size() } };
 
             if ( !pass.mIsAlive ) {
@@ -728,10 +763,10 @@ namespace mikoto::renderer {
         eastl::vector<eastl::string_view> dependencies{};
 
         for ( const auto name: names ) {
-            const auto& pass{ mNodeControl->mNodes.at( eastl::string{ name.data(), name.size() } ) };
+            const auto &pass{ mNodeControl->mNodes.at( eastl::string{ name.data(), name.size() } ) };
             dependencies.clear();
 
-            for ( const auto& dependency: pass.mDependsOn ) {
+            for ( const auto &dependency: pass.mDependsOn ) {
                 dependencies.emplace_back( dependency.data(), dependency.size() );
             }
 
@@ -761,7 +796,7 @@ namespace mikoto::renderer {
         return mNodeControl->mNodes.contains( passName.data() );
     }
 
-    auto FrameGraph::GetNodeControl() const -> const FGNodeControl& {
+    auto FrameGraph::GetNodeControl() const -> const FGNodeControl & {
         MKT_BEGIN_PROFILER();
         return *mNodeControl;
     }
@@ -780,7 +815,7 @@ namespace mikoto::renderer {
             statistics.mCommands += mVideoCommands->GetStatistics();
         }
 
-        for ( const auto& [handle, node]: mNodeControl->mResources ) {
+        for ( const auto &[handle, node]: mNodeControl->mResources ) {
             switch ( mResourceManager->Get( handle ).mType ) {
                 case FGResourceType::ePipeline:
                     ++statistics.mPipelineCount;
@@ -798,12 +833,12 @@ namespace mikoto::renderer {
 
         return statistics;
     }
-    auto FrameGraph::GetStatisticsManager() const -> const FGStatisticsManager& {
+    auto FrameGraph::GetStatisticsManager() const -> const FGStatisticsManager & {
         MKT_BEGIN_PROFILER();
         return *mStatisticsManager;
     }
 
-    auto FrameGraph::GetGpuProfiler() -> GpuQueryProfiler& {
+    auto FrameGraph::GetGpuProfiler() -> GpuQueryProfiler & {
         return *mGpuProfiler;
     }
 
@@ -811,11 +846,11 @@ namespace mikoto::renderer {
         return mDescriptorAllocator->GetDescriptorTable();
     }
 
-    auto FrameGraph::GetDescriptorAllocator() -> FrameGraphDescriptorAllocator& {
+    auto FrameGraph::GetDescriptorAllocator() -> FrameGraphDescriptorAllocator & {
         return *mDescriptorAllocator;
     }
 
-    auto FrameGraph::GetDescriptorAllocator() const -> const FrameGraphDescriptorAllocator& {
+    auto FrameGraph::GetDescriptorAllocator() const -> const FrameGraphDescriptorAllocator & {
         return *mDescriptorAllocator;
     }
 
@@ -829,12 +864,12 @@ namespace mikoto::renderer {
         return mResourceManager->Get( handle.mHandle ).mResource;
     }
 
-    auto FrameGraph::GetBlackBoard() const -> const core::Blackboard& {
+    auto FrameGraph::GetBlackBoard() const -> const core::Blackboard & {
         MKT_BEGIN_PROFILER();
         return mBlackboard;
     }
 
-    auto FrameGraph::Create( renderer::rhi::IGpuDevice* device, asset::ShaderLibrary* shaderLibrary ) -> eastl::unique_ptr<FrameGraph> {
+    auto FrameGraph::Create( renderer::rhi::IGpuDevice *device, asset::ShaderLibrary *shaderLibrary ) -> eastl::unique_ptr<FrameGraph> {
         MKT_BEGIN_PROFILER_NAMED();
         return eastl::make_unique<FrameGraph>( device, shaderLibrary );
     }
@@ -862,24 +897,24 @@ namespace mikoto::renderer {
         // Resource layout is predefined and fixed for all pipelines
         // see this graph's layout creation and descriptor allocator
         commandList->BindPipelineResources( renderer::rhi::BindResourcesDescription{}
-            .AddResourceSet( 0, table.GetPtr() )
-            .SetPipelineLayout( layout.GetPtr() )
-            .SetBindPoint( bindPoint ) );
+                .AddResourceSet( 0, table.GetPtr() )
+                .SetPipelineLayout( layout.GetPtr() )
+                .SetBindPoint( bindPoint ) );
 
         if ( bindPoint == renderer::rhi::PipelineType::eGraphics ) {
             // Graphics command lists also execute compute passes. The two
             // bind points have independent descriptor/root-signature state.
             commandList->BindPipelineResources( renderer::rhi::BindResourcesDescription{}
-                .AddResourceSet( 0, table.GetPtr() )
-                .SetPipelineLayout( layout.GetPtr() )
-                .SetBindPoint( renderer::rhi::PipelineType::eCompute ) );
+                    .AddResourceSet( 0, table.GetPtr() )
+                    .SetPipelineLayout( layout.GetPtr() )
+                    .SetBindPoint( renderer::rhi::PipelineType::eCompute ) );
         }
     }
 
     auto FrameGraph::CreateShaderTable( FGPipelineHandle pipeline ) -> FGShaderTableHandle {
         MKT_BEGIN_PROFILER();
-        const auto& pipelineDescription{ mNodeControl->mResources.at( pipeline.mHandle ) };
-        auto& resource{ mResourceManager->Allocate( FGResourceType::eShaderTable ) };
+        const auto &pipelineDescription{ mNodeControl->mResources.at( pipeline.mHandle ) };
+        auto &resource{ mResourceManager->Allocate( FGResourceType::eShaderTable ) };
         const auto name{ string::Format( "{} Shader Table", pipelineDescription.mName ) };
         mNodeControl->mResources[resource.mResourceID] = FGNodeResource{
             .mName = name,
@@ -889,9 +924,9 @@ namespace mikoto::renderer {
         return { resource.mResourceID };
     }
 
-    auto FrameGraph::Create( const FGPipelineDescription& desc ) -> FGPipelineHandle {
+    auto FrameGraph::Create( const FGPipelineDescription &desc ) -> FGPipelineHandle {
         MKT_BEGIN_PROFILER();
-        auto& resource{ mResourceManager->Allocate( FGResourceType::ePipeline ) };
+        auto &resource{ mResourceManager->Allocate( FGResourceType::ePipeline ) };
         mNodeControl->mResources[resource.mResourceID] = FGNodeResource{
             .mName = desc.mName,
             .mDescription = desc,
@@ -900,9 +935,9 @@ namespace mikoto::renderer {
         return { resource.mResourceID };
     }
 
-    auto FrameGraph::Create( const FGAccelerationStructureDescription& desc ) -> FGAccelerationStructureHandle {
+    auto FrameGraph::Create( const FGAccelerationStructureDescription &desc ) -> FGAccelerationStructureHandle {
         MKT_BEGIN_PROFILER();
-        auto& resource{ mResourceManager->Allocate( FGResourceType::eAccelerationStructure ) };
+        auto &resource{ mResourceManager->Allocate( FGResourceType::eAccelerationStructure ) };
         mNodeControl->mResources[resource.mResourceID] = FGNodeResource{
             .mName = desc.mName,
             .mDescription = desc,
@@ -911,25 +946,25 @@ namespace mikoto::renderer {
         return { resource.mResourceID };
     }
 
-    auto FrameGraph::Create( const FGVideoDescription& description ) -> FGVideoHandle {
-        auto& resource{ mResourceManager->Allocate( FGResourceType::eVideo ) };
+    auto FrameGraph::Create( const FGVideoDescription &description ) -> FGVideoHandle {
+        auto &resource{ mResourceManager->Allocate( FGResourceType::eVideo ) };
         resource.mNeedsRebuild = false;
         mNodeControl->mResources[resource.mResourceID] = FGNodeResource{
             .mName = description.mName,
-            .mVersions = { ResourceVersion{} } };
+            .mVersions = { ResourceVersion{} }
+        };
         return { resource.mResourceID };
     }
 
-    auto FrameGraph::Create( const FGBufferDescription& desc ) -> FGBufferHandle {
+    auto FrameGraph::Create( const FGBufferDescription &desc ) -> FGBufferHandle {
         MKT_BEGIN_PROFILER();
-        auto& resource{ mResourceManager->Allocate( FGResourceType::eBuffer ) };
+        auto &resource{ mResourceManager->Allocate( FGResourceType::eBuffer ) };
         auto bufferDesc{ renderer::rhi::BufferCreateDescription{}
             .SetBufferUsage( desc.mBufferUsageFlags )
             .SetName( desc.mName )
             .ForElement( desc.mElementSizeBytes, desc.mElementCount )
             .SetHeapType( desc.mHeapType )
-            .SetCpuAccessType( desc.mHeapType == renderer::rhi::HeapType::eUpload ? 
-                renderer::rhi::AccessType::eWrite : renderer::rhi::AccessType::eRead )
+            .SetCpuAccessType( desc.mHeapType == renderer::rhi::HeapType::eUpload ? renderer::rhi::AccessType::eWrite : renderer::rhi::AccessType::eRead )
             .SetByteSize( desc.mElementSizeBytes ) };
 
         if ( !desc.mInitialContents.IsEmpty() ) {
@@ -949,19 +984,21 @@ namespace mikoto::renderer {
         return FGBufferHandle{ .mHandle = resource.mResourceID };
     }
 
-    auto FrameGraph::ImportTexture( const filesystem::Path& path ) -> FGTextureHandle {
+    auto FrameGraph::ImportTexture( const filesystem::Path &path ) -> FGTextureHandle {
         MKT_BEGIN_PROFILER();
         asset::ImageHandle image{ asset::ProcessImage2D( path ) };
         auto textureDesc{ renderer::rhi::TextureCreateDescription{}
-            .SetImageData( image )
-            .SetWidth( core::as<core::i32>( image->mWidth ) )
-            .SetHeight( core::as<core::i32>( image->mHeight ) )
-            .SetDimensions( renderer::rhi::TextureDimension::eTexture2D )
-            .SetMultisampling( renderer::rhi::Multisampling::eMsaaX1 )
-            .SetUsage( renderer::rhi::TextureUsageFlagsBits::ShaderResource )
-            .SetFormat( renderer::rhi::Format::eRGBA8_UNORM ) };
+                .SetName( path.GetPath() )
+                .SetImageData( image )
+                .SetMipCount( image->mMipCount )
+                .SetWidth( core::as<core::i32>( image->mWidth ) )
+                .SetHeight( core::as<core::i32>( image->mHeight ) )
+                .SetDimensions( renderer::rhi::TextureDimension::eTexture2D )
+                .SetMultisampling( renderer::rhi::Multisampling::eMsaaX1 )
+                .SetUsage( renderer::rhi::TextureUsageFlagsBits::ShaderResource )
+                .SetFormat( asset::GetTextureFormat( image->mFormat ) ) };
 
-        auto& resource{ mResourceManager->Allocate( FGResourceType::eTexture ) };
+        auto &resource{ mResourceManager->Allocate( FGResourceType::eTexture ) };
 
         mNodeControl->mResources[resource.mResourceID] = FGNodeResource{
             .mName{ string::Format( "FG Loaded Texture {}", path.GetC_Str() ) },
@@ -984,7 +1021,7 @@ namespace mikoto::renderer {
             return {};
         }
 
-        auto& resource{ mResourceManager->Allocate( FGResourceType::eTexture, handle.GetPtr() ) };
+        auto &resource{ mResourceManager->Allocate( FGResourceType::eTexture, handle.GetPtr() ) };
         resource.mResource = handle;
 
         mNodeControl->mResources[resource.mResourceID] = FGNodeResource{
@@ -1006,24 +1043,25 @@ namespace mikoto::renderer {
             return {};
         }
 
-        auto& resource{ mResourceManager->Allocate( FGResourceType::eBuffer, handle.GetPtr() ) };
+        auto &resource{ mResourceManager->Allocate( FGResourceType::eBuffer, handle.GetPtr() ) };
         resource.mResource = handle;
         // Shared mesh storage can be imported repeatedly without discarding
         // the read/write dependencies already declared for this graph handle.
         mNodeControl->mResources.try_emplace( resource.mResourceID, FGNodeResource{
-            .mName = string::Format( "FG External Buffer {}", handle->GetDebugName() ),
-            .mVersions = { ResourceVersion{} },
-            .mIsImported = true } );
+                                                                        .mName = string::Format( "FG External Buffer {}", handle->GetDebugName() ),
+                                                                        .mVersions = { ResourceVersion{} },
+                                                                        .mIsImported = true } );
         return FGBufferHandle{ .mHandle = resource.mResourceID };
     }
 
-    auto FrameGraph::Create( const FGTextureDescription& desc ) -> FGTextureHandle {
+    auto FrameGraph::Create( const FGTextureDescription &desc ) -> FGTextureHandle {
         MKT_BEGIN_PROFILER();
-        auto& resource{ mResourceManager->Allocate( FGResourceType::eTexture ) };
+        auto &resource{ mResourceManager->Allocate( FGResourceType::eTexture ) };
         auto textureDesc{ renderer::rhi::TextureCreateDescription{}
             .SetName( desc.mName )
             .SetWidth( desc.mWidth )
             .SetHeight( desc.mHeight )
+            .SetDepth( desc.mDepth )
             .SetMipCount( desc.mMipCount )
             .SetDimensions( desc.mDimension )
             .SetHeapType( desc.mHeapType )
@@ -1044,14 +1082,15 @@ namespace mikoto::renderer {
         return FGTextureHandle{ .mHandle = resource.mResourceID };
     }
 
-    auto FrameGraph::Create( const FGSamplerDescription& desc ) -> FGSamplerHandle {
+    auto FrameGraph::Create( const FGSamplerDescription &desc ) -> FGSamplerHandle {
         MKT_BEGIN_PROFILER();
-        auto& resource{ mResourceManager->Allocate( FGResourceType::eSampler ) };
+        auto &resource{ mResourceManager->Allocate( FGResourceType::eSampler ) };
         auto samplerDesc{ renderer::rhi::SamplerCreateDescription{}
             .SetBorderColor( desc.mBorderColor )
             .SetMagFilter( desc.mMagFilter )
             .SetMinFilter( desc.mMinFilter )
             .SetMipLevels( desc.mMipLevels )
+            .SetMaxAnisotropy( desc.mMaxAnisotropy )
             .SetWrapU( desc.mWrapU )
             .SetWrapV( desc.mWrapV )
             .SetWrapW( desc.mWrapW ) };
@@ -1069,14 +1108,14 @@ namespace mikoto::renderer {
         return FGSamplerHandle{ .mHandle = resource.mResourceID };
     }
 
-    auto FrameGraph::CreateResource( FGResourceType type, const FGNodeResource& node, rhi::PipelineHandle pipeline ) -> core::Ref<core::Resource> {
+    auto FrameGraph::CreateResource( FGResourceType type, const FGNodeResource &node, rhi::PipelineHandle pipeline ) -> core::Ref<core::Resource> {
         MKT_BEGIN_PROFILER();
-        const auto& description{ node.mDescription };
+        const auto &description{ node.mDescription };
         core::Ref<core::Resource> resource{};
 
         switch ( type ) {
             case FGResourceType::eBuffer: {
-                const auto& buffer{ eastl::any_cast<const rhi::BufferCreateDescription&>( description ) };
+                const auto &buffer{ eastl::any_cast<const rhi::BufferCreateDescription &>( description ) };
 
                 if ( node.mInitializersReleased && !buffer.mSpanHandle ) {
                     MKT_THROW_RUNTIME_ERROR( string::Format(
@@ -1088,17 +1127,18 @@ namespace mikoto::renderer {
             }
 
             case FGResourceType::eTexture: {
-                auto texture{ eastl::any_cast<const rhi::TextureCreateDescription&>( description ) };
+                auto texture{ eastl::any_cast<const rhi::TextureCreateDescription &>( description ) };
 
                 if ( !texture.mImageHandle && !texture.mBufferSpan ) {
-                    const auto& source{ node.mSourcePath };
+                    const auto &source{ node.mSourcePath };
 
                     if ( !source.IsEmpty() ) {
                         auto image{ asset::ProcessImage2D( source ) };
 
-                        if ( !image || image->mWidth != texture.mWidth || image->mHeight != texture.mHeight ) {
+                        if ( !image || image->mWidth != texture.mWidth || image->mHeight != texture.mHeight ||
+                             image->mMipCount != texture.mMipCount || asset::GetTextureFormat( image->mFormat ) != texture.mFormat ) {
                             MKT_THROW_RUNTIME_ERROR( string::Format(
-                                "Cannot reload texture '{}': source is unavailable or its dimensions changed. Reimport the texture.",
+                                "Cannot reload texture '{}': source is unavailable or its dimensions, format or mip count changed. Reimport the texture.",
                                 source.GetPath() ) );
                         }
 
@@ -1115,10 +1155,10 @@ namespace mikoto::renderer {
             }
 
             case FGResourceType::eSampler:
-                resource = mDevice->CreateSampler( eastl::any_cast<const rhi::SamplerCreateDescription&>( description ) );
+                resource = mDevice->CreateSampler( eastl::any_cast<const rhi::SamplerCreateDescription &>( description ) );
                 break;
             case FGResourceType::ePipeline:
-                resource = CreatePipeline( eastl::any_cast<const FGPipelineDescription&>( description ) );
+                resource = CreatePipeline( eastl::any_cast<const FGPipelineDescription &>( description ) );
                 break;
             case FGResourceType::eShaderTable:
                 if ( !pipeline || pipeline->GetPipelineType() != rhi::PipelineType::eRayTracing ) {
@@ -1135,16 +1175,16 @@ namespace mikoto::renderer {
             MKT_THROW_RUNTIME_ERROR( string::Format( "Failed to create frame graph resource '{}'.", node.mName ).c_str() );
         }
 
-        core::checked_cast<rhi::DeviceObject*>( resource.GetPtr() )->SetDebugName( node.mName );
+        core::checked_cast<rhi::DeviceObject *>( resource.GetPtr() )->SetDebugName( node.mName );
         return resource;
     }
 
-    auto FrameGraph::CreatePipeline( const FGPipelineDescription& desc ) -> rhi::PipelineHandle {
+    auto FrameGraph::CreatePipeline( const FGPipelineDescription &desc ) -> rhi::PipelineHandle {
         if ( !mShaderLibrary ) {
             MKT_THROW_INVALID_ARGUMENT( "Frame graph pipeline creation requires a shader library." );
         }
 
-        const auto loadShader{ [this]( const filesystem::Path& path, rhi::ShaderType stage, eastl::string_view entry ) {
+        const auto loadShader{ [this]( const filesystem::Path &path, rhi::ShaderType stage, eastl::string_view entry ) {
             return mShaderLibrary->LoadShader( path.GetPath(), stage, entry );
         } };
 
@@ -1152,7 +1192,7 @@ namespace mikoto::renderer {
             const auto found{ desc.mEntryPoints.find( stage ) };
             return found != desc.mEntryPoints.end() ? eastl::string_view{ found->second } : eastl::string_view{ "main" };
         } };
-        
+
         rhi::PipelineHandle pipeline{};
         if ( desc.mPipelineType == renderer::rhi::PipelineType::eGraphics ) {
             MKT_ASSERT( !desc.mShaders.empty(), "Creating graphics pipeline without shaders." );
@@ -1168,12 +1208,12 @@ namespace mikoto::renderer {
                 .SetDepthFormat( desc.mDepthFormat ) };
 
             // Color formats
-            for ( const auto& format: desc.mColorFormats ) {
+            for ( const auto &format: desc.mColorFormats ) {
                 graphicsPipelineDesc.AddColorFormat( format );
             }
 
             // Shaders
-            for ( const auto& shader: desc.mShaders ) {
+            for ( const auto &shader: desc.mShaders ) {
                 graphicsPipelineDesc.AddShader( loadShader( shader.second, GetShaderFlagsFromStage( shader.first ), entryPoint( shader.first ) ) );
             }
 
@@ -1183,8 +1223,8 @@ namespace mikoto::renderer {
             MKT_ASSERT( desc.mShaders.contains( FGStageType::eCompute ), "Creating compute pipeline without compute shader." );
             auto computePipelineDesc{ renderer::rhi::ComputePipelineDescription{}
                 .SetPipelineLayout( mPipelineLayout )
-                .SetComputeStage( loadShader( desc.mShaders.at( FGStageType::eCompute ), 
-                    renderer::rhi::ShaderType::eCompute, entryPoint( FGStageType::eCompute ) ) ) };
+                .SetComputeStage( loadShader( desc.mShaders.at( FGStageType::eCompute ),
+                        renderer::rhi::ShaderType::eCompute, entryPoint( FGStageType::eCompute ) ) ) };
 
             pipeline = mDevice->CreatePipeline( computePipelineDesc );
         }
@@ -1201,11 +1241,11 @@ namespace mikoto::renderer {
             rayDescription.mRayGenerationEntry = entryPoint( FGStageType::eRayGen );
             rayDescription.mMissEntry = entryPoint( FGStageType::eMiss );
             rayDescription.mClosestHitEntry = entryPoint( FGStageType::eClosestHit );
-            rayDescription.mRayGeneration = loadShader( desc.mShaders.at( FGStageType::eRayGen ), 
+            rayDescription.mRayGeneration = loadShader( desc.mShaders.at( FGStageType::eRayGen ),
                 rhi::ShaderType::eRayGeneration, rayDescription.mRayGenerationEntry );
-            rayDescription.mMiss = loadShader( desc.mShaders.at( FGStageType::eMiss ), 
+            rayDescription.mMiss = loadShader( desc.mShaders.at( FGStageType::eMiss ),
                 rhi::ShaderType::eMiss, rayDescription.mMissEntry );
-            rayDescription.mClosestHit = loadShader( desc.mShaders.at( FGStageType::eClosestHit ), 
+            rayDescription.mClosestHit = loadShader( desc.mShaders.at( FGStageType::eClosestHit ),
                 rhi::ShaderType::eClosestHit, rayDescription.mClosestHitEntry );
             pipeline = mDevice->CreatePipeline( rayDescription );
         }
@@ -1217,7 +1257,7 @@ namespace mikoto::renderer {
         return pipeline;
     }
 
-    auto FrameGraph::RegisterReadback( FGReadbackTask::Callback&& execute, bool runEveryFrame ) -> void {
+    auto FrameGraph::RegisterReadback( FGReadbackTask::Callback &&execute, bool runEveryFrame ) -> void {
         MKT_BEGIN_PROFILER();
         mReadbackTasks.emplace_back( ReadbackTask{
             .mTask = eastl::move( execute ),
@@ -1225,4 +1265,4 @@ namespace mikoto::renderer {
             .mHasBeenRegistered = false,
         } );
     }
-}
+}// namespace mikoto::renderer

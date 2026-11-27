@@ -1,3 +1,6 @@
+// Direct constant-buffer declarations for layouts compatible with CPU and cbuffer packing.
+// Packed root-constant records use the separate decoding wrapper in Base.slang.
+
 #pragma once
 
 // Use for layouts that already match the CPU and HLSL cbuffer packing rules.

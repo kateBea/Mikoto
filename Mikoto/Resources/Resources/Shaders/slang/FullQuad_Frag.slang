@@ -12,22 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Copy the selected texture through the fullscreen draw path. Texture and sampler indices are
+// supplied by the frame-graph pass.
+
 #pragma once
 
 #include "base/Base.slang"
 #include "base/Memory_Helpers.slang"
 
 struct FSOutput {
-    float4 color : SV_Target0;
+    float4 mColor : SV_Target0;
 };
 
 struct FSInput {
-    float2 uv : TEXCOORD0;
+    float2 mUv : TEXCOORD0;
 };
 
 struct DrawParams {
-    uint TextureSamplerID;
-    uint BasicSamplerID;
+    uint mTextureSamplerID;
+    uint mBasicSamplerID;
 };
 
 MKT_DECLARE_SAMPLERS samplers;
@@ -39,14 +42,14 @@ MKT_DECLARE_PUSH_CONSTANT( DrawParams, parameters );
 FSOutput main( FSInput input ) {
     FSOutput o;
 
-    Texture2D texture = textures[parameters.TextureSamplerID];
-    SamplerState sampler = samplers[parameters.BasicSamplerID];
+    Texture2D texture = textures[parameters.mTextureSamplerID];
+    SamplerState sampler = samplers[parameters.mBasicSamplerID];
 
-    o.color = texture.Sample( sampler, input.uv );
+    o.mColor = texture.Sample( sampler, input.mUv );
 
     // The editor displays a composed image. Debug attachments may store data in alpha,
     // which must not make ImGui blend the viewport with the window underneath it.
-    o.color.a = 1.0f;
+    o.mColor.a = 1.0f;
 
     return o;
 }

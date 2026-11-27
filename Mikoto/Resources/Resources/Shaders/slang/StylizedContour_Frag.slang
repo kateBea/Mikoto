@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Apply contour coverage and material visibility to the expanded shell. The resulting fragment
+// supplies the stylized outline color.
+
 #pragma once
 
 #include "base/Base.slang"
@@ -60,38 +63,40 @@ struct DrawParams {
 MKT_DECLARE_PUSH_CONSTANT( DrawParams, parameters );
 
 struct FSInput {
-    float3 FragmentViewPos : TEXCOORD0;
-    float3 FragmentWorldPos : TEXCOORD1;
-    float3 Normal : NORMAL;
-    float2 TexCoord0 : TEXCOORD3;
-    float2 TexCoord1 : TEXCOORD4;
-    float4 VertexColor : TEXCOORD5;
+    float3 mFragmentViewPos : TEXCOORD0;
+    float3 mFragmentWorldPos : TEXCOORD1;
+    float3 mNormal : NORMAL;
+    float2 mTexCoord0 : TEXCOORD3;
+    float2 mTexCoord1 : TEXCOORD4;
+    float4 mVertexColor : TEXCOORD5;
 
-    nointerpolation uint MaterialIndex : TEXCOORD6;
-    nointerpolation uint FaceFlags : TEXCOORD7;
-    nointerpolation uint DrawIdentity : TEXCOORD8;
+    nointerpolation uint mMaterialIndex : TEXCOORD6;
+    nointerpolation uint mFaceFlags : TEXCOORD7;
+    nointerpolation uint mDrawIdentity : TEXCOORD8;
 
-    float4 ScreenPos : SV_Position;
-    bool IsFrontFace : SV_IsFrontFace;
+    float4 mScreenPos : SV_Position;
+    bool mIsFrontFace : SV_IsFrontFace;
 };
 
 struct FSOutput {
-    float4 Color : SV_Target0;
+    float4 mColor : SV_Target0;
 };
 
 [shader( "fragment" )]
 FSOutput main( FSInput input ) {
     FSOutput output = (FSOutput)0;
     BufferReference<MaterialParameters> materialsBuffer = ( BufferReference<MaterialParameters> )parameters.mMaterialsPtr;
-    MaterialParameters material = materialsBuffer[input.MaterialIndex];
+    MaterialParameters material = materialsBuffer[input.mMaterialIndex];
 
     // The expanded back faces form the contour around the original silhouette.
-    if ( MaterialFrontFacing( input.FaceFlags, input.IsFrontFace ) ) {
+    if ( MaterialFrontFacing( input.mFaceFlags, input.mIsFrontFace ) ) {
         discard;
     }
 
-    uint shadingModel = uint( material.Subsurface.z );
-    if ( !SurfaceStylized( shadingModel ) || material.SubsurfaceColorOpacity.a <= 0 || material.AlphaMask != PBR_ALPHA_OPAQUE ) { discard; }
-    output.Color = float4( material.SubsurfaceColorOpacity.rgb, 1 );
+    uint shadingModel = uint( material.mSubsurface.z );
+    if ( !SurfaceStylized( shadingModel ) || material.mSubsurfaceColorOpacity.a <= 0 || material.mAlphaMask != PBR_ALPHA_OPAQUE ) {
+        discard;
+    }
+    output.mColor = float4( material.mSubsurfaceColorOpacity.rgb, 1 );
     return output;
 }

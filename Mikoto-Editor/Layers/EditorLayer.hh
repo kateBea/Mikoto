@@ -15,52 +15,53 @@
 #ifndef MIKOTO_LAYERS_EDITOR_LAYER_HH
 #define MIKOTO_LAYERS_EDITOR_LAYER_HH
 
+#include <ankerl/unordered_dense.h>
+
+#include <EASTL/functional.h>
 #include <EASTL/memory.h>
 #include <EASTL/string.h>
-#include <EASTL/vector.h>
-#include <EASTL/functional.h>
-#include <EASTL/unique_ptr.h>
 #include <EASTL/string_view.h>
+#include <EASTL/unique_ptr.h>
+#include <EASTL/vector.h>
 
-#include <ankerl/unordered_dense.h>
+#include <Theme/Theme.hh>
+
+#include <Application/TerrainTools.hh>
+#include <Application/WorkspaceOperation.hh>
+
+#include <Assets/AssetAudioClip.hh>
+#include <Assets/AssetMaterial.hh>
+#include <Assets/AssetModel.hh>
+#include <Assets/AssetRegistryService.hh>
+#include <Assets/ImageProcessing.hh>
 
 #include <Core/Core.hh>
 #include <Core/Layer.hh>
 #include <Core/Registry.hh>
 
+#include <Panels/Panel.hh>
+#include <Panels/WorldSelector.hh>
+
+#include <Platform/ActionManager.hh>
 #include <Platform/Event.hh>
 #include <Platform/Window.hh>
-#include <Platform/ActionManager.hh>
-
-#include <Assets/AssetModel.hh>
-#include <Assets/AssetMaterial.hh>
-#include <Assets/AssetAudioClip.hh>
-#include <Assets/ImageProcessing.hh>
-#include <Assets/AssetRegistryService.hh>
-
-#include <Renderer/Rhi/Types.hh>
-#include <Renderer/Core/SceneRenderer.hh>
-#include <Renderer/Core/ThumbnailRenderer.hh>
-#include <Renderer/Core/PhysicsDebugRenderer.hh>
-
-#include <Scene/Scene.hh>
-#include <Scene/Entity.hh>
-#include <Scene/SceneCamera.hh>
 
 #include <Project/Project.hh>
 #include <Project/ProjectSerializer.hh>
 
-#include <Theme/Theme.hh>
+#include <Renderer/Core/PhysicsDebugRenderer.hh>
+#include <Renderer/Core/SceneRenderer.hh>
+#include <Renderer/Core/ThumbnailRenderer.hh>
+#include <Renderer/Rhi/Types.hh>
 
-#include <Application/WorkspaceOperation.hh>
-
-#include <Panels/Panel.hh>
-#include <Panels/WorldSelector.hh>
+#include <Scene/Entity.hh>
+#include <Scene/Scene.hh>
+#include <Scene/SceneCamera.hh>
 
 namespace mikoto::platform {
     class KeyPressedEvent;
     class ContentDroppedEvent;
-}
+}// namespace mikoto::platform
 
 namespace mikoto::editor {
 
@@ -100,17 +101,24 @@ namespace mikoto::editor {
     struct EditorState : core::RevisionTracked {
         struct ViewSettings {
             enum class ToolsLayout : core::u8 {
-                eDefault, 
+                eDefault,
                 eClassic
             };
 
             enum class OrientationAnchor : core::u8 {
-                eBottomLeft, 
-                eBottomRight, 
-                eTopLeft, 
+                eBottomLeft,
+                eBottomRight,
+                eTopLeft,
                 eTopRight
             };
 
+            enum class SoftBodyVertexVisibility : core::u8 {
+                eHidden,
+                eSelected,
+                eAll
+            };
+
+            SoftBodyVertexVisibility mSoftBodyVertexVisibility{ SoftBodyVertexVisibility::eSelected };
             ToolsLayout mToolsLayout{ ToolsLayout::eDefault };
             OrientationAnchor mOrientationAnchor{ OrientationAnchor::eBottomLeft };
             OrientationAnchor mClassicOrientationAnchor{ OrientationAnchor::eBottomLeft };
@@ -123,8 +131,9 @@ namespace mikoto::editor {
             bool mCameraLightVolumesSelectedOnly{ true };
             bool mShowGizmos{ true };
             bool mShowGizmosInPlayMode{ true };
-            bool mShowGrid{};
+            bool mShowGrid{ true };
             bool mShowBounds{};
+            renderer::WindDebugView mWindDebugView{ renderer::WindDebugView::eDisabled };
             bool mShowSelectedWireframe{};
             renderer::ArmatureDebugMode mArmatureDebugMode{ renderer::ArmatureDebugMode::eDisabled };
             bool mSelectRoot{};
@@ -147,14 +156,16 @@ namespace mikoto::editor {
 
         bool mShowStatusDateTime{ true };
 
-        static constexpr core::float4 kDefaultHeaderGradientColor{ 
-            16.0f / 255.0f, 
-            54.0f / 255.0f, 
-            86.0f / 255.0f, 
-            140.0f / 255.0f 
+        static constexpr core::float4 kDefaultHeaderGradientColor{
+            16.0f / 255.0f,
+            17.0f / 255.0f,
+            18.0f / 255.0f,
+            140.0f / 255.0f
         };
 
         core::float4 mHeaderGradientColor{ kDefaultHeaderGradientColor };
+
+        TerrainToolState mTerrainTool{};
 
         bool mHasProject{};
         bool mSandboxMode{};
@@ -178,23 +189,22 @@ namespace mikoto::editor {
 
         eastl::function<void()> mRequestPlay{};
         eastl::function<void()> mRequestStop{};
-        eastl::function<void( const filesystem::Path& )> mOpenParticle{};
-        eastl::function<void( const asset::ParticleEffectHandle& )> mEditParticleEffect{};
-        eastl::function<void( const filesystem::Path& )> mOpenScene{};
-        eastl::function<void( const filesystem::Path& )> mOpenProject{};
+        eastl::function<void( const filesystem::Path & )> mOpenParticle{};
+        eastl::function<void( const asset::ParticleEffectHandle & )> mEditParticleEffect{};
+        eastl::function<void( const filesystem::Path & )> mOpenScene{};
+        eastl::function<void( const filesystem::Path & )> mOpenProject{};
         eastl::function<void( scene::ProjectionType )> mRequestEditorProjection{};
         eastl::function<bool()> mGetTextureCompression{};
         eastl::function<void( bool )> mSetTextureCompression{};
 
-        scene::Scene* mActiveScene{};
+        scene::Scene *mActiveScene{};
         filesystem::Path mActiveScenePath{};
-        scene::Entity* mSelectedEntity{};
+        scene::Entity *mSelectedEntity{};
         core::u64 mSelectedEntityID{};
         eastl::vector<core::u64> mSelectedEntityIDs{};
 
-        scene::SceneCamera* mActiveCamera{};
-        const scene::SceneCamera* mGameCamera{};
-        bool mGameCameraFixedAspect{};
+        scene::SceneCamera *mActiveCamera{};
+        const scene::SceneCamera *mGameCamera{};
         bool mScenePreviewRequested{};
         bool mGamePreviewRequested{};
 
@@ -203,14 +213,14 @@ namespace mikoto::editor {
         ViewportInfo mMaximizedViewport{};
 
         core::float2 mGamePreviewSize{ 1920.0f, 1080.0f };
-        scene::SceneCamera* mEditorCamera{};
-        renderer::ISceneRenderer* mGameRenderer{};
-        renderer::ISceneRenderer* mEditorRenderer{};
-        renderer::ThumbnailRenderer* mThumbnailRenderer{};
-        renderer::PhysicsDebugRenderer* mPhysicsDebugRenderer{};
-        renderer::PhysicsDebugRendererSimple* mPhysicsDebugRendererSimple{};
+        scene::SceneCamera *mEditorCamera{};
+        renderer::ISceneRenderer *mGameRenderer{};
+        renderer::ISceneRenderer *mEditorRenderer{};
+        renderer::ThumbnailRenderer *mThumbnailRenderer{};
+        renderer::PhysicsDebugRenderer *mPhysicsDebugRenderer{};
+        renderer::PhysicsDebugRendererSimple *mPhysicsDebugRendererSimple{};
 
-        Theme* mActiveTheme{};
+        Theme *mActiveTheme{};
 
         // Image that will be used for presentation
         renderer::rhi::TextureHandle mFinalComposition{};
@@ -232,8 +242,8 @@ namespace mikoto::editor {
 
         auto ValidateSelection() -> void;
         auto RefreshHighlights() -> void;
-        auto SelectEntity( scene::Entity* entity ) -> void;
-        auto SelectEntities( const eastl::vector<core::u64>& ids, bool append = false ) -> void;
+        auto SelectEntity( scene::Entity *entity ) -> void;
+        auto SelectEntities( const eastl::vector<core::u64> &ids, bool append = false ) -> void;
 
         MKT_NODISCARD auto HasWorkspace() const -> bool;
 
@@ -255,14 +265,14 @@ namespace mikoto::editor {
 
     class EditorLayer final : public core::ILayer {
     public:
-        explicit EditorLayer( platform::IWindow* window );
+        explicit EditorLayer( platform::IWindow *window );
 
         auto OnCreate() -> void override;
         auto OnDestroy() -> void override;
         auto OnUpdate( float timeStep ) -> void override;
         auto OnRender( float deltaTime ) -> void override;
 
-        auto OnEvent( platform::Event& event ) -> void override;
+        auto OnEvent( platform::Event &event ) -> void override;
 
         MKT_NODISCARD auto GetName() const -> eastl::string_view override;
 
@@ -336,6 +346,7 @@ namespace mikoto::editor {
         auto UpdateSceneState( float ts ) -> void;
         auto UpdateCameraState( float ts ) -> void;
         auto UpdateRendererState( float ts ) -> void;
+        auto SetCameraCapture( bool enabled ) -> void;
 
         // Input routing.
         /**
@@ -348,33 +359,33 @@ namespace mikoto::editor {
          * @brief Defers closing while work is pending and prompts for unsaved project settings.
          * @param event Close event marked handled when the editor must remain open.
          */
-        auto HandleWindowClose( platform::Event& event ) -> void;
+        auto HandleWindowClose( platform::Event &event ) -> void;
 
         /**
          * @brief Routes diagnostic and authoring shortcuts while respecting text input.
          * @param event Key press to route.
          */
-        auto HandleKeyPressed( const platform::KeyPressedEvent& event ) -> void;
+        auto HandleKeyPressed( const platform::KeyPressedEvent &event ) -> void;
 
         /**
          * @brief Dispatches console and profiler shortcuts even without an editable workspace.
          * @param event Key press to inspect.
          * @returns True when a diagnostic shortcut was dispatched.
          */
-        MKT_NODISCARD auto HandleDiagnosticShortcut( const platform::KeyPressedEvent& event ) -> bool;
+        MKT_NODISCARD auto HandleDiagnosticShortcut( const platform::KeyPressedEvent &event ) -> bool;
 
         /**
          * @brief Opens a dropped workspace or queues the files for import in Edit mode.
          * @param event Batch of dropped paths.
          */
-        auto HandleContentDropped( const platform::ContentDroppedEvent& event ) -> void;
+        auto HandleContentDropped( const platform::ContentDroppedEvent &event ) -> void;
 
         /**
          * @brief Opens the first project or scene in a drop batch.
          * @param event Batch of dropped paths.
          * @returns True when the drop requested a workspace change.
          */
-        MKT_NODISCARD auto OpenDroppedWorkspace( const platform::ContentDroppedEvent& event ) -> bool;
+        MKT_NODISCARD auto OpenDroppedWorkspace( const platform::ContentDroppedEvent &event ) -> bool;
 
         /**
          * @brief Starts camera capture in the fullscreen editor view and releases it on button-up.
@@ -382,7 +393,6 @@ namespace mikoto::editor {
          * @param pressed True when the button was pressed.
          */
         auto HandleCameraButton( platform::MouseButton button, bool pressed ) -> void;
-        auto SetCameraCapture( bool enabled ) -> void;
 
         // Docking, menus and editor chrome.
         /**
@@ -450,7 +460,7 @@ namespace mikoto::editor {
          * @param action Approved workspace operation.
          * @param path Destination used when opening a project or scene.
          */
-        auto ExecuteWorkspaceAction( WorkspaceAction action, const filesystem::Path& path ) -> void;
+        auto ExecuteWorkspaceAction( WorkspaceAction action, const filesystem::Path &path ) -> void;
 
         /**
          * @brief Draws project creation, project opening, Sandbox and World selector on the empty workspace.
@@ -478,7 +488,7 @@ namespace mikoto::editor {
         auto CreateProject() -> void;
         auto EnterSandbox() -> void;
         auto MatchEditorCameraToScene() -> void;
-        auto GetWorkspaceCacheDirectory() const -> filesystem::Path;
+        MKT_NODISCARD auto GetWorkspaceCacheDirectory() const -> filesystem::Path;
 
         // An empty path opens the scene file picker.
         auto OpenScene( filesystem::Path path = filesystem::Path{} ) -> void;
@@ -486,29 +496,29 @@ namespace mikoto::editor {
         auto CreateScene() -> void;
         auto SaveSceneAs() -> void;
         auto QueueSceneSave( bool saveAs, bool projectSave = false, WorkspaceAction nextAction = WorkspaceAction::eNone,
-                             filesystem::Path nextPath = filesystem::Path{} ) -> bool;
+            filesystem::Path nextPath = filesystem::Path{} ) -> bool;
         auto DrawWorkspaceProgress() -> void;
         auto DrawProjectLauncher() -> void;
-        auto ConfirmWorkspaceChange( WorkspaceAction action, const filesystem::Path& path = filesystem::Path{} ) -> bool;
+        auto ConfirmWorkspaceChange( WorkspaceAction action, const filesystem::Path &path = filesystem::Path{} ) -> bool;
         auto StartPlay() -> void;
         auto StopPlay() -> void;
         auto ApplyTextureCompression( bool enabled ) -> void;
-        auto ActivateProject( project::ProjectHandle project, scene::Scene* scene ) -> void;
-        auto ActivateScene( scene::Scene* scene, const filesystem::Path& path ) -> void;
-        auto ApplySceneEnvironment( scene::Scene& scene ) -> void;
+        auto ActivateProject( project::ProjectHandle project, scene::Scene *scene ) -> void;
+        auto ActivateScene( scene::Scene *scene, const filesystem::Path &path ) -> void;
+        auto ApplySceneEnvironment( scene::Scene &scene ) -> void;
         auto HandleUploadAsset() -> void;
 
         // Sandbox showcase and new-project starter scene.
-        auto CreateStarterScene( const project::Project& project ) -> scene::Scene*;
+        auto CreateStarterScene( const project::Project &project ) -> scene::Scene *;
 
     private:
         eastl::string mName{};
 
-        platform::IWindow* mWindow{};
+        platform::IWindow *mWindow{};
         eastl::string mTitleBarText{};
         double mNextTitleBarRefresh{};
         renderer::rhi::TextureHandle mTitleBarIcon{};
-        renderer::rhi::IGpuDevice* mDevice{};
+        renderer::rhi::IGpuDevice *mDevice{};
 
         core::Registry<Panel> mPanelRegistry{};
         eastl::vector<eastl::pair<eastl::string, bool>> mPendingPanelVisibility{};
@@ -527,7 +537,7 @@ namespace mikoto::editor {
 
         project::ProjectHandle mProject{};
         project::ProjectSerializer mProjectSerializer{};
-        scene::Scene* mEditScene{};
+        scene::Scene *mEditScene{};
         scene::SceneHandle mRuntimeScene{};
         eastl::string mWorkflowError{};
         WorkspaceOperation mWorkspaceOperation{};
@@ -561,7 +571,6 @@ namespace mikoto::editor {
         bool mDisplayPhysicsPanelTriangles{};
         bool mShowPolygonComplexity{};
         bool mShowPerformanceOverlay{};
-
     };
 }// namespace mikoto::editor
 

@@ -72,7 +72,7 @@ namespace mikoto::editor {
         ImGui::SameLine();
         imgui::CheckBox( imgui::widget::LocalizedLabel( "compiler_status_failures_only", "Failures only" ).c_str(), mErrorsOnly );
         mFilter.Draw( MKT_LOC( "compiler_status_filter_source_or_diagnostics" ).c_str(), -1.0f );
-        const auto records{ scripting::DotnetCompilerStatus::Snapshot() };
+        const auto records{ scripting::DotnetCompilerStatus::GetSnapshot() };
 
         if ( records.empty() ) {
             ImGui::TextDisabled( MKT_LOC( "compiler_status_no_c_compilations_recorded_play_a_scene_containing_an_active" ).c_str() );
@@ -165,7 +165,7 @@ namespace mikoto::editor {
     }
 
     auto CompilerStatusPanel::DrawBuildPopup() -> void {
-        const auto records{ scripting::DotnetCompilerStatus::Snapshot() };
+        const auto records{ scripting::DotnetCompilerStatus::GetSnapshot() };
 
         if ( records.empty() ) {
             return;

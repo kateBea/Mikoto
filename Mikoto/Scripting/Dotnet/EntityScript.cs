@@ -51,6 +51,32 @@ public abstract class EntityScript
     {
     }
 
+    // Physics notifications run after simulation; other is the entity on the opposite side.
+    // Stay is delivered once per simulation update, including persistent sleeping contacts.
+    public virtual void OnCollisionEnter(Entity other)
+    {
+    }
+
+    public virtual void OnCollisionStay(Entity other)
+    {
+    }
+
+    public virtual void OnCollisionExit(Entity other)
+    {
+    }
+
+    public virtual void OnTriggerEnter(Entity other)
+    {
+    }
+
+    public virtual void OnTriggerStay(Entity other)
+    {
+    }
+
+    public virtual void OnTriggerExit(Entity other)
+    {
+    }
+
     public virtual void OnDestroy()
     {
     }

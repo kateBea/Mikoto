@@ -1,0 +1,6 @@
+Forest_Island_Height.png is derived from the bundled Tanegashima Highlands
+heightmap, sampled at half the horizontal and vertical dimensions. Original
+elevation provenance and licence notices remain in:
+../../../Tanegashima_Highlands/Assets/Textures/Tanegashima_Mountain_Height.attribution.txt
+The added mountain relief is fictional. Current encoding:
+elevation (metres) = -40 + (uint16 / 65535) * 550.

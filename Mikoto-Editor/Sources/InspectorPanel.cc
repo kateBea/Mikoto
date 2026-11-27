@@ -20,9 +20,9 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 
+#include <EASTL/algorithm.h>
 #include <EASTL/array.h>
 #include <EASTL/string.h>
-#include <EASTL/algorithm.h>
 #include <EASTL/string_view.h>
 #include <EASTL/type_traits.h>
 
@@ -30,67 +30,69 @@
 
 #include <nlohmann/json.hpp>
 
+#include <Animation/AnimationSystem.hh>
+#include <Animation/Animator.hh>
+#include <Animation/Skeleton.hh>
+#include <Animation/SkinnedAnimation.hh>
+
+#include <Application/MaterialProperties.hh>
+#include <Application/ParticleProperties.hh>
+#include <Application/PropertyWidgets.hh>
+#include <Application/TerrainProperties.hh>
+
+#include <Assets/AssetModel.hh>
+#include <Assets/AssetRegistryService.hh>
+
+#include <Audio/AudioService.hh>
+
 #include <Core/Core.hh>
-#include <Core/Types.hh>
+#include <Core/LocalizationService.hh>
 #include <Core/Platform.hh>
 #include <Core/Profiler.hh>
 #include <Core/RuntimeConsole.hh>
-#include <Core/LocalizationService.hh>
+#include <Core/Types.hh>
+
+#include <Filesystem/FileSystem.hh>
+
+#include <ImGui/IconsFontAwesome6.h>
+#include <ImGui/IconsMaterialDesign.h>
+#include <ImGui/ImGuiService.hh>
+#include <ImGui/ImGuiWidget.hh>
+#include <ImGui/Utility.hh>
+
+#include <Layers/EditorLayer.hh>
 
 #include <Logging/Logger.hh>
+
+#include <Material/Utility.hh>
 
 #include <Math/Math.hh>
 
 #include <Memory/Allocator.hh>
 
-#include <Threading/TaskService.hh>
-
-#include <Filesystem/FileSystem.hh>
-
-#include <Assets/AssetModel.hh>
-#include <Assets/AssetRegistryService.hh>
-
-#include <Material/Utility.hh>
-
-#include <Animation/Animator.hh>
-#include <Animation/Skeleton.hh>
-#include <Animation/AnimationSystem.hh>
-#include <Animation/SkinnedAnimation.hh>
-
-#include <Audio/AudioService.hh>
-
-#include <Physics/PhysicsWorld.hh>
-
-#include <Video/VideoService.hh>
-
-#include <Text/Utility.hh>
-#include <Text/TextLayout.hh>
-
-#include <Renderer/Core/MeshRenderData.hh>
-#include <Renderer/RayTracing/RayTracing.hh>
-#include <Renderer/Particle/ParticleEmitter.hh>
-
-#include <Scene/Scene.hh>
-#include <Scene/Entity.hh>
-#include <Scene/Utility.hh>
-#include <Scene/Component.hh>
-
-#include <Scripting/ScriptingService.hh>
-
-#include <ImGui/Utility.hh>
-#include <ImGui/ImGuiWidget.hh>
-#include <ImGui/ImGuiService.hh>
-#include <ImGui/IconsFontAwesome6.h>
-#include <ImGui/IconsMaterialDesign.h>
-
-#include <Application/MaterialProperties.hh>
-#include <Application/ParticleProperties.hh>
-
 #include <Panels/AudioPanel.hh>
 #include <Panels/ComponentMenu.hh>
 #include <Panels/InspectorPanel.hh>
 
-#include <Layers/EditorLayer.hh>
+#include <Physics/PhysicsWorld.hh>
+
+#include <Renderer/Core/MeshRenderData.hh>
+#include <Renderer/Particle/ParticleEmitter.hh>
+#include <Renderer/RayTracing/RayTracing.hh>
+
+#include <Scene/Component.hh>
+#include <Scene/Entity.hh>
+#include <Scene/Scene.hh>
+#include <Scene/Utility.hh>
+
+#include <Scripting/ScriptingService.hh>
+
+#include <Text/TextLayout.hh>
+#include <Text/Utility.hh>
+
+#include <Threading/TaskService.hh>
+
+#include <Video/VideoService.hh>
 
 namespace mikoto::editor {
 
@@ -104,10 +106,10 @@ namespace mikoto::editor {
 
     template<typename ComponentType>
     static auto DrawComponent(
-        InspectorPanel& panel,
+        InspectorPanel &panel,
         const eastl::string_view componentLabel,
-        scene::Entity& entity,
-        const InspectorPanel::ComponentUIFunc& uiFunc,
+        scene::Entity &entity,
+        const InspectorPanel::ComponentUIFunc &uiFunc,
         const bool hasRemoveButton = true ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
@@ -177,14 +179,14 @@ namespace mikoto::editor {
         }
     }
 
-    static auto DrawTextureProperties( const renderer::rhi::ITexture& texture ) -> void {
+    static auto DrawTextureProperties( const renderer::rhi::ITexture &texture ) -> void {
         // Auto-sized tooltip windows need content-sized columns, rather than
         // stretch columns whose width depends on the window being measured.
         if ( !ImGui::BeginTable( "TextureProperties", 2, ImGuiTableFlags_SizingFixedFit ) ) {
             return;
         }
 
-        const auto row{ []( const char* label, const eastl::string& value ) {
+        const auto row{ []( const char *label, const eastl::string &value ) {
             ImGui::TableNextRow();
             ImGui::TableNextColumn();
             ImGui::TextDisabled( "%s", label );
@@ -202,7 +204,7 @@ namespace mikoto::editor {
         ImGui::EndTable();
     }
 
-    static auto ShowTextureHoverTooltip( const renderer::rhi::ITexture* texture ) -> void {
+    static auto ShowTextureHoverTooltip( const renderer::rhi::ITexture *texture ) -> void {
         MKT_BEGIN_PROFILER();
         // A tooltip can own an auto-sized platform viewport. Measure its parent
         // before BeginTooltip so the preview cannot resize its own size limit.
@@ -233,7 +235,7 @@ namespace mikoto::editor {
         imgui::widget::EndItemTooltip();
     }
 
-    static auto UpdateMaterialTexture( material::SurfaceMaterial& standardMat, material::MapType mapType ) -> void {
+    static auto UpdateMaterialTexture( material::SurfaceMaterial &standardMat, material::MapType mapType ) -> void {
         MKT_BEGIN_PROFILER();
         const std::initializer_list<filesystem::FileDialogPair> filters{
             { MKT_LOC( "inspector_textures" ).c_str(), "jpg,jpeg,png" },
@@ -253,7 +255,7 @@ namespace mikoto::editor {
         }
     }
 
-    static auto LoadMaterialTexture( material::SkyboxMaterial& skyboxMat, material::SkyboxFace face ) -> void {
+    static auto LoadMaterialTexture( material::SkyboxMaterial &skyboxMat, material::SkyboxFace face ) -> void {
         MKT_BEGIN_PROFILER();
         const std::initializer_list<filesystem::FileDialogPair> filters{
             { MKT_LOC( "inspector_textures" ).c_str(), "jpg,jpeg,png" },
@@ -273,7 +275,7 @@ namespace mikoto::editor {
         }
     }
 
-    static auto LoadMaterialTexture( material::SkyboxMaterial& skyboxMat ) -> void {
+    static auto LoadMaterialTexture( material::SkyboxMaterial &skyboxMat ) -> void {
         MKT_BEGIN_PROFILER();
         const std::initializer_list<filesystem::FileDialogPair> filters{
             { MKT_LOC( "inspector_textures" ).c_str(), "jpg,jpeg,png,hdr,ktx2" },
@@ -294,7 +296,7 @@ namespace mikoto::editor {
         }
     }
 
-    static auto DisplayTextureEditTreeNode( const eastl::string_view title, material::SurfaceMaterial& standardMat, const eastl::function<void( material::SurfaceMaterial& standardMat )>& func ) -> void {
+    static auto DisplayTextureEditTreeNode( const eastl::string_view title, material::SurfaceMaterial &standardMat, const eastl::function<void( material::SurfaceMaterial &standardMat )> &func ) -> void {
         MKT_BEGIN_PROFILER();
         constexpr ImGuiTreeNodeFlags treeNodeFlags{
             ImGuiTreeNodeFlags_DefaultOpen |
@@ -322,7 +324,7 @@ namespace mikoto::editor {
         }
     }
 
-    static auto DrawMaterialTextureSlot( material::SurfaceMaterial& material, material::MapType type, const char* label ) -> void {
+    static auto DrawMaterialTextureSlot( material::SurfaceMaterial &material, material::MapType type, const char *label ) -> void {
         ImGui::PushID( core::as<core::i32>( type ) );
         ImGui::TextUnformatted( label );
         imgui::ImGuiScopedStyleVar border{ ImGuiStyleVar_FrameBorderSize, 0.0f };
@@ -351,7 +353,7 @@ namespace mikoto::editor {
 
             const auto acceptTextureDrop{ [&]() {
                 if ( ImGui::BeginDragDropTarget() ) {
-                    if ( const auto* payload{ ImGui::AcceptDragDropPayload( "CONTENT_BROWSER_TEXT_IMAGE" ) } ) {
+                    if ( const auto *payload{ ImGui::AcceptDragDropPayload( "CONTENT_BROWSER_TEXT_IMAGE" ) } ) {
                         const filesystem::Path droppedPath{ static_cast<cstr>( payload->Data ) };
                         auto loaded{ asset::AssetRegistryService::Get()->LoadAssetHandle<asset::Texture>( droppedPath, renderer::rhi::TextureDimension::eTexture2D ) };
 
@@ -404,16 +406,11 @@ namespace mikoto::editor {
         ImGui::PopID();
     }
 
-    static auto DrawMaterialFactor( const char* key, float& value, float maximum = 1.0f ) -> bool {
-        ImGui::PushID( key );
-        ImGui::TextUnformatted( MKT_LOC( key ).c_str() );
-        ImGui::SetNextItemWidth( -1.0f );
-        const bool changed{ ImGui::SliderFloat( "##Value", &value, 0.0f, maximum, "%.2f" ) };
-        ImGui::PopID();
-        return changed;
+    static auto DrawMaterialFactor( const char *key, float &value, float maximum = 1.0f ) -> bool {
+        return DrawFloatProperty( MKT_LOC( key ), &value, { 0.0f, maximum }, "%.2f", false );
     }
 
-    static auto EditDiffuseProperties( material::SurfaceMaterial& material ) -> void {
+    static auto EditDiffuseProperties( material::SurfaceMaterial &material ) -> void {
         DrawMaterialTextureSlot( material, material::MapType::eDiffuse, MKT_LOC( "inspector_diffuse" ).c_str() );
         ImGui::TextUnformatted( MKT_LOC( "inspector_diffuse_factor" ).c_str() );
         auto color{ material.GetDiffuseFactor() };
@@ -424,7 +421,7 @@ namespace mikoto::editor {
         }
     }
 
-    static auto EditBaseColorProperties( material::SurfaceMaterial& material ) -> void {
+    static auto EditBaseColorProperties( material::SurfaceMaterial &material ) -> void {
         DrawMaterialTextureSlot( material, material::MapType::eBaseColor, MKT_LOC( "inspector_albedo" ).c_str() );
         ImGui::TextUnformatted( MKT_LOC( "inspector_color" ).c_str() );
         auto color{ material.GetBaseColorFactor() };
@@ -479,7 +476,7 @@ namespace mikoto::editor {
         }
     }
 
-    static auto EditMetallicProperties( material::SurfaceMaterial& material ) -> void {
+    static auto EditMetallicProperties( material::SurfaceMaterial &material ) -> void {
         DrawMaterialTextureSlot( material, material::MapType::eMetallic, MKT_LOC( "inspector_metallic" ).c_str() );
         float factor{ material.GetMetallicFactor() };
 
@@ -491,14 +488,14 @@ namespace mikoto::editor {
         DrawMaterialTextureSlot( material, material::MapType::eMetallicRoughness, MKT_LOC( "inspector_metallic_roughness" ).c_str() );
     }
 
-    static auto EditNormalTexture( material::SurfaceMaterial& material, material::MapType type, const char* label ) -> void {
+    static auto EditNormalTexture( material::SurfaceMaterial &material, material::MapType type, const char *label ) -> void {
         DrawMaterialTextureSlot( material, type, label );
     }
 
-    static auto EditNormalsProperties( material::SurfaceMaterial& material ) -> void {
+    static auto EditNormalsProperties( material::SurfaceMaterial &material ) -> void {
         float strength{ material.GetNormalScale() };
 
-        if ( ImGui::DragFloat( "Normal strength", &strength, 0.01f, 0.0f, 10.0f ) ) {
+        if ( DrawFloatProperty( "Normal strength", &strength, { 0.0f, 10.0f }, "%.3f", false ) ) {
             material.SetNormalScale( strength );
         }
 
@@ -512,7 +509,7 @@ namespace mikoto::editor {
             EditNormalTexture( material, material::MapType::eClearCoatNormal, MKT_LOC( "inspector_clear_coat_normal" ).c_str() );
             float scale{ material.GetClearCoatNormalScale() };
 
-            if ( ImGui::DragFloat( imgui::widget::LocalizedLabel( "inspector_normal_scale", "Normal scale" ).c_str(), &scale, 0.01f, -10.0f, 10.0f ) ) {
+            if ( DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_normal_scale", "Normal scale" ).c_str(), &scale, { -10.0f, 10.0f }, "%.3f", false ) ) {
                 material.SetClearCoatNormalScale( scale );
             }
 
@@ -526,7 +523,7 @@ namespace mikoto::editor {
         }
     }
 
-    static auto EditEmissionProperties( material::SurfaceMaterial& material ) -> void {
+    static auto EditEmissionProperties( material::SurfaceMaterial &material ) -> void {
         DrawMaterialTextureSlot( material, material::MapType::eEmissive, MKT_LOC( "inspector_emission" ).c_str() );
 
         if ( ImGui::BeginTable( "##EmissionProperties", 2, ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_NoPadOuterX | ImGuiTableFlags_NoSavedSettings ) ) {
@@ -553,7 +550,7 @@ namespace mikoto::editor {
             float strength{ material.GetEmissiveStrength() };
             ImGui::SetNextItemWidth( -1.0f );
 
-            if ( ImGui::SliderFloat( "##EmissiveStrength", &strength, 0.0f, 10.0f, "%.2f" ) ) {
+            if ( DrawFloatProperty( "##EmissiveStrength", &strength, { 0.0f, 10.0f }, "%.2f", false ) ) {
                 material.SetEmissiveStrength( strength );
             }
 
@@ -567,7 +564,7 @@ namespace mikoto::editor {
         }
     }
 
-    static auto EditRoughnessProperties( material::SurfaceMaterial& material ) -> void {
+    static auto EditRoughnessProperties( material::SurfaceMaterial &material ) -> void {
         DrawMaterialTextureSlot( material, material::MapType::eRoughness, MKT_LOC( "inspector_roughness" ).c_str() );
         float factor{ material.GetRoughnessFactor() };
 
@@ -576,7 +573,7 @@ namespace mikoto::editor {
         }
     }
 
-    static auto EditAmbientOcclusionProperties( material::SurfaceMaterial& material ) -> void {
+    static auto EditAmbientOcclusionProperties( material::SurfaceMaterial &material ) -> void {
         DrawMaterialTextureSlot( material, material::MapType::eAmbientOcclusion, MKT_LOC( "inspector_ambient_occlusion" ).c_str() );
         float factor{ material.GetAoFactor() };
 
@@ -585,23 +582,23 @@ namespace mikoto::editor {
         }
     }
 
-    static auto EditMaterial( scene::MaterialComponent& component, bool sandbox ) -> void {
+    static auto EditMaterial( scene::MaterialComponent &component, bool sandbox ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        auto* material{ core::checked_cast<material::SurfaceMaterial*>( component.GetMaterial().GetPtr() ) };
+        auto *material{ core::checked_cast<material::SurfaceMaterial *>( component.GetMaterial().GetPtr() ) };
 
         if ( material == nullptr ) {
             return;
         }
 
         // Share a label column across the header and UV properties, including translated labels.
-        const auto& style{ ImGui::GetStyle() };
+        const auto &style{ ImGui::GetStyle() };
         const float actionSize{ ImGui::GetFrameHeight() };
         const float rowWidth{ glm::max( 1.0f, ImGui::GetContentRegionAvail().x - style.ItemSpacing.x ) };
         const ImVec2 cellPadding{ style.ItemSpacing.x * 0.5f, style.CellPadding.y };
         float labelWidth{};
 
-        for ( const char* label: { MKT_LOC( "inspector_material_name" ).c_str(), MKT_LOC( "inspector_shading_model" ).c_str(), "UV tiling", "UV offset" } ) {
+        for ( const char *label: { MKT_LOC( "inspector_material_name" ).c_str(), MKT_LOC( "inspector_shading_model" ).c_str(), "UV tiling", "UV offset" } ) {
             labelWidth = glm::max( labelWidth, ImGui::CalcTextSize( label ).x );
         }
 
@@ -630,7 +627,7 @@ namespace mikoto::editor {
             if ( imgui::widget::IconButton( "MakeUniqueMaterial", ICON_MD_CONTENT_COPY, { actionSize, actionSize } ) ) {
                 component.SetMaterial( material::SurfaceMaterialHandle::New( *material ) );
                 component.SetIsInternal( false );
-                material = core::checked_cast<material::SurfaceMaterial*>( component.GetMaterial().GetPtr() );
+                material = core::checked_cast<material::SurfaceMaterial *>( component.GetMaterial().GetPtr() );
             }
 
             imgui::SetCursorHandOnLastItemHovered();
@@ -692,12 +689,12 @@ namespace mikoto::editor {
             bool edited{};
 
             if ( model == material::ShadingModel::eClearCoat ) {
-                edited |= ImGui::SliderFloat( imgui::widget::LocalizedLabel( "inspector_coat_weight", "Coat weight" ).c_str(), &settings.mCoatWeight, 0.0f, 1.0f );
-                edited |= ImGui::SliderFloat( imgui::widget::LocalizedLabel( "inspector_coat_roughness", "Coat roughness" ).c_str(), &settings.mCoatRoughness, 0.045f, 1.0f );
+                edited |= DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_coat_weight", "Coat weight" ).c_str(), &settings.mCoatWeight, { 0.0f, 1.0f }, "%.3f", false );
+                edited |= DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_coat_roughness", "Coat roughness" ).c_str(), &settings.mCoatRoughness, { 0.045f, 1.0f }, "%.3f", false );
             }
             else if ( model == material::ShadingModel::eToonShading ) {
-                edited |= ImGui::SliderFloat( imgui::widget::LocalizedLabel( "inspector_lighting_threshold", "Lighting threshold" ).c_str(), &settings.mToonThreshold, 0.0f, 1.0f );
-                edited |= ImGui::SliderFloat( imgui::widget::LocalizedLabel( "inspector_threshold_softness", "Threshold softness" ).c_str(), &settings.mToonSoftness, 0.001f, 1.0f );
+                edited |= DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_lighting_threshold", "Lighting threshold" ).c_str(), &settings.mToonThreshold, { 0.0f, 1.0f }, "%.3f", false );
+                edited |= DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_threshold_softness", "Threshold softness" ).c_str(), &settings.mToonSoftness, { 0.001f, 1.0f }, "%.3f", false );
             }
             else if ( model == material::ShadingModel::eCellShading ) {
                 edited |= ImGui::SliderInt( imgui::widget::LocalizedLabel( "inspector_lighting_bands", "Lighting bands" ).c_str(), &settings.mCellBands, 2, 16 );
@@ -707,7 +704,7 @@ namespace mikoto::editor {
             }
 
             if ( model == material::ShadingModel::eToonShading || model == material::ShadingModel::eCellShading ) {
-                edited |= ImGui::SliderFloat( imgui::widget::LocalizedLabel( "inspector_contour_width_px", "Contour width (px)" ).c_str(), &settings.mContourWidth, 0.0f, 12.0f );
+                edited |= DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_contour_width_px", "Contour width (px)" ).c_str(), &settings.mContourWidth, { 0.0f, 12.0f }, "%.3f", false );
 
                 if ( ImGui::IsItemHovered() ) {
                     mikoto::imgui::widget::ItemTooltip( MKT_LOC( "inspector_opaque_scene_silhouettes_zero_disables_contours_not_used_by_material" ).c_str() );
@@ -737,7 +734,7 @@ namespace mikoto::editor {
             ImGui::TextUnformatted( "UV tiling" );
             ImGui::TableNextColumn();
             ImGui::SetNextItemWidth( -1.0f );
-            uvChanged |= ImGui::DragFloat2( "##UVTiling", &uvTransform.x, 0.01f );
+            uvChanged |= DrawFloatVectorProperty( "##UVTiling", &uvTransform.x, 2, { 0, 0 }, "%.3f", false );
 
             ImGui::TableNextRow();
             ImGui::TableNextColumn();
@@ -745,7 +742,7 @@ namespace mikoto::editor {
             ImGui::TextUnformatted( "UV offset" );
             ImGui::TableNextColumn();
             ImGui::SetNextItemWidth( -1.0f );
-            uvChanged |= ImGui::DragFloat2( "##UVOffset", &uvTransform.z, 0.01f );
+            uvChanged |= DrawFloatVectorProperty( "##UVOffset", &uvTransform.z, 2, { 0, 0 }, "%.3f", false );
 
             ImGui::EndTable();
         }
@@ -767,16 +764,16 @@ namespace mikoto::editor {
         if ( newShadingModel == material::ShadingModel::eSubsurfaceScattering &&
              ImGui::CollapsingHeader( MKT_LOC( "material_raster_diffusion" ).c_str() ) ) {
             auto settings{ material->GetSubsurface() };
-            bool changed{ ImGui::SliderFloat( imgui::widget::LocalizedLabel( "inspector_scatter_scale", "Scatter scale" ).c_str(), &settings.mScatterScale, 0.0f, 10.0f ) };
+            bool changed{ DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_scatter_scale", "Scatter scale" ).c_str(), &settings.mScatterScale, { 0.0f, 10.0f }, "%.3f", false ) };
 
             if ( ImGui::IsItemHovered() ) {
                 mikoto::imgui::widget::ItemTooltip( MKT_LOC( "inspector_screen_space_sigma_rgb_profile_width_x_scatter_scale_x" ).c_str() );
             }
 
-            changed |= ImGui::SliderFloat( imgui::widget::LocalizedLabel( "inspector_subsurface_weight", "Subsurface weight" ).c_str(), &settings.mStrength, 0.0f, 1.0f );
-            changed |= ImGui::DragFloat3( imgui::widget::LocalizedLabel( "inspector_near_sigma_rgb", "Near sigma RGB" ).c_str(), &settings.mNear.x, 0.005f, 0.001f, 10.0f );
-            changed |= ImGui::DragFloat3( imgui::widget::LocalizedLabel( "inspector_far_sigma_rgb", "Far sigma RGB" ).c_str(), &settings.mFar.x, 0.005f, 0.001f, 10.0f );
-            changed |= ImGui::SliderFloat( imgui::widget::LocalizedLabel( "inspector_near_far_balance", "Near / far balance" ).c_str(), &settings.mNearWeight, 0.0f, 1.0f );
+            changed |= DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_subsurface_weight", "Subsurface weight" ).c_str(), &settings.mStrength, { 0.0f, 1.0f }, "%.3f", false );
+            changed |= DrawFloatVectorProperty( imgui::widget::LocalizedLabel( "inspector_near_sigma_rgb", "Near sigma RGB" ).c_str(), &settings.mNear.x, 3, { 0.001f, 10.0f }, "%.3f", false );
+            changed |= DrawFloatVectorProperty( imgui::widget::LocalizedLabel( "inspector_far_sigma_rgb", "Far sigma RGB" ).c_str(), &settings.mFar.x, 3, { 0.001f, 10.0f }, "%.3f", false );
+            changed |= DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_near_far_balance", "Near / far balance" ).c_str(), &settings.mNearWeight, { 0.0f, 1.0f }, "%.3f", false );
 
             if ( ImGui::IsItemHovered() ) {
                 mikoto::imgui::widget::ItemTooltip( MKT_LOC( "inspector_0_wide_far_profile_1_tight_near_profile" ).c_str() );
@@ -790,21 +787,21 @@ namespace mikoto::editor {
             }
 
             ImGui::TextDisabled( MKT_LOC( "inspector_taps_per_axis" ).c_str(), settings.mSamples );
-            changed |= ImGui::SliderFloat( imgui::widget::LocalizedLabel( "inspector_depth_edge_threshold", "Depth edge threshold" ).c_str(), &settings.mDepthRejection, 0.0f, 0.2f, "%.3f" );
+            changed |= DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_depth_edge_threshold", "Depth edge threshold" ).c_str(), &settings.mDepthRejection, { 0.0f, 0.2f }, "%.3f", false );
 
             if ( ImGui::IsItemHovered() ) {
                 mikoto::imgui::widget::ItemTooltip( MKT_LOC( "inspector_relative_view_depth_change_before_rejecting_blur_samples_zero_disables" ).c_str() );
             }
 
-            changed |= ImGui::SliderFloat( imgui::widget::LocalizedLabel( "inspector_transmission_weight", "Transmission weight" ).c_str(), &settings.mTranslucency, 0.0f, 1.0f );
-            changed |= ImGui::DragFloat( imgui::widget::LocalizedLabel( "inspector_transmission_thickness", "Transmission thickness" ).c_str(), &settings.mThickness, 0.01f, 0.0f, 100.0f );
+            changed |= DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_transmission_weight", "Transmission weight" ).c_str(), &settings.mTranslucency, { 0.0f, 1.0f }, "%.3f", false );
+            changed |= DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_transmission_thickness", "Transmission thickness" ).c_str(), &settings.mThickness, { 0.0f, 100.0f }, "%.3f", false );
 
             if ( ImGui::IsItemHovered() ) {
                 mikoto::imgui::widget::ItemTooltip( MKT_LOC( "inspector_artist_authored_thickness_in_profile_units_larger_values_absorb_more" ).c_str() );
             }
 
             changed |= ImGui::ColorEdit3( imgui::widget::LocalizedLabel( "inspector_scattering_weight_rgb", "Scattering weight RGB" ).c_str(), &settings.mColor.x, ImGuiColorEditFlags_Float );
-            changed |= ImGui::SliderFloat( imgui::widget::LocalizedLabel( "inspector_scattering_suppression", "Scattering suppression" ).c_str(), &settings.mOpacity, 0.0f, 1.0f );
+            changed |= DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_scattering_suppression", "Scattering suppression" ).c_str(), &settings.mOpacity, { 0.0f, 1.0f }, "%.3f", false );
 
             if ( ImGui::IsItemHovered() ) {
                 mikoto::imgui::widget::ItemTooltip( MKT_LOC( "inspector_0_full_scattering_influence_1_ordinary_surface_lighting_does_not" ).c_str() );
@@ -851,7 +848,7 @@ namespace mikoto::editor {
         }
     }
 
-    static auto DrawComponentButton( scene::Entity* entity ) -> void {
+    static auto DrawComponentButton( scene::Entity *entity ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         if ( entity == nullptr ) {
@@ -874,7 +871,7 @@ namespace mikoto::editor {
         }
     }
 
-    static auto MeshInfoRow( core::cstr labelKey, const eastl::string& value ) -> void {
+    static auto MeshInfoRow( core::cstr labelKey, const eastl::string &value ) -> void {
         ImGui::TableNextRow();
         ImGui::TableNextColumn();
         ImGui::TextWrapped( "%s", MKT_LOC( labelKey ).c_str() );
@@ -902,7 +899,7 @@ namespace mikoto::editor {
         return true;
     }
 
-    static auto DrawImportedMeshTransform( const core::float4x4& transform ) -> void {
+    static auto DrawImportedMeshTransform( const core::float4x4 &transform ) -> void {
         if ( ImGui::BeginTable( "ImportedTransform", 4, ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingStretchSame ) ) {
             for ( core::usize row{}; row < 4; ++row ) {
                 ImGui::TableNextRow();
@@ -917,7 +914,7 @@ namespace mikoto::editor {
         }
     }
 
-    static auto DrawVec3Transform( const std::string_view label, glm::vec3& data, const float resetValue = 0.0f ) -> bool {
+    static auto DrawVec3Transform( const std::string_view label, glm::vec3 &data, const float resetValue = 0.0f ) -> bool {
         MKT_BEGIN_PROFILER();
         const glm::vec3 original{ data };
         ImGui::PushID( label.data(), label.data() + label.size() );
@@ -938,7 +935,7 @@ namespace mikoto::editor {
         const float buttonWidth{ ImGui::GetFontSize() + 6.0f };
         const float axisWidth{ ( ImGui::GetContentRegionAvail().x - axisGap * 2.0f ) / 3.0f };
         const float inputWidth{ glm::max( 1.0f, axisWidth - buttonWidth - innerGap ) };
-        constexpr const char* axes[]{ "X", "Y", "Z" };
+        constexpr const char *axes[]{ "X", "Y", "Z" };
         const ImVec4 colors[]{ { 0.48f, 0.16f, 0.16f, 1.0f }, { 0.18f, 0.38f, 0.16f, 1.0f }, { 0.16f, 0.24f, 0.46f, 1.0f } };
         const ImVec4 hoveredColors[]{ { 0.58f, 0.22f, 0.22f, 1.0f }, { 0.24f, 0.48f, 0.22f, 1.0f }, { 0.22f, 0.31f, 0.56f, 1.0f } };
 
@@ -965,7 +962,7 @@ namespace mikoto::editor {
             ImGui::PopStyleColor( 3 );
             ImGui::SameLine( 0.0f, innerGap );
             ImGui::SetNextItemWidth( inputWidth );
-            ImGui::DragFloat( "##value", &data[axis], 0.1f, 0.0f, 0.0f, "%.2f" );
+            ImGui::DragFloat( "##value", &data[axis], resetValue == 1.0f ? 0.01f : 0.1f, 0.0f, 0.0f, "%.3f" );
             ImGui::PopID();
         }
 
@@ -974,7 +971,7 @@ namespace mikoto::editor {
         return data != original;
     }
 
-    static auto DrawVisibilityCheckBox( scene::Entity* entity ) -> void {
+    static auto DrawVisibilityCheckBox( scene::Entity *entity ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( entity == nullptr ) {
@@ -982,7 +979,7 @@ namespace mikoto::editor {
         }
 
         // All entities are guaranteed to have a TagComponent
-        scene::TagComponent& tagComponent{ entity->GetComponent<scene::TagComponent>() };
+        scene::TagComponent &tagComponent{ entity->GetComponent<scene::TagComponent>() };
 
         bool isActive{ tagComponent.IsActive() };
 
@@ -1019,11 +1016,11 @@ namespace mikoto::editor {
         ImGui::SetNextItemWidth( -1.0f );
     }
 
-    static auto DrawPointLightOptions( scene::LightComponent& lightComponent ) -> void {
+    static auto DrawPointLightOptions( scene::LightComponent &lightComponent ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( BeginLightPropertiesTable( "PointLightMainTable" ) ) {
-            auto& pointLightData{ lightComponent.Get<renderer::PointLight>() };
+            auto &pointLightData{ lightComponent.Get<renderer::PointLight>() };
 
             LightPropertyRow( "inspector_color" );
             glm::vec3 diffuseComponent{ pointLightData.GetColor() };
@@ -1035,21 +1032,21 @@ namespace mikoto::editor {
             LightPropertyRow( "inspector_intensity" );
             float intensity{ pointLightData.GetIntensity() };
 
-            if ( imgui::Slider( "##PointLightIntensity", intensity, { 1.0f, 1000.0f } ) ) {
+            if ( DrawFloatProperty( "##PointLightIntensity", &intensity, { 1.0f, 1000.0f }, "%.3f", false ) ) {
                 pointLightData.SetIntensity( intensity );
             }
 
             LightPropertyRow( "inspector_source_radius", "inspector_source_radius_help" );
             float sourceRadius{ pointLightData.GetSourceRadius() };
 
-            if ( ImGui::DragFloat( "##PointSourceRadius", &sourceRadius, 0.01f, 0.0f, FLT_MAX, "%.3f", ImGuiSliderFlags_AlwaysClamp ) ) {
+            if ( DrawFloatProperty( "##PointSourceRadius", &sourceRadius, { 0.0f, FLT_MAX }, "%.3f", true ) ) {
                 pointLightData.SetSourceRadius( sourceRadius );
             }
 
             LightPropertyRow( "inspector_radius" );
             float radius{ pointLightData.GetRadius() };
 
-            if ( imgui::Slider( "##PointLightRadius", radius, { 1.0f, 500.0f } ) ) {
+            if ( DrawFloatProperty( "##PointLightRadius", &radius, { 1.0f, 500.0f }, "%.3f", false ) ) {
                 pointLightData.SetRadius( radius );
             }
 
@@ -1068,16 +1065,16 @@ namespace mikoto::editor {
         }
     }
 
-    static auto DrawSpotLightLightOptions( scene::LightComponent& lightComponent ) -> void {
+    static auto DrawSpotLightLightOptions( scene::LightComponent &lightComponent ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( BeginLightPropertiesTable( "SpotLightEditTable" ) ) {
-            auto& spotLightData{ lightComponent.Get<renderer::SpotLight>() };
+            auto &spotLightData{ lightComponent.Get<renderer::SpotLight>() };
 
             LightPropertyRow( "inspector_direction", "inspector_the_spot_position_is_determined_by_the_objects_position" );
             glm::vec3 direction{ spotLightData.GetDirection() };
 
-            if ( DragFloat3( "##SpotLightDirection", "%.2f", direction, 0.01f, -math::constants::kPi, math::constants::kPi ) ) {
+            if ( DrawFloatVectorProperty( "##SpotLightDirection", glm::value_ptr( direction ), 3, { -math::constants::kPi, math::constants::kPi }, "%.2f", false ) ) {
                 spotLightData.SetDirection( direction );
             }
 
@@ -1093,7 +1090,7 @@ namespace mikoto::editor {
             LightPropertyRow( "inspector_intensity" );
             float intensity{ spotLightData.GetIntensity() };
 
-            if ( imgui::Slider( "##SpotLightIntensity", intensity, { 1.0f, 1000.0f } ) ) {
+            if ( DrawFloatProperty( "##SpotLightIntensity", &intensity, { 1.0f, 1000.0f }, "%.3f", false ) ) {
                 spotLightData.SetIntensity( intensity );
             }
 
@@ -1102,7 +1099,7 @@ namespace mikoto::editor {
             LightPropertyRow( "inspector_attenuation_radius" );
             float radius{ spotLightData.GetRadius() };
 
-            if ( imgui::Slider( "##SpotLightRadius", radius, { 1.0f, 500.0f } ) ) {
+            if ( DrawFloatProperty( "##SpotLightRadius", &radius, { 1.0f, 500.0f }, "%.3f", false ) ) {
                 spotLightData.SetRadius( radius );
             }
 
@@ -1111,7 +1108,7 @@ namespace mikoto::editor {
             LightPropertyRow( "inspector_angle", "inspector_outer_cone_half_angle_in_degrees_full_cone_width_is" );
             float angle{ spotLightData.GetAngle() };
 
-            if ( imgui::Slider( "##SpotLightAngle", angle, { 1.0f, renderer::SpotLight::GetMaxAngle() } ) ) {
+            if ( DrawFloatProperty( "##SpotLightAngle", &angle, { 1.0f, renderer::SpotLight::GetMaxAngle() }, "%.3f", false ) ) {
                 spotLightData.SetAngle( angle );
             }
 
@@ -1120,7 +1117,7 @@ namespace mikoto::editor {
             LightPropertyRow( "inspector_softness", "inspector_width_of_the_fade_inside_the_outer_cone_in_degrees" );
             float softness{ spotLightData.GetSoftness() };
 
-            if ( imgui::Slider( "##SpotLightSoftness", softness, { 0.0f, renderer::SpotLight::GetMaxSoftness() } ) ) {
+            if ( DrawFloatProperty( "##SpotLightSoftness", &softness, { 0.0f, renderer::SpotLight::GetMaxSoftness() }, "%.3f", false ) ) {
                 spotLightData.SetSoftness( softness );
             }
 
@@ -1135,16 +1132,16 @@ namespace mikoto::editor {
         }
     }
 
-    static auto DrawDirectionalLightOptions( scene::LightComponent& lightComponent ) -> void {
+    static auto DrawDirectionalLightOptions( scene::LightComponent &lightComponent ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( BeginLightPropertiesTable( "DirectionalLightEditTable" ) ) {
-            auto& direLightData{ lightComponent.Get<renderer::DirectionalLight>() };
+            auto &direLightData{ lightComponent.Get<renderer::DirectionalLight>() };
 
             LightPropertyRow( "inspector_intensity" );
             float intensity{ direLightData.GetIntensity() };
 
-            if ( imgui::Slider( "##Intensity", intensity, { 1.0f, 1000.0f } ) ) {
+            if ( DrawFloatProperty( "##Intensity", &intensity, { 1.0f, 1000.0f }, "%.3f", false ) ) {
                 direLightData.SetIntensity( intensity );
             }
 
@@ -1158,7 +1155,7 @@ namespace mikoto::editor {
             LightPropertyRow( "inspector_angular_radius", "inspector_angular_radius_help" );
             float angularRadius{ direLightData.GetAngularRadius() };
 
-            if ( ImGui::DragFloat( "##DirectionalAngularRadius", &angularRadius, 0.01f, 0.0f, 10.0f, "%.3f deg", ImGuiSliderFlags_AlwaysClamp ) ) {
+            if ( DrawFloatProperty( "##DirectionalAngularRadius", &angularRadius, { 0.0f, 10.0f }, "%.3f deg", true ) ) {
                 direLightData.SetAngularRadius( angularRadius );
             }
 
@@ -1166,7 +1163,7 @@ namespace mikoto::editor {
             constexpr float PI{ std::numbers::pi_v<float> };
             glm::vec3 direction{ direLightData.GetDirection() };
 
-            if ( DragFloat3( "##DirectionalLightDirection", "%.2f", direction, 0.01f, -PI, PI ) ) {
+            if ( DrawFloatVectorProperty( "##DirectionalLightDirection", glm::value_ptr( direction ), 3, { -PI, PI }, "%.2f", false ) ) {
                 direLightData.SetDirection( direction );
             }
 
@@ -1181,7 +1178,7 @@ namespace mikoto::editor {
         }
     }
 
-    static auto DrawScriptProperties( scene::ScriptComponent& component ) -> void {
+    static auto DrawScriptProperties( scene::ScriptComponent &component ) -> void {
         auto script{ component.GetHandle() };
 
         if ( !script || script->GetMetaData().mFieldLookup.empty() ) {
@@ -1194,22 +1191,22 @@ namespace mikoto::editor {
             values = nlohmann::json::object();
         }
 
-        eastl::vector<const scripting::ScriptFieldMetadata*> fields{};
+        eastl::vector<const scripting::ScriptFieldMetadata *> fields{};
 
-        for ( const auto& entry: script->GetMetaData().mFieldLookup ) {
-            const auto& field{ entry.second };
+        for ( const auto &entry: script->GetMetaData().mFieldLookup ) {
+            const auto &field{ entry.second };
 
             fields.push_back( &field );
         }
 
-        eastl::sort( fields.begin(), fields.end(), []( const auto* a, const auto* b ) {
+        eastl::sort( fields.begin(), fields.end(), []( const auto *a, const auto *b ) {
             return a->mName < b->mName;
         } );
         ImGui::SeparatorText( "Properties" );
         bool changed{};
 
-        for ( const auto* field: fields ) {
-            const auto* name{ field->mName.c_str() };
+        for ( const auto *field: fields ) {
+            const auto *name{ field->mName.c_str() };
             auto value{ values.contains( name ) ? values[name] : nlohmann::json::parse( field->mDefaultJson.c_str(), nullptr, false ) };
             ImGui::PushID( name );
             ImGui::BeginDisabled( field->mReadOnly );
@@ -1238,8 +1235,8 @@ namespace mikoto::editor {
                     edited = ImGui::InputScalar( name, ImGuiDataType_U64, &v );
 
                     if ( field->mType == Type::eEntity && ImGui::BeginDragDropTarget() ) {
-                        if ( const auto* payload{ ImGui::AcceptDragDropPayload( "MIKOTO_ENTITY" ) }; payload && payload->DataSize == sizeof( core::u64 ) ) {
-                            v = *static_cast<const core::u64*>( payload->Data );
+                        if ( const auto *payload{ ImGui::AcceptDragDropPayload( "MIKOTO_ENTITY" ) }; payload && payload->DataSize == sizeof( core::u64 ) ) {
+                            v = *static_cast<const core::u64 *>( payload->Data );
                             edited = true;
                         }
 
@@ -1253,7 +1250,7 @@ namespace mikoto::editor {
             }
             else if ( field->mType == Type::eFloat32 ) {
                 float v{ value.is_number() ? value.get<float>() : 0.0f };
-                edited = imgui::widget::CircleSlider( name, &v, -100.0f, 100.0f, "%.3f", false );
+                edited = DrawFloatProperty( name, &v, { -100.0f, 100.0f }, "%.3f", false );
 
                 if ( edited ) {
                     value = v;
@@ -1283,7 +1280,7 @@ namespace mikoto::editor {
                     }
                 }
 
-                edited = field->mAssetKind == "Color" ? ( count == 3 ? ImGui::ColorEdit3( name, v ) : ImGui::ColorEdit4( name, v ) ) : ImGui::DragScalarN( name, ImGuiDataType_Float, v, count, 0.01f );
+                edited = field->mAssetKind == "Color" ? ( count == 3 ? ImGui::ColorEdit3( name, v ) : ImGui::ColorEdit4( name, v ) ) : DrawFloatVectorProperty( name, v, count, { 0, 0 }, "%.3f", false );
 
                 if ( edited ) {
                     value = nlohmann::json::array();
@@ -1340,7 +1337,7 @@ namespace mikoto::editor {
         }
     }
 
-    static auto DrawJointPicker( core::cstr label, core::i32& joint, const ozz::animation::Skeleton& skeleton ) -> void {
+    static auto DrawJointPicker( core::cstr label, core::i32 &joint, const ozz::animation::Skeleton &skeleton ) -> void {
         MKT_BEGIN_PROFILER();
         const auto names{ skeleton.joint_names() };
         const core::cstr preview{ joint >= 0 && joint < skeleton.num_joints() ? names[joint] : MKT_LOC( "animator_inspector_choose_joint" ).c_str() };
@@ -1360,17 +1357,17 @@ namespace mikoto::editor {
         }
     }
 
-    static auto DrawIKCommon( core::float3& target, core::float3& pole, core::f32& weight, core::f32& twist ) -> void {
+    static auto DrawIKCommon( core::float3 &target, core::float3 &pole, core::f32 &weight, core::f32 &twist ) -> void {
         MKT_BEGIN_PROFILER();
-        ImGui::DragFloat3( imgui::widget::LocalizedLabel( "animator_inspector_target_model", "Target (model)" ).c_str(), &target.x, 0.01f );
-        ImGui::DragFloat3( imgui::widget::LocalizedLabel( "animator_inspector_pole_direction", "Pole direction" ).c_str(), &pole.x, 0.01f );
-        ImGui::SliderFloat( imgui::widget::LocalizedLabel( "animator_inspector_weight", "Weight" ).c_str(), &weight, 0.0f, 1.0f );
+        DrawFloatVectorProperty( imgui::widget::LocalizedLabel( "animator_inspector_target_model", "Target (model)" ).c_str(), &target.x, 3, { 0, 0 }, "%.3f", false );
+        DrawFloatVectorProperty( imgui::widget::LocalizedLabel( "animator_inspector_pole_direction", "Pole direction" ).c_str(), &pole.x, 3, { 0, 0 }, "%.3f", false );
+        DrawFloatProperty( imgui::widget::LocalizedLabel( "animator_inspector_weight", "Weight" ).c_str(), &weight, { 0.0f, 1.0f }, "%.3f", false );
         ImGui::SliderAngle( imgui::widget::LocalizedLabel( "animator_inspector_twist", "Twist" ).c_str(), &twist, -180.0f, 180.0f );
     }
 
-    static auto DrawBoneNode( const ozz::animation::Skeleton& skeleton, core::i32 joint,
-        const std::array<core::i32, ozz::animation::Skeleton::kMaxJoints>& firstChildren,
-        const std::array<core::i32, ozz::animation::Skeleton::kMaxJoints>& nextSiblings ) -> void {
+    static auto DrawBoneNode( const ozz::animation::Skeleton &skeleton, core::i32 joint,
+        const std::array<core::i32, ozz::animation::Skeleton::kMaxJoints> &firstChildren,
+        const std::array<core::i32, ozz::animation::Skeleton::kMaxJoints> &nextSiblings ) -> void {
         const auto names{ skeleton.joint_names() };
         const core::i32 parent{ skeleton.joint_parents()[joint] };
         const bool leaf{ firstChildren[joint] == ozz::animation::Skeleton::kNoParent };
@@ -1412,9 +1409,9 @@ namespace mikoto::editor {
         ImGui::PopID();
     }
 
-    static auto DrawSkeletonHierarchy( const animation::Skeleton& skeleton ) -> void {
+    static auto DrawSkeletonHierarchy( const animation::Skeleton &skeleton ) -> void {
         MKT_BEGIN_PROFILER();
-        const auto* runtime{ skeleton.GetOzzSkeleton() };
+        const auto *runtime{ skeleton.GetOzzSkeleton() };
 
         if ( !runtime || runtime->num_joints() == 0 ) {
             ImGui::TextDisabled( "%s", MKT_LOC( "animator_inspector_no_bones" ).c_str() );
@@ -1452,7 +1449,7 @@ namespace mikoto::editor {
         ImGui::PopID();
     }
 
-    static auto DrawAnimatorSettings( animation::Animator& animator ) -> void {
+    static auto DrawAnimatorSettings( animation::Animator &animator ) -> void {
         MKT_BEGIN_PROFILER();
         const auto current{ animator.GetCurrentAnimation() };
         const bool hasClips{ !animator.GetAnimationList().empty() };
@@ -1461,9 +1458,9 @@ namespace mikoto::editor {
         if ( ImGui::BeginCombo( imgui::widget::LocalizedLabel( "animator_inspector_animation", "Animation" ).c_str(), current ? current->GetName().c_str() : ( hasClips ? MKT_LOC( "animator_inspector_choose_clip" ).c_str() : MKT_LOC( "animator_inspector_no_animation_clips" ).c_str() ) ) ) {
             // Read names directly from the model: no temporary strings or vector
             // allocations every frame just to display the animation dropdown.
-            for ( const auto& entry: animator.GetAnimationList() ) {
-                const auto& name{ entry.first };
-                const auto& clip{ entry.second };
+            for ( const auto &entry: animator.GetAnimationList() ) {
+                const auto &name{ entry.first };
+                const auto &clip{ entry.second };
 
                 if ( ImGui::Selectable( name.c_str(), current == clip.get() ) ) {
                     if ( animator.IsPlaying() ) {
@@ -1480,7 +1477,7 @@ namespace mikoto::editor {
 
         core::f32 duration{ animator.GetTransitionDuration() };
 
-        if ( ImGui::DragFloat( imgui::widget::LocalizedLabel( "animator_inspector_default_blend", "Default blend" ).c_str(), &duration, 0.01f, 0.0f, 30.0f, "%.2f s", ImGuiSliderFlags_AlwaysClamp ) ) {
+        if ( DrawFloatProperty( imgui::widget::LocalizedLabel( "animator_inspector_default_blend", "Default blend" ).c_str(), &duration, { 0.0f, 30.0f }, "%.2f s", true ) ) {
             animator.SetTransitionDuration( duration );
         }
 
@@ -1511,13 +1508,13 @@ namespace mikoto::editor {
             return;
         }
 
-        const auto& rigs{ model->GetRigs() };
+        const auto &rigs{ model->GetRigs() };
 
         if ( ImGui::CollapsingHeader( imgui::widget::LocalizedLabel( "animator_inspector_bone_hierarchy", "BoneHierarchy" ).c_str() ) ) {
             ImGui::PushID( model.GetPtr() );
 
             for ( core::u32 rig{}; rig < rigs.size(); ++rig ) {
-                const auto* skeleton{ model->GetSkeleton( rig ) };
+                const auto *skeleton{ model->GetSkeleton( rig ) };
 
                 if ( !skeleton || !skeleton->GetOzzSkeleton() ) {
                     continue;
@@ -1568,9 +1565,9 @@ namespace mikoto::editor {
 
         ImGui::PopID();
         ImGui::TextDisabled( MKT_LOC( "animator_inspector_playback_controls_all_rigs_ik_edits_apply_to_the_selected" ).c_str() );
-        const auto& skeleton{ *model->GetSkeleton( rig )->GetOzzSkeleton() };
+        const auto &skeleton{ *model->GetSkeleton( rig )->GetOzzSkeleton() };
         ImGui::TextWrapped( MKT_LOC( "animator_inspector_ik_evaluates_after_animation_blending_targets_use_skeleton_model_space" ).c_str() );
-        auto& chains{ animator.GetTwoBoneConstraints( rig ) };
+        auto &chains{ animator.GetTwoBoneConstraints( rig ) };
 
         if ( ImGui::Button( imgui::widget::LocalizedLabel( "animator_inspector_add_two_bone_chain", "Add two-bone chain" ).c_str() ) && chains.size() < 32 ) {
             chains.emplace_back();
@@ -1579,7 +1576,7 @@ namespace mikoto::editor {
         ImGui::PushID( "TwoBone" );
 
         for ( core::usize i{}; i < chains.size(); ) {
-            auto& chain{ chains[i] };
+            auto &chain{ chains[i] };
             ImGui::PushID( static_cast<core::i32>( i ) );
             bool remove{};
 
@@ -1589,8 +1586,8 @@ namespace mikoto::editor {
                 DrawJointPicker( MKT_LOC( "animator_inspector_middle" ).c_str(), chain.mMiddle, skeleton );
                 DrawJointPicker( MKT_LOC( "animator_inspector_end" ).c_str(), chain.mEnd, skeleton );
                 DrawIKCommon( chain.mTarget, chain.mPole, chain.mWeight, chain.mTwist );
-                ImGui::DragFloat3( imgui::widget::LocalizedLabel( "animator_inspector_middle_bend_axis", "Middle bend axis" ).c_str(), &chain.mMiddleAxis.x, 0.01f );
-                ImGui::SliderFloat( imgui::widget::LocalizedLabel( "animator_inspector_soften", "Soften" ).c_str(), &chain.mSoften, 0.0f, 1.0f );
+                DrawFloatVectorProperty( imgui::widget::LocalizedLabel( "animator_inspector_middle_bend_axis", "Middle bend axis" ).c_str(), &chain.mMiddleAxis.x, 3, { 0, 0 }, "%.3f", false );
+                DrawFloatProperty( imgui::widget::LocalizedLabel( "animator_inspector_soften", "Soften" ).c_str(), &chain.mSoften, { 0.0f, 1.0f }, "%.3f", false );
                 ImGui::TextDisabled( chain.mReached ? MKT_LOC( "animator_inspector_target_reached" ).c_str() : MKT_LOC( "animator_inspector_target_not_reached_chain_inactive" ).c_str() );
                 remove = ImGui::Button( imgui::widget::LocalizedLabel( "animator_inspector_remove_chain", "Remove chain" ).c_str() );
                 ImGui::TreePop();
@@ -1607,7 +1604,7 @@ namespace mikoto::editor {
         }
 
         ImGui::PopID();
-        auto& aims{ animator.GetAimConstraints( rig ) };
+        auto &aims{ animator.GetAimConstraints( rig ) };
 
         if ( ImGui::Button( imgui::widget::LocalizedLabel( "animator_inspector_add_aim_constraint", "Add aim constraint" ).c_str() ) && aims.size() < 32 ) {
             aims.emplace_back();
@@ -1616,7 +1613,7 @@ namespace mikoto::editor {
         ImGui::PushID( "Aim" );
 
         for ( core::usize i{}; i < aims.size(); ) {
-            auto& aim{ aims[i] };
+            auto &aim{ aims[i] };
             ImGui::PushID( static_cast<core::i32>( i ) );
             bool remove{};
 
@@ -1624,9 +1621,9 @@ namespace mikoto::editor {
                 imgui::CheckBox( imgui::widget::LocalizedLabel( "animator_inspector_enabled", "Enabled" ).c_str(), aim.mEnabled );
                 DrawJointPicker( MKT_LOC( "animator_inspector_joint" ).c_str(), aim.mJoint, skeleton );
                 DrawIKCommon( aim.mTarget, aim.mPole, aim.mWeight, aim.mTwist );
-                ImGui::DragFloat3( imgui::widget::LocalizedLabel( "animator_inspector_forward_local", "Forward (local)" ).c_str(), &aim.mForward.x, 0.01f );
-                ImGui::DragFloat3( imgui::widget::LocalizedLabel( "animator_inspector_up_local", "Up (local)" ).c_str(), &aim.mUp.x, 0.01f );
-                ImGui::DragFloat3( imgui::widget::LocalizedLabel( "animator_inspector_offset_local", "Offset (local)" ).c_str(), &aim.mOffset.x, 0.01f );
+                DrawFloatVectorProperty( imgui::widget::LocalizedLabel( "animator_inspector_forward_local", "Forward (local)" ).c_str(), &aim.mForward.x, 3, { 0, 0 }, "%.3f", false );
+                DrawFloatVectorProperty( imgui::widget::LocalizedLabel( "animator_inspector_up_local", "Up (local)" ).c_str(), &aim.mUp.x, 3, { 0, 0 }, "%.3f", false );
+                DrawFloatVectorProperty( imgui::widget::LocalizedLabel( "animator_inspector_offset_local", "Offset (local)" ).c_str(), &aim.mOffset.x, 3, { 0, 0 }, "%.3f", false );
                 ImGui::TextDisabled( aim.mReached ? MKT_LOC( "animator_inspector_target_reached" ).c_str() : MKT_LOC( "animator_inspector_target_not_reached_constraint_inactive" ).c_str() );
                 remove = ImGui::Button( imgui::widget::LocalizedLabel( "animator_inspector_remove_constraint", "Remove constraint" ).c_str() );
                 ImGui::TreePop();
@@ -1645,9 +1642,9 @@ namespace mikoto::editor {
         ImGui::PopID();
     }
 
-    static auto PhysicsFieldLabel( const char* name ) -> eastl::string {
+    static auto PhysicsFieldLabel( const char *name ) -> eastl::string {
         const eastl::string key{ eastl::string_view{ name } == "PinnedVertices" ? "inspector_pinned_vertices" : name };
-        const auto& translation{ MKT_LOC( key ) };
+        const auto &translation{ MKT_LOC( key ) };
 
         if ( translation != key ) {
             return translation;
@@ -1655,7 +1652,7 @@ namespace mikoto::editor {
 
         eastl::string label{};
 
-        for ( const char* c{ name }; *c; ++c ) {
+        for ( const char *c{ name }; *c; ++c ) {
             if ( c != name && *c >= 'A' && *c <= 'Z' && c[-1] >= 'a' && c[-1] <= 'z' ) {
                 label += ' ';
             }
@@ -1666,9 +1663,9 @@ namespace mikoto::editor {
         return label;
     }
 
-    static auto EditPhysicsEntity( const char* name, core::u64& id, scene::Scene* scene ) -> bool {
+    static auto EditPhysicsEntity( const char *name, core::u64 &id, scene::Scene *scene ) -> bool {
         const auto label{ string::Format( "{}###{}", PhysicsFieldLabel( name ), name ) };
-        auto* selected{ scene ? scene->FindByID( id ) : nullptr };
+        auto *selected{ scene ? scene->FindByID( id ) : nullptr };
         bool changed{};
 
         if ( ImGui::BeginCombo( label.c_str(), selected ? selected->GetComponent<scene::TagComponent>().GetTag().c_str() : id ? "Missing entity"
@@ -1679,9 +1676,9 @@ namespace mikoto::editor {
             }
 
             if ( scene ) {
-                for ( auto&& entry: scene->GetRegistry().view<scene::TagComponent>().each() ) {
+                for ( auto &&entry: scene->GetRegistry().view<scene::TagComponent>().each() ) {
                     const auto entity{ std::get<0>( entry ) };
-                    auto& tag{ std::get<1>( entry ) };
+                    auto &tag{ std::get<1>( entry ) };
 
                     ImGui::PushID( static_cast<int>( entity ) );
 
@@ -1701,7 +1698,7 @@ namespace mikoto::editor {
     }
 
     template<typename T>
-    static auto EditPhysicsField( const char* name, T& value, scene::Scene* scene ) -> bool {
+    static auto EditPhysicsField( const char *name, T &value, scene::Scene *scene ) -> bool {
         const auto label{ PhysicsFieldLabel( name ) };
         const auto widgetLabel{ string::Format( "{}###{}", label, name ) };
 
@@ -1709,7 +1706,7 @@ namespace mikoto::editor {
             return imgui::CheckBox( widgetLabel.c_str(), value );
         }
         else if constexpr ( std::is_enum_v<T> ) {
-            const char* choices{};
+            const char *choices{};
 
             if constexpr ( std::is_same_v<T, scene::JointMotorMode> ) {
                 choices = "Off\0Velocity\0Position\0";
@@ -1747,18 +1744,47 @@ namespace mikoto::editor {
             return ImGui::InputScalar( widgetLabel.c_str(), ImGuiDataType_U32, &value );
         }
         else if constexpr ( std::is_floating_point_v<T> ) {
-            return ImGui::DragFloat( widgetLabel.c_str(), &value, .01f );
+            float minimum{ -100.0f };
+            float maximum{ 100.0f };
+            core::cstr format{ "%.3f" };
+
+            if ( std::strstr( name, "Compliance" ) ) {
+                minimum = 0.0f;
+                maximum = .001f;
+                format = "%.6g";
+            }
+            else if ( std::strcmp( name, "VertexMass" ) == 0 ) {
+                minimum = 0.0f;
+                maximum = 1.0f;
+                format = "%.6f";
+            }
+            else if ( std::strstr( name, "Damping" ) || std::strcmp( name, "Restitution" ) == 0 ) {
+                minimum = 0.0f;
+                maximum = 1.0f;
+            }
+            else if ( std::strcmp( name, "GravityFactor" ) == 0 || std::strcmp( name, "Drag" ) == 0 ||
+                      std::strcmp( name, "Lift" ) == 0 || std::strcmp( name, "Friction" ) == 0 ) {
+                minimum = 0.0f;
+                maximum = 10.0f;
+            }
+            else if ( std::strcmp( name, "Pressure" ) == 0 || std::strcmp( name, "WindGustStrength" ) == 0 ) {
+                minimum = 0.0f;
+            }
+
+            // These are practical track ranges; exact entry retains the
+            // component's existing validation and accepted numeric range.
+            return DrawFloatProperty( widgetLabel, &value, { minimum, maximum }, format, false );
         }
         else if constexpr ( std::is_same_v<T, core::float3> ) {
-            return ImGui::DragFloat3( widgetLabel.c_str(), &value.x, .01f );
+            return DrawFloatVectorProperty( widgetLabel.c_str(), &value.x, 3, { 0, 0 }, "%.3f", false );
         }
         else if constexpr ( std::is_same_v<T, core::float2> ) {
-            return ImGui::DragFloat2( widgetLabel.c_str(), &value.x, .01f );
+            return DrawFloatVectorProperty( widgetLabel.c_str(), &value.x, 2, { 0, 0 }, "%.3f", false );
         }
         else if constexpr ( std::is_same_v<T, core::quat> ) {
             auto angles{ glm::degrees( glm::eulerAngles( value ) ) };
 
-            if ( ImGui::DragFloat3( widgetLabel.c_str(), &angles.x, .5f ) ) {
+            if ( DrawFloatVectorProperty( widgetLabel.c_str(), &angles.x, 3, { 0, 0 }, "%.3f", false ) ) {
                 value = core::quat{ glm::radians( angles ) };
                 return true;
             }
@@ -1846,7 +1872,7 @@ namespace mikoto::editor {
                     }
                 }
                 else {
-                    scene::VisitPhysicsFields( value, [&]( const char* field, auto& data ) {
+                    scene::VisitPhysicsFields( value, [&]( const char *field, auto &data ) {
                         const bool edited{ EditPhysicsField( field, data, scene ) };
                         changed |= edited;
                         return edited;
@@ -1860,7 +1886,7 @@ namespace mikoto::editor {
         }
     }
 
-    static auto DrawCameraDepthOfFieldOptions( scene::SceneCamera& camera ) -> void {
+    static auto DrawCameraDepthOfFieldOptions( scene::SceneCamera &camera ) -> void {
         MKT_BEGIN_PROFILER();
         ImGui::Spacing();
 
@@ -1896,7 +1922,7 @@ namespace mikoto::editor {
             ImGui::TableSetupColumn( MKT_LOC( "inspector_property" ).c_str(), ImGuiTableColumnFlags_WidthFixed, ImGui::GetFontSize() * 8.5f );
             ImGui::TableSetupColumn( MKT_LOC( "inspector_value" ).c_str(), ImGuiTableColumnFlags_WidthStretch );
 
-            const auto drawValue = []( core::cstr label, core::cstr tooltip, core::f32& value, core::f32 speed, core::f32 minimum, core::f32 maximum, core::cstr format ) -> bool {
+            const auto drawValue = []( core::cstr label, core::cstr tooltip, core::f32 &value, core::f32 speed, core::f32 minimum, core::f32 maximum, core::cstr format ) -> bool {
                 ImGui::TableNextRow();
                 ImGui::TableSetColumnIndex( 0 );
                 ImGui::AlignTextToFramePadding();
@@ -1909,7 +1935,7 @@ namespace mikoto::editor {
                 ImGui::TableSetColumnIndex( 1 );
                 ImGui::SetNextItemWidth( -FLT_MIN );
                 ImGui::PushID( label );
-                const bool edited{ ImGui::DragFloat( "##Value", &value, speed, minimum, maximum, format, ImGuiSliderFlags_AlwaysClamp ) };
+                const bool edited{ DrawFloatProperty( "##Value", &value, { minimum, maximum }, format, true ) };
 
                 if ( ImGui::IsItemHovered( ImGuiHoveredFlags_DelayShort | ImGuiHoveredFlags_AllowWhenDisabled ) ) {
                     mikoto::imgui::widget::ItemTooltip( MKT_LOC( "inspector_ctrl_click_to_enter_an_exact_value" ).c_str(), tooltip );
@@ -1970,7 +1996,7 @@ namespace mikoto::editor {
         ImGui::PopID();
     }
 
-    static auto DrawCameraVignetteOptions( scene::SceneCamera& camera ) -> void {
+    static auto DrawCameraVignetteOptions( scene::SceneCamera &camera ) -> void {
         MKT_BEGIN_PROFILER();
         ImGui::Spacing();
 
@@ -2016,23 +2042,23 @@ namespace mikoto::editor {
             }
 
             nextValue( "inspector_vignette_center" );
-            changed |= ImGui::SliderFloat2( "##Center", &settings.mCenter.x, 0.0f, 1.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp );
+            changed |= DrawFloatVectorProperty( "##Center", &settings.mCenter.x, 2, { 0.0f, 1.0f }, "%.3f", true );
             //imgui::widget::ItemTooltip( "%s", MKT_LOC( "inspector_vignette_center_help" ).c_str() );
 
             if ( settings.mShape == scene::VignetteShape::eCircle ) {
                 nextValue( "inspector_vignette_radius" );
-                changed |= ImGui::DragFloat( "##Radius", &settings.mHalfSize.x, 0.01f, 0.0001f, 4.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp );
+                changed |= DrawFloatProperty( "##Radius", &settings.mHalfSize.x, { 0.0001f, 4.0f }, "%.3f", true );
             }
             else {
                 nextValue( "inspector_vignette_half_size" );
-                changed |= ImGui::DragFloat2( "##HalfSize", &settings.mHalfSize.x, 0.01f, 0.0001f, 4.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp );
+                changed |= DrawFloatVectorProperty( "##HalfSize", &settings.mHalfSize.x, 2, { 0.0001f, 4.0f }, "%.3f", true );
             }
             //imgui::widget::ItemTooltip( "%s", MKT_LOC( "inspector_vignette_size_help" ).c_str() );
 
             nextValue( "inspector_vignette_feather" );
-            changed |= ImGui::DragFloat( "##Feather", &settings.mFeather, 0.01f, 0.0001f, 4.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp );
+            changed |= DrawFloatProperty( "##Feather", &settings.mFeather, { 0.0001f, 4.0f }, "%.3f", true );
             nextValue( "inspector_vignette_strength" );
-            changed |= ImGui::SliderFloat( "##Strength", &settings.mStrength, 0.0f, 1.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp );
+            changed |= DrawFloatProperty( "##Strength", &settings.mStrength, { 0.0f, 1.0f }, "%.3f", true );
             nextValue( "inspector_vignette_color" );
             changed |= ImGui::ColorEdit3( "##Color", &settings.mColor.x );
             nextValue( "inspector_vignette_aspect" );
@@ -2051,10 +2077,10 @@ namespace mikoto::editor {
     }
 
 
-    auto InspectorPanel::DrawMeshInfo( scene::MeshComponent& component ) -> void {
+    auto InspectorPanel::DrawMeshInfo( scene::MeshComponent &component ) -> void {
         MKT_BEGIN_PROFILER();
         ImGui::TextUnformatted( MKT_LOC( "inspector_mesh_info" ).c_str() );
-        auto* mesh{ component.GetMesh() };
+        auto *mesh{ component.GetMesh() };
 
         if ( !mesh ) {
             ImGui::TextDisabled( "%s", MKT_LOC( "inspector_mesh_no_data" ).c_str() );
@@ -2063,12 +2089,12 @@ namespace mikoto::editor {
 
         mMeshInfoDrawn = true;
 
-        const auto& render{ mesh->GetRenderData() };
-        const auto& collisionVertices{ mesh->GetCollisionVertices() };
-        const auto& collisionIndices{ mesh->GetCollisionIndices() };
-        const auto& skinningVertices{ mesh->GetSkinningVertices() };
-        const auto& skin{ mesh->GetSkinBinding() };
-        const auto& properties{ mesh->GetProperties() };
+        const auto &render{ mesh->GetRenderData() };
+        const auto &collisionVertices{ mesh->GetCollisionVertices() };
+        const auto &collisionIndices{ mesh->GetCollisionIndices() };
+        const auto &skinningVertices{ mesh->GetSkinningVertices() };
+        const auto &skin{ mesh->GetSkinBinding() };
+        const auto &properties{ mesh->GetProperties() };
         const auto vertexBuffer{ mesh->GetVertexBuffer() };
         const auto indexBuffer{ mesh->GetIndexBuffer() };
         const core::usize vertexCount{ render ? render->GetVertexCount() : collisionVertices.size() };
@@ -2078,10 +2104,10 @@ namespace mikoto::editor {
             constexpr core::f64 bytesPerMiB{ 1024.0 * 1024.0 };
             return string::Format( "{} B ({:.2f} MiB)", size, core::as<core::f64>( size ) / bytesPerMiB );
         } };
-        const auto vector{ []( const core::float3& value ) {
+        const auto vector{ []( const core::float3 &value ) {
             return string::Format( "({:.3f}, {:.3f}, {:.3f})", value.x, value.y, value.z );
         } };
-        const auto& none{ MKT_LOC( "inspector_none" ) };
+        const auto &none{ MKT_LOC( "inspector_none" ) };
 
         if ( BeginMeshInfoTable( "MeshGeneralInfo" ) ) {
             MeshInfoRow( "inspector_name", mesh->GetName().empty() ? none : mesh->GetName() );
@@ -2102,8 +2128,8 @@ namespace mikoto::editor {
             constexpr core::usize indicesPerTriangle{ 3 };
             MeshInfoRow( "inspector_mesh_triangles", string::Format( "{}", indexCount / indicesPerTriangle ) );
             MeshInfoRow( "inspector_mesh_index_format", indexBuffer
-                ? eastl::string{ rhi::GetFormatInfo( indexBuffer->GetFormat() ).mName }
-                : ( render ? eastl::string{ rhi::GetFormatInfo( rhi::Format::eR32_UINT ).mName } : none ) );
+                                                            ? eastl::string{ rhi::GetFormatInfo( indexBuffer->GetFormat() ).mName }
+                                                            : ( render ? eastl::string{ rhi::GetFormatInfo( rhi::Format::eR32_UINT ).mName } : none ) );
             ImGui::EndTable();
         }
 
@@ -2126,8 +2152,8 @@ namespace mikoto::editor {
         if ( BeginMeshInfoTable( "MeshMaterial" ) ) {
             MeshInfoRow( "inspector_material_name", properties.mName.empty() ? none : properties.mName );
             MeshInfoRow( "inspector_mesh_material_index", mesh->GetMaterialSourceIndex() == ~core::u32{}
-                ? none
-                : string::Format( "{}", mesh->GetMaterialSourceIndex() ) );
+                                                              ? none
+                                                              : string::Format( "{}", mesh->GetMaterialSourceIndex() ) );
             MeshInfoRow( "inspector_mesh_texture_bindings", string::Format( "{}", properties.mTextureBindings.size() ) );
             ImGui::EndTable();
         }
@@ -2139,7 +2165,7 @@ namespace mikoto::editor {
                 MeshInfoRow( "inspector_mesh_collision_vertices", string::Format( "{}", collisionVertices.size() ) );
                 MeshInfoRow( "inspector_mesh_collision_indices", string::Format( "{}", collisionIndices.size() ) );
                 MeshInfoRow( "inspector_mesh_collision_data", bytes(
-                    collisionVertices.size() * sizeof( core::float3 ) + collisionIndices.size() * sizeof( core::u32 ) ) );
+                                                                  collisionVertices.size() * sizeof( core::float3 ) + collisionIndices.size() * sizeof( core::u32 ) ) );
                 ImGui::EndTable();
             }
 
@@ -2208,11 +2234,11 @@ namespace mikoto::editor {
 
         ImGui::Spacing();
         ImGui::SeparatorText( MKT_LOC( "inspector_mesh_original_textures" ).c_str() );
-        const auto& bindings{ properties.mTextureBindings };
+        const auto &bindings{ properties.mTextureBindings };
         mMeshTexturePreviews.resize( bindings.size() );
 
         for ( core::usize index{}; index < bindings.size(); ++index ) {
-            auto& preview{ mMeshTexturePreviews[index] };
+            auto &preview{ mMeshTexturePreviews[index] };
 
             if ( preview.mPath != bindings[index].first ) {
                 preview = {};
@@ -2228,7 +2254,7 @@ namespace mikoto::editor {
         struct TextureRole {
             material::MapType mType{};
             core::cstr mLabel{};
-            core::i32 material::SurfaceMaterialDescription::* mUvSet{};
+            core::i32 material::SurfaceMaterialDescription::*mUvSet{};
         };
         static constexpr std::array<TextureRole, 10> roles{
             TextureRole{ material::MapType::eDiffuse, "inspector_diffuse", &material::SurfaceMaterialDescription::BaseColorTextureSet },
@@ -2254,13 +2280,13 @@ namespace mikoto::editor {
         ImGui::TableSetupColumn( MKT_LOC( "inspector_mesh_source_details" ).c_str(), ImGuiTableColumnFlags_WidthStretch );
         ImGui::TableHeadersRow();
 
-        auto* assets{ asset::AssetRegistryService::GetPtr() };
+        auto *assets{ asset::AssetRegistryService::GetPtr() };
 
         for ( core::usize index{}; index < bindings.size(); ++index ) {
-            const auto& path{ bindings[index].first };
-            const auto& binding{ bindings[index].second };
+            const auto &path{ bindings[index].first };
+            const auto &binding{ bindings[index].second };
 
-            auto& preview{ mMeshTexturePreviews[index] };
+            auto &preview{ mMeshTexturePreviews[index] };
             auto texture{ binding.mTexture };
 
             if ( texture || path.IsEmpty() ) {
@@ -2278,9 +2304,9 @@ namespace mikoto::editor {
                 }
             }
 
-            const TextureRole* role{};
+            const TextureRole *role{};
 
-            for ( const auto& candidate: roles ) {
+            for ( const auto &candidate: roles ) {
                 if ( candidate.mType == binding.mMapType ) {
                     role = &candidate;
                     break;
@@ -2308,7 +2334,7 @@ namespace mikoto::editor {
                 if ( ImGui::IsPopupOpen( "OriginalTexturePreview" ) ) {
                     // Measure the Inspector's viewport before entering the popup;
                     // an auto-sized popup may otherwise measure its own viewport.
-                    const auto* viewport{ ImGui::GetWindowViewport() };
+                    const auto *viewport{ ImGui::GetWindowViewport() };
                     const ImVec2 maximumSize{ eastl::max( 1.0f, viewport->WorkSize.x - 32.0f ),
                         eastl::max( 1.0f, viewport->WorkSize.y - 32.0f ) };
                     const float padding{ ImGui::GetStyle().WindowPadding.x * 2.0f };
@@ -2366,7 +2392,7 @@ namespace mikoto::editor {
                 ImGui::PushTextWrapPos( 0.0f );
                 ImGui::TextDisabled( "%s", MKT_LOC( failed ? "inspector_mesh_texture_failed"
                                                            : ( path.IsEmpty() ? "inspector_mesh_texture_unavailable" : "inspector_mesh_texture_loading" ) )
-                    .c_str() );
+                                               .c_str() );
                 ImGui::PopTextWrapPos();
 
                 if ( failed ) {
@@ -2381,9 +2407,9 @@ namespace mikoto::editor {
     }
 
 
-    auto InspectorPanel::DrawNameTextInput( scene::Entity* entity ) -> void {
+    auto InspectorPanel::DrawNameTextInput( scene::Entity *entity ) -> void {
         MKT_BEGIN_PROFILER();
-        auto& tag{ entity->GetComponent<scene::TagComponent>() };
+        auto &tag{ entity->GetComponent<scene::TagComponent>() };
         const core::u64 id{ tag.GetGuid() };
         // Follow names changed in Hierarchy or scripts without replacing an active draft.
         const bool editing{ ImGui::GetActiveID() == ImGui::GetID( "##EntityName" ) };
@@ -2399,8 +2425,8 @@ namespace mikoto::editor {
         }
         // Own an expandable buffer instead of copying an unbounded name into
         // 512 bytes. Keep edits across frames and commit on Enter or focus loss.
-        const auto resize{ []( ImGuiInputTextCallbackData* data ) -> core::i32 {
-            auto& buffer{ *static_cast<eastl::vector<char>*>( data->UserData ) };
+        const auto resize{ []( ImGuiInputTextCallbackData *data ) -> core::i32 {
+            auto &buffer{ *static_cast<eastl::vector<char> *>( data->UserData ) };
             buffer.resize( static_cast<core::usize>( data->BufSize ) );
             data->Buf = buffer.data();
             return 0;
@@ -2415,9 +2441,9 @@ namespace mikoto::editor {
     }
 
 
-    auto InspectorPanel::DrawTransformComponentTab( scene::Entity& entity ) -> void {
+    auto InspectorPanel::DrawTransformComponentTab( scene::Entity &entity ) -> void {
         MKT_BEGIN_PROFILER();
-        scene::TransformComponent& transformComponent{ entity.GetComponent<scene::TransformComponent>() };
+        scene::TransformComponent &transformComponent{ entity.GetComponent<scene::TransformComponent>() };
 
         glm::vec3 newTranslation{ transformComponent.GetTranslation() };
         glm::vec3 newRotation{ transformComponent.GetRotation() };
@@ -2472,17 +2498,17 @@ namespace mikoto::editor {
 
         if ( rotationEdited ) {
             const bool centerPivot{ mState->mCenterPivot ||
-                ( entity.HasComponent<scene::TextComponent>() && entity.GetComponent<scene::TextComponent>().IsWorldText() ) };
+                                    ( entity.HasComponent<scene::TextComponent>() && entity.GetComponent<scene::TextComponent>().IsWorldText() ) };
 
             if ( centerPivot && ( !mRotating || mRotationEntity != entity.GetComponent<scene::TagComponent>().GetGuid() ) ) {
                 math::Bounds bounds{};
-                const auto gather = [&]( auto&& self, const scene::Entity& item, const core::float4x4& relative ) -> void {
+                const auto gather = [&]( auto &&self, const scene::Entity &item, const core::float4x4 &relative ) -> void {
                     if ( !item.GetComponent<scene::TagComponent>().IsActive() ) {
                         return;
                     }
 
                     if ( item.HasComponent<scene::MeshComponent>() ) {
-                        const auto& mesh{ item.GetComponent<scene::MeshComponent>() };
+                        const auto &mesh{ item.GetComponent<scene::MeshComponent>() };
 
                         if ( mesh.HasMesh() ) {
                             const auto localBounds{ mesh.GetMesh()->GetTransformedBounds( relative ) };
@@ -2495,7 +2521,7 @@ namespace mikoto::editor {
                     }
 
                     if ( item.HasComponent<scene::TextComponent>() ) {
-                        const auto& text{ item.GetComponent<scene::TextComponent>() };
+                        const auto &text{ item.GetComponent<scene::TextComponent>() };
 
                         if ( text.HasFont() && text.IsWorldText() ) {
                             const auto layout{ text::LayoutText( *text.GetFont(), text.GetUnicodeContents(),
@@ -2517,7 +2543,7 @@ namespace mikoto::editor {
                     }
 
                     for ( const auto childID: item.GetComponent<scene::RelationComponent>().GetChildren() ) {
-                        if ( const auto* child{ mState->mActiveScene->FindByID( childID ) } ) {
+                        if ( const auto *child{ mState->mActiveScene->FindByID( childID ) } ) {
                             self( self, *child, relative * child->GetComponent<scene::TransformComponent>().GetTransform() );
                         }
                     }
@@ -2549,12 +2575,12 @@ namespace mikoto::editor {
         }
     }
 
-    auto InspectorPanel::AssignScriptPayload( scene::Entity& entity, const ImGuiPayload& payload ) -> void {
+    auto InspectorPanel::AssignScriptPayload( scene::Entity &entity, const ImGuiPayload &payload ) -> void {
         if ( !payload.Data || payload.DataSize <= 1 ) {
             return;
         }
 
-        const auto* bytes{ static_cast<const char*>( payload.Data ) };
+        const auto *bytes{ static_cast<const char *>( payload.Data ) };
 
         if ( bytes[payload.DataSize - 1] != '\0' ) {
             return;
@@ -2585,7 +2611,7 @@ namespace mikoto::editor {
                 return;
             }
 
-            auto& component{ entity.GetOrEmplace<scene::ScriptComponent>( path, language ) };
+            auto &component{ entity.GetOrEmplace<scene::ScriptComponent>( path, language ) };
 
             if ( language != scripting::ScriptLanguage::eLua ) {
                 scripting::ScriptingService::Get()->GetLuaScriptingService()->ReleaseEntityScripts( &entity );
@@ -2593,20 +2619,20 @@ namespace mikoto::editor {
 
             component.SetScript( script );
             mScriptPreviewPath = {};
-        } catch ( const std::exception& error ) {
+        } catch ( const std::exception &error ) {
             core::RuntimeConsole::Get()->Error( string::Format( fmt::runtime( MKT_LOC( "inspector_could_not_assign_script" ).c_str() ), error.what() ) );
         }
     }
 
 
-    auto InspectorPanel::DrawScriptingComponentTab( scene::Entity& entity ) -> void {
+    auto InspectorPanel::DrawScriptingComponentTab( scene::Entity &entity ) -> void {
         MKT_BEGIN_PROFILER();
-        scene::ScriptComponent& scriptComponent{ entity.GetComponent<scene::ScriptComponent>() };
+        scene::ScriptComponent &scriptComponent{ entity.GetComponent<scene::ScriptComponent>() };
 
         ImGui::Button( imgui::widget::LocalizedLabel( "inspector_drop_script_asset_here", "Drop script asset here" ).c_str(), ImVec2{ ImGui::GetContentRegionAvail().x, 0 } );
 
         if ( ImGui::BeginDragDropTarget() ) {
-            if ( const auto* payload{ ImGui::AcceptDragDropPayload( "MIKOTO_SCRIPT_SOURCE" ) } ) {
+            if ( const auto *payload{ ImGui::AcceptDragDropPayload( "MIKOTO_SCRIPT_SOURCE" ) } ) {
                 AssignScriptPayload( entity, *payload );
             }
 
@@ -2616,7 +2642,7 @@ namespace mikoto::editor {
         // ScriptLanguage contains eUnknown, so combo positions must map explicitly.
         constexpr scripting::ScriptLanguage languages[]{ scripting::ScriptLanguage::eLua,
             scripting::ScriptLanguage::eCSharp, scripting::ScriptLanguage::eNative };
-        const char* languageNames[]{ "Lua", "C# (.NET)", "Native (C++)" };
+        const char *languageNames[]{ "Lua", "C# (.NET)", "Native (C++)" };
         int selected{ -1 };
 
         for ( int index{}; index < 3; ++index ) {
@@ -2647,7 +2673,7 @@ namespace mikoto::editor {
                     scriptComponent.SetScript( script );
                     mScriptPreviewPath = {};
                 }
-            } catch ( const std::exception& error ) {
+            } catch ( const std::exception &error ) {
                 core::RuntimeConsole::Get()->Error( error.what() );
             }
         }
@@ -2816,7 +2842,7 @@ namespace mikoto::editor {
     }
 
 
-    auto InspectorPanel::DrawAnimatorComponentTab( scene::Entity& entity ) -> void {
+    auto InspectorPanel::DrawAnimatorComponentTab( scene::Entity &entity ) -> void {
         MKT_BEGIN_PROFILER();
 
         const auto id{ entity.GetComponent<scene::AnimatorComponent>().GetAnimatorID() };
@@ -2829,20 +2855,20 @@ namespace mikoto::editor {
         }
     }
 
-    auto InspectorPanel::DrawSkinMeshComponentTab( scene::Entity& entity ) -> void {
+    auto InspectorPanel::DrawSkinMeshComponentTab( scene::Entity &entity ) -> void {
         MKT_BEGIN_PROFILER();
 
-        scene::SkinnedMeshRenderer& skinnedMeshRendererComp{ entity.GetComponent<scene::SkinnedMeshRenderer>() };
+        scene::SkinnedMeshRenderer &skinnedMeshRendererComp{ entity.GetComponent<scene::SkinnedMeshRenderer>() };
 
         if ( !entity.HasComponent<scene::MeshComponent>() || !entity.GetComponent<scene::MeshComponent>().HasMesh() ) {
             ImGui::TextDisabled( "Assign a resident mesh to inspect its skeleton and animator." );
             return;
         }
 
-        const auto& mesh{ entity.GetComponent<scene::MeshComponent>() };
+        const auto &mesh{ entity.GetComponent<scene::MeshComponent>() };
         const auto model{ mesh.GetModel() };
         const core::u32 rig{ mesh.GetMesh()->GetSkinBinding().mRigIndex };
-        const auto* skeleton{ model ? model->GetSkeleton( rig ) : nullptr };
+        const auto *skeleton{ model ? model->GetSkeleton( rig ) : nullptr };
 
         if ( skeleton && skeleton->GetOzzSkeleton() ) {
             ImGui::Text( MKT_LOC( "inspector_skeleton" ).c_str(), model->GetRigs()[rig].mName.c_str() );
@@ -2854,14 +2880,14 @@ namespace mikoto::editor {
             }
         }
 
-        auto* scene{ mState->mActiveScene };
+        auto *scene{ mState->mActiveScene };
 
         if ( !scene || !model ) {
             return;
         }
 
         auto animators{ scene->GetRegistry().view<scene::AnimatorComponent, scene::TagComponent>() };
-        scene::Entity* selectedOwner{};
+        scene::Entity *selectedOwner{};
 
         for ( const auto handle: animators ) {
             if ( animators.get<scene::AnimatorComponent>( handle ).GetAnimatorID() == skinnedMeshRendererComp.GetAnimatorID() ) {
@@ -2870,20 +2896,20 @@ namespace mikoto::editor {
             }
         }
 
-        const auto assign = [&]( scene::Entity* owner ) {
+        const auto assign = [&]( scene::Entity *owner ) {
             if ( !owner || !owner->HasComponent<scene::AnimatorComponent>() ) {
                 return;
             }
 
             const auto id{ owner->GetComponent<scene::AnimatorComponent>().GetAnimatorID() };
-            const auto* animator{ animation::AnimationSystem::Get()->GetAnimator( id ) };
+            const auto *animator{ animation::AnimationSystem::Get()->GetAnimator( id ) };
 
             if ( animator && animator->GetModel() == model ) {
                 skinnedMeshRendererComp.SetAnimatorID( id );
             }
         };
 
-        const char* label{ selectedOwner ? selectedOwner->GetComponent<scene::TagComponent>().GetTag().c_str() : "Unassigned" };
+        const char *label{ selectedOwner ? selectedOwner->GetComponent<scene::TagComponent>().GetTag().c_str() : "Unassigned" };
 
         if ( ImGui::BeginCombo( "Animator entity", label ) ) {
             if ( ImGui::Selectable( "None", !selectedOwner ) ) {
@@ -2892,7 +2918,7 @@ namespace mikoto::editor {
 
             for ( const auto handle: animators ) {
                 const auto id{ animators.get<scene::AnimatorComponent>( handle ).GetAnimatorID() };
-                const auto* animator{ animation::AnimationSystem::Get()->GetAnimator( id ) };
+                const auto *animator{ animation::AnimationSystem::Get()->GetAnimator( id ) };
 
                 if ( !animator || animator->GetModel() != model ) {
                     continue;
@@ -2912,8 +2938,8 @@ namespace mikoto::editor {
         }
 
         if ( ImGui::BeginDragDropTarget() ) {
-            if ( const auto* payload{ ImGui::AcceptDragDropPayload( "MIKOTO_ENTITY" ) }; payload && payload->DataSize == sizeof( core::u64 ) ) {
-                assign( scene->FindByID( *static_cast<const core::u64*>( payload->Data ) ) );
+            if ( const auto *payload{ ImGui::AcceptDragDropPayload( "MIKOTO_ENTITY" ) }; payload && payload->DataSize == sizeof( core::u64 ) ) {
+                assign( scene->FindByID( *static_cast<const core::u64 *>( payload->Data ) ) );
             }
 
             ImGui::EndDragDropTarget();
@@ -2927,13 +2953,13 @@ namespace mikoto::editor {
         ImGui::TextWrapped( "Only animators from this mesh's imported model are compatible. The armature and inverse bind poses belong to the imported skin." );
     }
 
-    auto InspectorPanel::DrawMaterialComponentTab( scene::Entity& entity ) -> void {
+    auto InspectorPanel::DrawMaterialComponentTab( scene::Entity &entity ) -> void {
         MKT_BEGIN_PROFILER();
         // ImGui by default will indent because the items in this function because this method is run inside the DrawComponent function,
         // so we are within a Tree Node, items within a tree node appear indented by default when you expand it
         ImGui::Unindent();
 
-        scene::MaterialComponent& materialComponent{ entity.GetComponent<scene::MaterialComponent>() };
+        scene::MaterialComponent &materialComponent{ entity.GetComponent<scene::MaterialComponent>() };
 
         if ( materialComponent.HasMaterial() ) {
             EditMaterial( materialComponent, mState->mSandboxMode );
@@ -2975,39 +3001,106 @@ namespace mikoto::editor {
         ImGui::Indent();
     }
 
-    auto InspectorPanel::DrawLandscapeComponentTab( scene::Entity& ) -> void {
+    auto InspectorPanel::DrawLandscapeComponentTab( scene::Entity &entity ) -> void {
+        auto &landscape{ entity.GetComponent<scene::LandscapeComponent>() };
+        DrawTerrainSurfaceLayers( landscape, mState->mTerrainTool.mBrush.mLayer, mTerrainLayerPreviews );
     }
 
 
-    template<typename Component>
-    auto InspectorPanel::DrawExtendedPhysicsComponentTab( scene::Entity& entity ) -> void {
-        auto& component{ entity.GetComponent<Component>() };
-        scene::VisitPhysicsFields( component, [&]( const char* name, auto& value ) {
-            if constexpr ( std::is_same_v<Component, scene::ClothComponent> ) {
-                if ( std::strcmp( name, "Drag" ) == 0 || std::strcmp( name, "Lift" ) == 0 ) {
-                    ImGui::BeginDisabled();
-                    EditPhysicsField( name, value, mState->mActiveScene );
-                    ImGui::EndDisabled();
+    auto InspectorPanel::DrawCloudInteractionComponentTab( scene::Entity &entity ) -> void {
+        auto &interaction{ entity.GetComponent<scene::CloudInteractionComponent>() };
+        auto shape{ core::as<core::i32>( interaction.GetShape() ) };
+        if ( ImGui::Combo( "Shape", &shape, "Sphere / ellipsoid\0Box\0Capsule\0" ) ) {
+            interaction.SetShape( core::as<renderer::CloudInteractionShape>( shape ) );
+        }
+        auto dimensions{ interaction.GetDimensions() };
+        if ( DrawFloatVectorProperty( "Dimensions", &dimensions.x, 3, { .001f, 100000 }, "%.2f m", true ) ) {
+            interaction.SetDimensions( dimensions );
+        }
+        auto strength{ interaction.GetStrength() }, feather{ interaction.GetFeather() };
+        if ( DrawFloatProperty( "Displacement", &strength, { 0, 1 }, "%.3f", true ) ) {
+            interaction.SetStrength( strength );
+        }
+        if ( DrawFloatProperty( "Feather", &feather, { 0, 1 }, "%.3f", true ) ) {
+            interaction.SetFeather( feather );
+        }
+        auto enabled{ interaction.IsEnabled() };
+        if ( imgui::CheckBox( "Enabled", enabled ) ) {
+            interaction.SetEnabled( enabled );
+        }
+        ImGui::TextWrapped( "Moves with this entity's world transform. Displaces raster-cloud density and its light paths; moving away restores the formation." );
+    }
 
-                    if ( ImGui::IsItemHovered( ImGuiHoveredFlags_AllowWhenDisabled ) ) {
-                        ImGui::SetTooltip( "Reserved authoring value: the bundled Jolt soft-body API has no aerodynamic drag/lift solver." );
+    auto InspectorPanel::DrawWindAreaComponentTab( scene::Entity &entity ) -> void {
+        auto &wind{ entity.GetComponent<scene::WindAreaComponent>() };
+        if ( ImGui::BeginTable( "WindAreaFields", 2, ImGuiTableFlags_SizingStretchProp ) ) {
+            ImGui::TableSetupColumn( "Label", ImGuiTableColumnFlags_WidthStretch, .42f );
+            ImGui::TableSetupColumn( "Value", ImGuiTableColumnFlags_WidthStretch, .58f );
+            scene::VisitPhysicsFields( wind, [&]( core::cstr name, auto &value ) -> bool {
+                const auto key{ string::Format( "wind_field_{}", name ) };
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex( 0 );
+                ImGui::AlignTextToFramePadding();
+                ImGui::TextUnformatted( MKT_LOC( key.c_str() ).c_str() );
+                ImGui::TableSetColumnIndex( 1 );
+                ImGui::SetNextItemWidth( -FLT_MIN );
+                ImGui::PushID( name );
+                bool changed{};
+                using Value = std::remove_cvref_t<decltype( value )>;
+                if constexpr ( std::is_same_v<Value, scene::WindAreaShape> ) {
+                    int shape{ core::as<int>( value ) };
+                    if ( ImGui::Combo( "##Value", &shape, MKT_LOC( "wind_shape_options" ).c_str() ) ) {
+                        value = static_cast<scene::WindAreaShape>( shape );
+                        changed = true;
                     }
-
-                    return false;
                 }
-            }
+                else if constexpr ( std::is_same_v<Value, bool> ) {
+                    changed = imgui::CheckBox( "##Value", value );
+                }
+                else if constexpr ( std::is_same_v<Value, core::float3> ) {
+                    changed = DrawFloatVectorProperty( "##Value", &value.x, 3, { 0, 0 }, "%.3f", false );
+                }
+                else if constexpr ( std::is_same_v<Value, core::f32> ) {
+                    float maximum{ 1.0f };
+                    float minimum{};
+                    if ( std::strcmp( name, "GustFrequency" ) == 0 ) {
+                        maximum = 4.0f;
+                    }
+                    if ( std::strcmp( name, "GustWavelength" ) == 0 ) {
+                        minimum = .1f;
+                        maximum = 1000.0f;
+                    }
+                    if ( std::strcmp( name, "Turbulence" ) == 0 ) {
+                        maximum = 20.0f;
+                    }
+                    changed = DrawFloatProperty( "##Value", &value, { minimum, maximum }, "%.3f", true );
+                }
+                else if constexpr ( std::is_same_v<Value, core::u32> ) {
+                    changed = ImGui::InputScalar( "##Value", ImGuiDataType_U32, &value );
+                }
+                ImGui::PopID();
+                return changed;
+            } );
+            ImGui::EndTable();
+        }
+        ImGui::TextWrapped( "%s", MKT_LOC( "wind_area_help" ).c_str() );
+    }
 
+    template<typename Component>
+    auto InspectorPanel::DrawExtendedPhysicsComponentTab( scene::Entity &entity ) -> void {
+        auto &component{ entity.GetComponent<Component>() };
+        scene::VisitPhysicsFields( component, [&]( const char *name, auto &value ) {
             return EditPhysicsField( name, value, mState->mActiveScene );
         } );
-        const auto* error{ mState->mActiveScene->GetPhysicsWorld()->GetColliderError( entity.Get() ) };
+        const auto *error{ mState->mActiveScene->GetPhysicsWorld()->GetColliderError( entity.Get() ) };
 
         if ( error && *error ) {
             ImGui::TextWrapped( "%s", error );
         }
     }
 
-    auto InspectorPanel::DrawVehicleComponentTab( scene::Entity& entity ) -> void {
-        auto& vehicle{ entity.GetComponent<scene::VehicleComponent>() };
+    auto InspectorPanel::DrawVehicleComponentTab( scene::Entity &entity ) -> void {
+        auto &vehicle{ entity.GetComponent<scene::VehicleComponent>() };
         auto type{ vehicle.GetVehicleType() };
 
         if ( EditPhysicsField( "VehicleType", type, mState->mActiveScene ) ) {
@@ -3020,20 +3113,20 @@ namespace mikoto::editor {
             vehicle.SetWheelDescriptions( wheels );
         }
 
-        ImGui::DragFloat( imgui::widget::LocalizedLabel( "inspector_half_track_m", "Half track (m)" ).c_str(), &vehicle.mHalfTrack, 0.01f, 0.1f, 5.0f );
-        ImGui::DragFloat( imgui::widget::LocalizedLabel( "inspector_half_wheelbase_m", "Half wheelbase (m)" ).c_str(), &vehicle.mHalfWheelbase, 0.01f, 0.1f, 10.0f );
-        ImGui::DragFloat( imgui::widget::LocalizedLabel( "inspector_wheel_radius_m", "Wheel radius (m)" ).c_str(), &vehicle.mWheelRadius, 0.01f, 0.05f, 3.0f );
-        ImGui::DragFloat( imgui::widget::LocalizedLabel( "inspector_wheel_width_m", "Wheel width (m)" ).c_str(), &vehicle.mWheelWidth, 0.01f, 0.01f, 2.0f );
-        ImGui::DragFloat( imgui::widget::LocalizedLabel( "inspector_suspension_minimum_m", "Suspension minimum (m)" ).c_str(), &vehicle.mSuspensionMin, 0.01f, 0.01f, 2.0f );
-        ImGui::DragFloat( imgui::widget::LocalizedLabel( "inspector_suspension_maximum_m", "Suspension maximum (m)" ).c_str(), &vehicle.mSuspensionMax, 0.01f, 0.01f, 3.0f );
-        ImGui::DragFloat( imgui::widget::LocalizedLabel( "inspector_steering_limit_degrees", "Steering limit (degrees)" ).c_str(), &vehicle.mMaxSteerDegrees, 0.5f, 1.0f, 80.0f );
-        ImGui::DragFloat( imgui::widget::LocalizedLabel( "inspector_engine_torque_nm", "Engine torque (Nm)" ).c_str(), &vehicle.mEngineTorque, 10.0f, 1.0f, 10000.0f );
-        ImGui::DragFloat( imgui::widget::LocalizedLabel( "inspector_wheel_anchor_height_m", "Wheel anchor height (m)" ).c_str(), &vehicle.mWheelAnchorHeight, 0.01f, -3.0f, 3.0f );
-        ImGui::DragFloat( imgui::widget::LocalizedLabel( "inspector_center_of_mass_offset_y_m", "Center of mass offset Y (m)" ).c_str(), &vehicle.mCenterOfMassOffsetY, 0.01f, -3.0f, 3.0f );
-        ImGui::DragFloat( imgui::widget::LocalizedLabel( "inspector_suspension_frequency_hz", "Suspension frequency (Hz)" ).c_str(), &vehicle.mSuspensionFrequency, 0.05f, 0.1f, 10.0f );
-        ImGui::DragFloat( imgui::widget::LocalizedLabel( "inspector_suspension_damping", "Suspension damping" ).c_str(), &vehicle.mSuspensionDamping, 0.01f, 0.0f, 2.0f );
-        ImGui::DragFloat( imgui::widget::LocalizedLabel( "inspector_maximum_pitch_roll_degrees", "Maximum pitch / roll (degrees)" ).c_str(), &vehicle.mMaxPitchRollDegrees, 1.0f, 1.0f, 180.0f );
-        ImGui::DragFloat( imgui::widget::LocalizedLabel( "inspector_longitudinal_grip_multiplier", "Longitudinal grip multiplier" ).c_str(), &vehicle.mLongitudinalImpulseScale, 0.1f, 0.1f, 20.0f );
+        DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_half_track_m", "Half track (m)" ).c_str(), &vehicle.mHalfTrack, { 0.1f, 5.0f }, "%.3f", false );
+        DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_half_wheelbase_m", "Half wheelbase (m)" ).c_str(), &vehicle.mHalfWheelbase, { 0.1f, 10.0f }, "%.3f", false );
+        DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_wheel_radius_m", "Wheel radius (m)" ).c_str(), &vehicle.mWheelRadius, { 0.05f, 3.0f }, "%.3f", false );
+        DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_wheel_width_m", "Wheel width (m)" ).c_str(), &vehicle.mWheelWidth, { 0.01f, 2.0f }, "%.3f", false );
+        DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_suspension_minimum_m", "Suspension minimum (m)" ).c_str(), &vehicle.mSuspensionMin, { 0.01f, 2.0f }, "%.3f", false );
+        DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_suspension_maximum_m", "Suspension maximum (m)" ).c_str(), &vehicle.mSuspensionMax, { 0.01f, 3.0f }, "%.3f", false );
+        DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_steering_limit_degrees", "Steering limit (degrees)" ).c_str(), &vehicle.mMaxSteerDegrees, { 1.0f, 80.0f }, "%.3f", false );
+        DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_engine_torque_nm", "Engine torque (Nm)" ).c_str(), &vehicle.mEngineTorque, { 1.0f, 10000.0f }, "%.3f", false );
+        DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_wheel_anchor_height_m", "Wheel anchor height (m)" ).c_str(), &vehicle.mWheelAnchorHeight, { -3.0f, 3.0f }, "%.3f", false );
+        DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_center_of_mass_offset_y_m", "Center of mass offset Y (m)" ).c_str(), &vehicle.mCenterOfMassOffsetY, { -3.0f, 3.0f }, "%.3f", false );
+        DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_suspension_frequency_hz", "Suspension frequency (Hz)" ).c_str(), &vehicle.mSuspensionFrequency, { 0.1f, 10.0f }, "%.3f", false );
+        DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_suspension_damping", "Suspension damping" ).c_str(), &vehicle.mSuspensionDamping, { 0.0f, 2.0f }, "%.3f", false );
+        DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_maximum_pitch_roll_degrees", "Maximum pitch / roll (degrees)" ).c_str(), &vehicle.mMaxPitchRollDegrees, { 1.0f, 180.0f }, "%.3f", false );
+        DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_longitudinal_grip_multiplier", "Longitudinal grip multiplier" ).c_str(), &vehicle.mLongitudinalImpulseScale, { 0.1f, 20.0f }, "%.3f", false );
         imgui::CheckBox( imgui::widget::LocalizedLabel( "inspector_four_wheel_drive", "Four-wheel drive" ).c_str(), vehicle.mFourWheelDrive );
         imgui::CheckBox( imgui::widget::LocalizedLabel( "inspector_cylinder_wheel_casts", "Cylinder wheel casts" ).c_str(), vehicle.mCylinderWheelCast );
 
@@ -3046,11 +3139,11 @@ namespace mikoto::editor {
         }
     }
 
-    auto InspectorPanel::DrawWaterComponentTab( scene::Entity& entity ) -> void {
-        auto& water{ entity.GetComponent<scene::WaterRenderComponent>() };
+    auto InspectorPanel::DrawWaterComponentTab( scene::Entity &entity ) -> void {
+        auto &water{ entity.GetComponent<scene::WaterRenderComponent>() };
         const auto planeLabel{ MKT_LOC( "water_plane" ) };
         const auto customLabel{ MKT_LOC( "water_custom" ) };
-        const char* shapes[]{ planeLabel.c_str(), customLabel.c_str() };
+        const char *shapes[]{ planeLabel.c_str(), customLabel.c_str() };
         int shape{ static_cast<int>( water.GetShape() ) };
 
         if ( ImGui::Combo( MKT_LOC( "water_shape" ).c_str(), &shape, shapes, 2 ) ) {
@@ -3062,14 +3155,20 @@ namespace mikoto::editor {
             return;
         }
 
+        auto oceanAppearance{ water.GetAppearance() };
+        if ( imgui::CheckBox( "Infinite ocean", oceanAppearance.mInfiniteOcean ) ) {
+            water.SetAppearance( oceanAppearance );
+        }
+        ImGui::BeginDisabled( oceanAppearance.mInfiniteOcean );
         auto size{ water.GetPlaneDimensions() };
-        bool resize{ imgui::widget::CircleSlider( MKT_LOC( "water_width" ), &size.x, .01f, 100000.f, "%.2f" ) };
-        resize |= imgui::widget::CircleSlider( MKT_LOC( "water_depth" ), &size.y, .01f, 100000.f, "%.2f" );
+        bool resize{ DrawFloatProperty( MKT_LOC( "water_width" ), &size.x, { .01f, 100000.f }, "%.2f", true ) };
+        resize |= DrawFloatProperty( MKT_LOC( "water_depth" ), &size.y, { .01f, 100000.f }, "%.2f", true );
 
         if ( resize ) {
             water.SetPlaneDimensions( size );
         }
 
+        ImGui::EndDisabled();
         const auto resolution{ water.GetPlaneResolution() };
         core::i32 cellsX{ static_cast<core::i32>( resolution.x ) };
         core::i32 cellsZ{ static_cast<core::i32>( resolution.y ) };
@@ -3084,7 +3183,7 @@ namespace mikoto::editor {
         ImGui::Text( "%s: %u   %s: %u", MKT_LOC( "water_vertices" ).c_str(),
             ( cellsX + 1 ) * ( cellsZ + 1 ), MKT_LOC( "water_triangles" ).c_str(), cellsX * cellsZ * 2 );
         ImGui::SeparatorText( MKT_LOC( "render_debug_view" ).c_str() );
-        const char* debugViews[]{ MKT_LOC( "render_debug_none" ).c_str(),
+        const char *debugViews[]{ MKT_LOC( "render_debug_none" ).c_str(),
             MKT_LOC( "render_debug_vertices" ).c_str(),
             MKT_LOC( "render_debug_grid" ).c_str(),
             MKT_LOC( "render_debug_vertices_grid" ).c_str() };
@@ -3104,8 +3203,34 @@ namespace mikoto::editor {
 
         auto foam{ water.GetFoamAmount() };
 
-        if ( imgui::widget::CircleSlider( MKT_LOC( "water_foam_amount" ), &foam, 0.0f, 1.0f ) ) {
+        if ( DrawFloatProperty( MKT_LOC( "water_foam_amount" ), &foam, { 0.0f, 1.0f }, "%.3f", true ) ) {
             water.SetFoamAmount( foam );
+        }
+
+        if ( ImGui::CollapsingHeader( "Coast and underwater" ) ) {
+            auto appearance{ water.GetAppearance() };
+            bool changed{};
+            changed |= imgui::CheckBox( "Depth-based refraction", appearance.mDepthBasedRefractionEnabled );
+            changed |= imgui::CheckBox( "Shore foam", appearance.mShoreFoamEnabled );
+            changed |= DrawFloatProperty( "Shore foam depth", &appearance.mShoreFoamDepth, { .01f, 10.0f }, "%.2f m", true );
+            changed |= DrawFloatProperty( "Shore foam amount", &appearance.mShoreFoamAmount, { 0.0f, 1.0f }, "%.3f", true );
+            changed |= DrawFloatProperty( "Foam lifetime", &appearance.mFoamLifetime, { .1f, 30.0f }, "%.2f s", true );
+            changed |= DrawFloatProperty( "Full wave depth", &appearance.mWaveDepth, { .1f, 100.0f }, "%.2f m", true );
+            changed |= DrawFloatProperty( "Foam drift speed", &appearance.mShoreWaveSpeed, { 0.0f, 5.0f }, "%.2f", true );
+            changed |= imgui::CheckBox( "Underwater scattering", appearance.mUnderwaterScatteringEnabled );
+            changed |= DrawFloatProperty( "Red scattering", &appearance.mScattering.x, { 0.0f, 1.0f }, "%.4f /m", true );
+            changed |= DrawFloatProperty( "Green scattering", &appearance.mScattering.y, { 0.0f, 1.0f }, "%.4f /m", true );
+            changed |= DrawFloatProperty( "Blue scattering", &appearance.mScattering.z, { 0.0f, 1.0f }, "%.4f /m", true );
+            changed |= DrawFloatProperty( "Phase anisotropy", &appearance.mAnisotropy, { -.95f, .95f }, "%.3f", true );
+            changed |= DrawFloatProperty( "Maximum water depth", &appearance.mMaximumDepth, { .1f, 1000.0f }, "%.1f m", true );
+            changed |= imgui::CheckBox( "Caustics", appearance.mCausticsEnabled );
+            changed |= DrawFloatProperty( "Caustics strength", &appearance.mCausticsStrength, { 0.0f, 2.0f }, "%.3f", true );
+            changed |= DrawFloatProperty( "Caustics scale", &appearance.mCausticsScale, { .01f, 4.0f }, "%.2f /m", true );
+            changed |= DrawFloatProperty( "Caustics depth", &appearance.mCausticsDepth, { .1f, 100.0f }, "%.1f m", true );
+
+            if ( changed ) {
+                water.SetAppearance( appearance );
+            }
         }
 
         if ( ImGui::TreeNodeEx( "WaterSurface", ImGuiTreeNodeFlags_DefaultOpen, "%s", MKT_LOC( "material_dielectric" ).c_str() ) ) {
@@ -3118,16 +3243,16 @@ namespace mikoto::editor {
 
             auto roughness{ surface->GetRoughnessFactor() };
 
-            if ( imgui::widget::CircleSlider( MKT_LOC( "inspector_roughness" ), &roughness, 0.04f, 1.0f ) ) {
+            if ( DrawFloatProperty( MKT_LOC( "inspector_roughness" ), &roughness, { 0.04f, 1.0f }, "%.3f", true ) ) {
                 surface->SetRoughnessFactor( roughness );
             }
 
             auto settings{ surface->GetDielectric() };
             bool changed{};
-            changed |= imgui::widget::CircleSlider( MKT_LOC( "material_ior" ), &settings.mIndexOfRefraction, 1.0f, 2.5f, "%.3f" );
-            changed |= imgui::widget::CircleSlider( MKT_LOC( "material_transmission" ), &settings.mTransmission, 0.0f, 1.0f );
-            changed |= imgui::widget::CircleSlider( MKT_LOC( "material_thickness" ), &settings.mThickness, 0.0f, 100.0f );
-            changed |= imgui::widget::CircleSlider( MKT_LOC( "material_attenuation_distance" ), &settings.mAttenuationDistance, 0.001f, 1000.0f );
+            changed |= DrawFloatProperty( MKT_LOC( "material_ior" ), &settings.mIndexOfRefraction, { 1.0f, 2.5f }, "%.3f", true );
+            changed |= DrawFloatProperty( MKT_LOC( "material_transmission" ), &settings.mTransmission, { 0.0f, 1.0f }, "%.3f", true );
+            changed |= DrawFloatProperty( MKT_LOC( "material_thickness" ), &settings.mThickness, { 0.0f, 100.0f }, "%.3f", true );
+            changed |= DrawFloatProperty( MKT_LOC( "material_attenuation_distance" ), &settings.mAttenuationDistance, { 0.001f, 1000.0f }, "%.3f", true );
             changed |= ImGui::ColorEdit3( MKT_LOC( "material_attenuation_color" ).c_str(), &settings.mAttenuationColor.x );
 
             if ( changed ) {
@@ -3138,11 +3263,11 @@ namespace mikoto::editor {
         }
     }
 
-    auto InspectorPanel::DrawWaterSimulationComponentTab( scene::Entity& entity ) -> void {
-        auto& water{ entity.GetComponent<scene::WaterSimulationComponent>() };
+    auto InspectorPanel::DrawWaterSimulationComponentTab( scene::Entity &entity ) -> void {
+        auto &water{ entity.GetComponent<scene::WaterSimulationComponent>() };
         const auto sines{ MKT_LOC( "water_sines" ) };
         const auto fft{ MKT_LOC( "water_fft" ) };
-        const char* types[]{ sines.c_str(), "Gerstner", fft.c_str() };
+        const char *types[]{ sines.c_str(), "Gerstner", fft.c_str() };
         auto type{ core::as<core::i32>( water.GetType() ) };
 
         if ( ImGui::Combo( MKT_LOC( "water_simulation_type" ).c_str(), &type, types, IM_ARRAYSIZE( types ) ) ) {
@@ -3151,14 +3276,14 @@ namespace mikoto::editor {
 
         auto timeScale{ water.GetTimeScale() };
 
-        if ( imgui::widget::CircleSlider( MKT_LOC( "water_time_scale" ), &timeScale, 0.f, 10.f, "%.2f" ) ) {
+        if ( DrawFloatProperty( MKT_LOC( "water_time_scale" ), &timeScale, { 0.f, 10.f }, "%.2f", true ) ) {
             water.SetTimeScale( timeScale );
         }
 
         if ( water.GetType() == scene::WaterSimulationType::eGerstner ) {
             auto steepness{ water.GetSteepness() };
 
-            if ( imgui::widget::CircleSlider( MKT_LOC( "water_steepness" ), &steepness, 0.0f, 0.95f ) ) {
+            if ( DrawFloatProperty( MKT_LOC( "water_steepness" ), &steepness, { 0.0f, 0.95f }, "%.3f", true ) ) {
                 water.SetSteepness( steepness );
             }
         }
@@ -3172,14 +3297,12 @@ namespace mikoto::editor {
             auto settings{ water.GetFftSettings() };
             bool changed{};
 
-            changed |= imgui::widget::CircleSlider( MKT_LOC( "water_fft_patch_length" ), &settings.mPatchLength,
-                FftSettings::kMinPatchLength, FftSettings::kMaxPatchLength, "%.1f" );
-            changed |= imgui::widget::CircleSlider( MKT_LOC( "water_fft_wind_speed" ), &settings.mWindSpeed,
-                0.0f, FftSettings::kMaxWindSpeed, "%.1f" );
-            changed |= imgui::widget::CircleSlider( MKT_LOC( "water_fft_wind_direction" ), &settings.mWindDirection, -180.0f, 180.0f, "%.1f" );
+            changed |= DrawFloatProperty( MKT_LOC( "water_fft_patch_length" ), &settings.mPatchLength, { FftSettings::kMinPatchLength, FftSettings::kMaxPatchLength }, "%.1f", true );
+            changed |= DrawFloatProperty( MKT_LOC( "water_fft_wind_speed" ), &settings.mWindSpeed, { 0.0f, FftSettings::kMaxWindSpeed }, "%.1f", true );
+            changed |= DrawFloatProperty( MKT_LOC( "water_fft_wind_direction" ), &settings.mWindDirection, { -180.0f, 180.0f }, "%.1f", true );
 
-            changed |= imgui::widget::CircleSlider( MKT_LOC( "water_amplitude" ), &settings.mAmplitude, 0.0f, FftSettings::kMaxAmplitude, "%.2f" );
-            changed |= imgui::widget::CircleSlider( MKT_LOC( "water_fft_choppiness" ), &settings.mChoppiness, 0.0f, FftSettings::kMaxChoppiness, "%.2f" );
+            changed |= DrawFloatProperty( MKT_LOC( "water_amplitude" ), &settings.mAmplitude, { 0.0f, FftSettings::kMaxAmplitude }, "%.2f", true );
+            changed |= DrawFloatProperty( MKT_LOC( "water_fft_choppiness" ), &settings.mChoppiness, { 0.0f, FftSettings::kMaxChoppiness }, "%.2f", true );
             changed |= ImGui::InputScalar( MKT_LOC( "inspector_random_seed" ).c_str(), ImGuiDataType_U32, &settings.mSeed );
 
             if ( changed ) {
@@ -3198,18 +3321,18 @@ namespace mikoto::editor {
             ImGui::PushID( static_cast<int>( i ) );
 
             if ( ImGui::TreeNodeEx( "Wave", ImGuiTreeNodeFlags_DefaultOpen, "%s %u", MKT_LOC( "water_wave" ).c_str(), static_cast<unsigned>( i + 1 ) ) ) {
-                auto& wave{ waves[i] };
+                auto &wave{ waves[i] };
                 float direction{ glm::degrees( std::atan2( wave.mDirection.y, wave.mDirection.x ) ) };
 
-                if ( imgui::widget::CircleSlider( MKT_LOC( "water_direction" ), &direction, -180.0f, 180.0f, "%.1f" ) ) {
+                if ( DrawFloatProperty( MKT_LOC( "water_direction" ), &direction, { -180.0f, 180.0f }, "%.1f", true ) ) {
                     wave.mDirection = { std::cos( glm::radians( direction ) ), std::sin( glm::radians( direction ) ) };
                     changed = true;
                 }
 
-                changed |= imgui::widget::CircleSlider( MKT_LOC( "water_amplitude" ), &wave.mAmplitude, 0.f, 100.f, "%.2f" );
-                changed |= imgui::widget::CircleSlider( MKT_LOC( "water_wavelength" ), &wave.mWavelength, .01f, 10000.f, "%.2f" );
-                changed |= imgui::widget::CircleSlider( MKT_LOC( "water_speed" ), &wave.mSpeed, -100.f, 100.f, "%.2f" );
-                changed |= imgui::widget::CircleSlider( MKT_LOC( "water_phase" ), &wave.mPhaseOffset, -glm::two_pi<float>(), glm::two_pi<float>(), "%.2f" );
+                changed |= DrawFloatProperty( MKT_LOC( "water_amplitude" ), &wave.mAmplitude, { 0.f, 100.f }, "%.2f", true );
+                changed |= DrawFloatProperty( MKT_LOC( "water_wavelength" ), &wave.mWavelength, { .01f, 10000.f }, "%.2f", true );
+                changed |= DrawFloatProperty( MKT_LOC( "water_speed" ), &wave.mSpeed, { -100.f, 100.f }, "%.2f", true );
+                changed |= DrawFloatProperty( MKT_LOC( "water_phase" ), &wave.mPhaseOffset, { -glm::two_pi<float>(), glm::two_pi<float>() }, "%.2f", true );
 
                 if ( ImGui::Button( MKT_LOC( "water_remove_wave" ).c_str() ) ) {
                     remove = static_cast<int>( i );
@@ -3244,8 +3367,8 @@ namespace mikoto::editor {
         }
     }
 
-    auto InspectorPanel::DrawVehicleWheelComponentTab( scene::Entity& entity ) -> void {
-        auto& wheel{ entity.GetComponent<scene::VehicleWheelComponent>() };
+    auto InspectorPanel::DrawVehicleWheelComponentTab( scene::Entity &entity ) -> void {
+        auto &wheel{ entity.GetComponent<scene::VehicleWheelComponent>() };
         core::i32 index{ static_cast<core::i32>( wheel.mIndex ) };
         // Tracks and custom vehicles can have more than four visual wheel bindings.
         if ( ImGui::InputInt( imgui::widget::LocalizedLabel( "inspector_wheel_index", "Wheel index" ).c_str(), &index ) ) {
@@ -3260,14 +3383,14 @@ namespace mikoto::editor {
         }
     }
 
-    auto InspectorPanel::DrawPhysicsComponentTab( scene::Entity& entity ) -> void {
+    auto InspectorPanel::DrawPhysicsComponentTab( scene::Entity &entity ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( !entity.HasComponent<scene::RigidBodyComponent>() ) {
             return;
         }
 
-        auto& rb{ entity.GetComponent<scene::RigidBodyComponent>() };
+        auto &rb{ entity.GetComponent<scene::RigidBodyComponent>() };
 
         if ( ImGui::CollapsingHeader( imgui::widget::LocalizedLabel( "inspector_rigid_body", "Rigid Body" ).c_str(), ImGuiTreeNodeFlags_DefaultOpen ) ) {
 
@@ -3294,7 +3417,7 @@ namespace mikoto::editor {
             ImGui::Text( "%s", MKT_LOC( "inspector_mass" ).c_str() );
             ImGui::SameLine( ImGui::GetWindowWidth() * 0.25f );
 
-            if ( ImGui::DragFloat( "##PhysicsTabMass", &mass, 0.1f, 0.0f, 1000.0f, "%.2f" ) ) {
+            if ( DrawFloatProperty( "##PhysicsTabMass", &mass, { 0.0f, 1000.0f }, "%.2f", false ) ) {
                 rb.SetMass( mass );
             }
 
@@ -3303,7 +3426,7 @@ namespace mikoto::editor {
             ImGui::Text( "%s", MKT_LOC( "inspector_friction" ).c_str() );
             ImGui::SameLine( ImGui::GetWindowWidth() * 0.25f );
 
-            if ( ImGui::SliderFloat( "##PhysicsTabFriction", &friction, 0.0f, 1.0f, "%.2f" ) ) {
+            if ( DrawFloatProperty( "##PhysicsTabFriction", &friction, { 0.0f, 1.0f }, "%.2f", false ) ) {
                 rb.SetFriction( friction );
             }
 
@@ -3311,7 +3434,7 @@ namespace mikoto::editor {
             ImGui::Text( "%s", MKT_LOC( "inspector_restitution_bounciness" ).c_str() );
             ImGui::SameLine( ImGui::GetWindowWidth() * 0.25f );
 
-            if ( ImGui::SliderFloat( "##PhysicsTabRestitution", &restitution, 0.0f, 5.0f ) ) {
+            if ( DrawFloatProperty( "##PhysicsTabRestitution", &restitution, { 0.0f, 5.0f }, "%.3f", false ) ) {
                 rb.SetRestitution( restitution );
             }
 
@@ -3335,7 +3458,7 @@ namespace mikoto::editor {
             ImGui::Text( "%s", MKT_LOC( "inspector_linear_velocity" ).c_str() );
             ImGui::SameLine( ImGui::GetWindowWidth() * 0.35f );
 
-            if ( ImGui::DragFloat3( "##LinearVelocity", &linearVel.x, 0.1f ) ) {
+            if ( DrawFloatVectorProperty( "##LinearVelocity", &linearVel.x, 3, { 0, 0 }, "%.3f", false ) ) {
                 rb.SetLinearVelocity( linearVel );
             }
 
@@ -3344,7 +3467,7 @@ namespace mikoto::editor {
             ImGui::Text( "%s", MKT_LOC( "inspector_angular_velocity" ).c_str() );
             ImGui::SameLine( ImGui::GetWindowWidth() * 0.35f );
 
-            if ( ImGui::DragFloat3( "##AngularVelocity", &angularVel.x, 0.1f ) ) {
+            if ( DrawFloatVectorProperty( "##AngularVelocity", &angularVel.x, 3, { 0, 0 }, "%.3f", false ) ) {
                 rb.SetAngularVelocity( angularVel );
             }
 
@@ -3353,7 +3476,7 @@ namespace mikoto::editor {
         }
     }
 
-    auto InspectorPanel::DrawRenderComponentTab( scene::Entity& entity ) -> void {
+    auto InspectorPanel::DrawRenderComponentTab( scene::Entity &entity ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( !entity.HasComponent<scene::MeshComponent>() ) {
@@ -3365,7 +3488,7 @@ namespace mikoto::editor {
 
         const auto sourceLabel{ string::Format( fmt::runtime( MKT_LOC( "inspector_source" ).c_str() ), ICON_MD_ARCHIVE ) };
         const auto loadLabel{ string::Format( fmt::runtime( MKT_LOC( "inspector_load_drawrendercomponenttab_searchbutton" ).c_str() ), ICON_MD_SEARCH ) };
-        const auto& style{ ImGui::GetStyle() };
+        const auto &style{ ImGui::GetStyle() };
         const core::f32 sourceWidth{ ImGui::CalcTextSize( sourceLabel.c_str(), nullptr, true ).x + 2.0f * style.FramePadding.x };
         const core::f32 loadWidth{ ImGui::CalcTextSize( loadLabel.c_str(), nullptr, true ).x + 2.0f * style.FramePadding.x };
         const core::f32 gap{ style.ItemSpacing.x };
@@ -3380,7 +3503,7 @@ namespace mikoto::editor {
             ImGui::SameLine();
         }
 
-        scene::MeshComponent& component{ entity.GetComponent<scene::MeshComponent>() };
+        scene::MeshComponent &component{ entity.GetComponent<scene::MeshComponent>() };
         eastl::string path{ component.GetModelPath().GetC_Str() };
         const core::f32 available{ ImGui::GetContentRegionAvail().x };
         const bool loadFitsBesidePath{ available >= pathMinWidth + gap + loadWidth };
@@ -3397,7 +3520,7 @@ namespace mikoto::editor {
         }
 
         if ( ImGui::Button( loadLabel.c_str() ) ) {
-            scene::Scene* scene{ mState->mActiveScene };
+            scene::Scene *scene{ mState->mActiveScene };
             const entt::entity rootHandle{ entity.Get() };
             threading::TaskService::Get()->ExecuteWorkerTask( [scene, rootHandle]() -> void {
                 const std::initializer_list<filesystem::FileDialogPair> filters{
@@ -3440,9 +3563,9 @@ namespace mikoto::editor {
         ImGui::Indent();
     }
 
-    auto InspectorPanel::DrawLightComponentTab( scene::Entity& entity ) -> void {
+    auto InspectorPanel::DrawLightComponentTab( scene::Entity &entity ) -> void {
         MKT_BEGIN_PROFILER();
-        scene::LightComponent& lightComponent{ entity.GetComponent<scene::LightComponent>() };
+        scene::LightComponent &lightComponent{ entity.GetComponent<scene::LightComponent>() };
 
         struct LightOption {
             renderer::LightType mType{};
@@ -3457,7 +3580,7 @@ namespace mikoto::editor {
         const auto lightType{ lightComponent.GetActiveType() };
         eastl::string preview{ MKT_LOC( "inspector_light_type" ) };
 
-        for ( const auto& option: lightTypes ) {
+        for ( const auto &option: lightTypes ) {
             if ( option.mType == lightType ) {
                 preview = MKT_LOC( option.mLabelKey );
                 break;
@@ -3468,7 +3591,7 @@ namespace mikoto::editor {
             LightPropertyRow( "inspector_light_type" );
 
             if ( ImGui::BeginCombo( "##LightType", preview.c_str() ) ) {
-                for ( const auto& option: lightTypes ) {
+                for ( const auto &option: lightTypes ) {
                     const bool selected{ option.mType == lightType };
 
                     if ( ImGui::Selectable( imgui::widget::LocalizedLabel( option.mLabelKey ).c_str(), selected ) ) {
@@ -3509,8 +3632,8 @@ namespace mikoto::editor {
         }
     }
 
-    auto InspectorPanel::DrawAreaLightOptions( scene::LightComponent& component ) -> void {
-        auto& light{ component.Get<renderer::AreaLight>() };
+    auto InspectorPanel::DrawAreaLightOptions( scene::LightComponent &component ) -> void {
+        auto &light{ component.Get<renderer::AreaLight>() };
 
         if ( BeginLightPropertiesTable( "AreaLightProperties" ) ) {
             LightPropertyRow( "inspector_area_light_shape" );
@@ -3530,7 +3653,7 @@ namespace mikoto::editor {
             LightPropertyRow( "inspector_intensity" );
             float intensity{ light.GetIntensity() };
 
-            if ( ImGui::DragFloat( "##AreaIntensity", &intensity, 0.1f, 0.0f, FLT_MAX, "%.2f", ImGuiSliderFlags_AlwaysClamp ) ) {
+            if ( DrawFloatProperty( "##AreaIntensity", &intensity, { 0.0f, FLT_MAX }, "%.2f", true ) ) {
                 light.SetIntensity( intensity );
             }
 
@@ -3538,16 +3661,56 @@ namespace mikoto::editor {
                 LightPropertyRow( "inspector_area_light_size" );
                 auto size{ light.GetSize() };
 
-                if ( ImGui::DragFloat2( "##AreaSize", &size.x, 0.01f, 0.0f, FLT_MAX, "%.2f", ImGuiSliderFlags_AlwaysClamp ) ) {
+                if ( DrawFloatVectorProperty( "##AreaSize", &size.x, 2, { 0.0f, FLT_MAX }, "%.2f", true ) ) {
                     light.SetSize( size );
                 }
+
+                LightPropertyRow( "inspector_area_light_material_emission" );
+                bool materialEmission{ light.IsMaterialEmissionEnabled() };
+                if ( imgui::CheckBox( "##AreaMaterialEmission", materialEmission ) ) {
+                    light.SetMaterialEmissionEnabled( materialEmission );
+                }
+
+                ImGui::BeginDisabled( !materialEmission );
+                LightPropertyRow( "inspector_area_light_emission_source" );
+                auto *scene{ mState->mActiveScene };
+                const auto *selected{ scene->FindByID( light.GetEmissionSourceEntityID() ) };
+                const auto preview{ selected ? selected->GetComponent<scene::TagComponent>().GetTag() : MKT_LOC( light.GetEmissionSourceEntityID() ? "audio_missing" : "inspector_area_light_self" ) };
+
+                if ( ImGui::BeginCombo( "##AreaEmissionSource", preview.c_str() ) ) {
+                    if ( ImGui::Selectable( MKT_LOC( "inspector_area_light_self" ).c_str(), !light.GetEmissionSourceEntityID() ) ) {
+                        light.SetEmissionSourceEntityID( 0 );
+                    }
+
+                    for ( auto [handle, tag, source]: scene->GetRegistry().view<scene::TagComponent, scene::MaterialComponent>().each() ) {
+                        ImGui::PushID( core::as<int>( handle ) );
+                        if ( ImGui::Selectable( tag.GetTag().c_str(), tag.GetGuid() == light.GetEmissionSourceEntityID() ) ) {
+                            light.SetEmissionSourceEntityID( tag.GetGuid() );
+                        }
+                        ImGui::PopID();
+                    }
+
+                    ImGui::EndCombo();
+                }
+
+                if ( ImGui::BeginDragDropTarget() ) {
+                    if ( const auto *payload{ ImGui::AcceptDragDropPayload( "MIKOTO_ENTITY" ) }; payload && payload->DataSize == sizeof( core::u64 ) ) {
+                        const auto id{ *static_cast<const core::u64 *>( payload->Data ) };
+                        const auto *source{ scene->FindByID( id ) };
+                        if ( source && source->HasComponent<scene::MaterialComponent>() ) {
+                            light.SetEmissionSourceEntityID( id );
+                        }
+                    }
+                    ImGui::EndDragDropTarget();
+                }
+                ImGui::EndDisabled();
             }
 
             if ( light.GetShape() == renderer::AreaLightShape::eTube ) {
                 LightPropertyRow( "inspector_area_light_length" );
                 auto size{ light.GetSize() };
 
-                if ( imgui::widget::CircleSlider( "##AreaLength", &size.x, 0.0f, 50.0f, "%.2f m", false ) ) {
+                if ( DrawFloatProperty( "##AreaLength", &size.x, { 0.0f, 50.0f }, "%.2f m", false ) ) {
                     light.SetSize( size );
                 }
             }
@@ -3556,7 +3719,7 @@ namespace mikoto::editor {
                 LightPropertyRow( "inspector_source_radius" );
                 float radius{ light.GetRadius() };
 
-                if ( imgui::widget::CircleSlider( "##AreaRadius", &radius, 0.0f, 10.0f, "%.2f m", false ) ) {
+                if ( DrawFloatProperty( "##AreaRadius", &radius, { 0.0f, 10.0f }, "%.2f m", false ) ) {
                     light.SetRadius( radius );
                 }
             }
@@ -3565,7 +3728,7 @@ namespace mikoto::editor {
                 LightPropertyRow( "inspector_area_light_range" );
                 float range{ light.GetRange() };
 
-                if ( imgui::widget::CircleSlider( "##AreaRange", &range, 0.0f, 100.0f, "%.2f m", false ) ) {
+                if ( DrawFloatProperty( "##AreaRange", &range, { 0.0f, 100.0f }, "%.2f m", false ) ) {
                     light.SetRange( range );
                 }
             }
@@ -3583,11 +3746,14 @@ namespace mikoto::editor {
         }
 
         ImGui::TextWrapped( "%s", MKT_LOC( "inspector_area_light_path_tracing" ).c_str() );
+        if ( light.GetShape() == renderer::AreaLightShape::eRectangle ) {
+            ImGui::TextWrapped( "%s", MKT_LOC( "inspector_area_light_material_emission_help" ).c_str() );
+        }
     }
 
-    auto InspectorPanel::DrawTextComponentTab( scene::Entity& entity ) -> void {
+    auto InspectorPanel::DrawTextComponentTab( scene::Entity &entity ) -> void {
         MKT_BEGIN_PROFILER();
-        auto& text{ entity.GetComponent<scene::TextComponent>() };
+        auto &text{ entity.GetComponent<scene::TextComponent>() };
         ImGui::PushID( static_cast<int>( entity.Get() ) );
 
         ImGui::SeparatorText( MKT_LOC( "inspector_font" ).c_str() );
@@ -3598,7 +3764,7 @@ namespace mikoto::editor {
             text.SetBackend( as<scene::TextBackend>( backend ) );
         }
 
-        const auto* font{ text.GetFont() };
+        const auto *font{ text.GetFont() };
         ImGui::TextUnformatted( font ? font->GetName().data() : MKT_LOC( "inspector_no_font_selected" ).c_str() );
 
         if ( font && ImGui::IsItemHovered() ) {
@@ -3611,19 +3777,19 @@ namespace mikoto::editor {
 
             if ( !path.IsEmpty() ) {
                 threading::TaskService::Get()->ExecuteWorkerTask(
-                [this, pEntity = MKT_ADDRESSOF( entity ), path]() mutable -> void {
-                    // We do not know if by the time this worker
-                    // runs this entity still has a text component
-                    if (!pEntity->HasComponent<TextComponent>()) {
-                        return;
-                    }
+                    [this, pEntity = MKT_ADDRESSOF( entity ), path]() mutable -> void {
+                        // We do not know if by the time this worker
+                        // runs this entity still has a text component
+                        if ( !pEntity->HasComponent<TextComponent>() ) {
+                            return;
+                        }
 
-                    auto& textComponent{ pEntity->GetComponent<TextComponent>() };
-                    FontHandle font{ asset::AssetRegistryService::Get()->LoadAsset<renderer::Font>( path ) };
-                    if (!font.IsEmpty()) {
-                        textComponent.SetFont( font );
-                    }
-                } );
+                        auto &textComponent{ pEntity->GetComponent<TextComponent>() };
+                        FontHandle font{ asset::AssetRegistryService::Get()->LoadAsset<renderer::Font>( path ) };
+                        if ( !font.IsEmpty() ) {
+                            textComponent.SetFont( font );
+                        }
+                    } );
             }
         }
 
@@ -3631,16 +3797,16 @@ namespace mikoto::editor {
 
         auto assigned{ text.GetMaterial() };
         ImGui::TextUnformatted( assigned ? assigned->GetName().c_str() : MKT_LOC( "inspector_default_component_tint" ).c_str() );
-        const auto assignMaterial{ [&]( const filesystem::Path& path ) {
+        const auto assignMaterial{ [&]( const filesystem::Path &path ) {
             try {
                 auto loaded{ material::LoadMaterial( filesystem::FileHandle::New( path ) ) };
 
-                if ( !dynamic_cast<material::TextMaterial*>( loaded.GetPtr() ) ) {
+                if ( !dynamic_cast<material::TextMaterial *>( loaded.GetPtr() ) ) {
                     MKT_THROW_RUNTIME_ERROR( MKT_LOC( "inspector_choose_a_text_material_for_a_text_component" ).c_str() );
                 }
 
                 text.SetMaterial( loaded.As<material::TextMaterial>() );
-            } catch ( const std::exception& error ) {
+            } catch ( const std::exception &error ) {
                 MKT_CORE_LOGGER_ERROR( "{}", string::Format( fmt::runtime( MKT_LOC( "inspector_text_material" ).c_str() ), error.what() ) );
             }
         } };
@@ -3655,9 +3821,9 @@ namespace mikoto::editor {
         }
 
         if ( ImGui::BeginDragDropTarget() ) {
-            if ( const auto* payload{ ImGui::AcceptDragDropPayload( "CONTENT_BROWSER_TEXT_MATERIAL" ) } ) {
-                if ( payload->DataSize > 0 && static_cast<const char*>( payload->Data )[payload->DataSize - 1] == '\0' ) {
-                    assignMaterial( filesystem::Path{ static_cast<const char*>( payload->Data ) } );
+            if ( const auto *payload{ ImGui::AcceptDragDropPayload( "CONTENT_BROWSER_TEXT_MATERIAL" ) } ) {
+                if ( payload->DataSize > 0 && static_cast<const char *>( payload->Data )[payload->DataSize - 1] == '\0' ) {
+                    assignMaterial( filesystem::Path{ static_cast<const char *>( payload->Data ) } );
                 }
             }
 
@@ -3679,16 +3845,14 @@ namespace mikoto::editor {
             text.SetIsWorldText( space == 1 );
         }
 
-        ImGui::TextWrapped( "%s", text.IsWorldText() ?
-            MKT_LOC( "inspector_size_and_spacing_use_world_units_the_origin_is_the" ).c_str() :
-            MKT_LOC( "inspector_size_spacing_and_position_use_render_pixels_from_the_top" ).c_str() );
+        ImGui::TextWrapped( "%s", text.IsWorldText() ? MKT_LOC( "inspector_size_and_spacing_use_world_units_the_origin_is_the" ).c_str() : MKT_LOC( "inspector_size_spacing_and_position_use_render_pixels_from_the_top" ).c_str() );
 
         if ( !text.IsWorldText() ) {
-            auto& placement = text.GetScreenPlacement();
-            ImGui::DragFloat2( imgui::widget::LocalizedLabel( "inspector_position_px", "Position (px)" ).c_str(), glm::value_ptr( placement.mPosition ), 1.0f );
+            auto &placement = text.GetScreenPlacement();
+            DrawFloatVectorProperty( imgui::widget::LocalizedLabel( "inspector_position_px", "Position (px)" ).c_str(), glm::value_ptr( placement.mPosition ), 2, { 0, 0 }, "%.3f", false );
             float angle = glm::degrees( placement.mRotation );
 
-            if ( ImGui::DragFloat( imgui::widget::LocalizedLabel( "inspector_rotation", "Rotation" ).c_str(), &angle, 0.5f ) ) {
+            if ( DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_rotation", "Rotation" ).c_str(), &angle, { 0, 0 }, "%.3f", false ) ) {
                 core::float2 center{};
 
                 if ( font ) {
@@ -3707,7 +3871,7 @@ namespace mikoto::editor {
                 placement.mPosition += before - after;
             }
 
-            ImGui::DragFloat2( imgui::widget::LocalizedLabel( "inspector_scale", "Scale" ).c_str(), glm::value_ptr( placement.mScale ), 0.01f, 0.01f, 100.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp );
+            DrawFloatVectorProperty( imgui::widget::LocalizedLabel( "inspector_scale", "Scale" ).c_str(), glm::value_ptr( placement.mScale ), 2, { 0.01f, 100.0f }, "%.2f", true );
 
             if ( ImGui::Button( imgui::widget::LocalizedLabel( "inspector_reset_screen_placement", "Reset screen placement" ).c_str() ) ) {
                 placement = {};
@@ -3724,17 +3888,15 @@ namespace mikoto::editor {
         float spacing{ text.GetSpacing() };
         float lineSpacing{ text.GetLineSpacing() };
 
-        if ( ImGui::DragFloat( imgui::widget::LocalizedLabel( "inspector_font_size", "Font size" ).c_str(), &size, text.IsWorldText() ? 0.01f : 0.25f,
-                 scene::TextComponent::GetMinLetterSize(), scene::TextComponent::GetMaxLetterSize(), "%.3f", ImGuiSliderFlags_AlwaysClamp ) ) {
+        if ( DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_font_size", "Font size" ).c_str(), &size, { scene::TextComponent::GetMinLetterSize(), scene::TextComponent::GetMaxLetterSize() }, "%.3f", true ) ) {
             text.SetSize( size );
         }
 
-        if ( ImGui::DragFloat( imgui::widget::LocalizedLabel( "inspector_letter_spacing", "Letter spacing" ).c_str(), &spacing, 0.01f, scene::TextComponent::GetMinLetterSpacing(),
-                 scene::TextComponent::GetMaxLetterSpacing(), "%.3f", ImGuiSliderFlags_AlwaysClamp ) ) {
+        if ( DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_letter_spacing", "Letter spacing" ).c_str(), &spacing, { scene::TextComponent::GetMinLetterSpacing(), scene::TextComponent::GetMaxLetterSpacing() }, "%.3f", true ) ) {
             text.SetSpacing( spacing );
         }
 
-        if ( ImGui::DragFloat( imgui::widget::LocalizedLabel( "inspector_line_spacing", "Line spacing" ).c_str(), &lineSpacing, 0.01f, 0.1f, 10.0f, "%.2fx", ImGuiSliderFlags_AlwaysClamp ) ) {
+        if ( DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_line_spacing", "Line spacing" ).c_str(), &lineSpacing, { 0.1f, 10.0f }, "%.2fx", true ) ) {
             text.SetLineSpacing( lineSpacing );
         }
 
@@ -3746,7 +3908,7 @@ namespace mikoto::editor {
 
         core::f32 outlineWidth{ text.GetOutlineWidth() };
 
-        if ( ImGui::SliderFloat( imgui::widget::LocalizedLabel( "inspector_outline_width", "Outline width" ).c_str(), &outlineWidth, 0.0f, 0.125f, "%.3f em" ) ) {// units: em's?
+        if ( DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_outline_width", "Outline width" ).c_str(), &outlineWidth, { 0.0f, 0.125f }, "%.3f em", false ) ) {// units: em's?
             text.SetOutlineWidth( outlineWidth );
         }
 
@@ -3809,10 +3971,10 @@ namespace mikoto::editor {
         ImGui::PopID();
     }
 
-    auto InspectorPanel::DrawAudioListenerComponentTab( scene::Entity& entity ) -> void {
+    auto InspectorPanel::DrawAudioListenerComponentTab( scene::Entity &entity ) -> void {
         MKT_BEGIN_PROFILER();
 
-        auto& component{ entity.GetComponent<scene::AudioListenerComponent>() };
+        auto &component{ entity.GetComponent<scene::AudioListenerComponent>() };
         bool enabled{ component.IsEnabled() };
 
         if ( imgui::CheckBox( imgui::widget::LocalizedLabel( "inspector_enabled", "Enabled" ).c_str(), enabled ) ) {
@@ -3825,25 +3987,25 @@ namespace mikoto::editor {
             ImGui::TextDisabled( "%s", MKT_LOC( "inspector_no_listener_slot_allocated" ).c_str() );
 
             if ( ImGui::Button( imgui::widget::LocalizedLabel( "inspector_allocate_listener", "Allocate listener" ).c_str() ) ) {
-                const auto& transform{ entity.GetComponent<scene::TransformComponent>() };
+                const auto &transform{ entity.GetComponent<scene::TransformComponent>() };
                 component.SetListener( audio::AudioService::Get()->CreateListener( transform.GetTranslation() ) );
             }
 
             return;
         }
 
-        const auto& listener{ component.GetListener() };
-        const auto& position{ listener.GetPosition() };
+        const auto &listener{ component.GetListener() };
+        const auto &position{ listener.GetPosition() };
         ImGui::Text( MKT_LOC( "inspector_listener" ).c_str(), listener.GetIndex() + 1 );
         ImGui::Text( MKT_LOC( "inspector_position" ).c_str(), position.x, position.y, position.z );
         ImGui::Text( MKT_LOC( "inspector_speed_units_s" ).c_str(), glm::length( listener.GetVelocity() ) );
         ImGui::TextWrapped( "%s", MKT_LOC( "inspector_position_and_orientation_follow_the_world_transform_including_parents_turn" ).c_str() );
     }
 
-    auto InspectorPanel::DrawAudioRoutingField( const char* label, core::u64& output, core::u64 mixer, core::u64 self, bool mixerOnly ) -> bool {
-        auto* scene{ mState->mActiveScene };
+    auto InspectorPanel::DrawAudioRoutingField( const char *label, core::u64 &output, core::u64 mixer, core::u64 self, bool mixerOnly ) -> bool {
+        auto *scene{ mState->mActiveScene };
 
-        const auto accepts = [&]( scene::Entity* candidate ) {
+        const auto accepts = [&]( scene::Entity *candidate ) {
             if ( !candidate ) {
                 return false;
             }
@@ -3886,7 +4048,7 @@ namespace mikoto::editor {
         };
 
         bool changed{};
-        const auto assign = [&]( scene::Entity* candidate ) {
+        const auto assign = [&]( scene::Entity *candidate ) {
             if ( accepts( candidate ) ) {
                 const core::u64 id{ candidate->GetComponent<scene::TagComponent>().GetGuid() };
                 output = id == mixer ? 0 : id;
@@ -3899,7 +4061,7 @@ namespace mikoto::editor {
         ImGui::TextUnformatted( label );
         ImGui::SameLine( 90 );
 
-        const auto* selected{ scene->FindByID( output ) };
+        const auto *selected{ scene->FindByID( output ) };
         const eastl::string preview{ selected ? selected->GetComponent<scene::TagComponent>().GetTag() : MKT_LOC( output ? "audio_missing" : mixer   ? "audio_master"
                                                                                                                                          : mixerOnly ? "audio_none"
                                                                                                                                                      : "audio_device" ) };
@@ -3914,7 +4076,7 @@ namespace mikoto::editor {
             }
 
             for ( const auto handle: scene->GetRegistry().view<scene::TagComponent>() ) {
-                auto* candidate{ scene->FindByHandle( handle ) };
+                auto *candidate{ scene->FindByHandle( handle ) };
 
                 if ( !accepts( candidate ) ) {
                     continue;
@@ -3933,8 +4095,8 @@ namespace mikoto::editor {
         }
 
         if ( ImGui::BeginDragDropTarget() ) {
-            if ( const auto* payload{ ImGui::AcceptDragDropPayload( "MIKOTO_ENTITY" ) }; payload && payload->DataSize == sizeof( core::u64 ) ) {
-                assign( scene->FindByID( *static_cast<const core::u64*>( payload->Data ) ) );
+            if ( const auto *payload{ ImGui::AcceptDragDropPayload( "MIKOTO_ENTITY" ) }; payload && payload->DataSize == sizeof( core::u64 ) ) {
+                assign( scene->FindByID( *static_cast<const core::u64 *>( payload->Data ) ) );
             }
 
             ImGui::EndDragDropTarget();
@@ -3946,16 +4108,16 @@ namespace mikoto::editor {
         return changed;
     }
 
-    auto InspectorPanel::DrawAudioMixerComponentTab( scene::Entity& entity ) -> void {
-        auto& component{ entity.GetComponent<scene::AudioMixerComponent>() };
+    auto InspectorPanel::DrawAudioMixerComponentTab( scene::Entity &entity ) -> void {
+        auto &component{ entity.GetComponent<scene::AudioMixerComponent>() };
 
         auto volume{ component.GetVolume() };
-        if (ImGui::SliderFloat( MKT_LOC( "audio_volume" ).c_str(), &volume, 0, 20, "%.2fx" )) {
+        if ( DrawFloatProperty( MKT_LOC( "audio_volume" ).c_str(), &volume, { 0, 20 }, "%.2fx", false ) ) {
             component.SetVolume( volume );
         }
 
         auto isMuted{ component.IsMuted() };
-        if (imgui::CheckBox( imgui::widget::LocalizedLabel( "inspector_mute", "Mute" ).c_str(), isMuted )) {
+        if ( imgui::CheckBox( imgui::widget::LocalizedLabel( "inspector_mute", "Mute" ).c_str(), isMuted ) ) {
             component.SetMute( isMuted );
         }
 
@@ -3964,11 +4126,11 @@ namespace mikoto::editor {
 
         const auto id{ entity.GetComponent<scene::TagComponent>().GetGuid() };
 
-        for ( auto&& entry:
+        for ( auto &&entry:
             mState->mActiveScene->GetRegistry().view<scene::AudioMixerGroupComponent, scene::TagComponent>().each() ) {
             const auto handle{ std::get<0>( entry ) };
-            auto& group{ std::get<1>( entry ) };
-            auto& tag{ std::get<2>( entry ) };
+            auto &group{ std::get<1>( entry ) };
+            auto &tag{ std::get<2>( entry ) };
 
             if ( group.mMixerID != id ) {
                 continue;
@@ -3984,7 +4146,7 @@ namespace mikoto::editor {
         }
 
         if ( ImGui::Button( MKT_LOC( "audio_create_group" ).c_str() ) ) {
-            auto* group{ mState->mActiveScene->CreateEntity(
+            auto *group{ mState->mActiveScene->CreateEntity(
                 scene::EntityCreateInfo{
                     .mName = MKT_LOC( "audio_group_name" ).c_str(),
                     .mEntityType = scene::EntityType::eSound } ) };
@@ -3995,8 +4157,8 @@ namespace mikoto::editor {
         }
     }
 
-    auto InspectorPanel::DrawAudioMixerGroupComponentTab( scene::Entity& entity ) -> void {
-        auto& component{ entity.GetComponent<scene::AudioMixerGroupComponent>() };
+    auto InspectorPanel::DrawAudioMixerGroupComponentTab( scene::Entity &entity ) -> void {
+        auto &component{ entity.GetComponent<scene::AudioMixerGroupComponent>() };
         const core::u64 id{ entity.GetComponent<scene::TagComponent>().GetGuid() };
 
         if ( DrawAudioRoutingField( MKT_LOC( "audio_mixer" ).c_str(), component.mMixerID, 0, id, true ) ) {
@@ -4009,23 +4171,23 @@ namespace mikoto::editor {
 
         ImGui::EndDisabled();
 
-        ImGui::SliderFloat( MKT_LOC( "audio_volume" ).c_str(), &component.mVolume, 0, 20, "%.2fx" );
+        DrawFloatProperty( MKT_LOC( "audio_volume" ).c_str(), &component.mVolume, { 0, 20 }, "%.2fx", false );
         imgui::CheckBox( imgui::widget::LocalizedLabel( "inspector_mute", "Mute" ).c_str(), component.mMuted );
         ImGui::TextWrapped( "%s", MKT_LOC( "audio_group_help" ).c_str() );
     }
 
-    auto InspectorPanel::DrawVideoComponentTab( scene::Entity& entity ) -> void {
+    auto InspectorPanel::DrawVideoComponentTab( scene::Entity &entity ) -> void {
         MKT_BEGIN_PROFILER();
 
-        auto& component{ entity.GetComponent<scene::VideoComponent>() };
+        auto &component{ entity.GetComponent<scene::VideoComponent>() };
         eastl::string path{ component.GetClip().GetPath().GetC_Str() };
 
         ImGui::SetNextItemWidth( -eastl::numeric_limits<core::f32>::min() );
         ImGui::InputText( "##VideoClip", path.data(), path.size() + 1, ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_AutoSelectAll );
 
         if ( ImGui::BeginDragDropTarget() ) {
-            if ( const auto* payload{ ImGui::AcceptDragDropPayload( "CONTENT_BROWSER_VIDEO" ) } ) {
-                component.SetClip( asset::AssetRef<asset::VideoClip>{ filesystem::Path{ static_cast<const char*>( payload->Data ) } } );
+            if ( const auto *payload{ ImGui::AcceptDragDropPayload( "CONTENT_BROWSER_VIDEO" ) } ) {
+                component.SetClip( asset::AssetRef<asset::VideoClip>{ filesystem::Path{ static_cast<const char *>( payload->Data ) } } );
             }
 
             ImGui::EndDragDropTarget();
@@ -4047,9 +4209,9 @@ namespace mikoto::editor {
 
         if ( settings.mAudioEnabled ) {
             changed |= imgui::CheckBox( "Spatialized audio", settings.mAudio.mSpatialized );
-            changed |= ImGui::SliderFloat( "Volume", &settings.mAudio.mVolume, 0, 4 );
-            changed |= ImGui::DragFloat( "Minimum distance", &settings.mAudio.mMinDistance, 0.1f, 0.1f, 100 );
-            changed |= ImGui::DragFloat( "Maximum distance", &settings.mAudio.mMaxDistance, 0.1f, settings.mAudio.mMinDistance, 1000 );
+            changed |= DrawFloatProperty( "Volume", &settings.mAudio.mVolume, { 0, 4 }, "%.3f", false );
+            changed |= DrawFloatProperty( "Minimum distance", &settings.mAudio.mMinDistance, { 0.1f, 100 }, "%.3f", false );
+            changed |= DrawFloatProperty( "Maximum distance", &settings.mAudio.mMaxDistance, { settings.mAudio.mMinDistance, 1000 }, "%.3f", false );
         }
 
         if ( changed ) {
@@ -4064,40 +4226,71 @@ namespace mikoto::editor {
 
         auto playback{ component.GetPlayback() };
 
-        if ( playback ) {
-            if ( playback->GetState() == video::PlaybackState::eFailed ) {
-                ImGui::TextWrapped( "%s", playback->GetError().c_str() );
-            } else if ( mState->mActiveScene->IsPlaying() ) {
-                const bool playing{ playback->GetState() == video::PlaybackState::ePlaying };
+        if ( ImGui::TreeNodeEx( MKT_LOC( "inspector_playback" ).c_str(), ImGuiTreeNodeFlags_DefaultOpen ) ) {
+            const auto clip{ playback ? playback->GetClip() : core::Ref<asset::VideoClip>{} };
+            const bool failed{ playback && playback->GetState() == video::PlaybackState::eFailed };
+            const bool ready{ clip && !failed };
+            const bool paused{ playback && playback->GetState() == video::PlaybackState::ePaused };
 
-                if ( ImGui::Button( playing ? "Pause" : "Play" ) ) {
-                    playing ? playback->Pause() : playback->Play();
-                }
-
-                ImGui::SameLine();
-
-                if ( ImGui::Button( "Stop" ) ) {
-                    playback->Stop();
-                }
-
-                if ( const auto clip{ playback->GetClip() } ) {
-                    float time{ static_cast<float>( playback->GetTimeSeconds() ) };
-
-                    if ( ImGui::SliderFloat( "Time", &time, 0, static_cast<float>( clip->GetInfo().mDurationSeconds ), "%.2f s" ) ) {
-                        playback->Seek( time );
-                    }
-                }
+            ImGui::BeginDisabled( !ready || playback->GetState() == video::PlaybackState::ePlaying );
+            if ( ImGui::Button( MKT_LOC( paused ? "inspector_resume" : "inspector_play" ).c_str() ) ) {
+                playback->Play();
             }
+            ImGui::EndDisabled();
+            ImGui::SameLine();
+
+            ImGui::BeginDisabled( !ready || playback->GetState() != video::PlaybackState::ePlaying );
+            if ( ImGui::Button( MKT_LOC( "inspector_pause" ).c_str() ) ) {
+                playback->Pause();
+            }
+            ImGui::EndDisabled();
+            ImGui::SameLine();
+
+            ImGui::BeginDisabled( !ready );
+            if ( ImGui::Button( MKT_LOC( "inspector_stop" ).c_str() ) ) {
+                playback->Stop();
+            }
+            ImGui::EndDisabled();
+
+            if ( ready ) {
+                const auto state{ playback->GetState() };
+                ImGui::SameLine();
+                ImGui::TextDisabled( "%s", MKT_LOC( state == video::PlaybackState::ePlaying ? "inspector_playing" : state == video::PlaybackState::ePaused ? "inspector_paused"
+                                                                                                                : state == video::PlaybackState::eEnded    ? "inspector_video_ended"
+                                                                                                                                                           : "inspector_stopped" )
+                                               .c_str() );
+            }
+
+            const float duration{ clip ? static_cast<float>( clip->GetInfo().mDurationSeconds ) : 0.0f };
+            float cursor{ playback ? static_cast<float>( playback->GetTimeSeconds() ) : 0.0f };
+            cursor = glm::clamp( cursor, 0.0f, duration );
+            ImGui::TextUnformatted( MKT_LOC( "inspector_position_s" ).c_str() );
+            ImGui::SetNextItemWidth( -FLT_MIN );
+            ImGui::BeginDisabled( !ready || duration <= 0 );
+            if ( ImGui::SliderFloat( "##VideoPosition", &cursor, 0, glm::max( duration, 0.001f ), "%.2f s", ImGuiSliderFlags_AlwaysClamp ) ) {
+                playback->Seek( cursor );
+            }
+            ImGui::EndDisabled();
+            ImGui::TextDisabled( MKT_LOC( "inspector_seconds" ).c_str(), cursor, duration );
+
+            if ( failed ) {
+                ImGui::TextWrapped( "%s", playback->GetError().c_str() );
+            }
+            else if ( !ready ) {
+                ImGui::TextDisabled( "%s", MKT_LOC( component.GetClip().GetID() ? "inspector_video_loading" : "inspector_video_choose_to_preview" ).c_str() );
+            }
+
+            ImGui::TreePop();
         }
 
         ImGui::PushTextWrapPos( 0.0f );
-        ImGui::TextDisabled( "MP4 / H.264 hardware decoding. First frame shown while stopped; playback runs in Play." );
+        ImGui::TextDisabled( "%s", MKT_LOC( "inspector_video_playback_help" ).c_str() );
         ImGui::PopTextWrapPos();
     }
 
-    auto InspectorPanel::DrawAudioComponentTab( scene::Entity& entity ) -> void {
+    auto InspectorPanel::DrawAudioComponentTab( scene::Entity &entity ) -> void {
         MKT_BEGIN_PROFILER();
-        auto& component{ entity.GetComponent<scene::AudioSourceComponent>() };
+        auto &component{ entity.GetComponent<scene::AudioSourceComponent>() };
         ImGui::PushID( static_cast<int>( entity.Get() ) );
 
         const auto clip{ component.GetClip() };
@@ -4121,18 +4314,17 @@ namespace mikoto::editor {
                 // Decode away from the UI thread, then validate the destination:
                 // the user may have closed this scene while the file was loading.
                 threading::TaskService::Get()->ExecuteWorkerTask(
-                [pEntity = MKT_ADDRESSOF( entity ), path] {
-                    const auto audioHandle{ asset::AssetRegistryService::Get()->LoadAsset<audio::Audio>(
-                        asset::AudioLoadDescription {
-                            .mFile = filesystem::FileService::Get()->LoadFile( path )
-                    } ) };
-                    if (audioHandle.IsEmpty() || !pEntity->HasComponent<AudioSourceComponent>()) {
-                        return;
-                    }
+                    [pEntity = MKT_ADDRESSOF( entity ), path] {
+                        const auto audioHandle{ asset::AssetRegistryService::Get()->LoadAsset<audio::Audio>(
+                            asset::AudioLoadDescription{
+                                .mFile = filesystem::FileService::Get()->LoadFile( path ) } ) };
+                        if ( audioHandle.IsEmpty() || !pEntity->HasComponent<AudioSourceComponent>() ) {
+                            return;
+                        }
 
-                    auto& audioComponent{ pEntity->GetComponent<AudioSourceComponent>() };
-                    audioComponent.SetClip( audioHandle );
-                } );
+                        auto &audioComponent{ pEntity->GetComponent<AudioSourceComponent>() };
+                        audioComponent.SetClip( audioHandle );
+                    } );
             }
         }
 
@@ -4198,10 +4390,10 @@ namespace mikoto::editor {
                 changed |= imgui::CheckBox( imgui::widget::LocalizedLabel( "inspector_loop", "Loop" ).c_str(), settings.mLooping );
                 ImGui::SameLine();
                 changed |= imgui::CheckBox( imgui::widget::LocalizedLabel( "inspector_mute", imgui::widget::LocalizedLabel( "inspector_mute", "Mute" ).c_str() ).c_str(), settings.mMuted );
-                changed |= ImGui::SliderFloat( imgui::widget::LocalizedLabel( "inspector_gain", "Gain" ).c_str(), &settings.mVolume, 0, audio::AudioSource::GetMaxVolume(), "%.2fx" );
+                changed |= DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_gain", "Gain" ).c_str(), &settings.mVolume, { 0, audio::AudioSource::GetMaxVolume() }, "%.2fx", false );
                 mikoto::imgui::widget::ItemTooltip( MKT_LOC( "inspector_1_0_is_the_original_level_high_gains_can_clip" ).c_str() );
-                changed |= ImGui::SliderFloat( imgui::widget::LocalizedLabel( "inspector_pitch", "Pitch" ).c_str(), &settings.mPitch, 0.01f, 4.0f, "%.2fx" );
-                changed |= ImGui::SliderFloat( MKT_LOC( "audio_pan" ).c_str(), &settings.mPan, -1, 1, "%.2f" );
+                changed |= DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_pitch", "Pitch" ).c_str(), &settings.mPitch, { 0.01f, 4.0f }, "%.2fx", false );
+                changed |= DrawFloatProperty( MKT_LOC( "audio_pan" ).c_str(), &settings.mPan, { -1, 1 }, "%.2f", false );
                 imgui::widget::ItemTooltip( MKT_LOC( "audio_pan_help" ).c_str() );
                 ImGui::TreePop();
             }
@@ -4220,13 +4412,13 @@ namespace mikoto::editor {
                 // Distance controls describe attenuation, not a hard audible
                 // radius: inverse/exponential models need not go silent at max.
                 ImGui::BeginDisabled( settings.mAttenuation == audio::Attenuation::eNone || settings.mCurves[0].mEnabled );
-                changed |= ImGui::DragFloat( imgui::widget::LocalizedLabel( "inspector_min_distance", "Min distance" ).c_str(), &settings.mMinDistance, 0.1f, 0.01f, 9999, "%.2f", ImGuiSliderFlags_AlwaysClamp );
+                changed |= DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_min_distance", "Min distance" ).c_str(), &settings.mMinDistance, { 0.01f, 9999 }, "%.2f", true );
                 mikoto::imgui::widget::ItemTooltip( MKT_LOC( "inspector_reference_distance_for_full_volume_playback" ).c_str() );
-                changed |= ImGui::SliderFloat( imgui::widget::LocalizedLabel( "inspector_rolloff", "Rolloff" ).c_str(), &settings.mRolloff, 0, 10, "%.2f" );
+                changed |= DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_rolloff", "Rolloff" ).c_str(), &settings.mRolloff, { 0, 10 }, "%.2f", false );
                 ImGui::EndDisabled();
-                changed |= ImGui::DragFloat( imgui::widget::LocalizedLabel( "inspector_max_distance", "Max distance" ).c_str(), &settings.mMaxDistance, 1, settings.mMinDistance + 0.01f, 10000, "%.2f", ImGuiSliderFlags_AlwaysClamp );
+                changed |= DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_max_distance", "Max distance" ).c_str(), &settings.mMaxDistance, { settings.mMinDistance + 0.01f, 10000 }, "%.2f", true );
                 mikoto::imgui::widget::ItemTooltip( MKT_LOC( "inspector_upper_distance_used_by_attenuation_this_is_not_a_universal" ).c_str() );
-                changed |= ImGui::SliderFloat( imgui::widget::LocalizedLabel( "inspector_doppler", "Doppler" ).c_str(), &settings.mDoppler, 0, 5, "%.2f" );
+                changed |= DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_doppler", "Doppler" ).c_str(), &settings.mDoppler, { 0, 5 }, "%.2f", false );
                 mikoto::imgui::widget::ItemTooltip( MKT_LOC( "inspector_pitch_shift_from_relative_motion_zero_disables_doppler" ).c_str() );
                 ImGui::TextWrapped( "%s", MKT_LOC( "inspector_position_and_velocity_follow_the_entity_s_world_transform_listener" ).c_str() );
                 changed |= DrawAudioDistanceCurves( settings );
@@ -4245,29 +4437,28 @@ namespace mikoto::editor {
 
     // Combo/payload widgets follow Dear ImGui's inspector examples and the camera picker below.
     // https://github.com/ocornut/imgui/blob/master/imgui_demo.cpp
-    auto InspectorPanel::DrawTextureRenderComponentTab( scene::Entity& entity ) -> void {
+    auto InspectorPanel::DrawTextureRenderComponentTab( scene::Entity &entity ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( !entity.HasComponent<scene::TextureRenderComponent>() ) {
             return;
         }
 
-        auto& component{ entity.GetComponent<scene::TextureRenderComponent>() };
-        auto* scene{ mState->mActiveScene };
+        auto &component{ entity.GetComponent<scene::TextureRenderComponent>() };
+        auto *scene{ mState->mActiveScene };
         const auto entityID{ entity.GetComponent<scene::TagComponent>().GetGuid() };
         const auto fieldID{ string::Format( "TextureRender_{}", entityID ) };
         ImGui::PushID( fieldID.c_str() );
 
         eastl::string cameraName{ MKT_LOC( "texture_render_no_camera" ) };
-        const scene::Camera* selectedCamera{};
+        const scene::Camera *selectedCamera{};
 
         if ( scene ) {
-            for ( auto&& entry: scene->GetRegistry().view<scene::TagComponent, scene::CameraComponent>().each() ) {
-                auto& tag{ std::get<1>( entry ) };
-                auto& camera{ std::get<2>( entry ) };
+            for ( auto &&entry: scene->GetRegistry().view<scene::TagComponent, scene::CameraComponent>().each() ) {
+                auto &tag{ std::get<1>( entry ) };
+                auto &camera{ std::get<2>( entry ) };
 
-                if ( camera.HasCamera() && ( component.GetCameraEntityID() ? tag.GetGuid() == component.GetCameraEntityID() :
-                    &camera.GetCamera() == component.GetCamera() ) ) {
+                if ( camera.HasCamera() && ( component.GetCameraEntityID() ? tag.GetGuid() == component.GetCameraEntityID() : &camera.GetCamera() == component.GetCamera() ) ) {
                     selectedCamera = &camera.GetCamera();
                     component.SetCamera( selectedCamera, tag.GetGuid() );
                     cameraName = tag.GetTag();
@@ -4287,10 +4478,10 @@ namespace mikoto::editor {
             }
 
             if ( scene ) {
-                for ( auto&& entry: scene->GetRegistry().view<scene::TagComponent, scene::CameraComponent>().each() ) {
+                for ( auto &&entry: scene->GetRegistry().view<scene::TagComponent, scene::CameraComponent>().each() ) {
                     const auto handle{ std::get<0>( entry ) };
-                    auto& tag{ std::get<1>( entry ) };
-                    auto& camera{ std::get<2>( entry ) };
+                    auto &tag{ std::get<1>( entry ) };
+                    auto &camera{ std::get<2>( entry ) };
 
                     if ( !camera.HasCamera() ) {
                         continue;
@@ -4310,11 +4501,11 @@ namespace mikoto::editor {
         }
 
         if ( scene && ImGui::BeginDragDropTarget() ) {
-            if ( const auto* payload{ ImGui::AcceptDragDropPayload( "MIKOTO_ENTITY" ) }; payload && payload->DataSize == sizeof( u64 ) ) {
-                auto* candidate{ scene->FindByID( *static_cast<const u64*>( payload->Data ) ) };
+            if ( const auto *payload{ ImGui::AcceptDragDropPayload( "MIKOTO_ENTITY" ) }; payload && payload->DataSize == sizeof( u64 ) ) {
+                auto *candidate{ scene->FindByID( *static_cast<const u64 *>( payload->Data ) ) };
 
                 if ( candidate && candidate->HasComponent<scene::CameraComponent>() ) {
-                    auto& camera{ candidate->GetComponent<scene::CameraComponent>() };
+                    auto &camera{ candidate->GetComponent<scene::CameraComponent>() };
 
                     if ( camera.HasCamera() ) {
                         component.SetCamera( &camera.GetCamera(), candidate->GetComponent<scene::TagComponent>().GetGuid() );
@@ -4373,7 +4564,7 @@ namespace mikoto::editor {
                 mTextureRenderScene = scene;
             }
 
-            auto options{ eastl::find_if( mTextureRenderOptions.begin(), mTextureRenderOptions.end(), [entityID]( const TextureRenderOptions& entry ) {
+            auto options{ eastl::find_if( mTextureRenderOptions.begin(), mTextureRenderOptions.end(), [entityID]( const TextureRenderOptions &entry ) {
                 return entry.mEntity == entityID;
             } ) };
 
@@ -4383,7 +4574,7 @@ namespace mikoto::editor {
             }
 
             // These remain editor drafts; captures currently use the renderer's defaults.
-            auto& settings{ options->mSettings };
+            auto &settings{ options->mSettings };
 
             if ( component.GetRenderPath() == TextureRenderPath::eRasterization ) {
                 i32 samples{ as<i32>( settings.mMultisampling ) };
@@ -4399,8 +4590,7 @@ namespace mikoto::editor {
                     settings.mShadowQuality = as<ShadowMapQuality>( quality );
                 }
 
-                ImGui::DragFloat( MKT_LOC( "texture_render_shadow_distance" ).c_str(), &settings.mShadowDistance,
-                    1.0f, 0.1f, 100000.0f, "%.1f", ImGuiSliderFlags_AlwaysClamp );
+                DrawFloatProperty( MKT_LOC( "texture_render_shadow_distance" ).c_str(), &settings.mShadowDistance, { 0.1f, 100000.0f }, "%.1f", true );
                 imgui::CheckBox( MKT_LOC( "renderer_cascaded_shadows" ).c_str(), settings.mCascadedShadowsEnabled );
                 imgui::CheckBox( MKT_LOC( "renderer_frustum_culling" ).c_str(), settings.mFrustumCullingEnabled );
             }
@@ -4425,7 +4615,7 @@ namespace mikoto::editor {
         ImGui::PopID();
     }
 
-    auto InspectorPanel::DrawCameraComponentTab( scene::Entity& entity ) -> void {
+    auto InspectorPanel::DrawCameraComponentTab( scene::Entity &entity ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( !entity.HasComponent<scene::CameraComponent>() ) {
@@ -4436,7 +4626,7 @@ namespace mikoto::editor {
             return;
         }
 
-        scene::CameraComponent& cameraComponent{ entity.GetComponent<scene::CameraComponent>() };
+        scene::CameraComponent &cameraComponent{ entity.GetComponent<scene::CameraComponent>() };
         const eastl::array<std::string, 2> kCameraProjectionTypeNames{ MKT_LOC( "inspector_orthographic" ).c_str(), MKT_LOC( "inspector_perspective" ).c_str() };
 
         if ( !cameraComponent.HasCamera() ) {
@@ -4445,7 +4635,7 @@ namespace mikoto::editor {
             }
         }
 
-        scene::SceneCamera& sceneCamera{ cameraComponent.GetCamera() };
+        scene::SceneCamera &sceneCamera{ cameraComponent.GetCamera() };
         const auto cameraCurrentProjectionType{ sceneCamera.GetProjectionType() };
 
         constexpr ImGuiTableFlags tableFlags{ ImGuiTableFlags_SizingStretchSame };
@@ -4465,25 +4655,25 @@ namespace mikoto::editor {
             const core::f32 swatchSize{ ImGui::GetFrameHeight() };
             const core::f32 swatchSpace{ swatchSize + ImGui::GetStyle().ItemSpacing.x };
             const bool inlineSwatch{ currentClearFlags == scene::CameraClearFlags::eClearColor &&
-                ImGui::GetContentRegionAvail().x >= rightInset + swatchSpace + swatchSize };
+                                     ImGui::GetContentRegionAvail().x >= rightInset + swatchSpace + swatchSize };
             ImGui::SetNextItemWidth( -( rightInset + ( inlineSwatch ? swatchSpace : 0.0f ) ) );
             scene::CameraClearFlags newClearFlags{ imgui::Combo( choicesAlpha, currentClearFlags ) };
 
             if ( newClearFlags != currentClearFlags ) {
                 auto GetRenderBackground{
                     []( scene::CameraClearFlags rb ) {
-                    switch ( rb ) {
-                        case scene::CameraClearFlags::eSkybox:
-                            return renderer::SceneBackgroundType::eSkybox;
-                        case scene::CameraClearFlags::eBlurredSkybox:
-                            return renderer::SceneBackgroundType::ePrefilterMap;
-                        case scene::CameraClearFlags::eClearColor:
-                            return renderer::SceneBackgroundType::eClearColor;
-                        default:;
-                    }
+                        switch ( rb ) {
+                            case scene::CameraClearFlags::eSkybox:
+                                return renderer::SceneBackgroundType::eSkybox;
+                            case scene::CameraClearFlags::eBlurredSkybox:
+                                return renderer::SceneBackgroundType::ePrefilterMap;
+                            case scene::CameraClearFlags::eClearColor:
+                                return renderer::SceneBackgroundType::eClearColor;
+                            default:;
+                        }
 
-                    return renderer::SceneBackgroundType::eClearColor;
-                }
+                        return renderer::SceneBackgroundType::eClearColor;
+                    }
                 };
 
                 cameraComponent.SetClearFlags( newClearFlags );
@@ -4521,7 +4711,7 @@ namespace mikoto::editor {
                 core::f32 blur{ cameraComponent.GetSkyboxBlur() };
 
                 ImGui::SetNextItemWidth( -rightInset );
-                if ( ImGui::SliderFloat( "##CameraSkyboxBlurrSlider", MKT_ADDRESSOF( blur ), 0.0, 1.0f ) ) {
+                if ( DrawFloatProperty( "##CameraSkyboxBlurrSlider", MKT_ADDRESSOF( blur ), { 0.0, 1.0f }, "%.3f", false ) ) {
                     cameraComponent.SetSkyboxBlur( blur );
                     mState->mEditorRenderer->SetSkyboxBlur( blur );
                 }
@@ -4540,7 +4730,7 @@ namespace mikoto::editor {
             core::f32 exposure{ cameraComponent.GetExposure() };
 
             ImGui::SetNextItemWidth( -rightInset );
-            if ( ImGui::SliderFloat( "##CameraExposureSlider", MKT_ADDRESSOF( exposure ), 0.1, 10.0f ) ) {
+            if ( DrawFloatProperty( "##CameraExposureSlider", MKT_ADDRESSOF( exposure ), { 0.1, 10.0f }, "%.3f", false ) ) {
                 cameraComponent.SetExposure( exposure );
                 mState->mEditorRenderer->SetExposure( cameraComponent.GetExposure() );
             }
@@ -4557,7 +4747,7 @@ namespace mikoto::editor {
             core::f32 gamma{ cameraComponent.GetGamma() };
 
             ImGui::SetNextItemWidth( -rightInset );
-            if ( ImGui::SliderFloat( "##CameraGammaSlider", MKT_ADDRESSOF( gamma ), 0.1, 10.0f ) ) {
+            if ( DrawFloatProperty( "##CameraGammaSlider", MKT_ADDRESSOF( gamma ), { 0.1, 10.0f }, "%.3f", false ) ) {
                 cameraComponent.SetGamma( gamma );
                 mState->mEditorRenderer->SetGamma( cameraComponent.GetGamma() );
             }
@@ -4577,13 +4767,13 @@ namespace mikoto::editor {
             }
 
             ImGui::TableSetColumnIndex( 1 );
-            const auto& currentProjectionTypeStr{ kCameraProjectionTypeNames[core::as<core::u32>( cameraCurrentProjectionType )] };
+            const auto &currentProjectionTypeStr{ kCameraProjectionTypeNames[core::as<core::u32>( cameraCurrentProjectionType )] };
 
             ImGui::SetNextItemWidth( -rightInset );
             if ( ImGui::BeginCombo( "##Projection", currentProjectionTypeStr.c_str() ) ) {
                 core::u32 projectionIndex{};
 
-                for ( const auto& projectionType: kCameraProjectionTypeNames ) {
+                for ( const auto &projectionType: kCameraProjectionTypeNames ) {
                     // Tells whether we want to highlight this projection in the ImGui combo.
                     // This will be the case if this projection type is the current one for this camera.
                     bool isSelected{ projectionType == kCameraProjectionTypeNames[core::as<core::u32>( cameraCurrentProjectionType )] };
@@ -4630,7 +4820,7 @@ namespace mikoto::editor {
                 core::f32 height{ sceneCamera.GetOrthographicHeight() };
 
                 ImGui::SetNextItemWidth( -rightInset );
-                if ( ImGui::DragFloat( "##OrthographicHeight", &height, 0.1f, 0.01f, 100000.0f ) ) {
+                if ( DrawFloatProperty( "##OrthographicHeight", &height, { 0.01f, 100000.0f }, "%.3f", false ) ) {
                     sceneCamera.SetOrthographicHeight( height );
                 }
             }
@@ -4643,7 +4833,7 @@ namespace mikoto::editor {
                 float fov{ sceneCamera.GetFOV() };
 
                 ImGui::SetNextItemWidth( -rightInset );
-                if ( ImGui::SliderFloat( "##Perspective FOV", std::addressof( fov ), 45.0f, 90.0f ) ) {
+                if ( DrawFloatProperty( "##Perspective FOV", std::addressof( fov ), { 45.0f, 90.0f }, "%.3f", false ) ) {
                     sceneCamera.SetFieldOfView( fov );
                 }
 
@@ -4659,7 +4849,7 @@ namespace mikoto::editor {
                 float nearPlane{ sceneCamera.GetNearPlane() };
 
                 ImGui::SetNextItemWidth( -rightInset );
-                if ( ImGui::SliderFloat( "##Perspective Near", std::addressof( nearPlane ), 0.001f, 1.0 ) ) {
+                if ( DrawFloatProperty( "##Perspective Near", std::addressof( nearPlane ), { 0.001f, 1.0 }, "%.3f", false ) ) {
                     sceneCamera.SetNearPlane( nearPlane );
                 }
 
@@ -4675,7 +4865,7 @@ namespace mikoto::editor {
                 float farPlane{ ( sceneCamera.GetFarPlane() ) };
 
                 ImGui::SetNextItemWidth( -rightInset );
-                if ( ImGui::SliderFloat( "##Perspective Far", &farPlane, 100.0f, 10000.0f ) ) {
+                if ( DrawFloatProperty( "##Perspective Far", &farPlane, { 100.0f, 10000.0f }, "%.3f", false ) ) {
                     sceneCamera.SetFarPlane( farPlane );
                 }
 
@@ -4691,15 +4881,77 @@ namespace mikoto::editor {
         DrawCameraVignetteOptions( sceneCamera );
     }
 
-    auto InspectorPanel::DrawSkyboxComponentTab( scene::Entity& entity ) -> void {
+    auto InspectorPanel::DrawSkyLightComponentTab( scene::Entity &entity ) -> void {
+        auto &sky{ entity.GetComponent<scene::SkyLightComponent>() };
+        bool enabled{ sky.IsEnabled() };
+        if ( imgui::CheckBox( "Enabled", enabled ) ) {
+            sky.SetEnabled( enabled );
+        }
+
+        int source{ core::as<int>( sky.GetSource() ) };
+        const char *sources[]{ "Procedural atmosphere", "Environment map (HDRI)" };
+        ImGui::TextUnformatted( "Source" );
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth( -1.0f );
+        if ( ImGui::Combo( "##SkyLightSource", &source, sources, IM_ARRAYSIZE( sources ) ) ) {
+            sky.SetSource( core::as<scene::SkyLightSource>( source ) );
+        }
+
+        auto intensity{ sky.GetIntensity() };
+        if ( DrawFloatProperty( "Intensity", &intensity, { 0.0f, 10.0f }, "%.3f", true ) ) {
+            sky.SetIntensity( intensity );
+        }
+
+        if ( sky.GetSource() == scene::SkyLightSource::eEnvironmentMap ) {
+            auto environment{ sky.GetEnvironmentMaterial() };
+            if ( !environment ) {
+                environment = asset::AssetRegistryService::Get()->CreateMaterial( material::SkyboxMaterialDescription{} );
+                sky.SetEnvironmentMaterial( environment );
+            }
+
+            auto *map{ core::checked_cast<material::SkyboxMaterial *>( environment.GetPtr() ) };
+            auto texture{ map->GetEquirectangular() };
+            if ( !texture ) {
+                texture = asset::AssetRegistryService::Get()->GetDummyTexture();
+            }
+            ImGui::TextUnformatted( "HDRI" );
+            ImGui::SameLine();
+            if ( imgui::PushImageButton( "##SkyLightMap", imgui::ImGuiService::Get()->GetTextureID( texture.GetPtr() ), ImVec2{ 64, 64 } ) ) {
+                LoadMaterialTexture( *map );
+            }
+            if ( ImGui::BeginDragDropTarget() ) {
+                if ( const auto *payload{ ImGui::AcceptDragDropPayload( "CONTENT_BROWSER_TEXT_IMAGE" ) } ) {
+                    map->SetEquirectangular( asset::AssetRegistryService::Get()->LoadAssetHandle<asset::Texture>(
+                        filesystem::Path{ static_cast<cstr>( payload->Data ) }, renderer::rhi::TextureDimension::eTexture2D ) );
+                }
+                ImGui::EndDragDropTarget();
+            }
+        }
+
+        bool occlusion{ sky.IsOcclusionEnabled() };
+        if ( imgui::CheckBox( "Sky occlusion", occlusion ) ) {
+            sky.SetOcclusionEnabled( occlusion );
+        }
+        auto distance{ sky.GetOcclusionDistance() };
+        if ( DrawFloatProperty( "Occlusion distance", &distance, { .1f, 1000.0f }, "%.1f m", true ) ) {
+            sky.SetOcclusionDistance( distance );
+        }
+        core::i32 samples{ core::as<core::i32>( sky.GetOcclusionSamplesPerFrame() ) };
+        if ( imgui::widget::CircleInt( "Samples per frame", &samples, 1, 64 ) ) {
+            sky.SetOcclusionSamplesPerFrame( core::as<core::u32>( samples ) );
+        }
+        ImGui::TextWrapped( "Choose SSAO or ray-traced AO in Renderer. Distance and samples apply to ray-traced sky occlusion; moving scenes need more samples because their history resets. The lowest active skylight entity ID selects the global source." );
+    }
+
+    auto InspectorPanel::DrawSkyboxComponentTab( scene::Entity &entity ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( !entity.HasComponent<scene::SkyboxMaterialComponent>() ) {
             return;
         }
 
-        scene::SkyboxMaterialComponent& sbComponent{ entity.GetComponent<scene::SkyboxMaterialComponent>() };
-        material::SkyboxMaterial* material{ core::checked_cast<material::SkyboxMaterial*>( sbComponent.GetMaterial().GetPtr() ) };
+        scene::SkyboxMaterialComponent &sbComponent{ entity.GetComponent<scene::SkyboxMaterialComponent>() };
+        material::SkyboxMaterial *material{ core::checked_cast<material::SkyboxMaterial *>( sbComponent.GetMaterial().GetPtr() ) };
 
         if ( !material ) {
             return;
@@ -4776,7 +5028,7 @@ namespace mikoto::editor {
                     }
 
                     if ( ImGui::BeginDragDropTarget() ) {
-                        if ( const ImGuiPayload * payload{ ImGui::AcceptDragDropPayload( "CONTENT_BROWSER_TEXT_IMAGE" ) } ) {
+                        if ( const ImGuiPayload *payload{ ImGui::AcceptDragDropPayload( "CONTENT_BROWSER_TEXT_IMAGE" ) } ) {
                             auto cubeMap{ asset::AssetRegistryService::Get()->LoadAssetHandle<asset::Texture>( filesystem::Path{ static_cast<cstr>( payload->Data ) }, renderer::rhi::TextureDimension::eTexture2D ) };
                             material->SetFace( kCubeFaces[i].first, cubeMap );
 
@@ -4845,7 +5097,7 @@ namespace mikoto::editor {
                 }
 
                 if ( ImGui::BeginDragDropTarget() ) {
-                    if ( const ImGuiPayload * payload{ ImGui::AcceptDragDropPayload( "CONTENT_BROWSER_TEXT_IMAGE" ) } ) {
+                    if ( const ImGuiPayload *payload{ ImGui::AcceptDragDropPayload( "CONTENT_BROWSER_TEXT_IMAGE" ) } ) {
                         auto cubeMap{ asset::AssetRegistryService::Get()->LoadAssetHandle<asset::Texture>( filesystem::Path{ static_cast<cstr>( payload->Data ) }, renderer::rhi::TextureDimension::eTexture2D ) };
                         material->SetEquirectangular( cubeMap );
                         mState->mEditorRenderer->SetSkyboxMaterial( sbComponent.GetMaterial() );
@@ -4885,14 +5137,14 @@ namespace mikoto::editor {
         const core::f32 labelWidth{ contentWidth * 0.30f };
         const core::f32 sliderWidth{ contentWidth - labelWidth };
 
-        auto DrawProperty = []( const char* label, const char* id, core::f32& value, core::f32 min, core::f32 max, core::f32 labelWidth, core::f32 sliderWidth ) {
+        auto DrawProperty = []( const char *label, const char *id, core::f32 &value, core::f32 min, core::f32 max, core::f32 labelWidth, core::f32 sliderWidth ) {
             ImGui::PushID( id );
 
             ImGui::TextUnformatted( label );
             ImGui::SameLine( labelWidth );
 
             ImGui::SetNextItemWidth( sliderWidth );
-            ImGui::SliderFloat( "##Slider", &value, min, max );
+            DrawFloatProperty( "##Slider", &value, { min, max }, "%.3f", false );
 
             if ( ImGui::IsItemHovered() ) {
                 ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
@@ -4909,8 +5161,8 @@ namespace mikoto::editor {
     }
 
     template<typename Component>
-    auto InspectorPanel::DrawVolumeComponentTab( scene::Entity& entity ) -> void {
-        auto& volume{ entity.GetComponent<Component>() };
+    auto InspectorPanel::DrawVolumeComponentTab( scene::Entity &entity ) -> void {
+        auto &volume{ entity.GetComponent<Component>() };
         constexpr bool cloud{ std::is_same_v<Component, scene::CloudComponent> };
         i32 shape{ core::as<i32>( volume.GetShape() ) };
 
@@ -4924,11 +5176,11 @@ namespace mikoto::editor {
                 f32 bottomAltitude{ volume.GetBottomAltitude() };
                 f32 layerThickness{ volume.GetLayerThickness() };
 
-                if ( ImGui::DragFloat( MKT_LOC( "volume_bottom_altitude" ).c_str(), &bottomAltitude, 1 ) ) {
+                if ( DrawFloatProperty( MKT_LOC( "volume_bottom_altitude" ).c_str(), &bottomAltitude, { 0, 0 }, "%.3f", false ) ) {
                     volume.SetBottomAltitude( bottomAltitude );
                 }
 
-                if ( ImGui::DragFloat( MKT_LOC( "volume_layer_thickness" ).c_str(), &layerThickness, 1, .001f, 10000000, "%.1f", ImGuiSliderFlags_AlwaysClamp ) ) {
+                if ( DrawFloatProperty( MKT_LOC( "volume_layer_thickness" ).c_str(), &layerThickness, { .001f, 10000000 }, "%.1f", true ) ) {
                     volume.SetLayerThickness( layerThickness );
                 }
             }
@@ -4936,11 +5188,11 @@ namespace mikoto::editor {
             float2 windDirection{ volume.GetWindDirection() };
             f32 windSpeed{ volume.GetWindSpeed() };
 
-            if ( ImGui::DragFloat2( MKT_LOC( "volume_wind_direction" ).c_str(), &windDirection.x, .01f ) ) {
+            if ( DrawFloatVectorProperty( MKT_LOC( "volume_wind_direction" ).c_str(), &windDirection.x, 2, { 0, 0 }, "%.3f", false ) ) {
                 volume.SetWindDirection( windDirection );
             }
 
-            if ( ImGui::DragFloat( MKT_LOC( "volume_wind_speed" ).c_str(), &windSpeed, .1f ) ) {
+            if ( DrawFloatProperty( MKT_LOC( "volume_wind_speed" ).c_str(), &windSpeed, { 0, 0 }, "%.3f", false ) ) {
                 volume.SetWindSpeed( windSpeed );
             }
             ImGui::TextDisabled( "%s", MKT_LOC( "volume_wind_help" ).c_str() );
@@ -4949,21 +5201,21 @@ namespace mikoto::editor {
         if ( shape == 0 ) {
             f32 horizonRadius{ volume.GetHorizonRadius() };
 
-            if ( ImGui::DragFloat( MKT_LOC( "volume_horizon_radius" ).c_str(), &horizonRadius, 10, .001f, 10000000, "%.1f", ImGuiSliderFlags_AlwaysClamp ) ) {
+            if ( DrawFloatProperty( MKT_LOC( "volume_horizon_radius" ).c_str(), &horizonRadius, { .001f, 10000000 }, "%.1f", true ) ) {
                 volume.SetHorizonRadius( horizonRadius );
             }
         }
         else {
             float3 dimensions{ volume.GetDimensions() };
 
-            if ( ImGui::DragFloat3( MKT_LOC( "volume_dimensions" ).c_str(), &dimensions.x, 1, .001f, 10000000, "%.2f", ImGuiSliderFlags_AlwaysClamp ) ) {
+            if ( DrawFloatVectorProperty( MKT_LOC( "volume_dimensions" ).c_str(), &dimensions.x, 3, { .001f, 10000000 }, "%.2f", true ) ) {
                 volume.SetDimensions( dimensions );
             }
         }
 
         f32 densityMultiplier{ volume.GetDensityMultiplier() };
 
-        if ( ImGui::DragFloat( MKT_LOC( "volume_density_multiplier" ).c_str(), &densityMultiplier, .01f, 0, 10000, "%.3f", ImGuiSliderFlags_AlwaysClamp ) ) {
+        if ( DrawFloatProperty( MKT_LOC( "volume_density_multiplier" ).c_str(), &densityMultiplier, { 0, 10000 }, "%.3f", true ) ) {
             volume.SetDensityMultiplier( densityMultiplier );
         }
 
@@ -4978,18 +5230,56 @@ namespace mikoto::editor {
             volume.SetReceiveShadows( receiveShadows );
         }
 
+        if constexpr ( cloud ) {
+            if ( ImGui::CollapsingHeader( "Internal lightning" ) ) {
+                auto settings{ volume.GetLightning() };
+                bool changed{ imgui::CheckBox( "Lightning enabled", settings.mEnabled ) };
+                changed |= imgui::CheckBox( "Automatic flashes", settings.mAutomatic );
+                changed |= imgui::CheckBox( "Branching bolts", settings.mBoltsEnabled );
+                changed |= DrawFloatProperty( "Bolt length", &settings.mBoltLength, { 1, 10000 }, "%.1f m", true );
+                changed |= DrawFloatProperty( "Bolt width", &settings.mBoltWidth, { .01f, 20 }, "%.2f m", true );
+                int branches{ static_cast<int>( settings.mBoltBranches ) };
+                if ( ImGui::SliderInt( "Bolt branches", &branches, 0, 8 ) ) {
+                    settings.mBoltBranches = static_cast<core::u32>( branches );
+                    changed = true;
+                }
+                changed |= DrawFloatVectorProperty( "Flash position", &settings.mPosition.x, 3, { -.5f, .5f }, "%.3f", true );
+                changed |= ImGui::ColorEdit3( "Flash color", &settings.mColor.x );
+                changed |= DrawFloatProperty( "Flash brightness", &settings.mIntensity, { 0, 10000 }, "%.1f", true );
+                changed |= DrawFloatProperty( "Flash radius", &settings.mRadius, { 1, 100000 }, "%.1f m", true );
+                changed |= DrawFloatProperty( "Flash interval", &settings.mInterval, { .1f, 300 }, "%.2f s", true );
+                changed |= DrawFloatProperty( "Flash duration", &settings.mDuration, { .05f, 2 }, "%.2f s", true );
+                changed |= ImGui::InputScalar( "Lightning seed", ImGuiDataType_U32, &settings.mSeed );
+                if ( changed ) {
+                    volume.SetLightning( settings );
+                }
+                const bool running{ mState->mActiveScene &&
+                                    ( mState->mActiveScene->IsPlaying() || mState->mActiveScene->IsSimulating() ) };
+                ImGui::BeginDisabled( !running );
+                if ( ImGui::Button( "Trigger flash" ) ) {
+                    settings.mEnabled = true;
+                    volume.SetLightning( settings );
+                    volume.TriggerLightning( mState->mActiveScene->GetVolumeTime() );
+                }
+                ImGui::EndDisabled();
+                if ( !running ) {
+                    ImGui::TextDisabled( "Play or Simulate to preview flashes." );
+                }
+            }
+        }
+
         ImGui::SeparatorText( MKT_LOC( "volume_material" ).c_str() );
         auto volumeMaterial{ volume.GetMaterial() };
 
-        const auto assign{ [&]( const filesystem::Path& path ) {
+        const auto assign{ [&]( const filesystem::Path &path ) {
             try {
                 auto loaded{ material::LoadMaterial( filesystem::FileHandle::New( path ) ) };
-                if ( !dynamic_cast<material::VolumeMaterial*>( loaded.GetPtr() ) ) {
+                if ( !dynamic_cast<material::VolumeMaterial *>( loaded.GetPtr() ) ) {
                     MKT_THROW_RUNTIME_ERROR( "Cloud and fog components require a volume material." );
                 }
                 volumeMaterial = loaded.As<material::VolumeMaterial>();
                 volume.SetMaterial( volumeMaterial );
-            } catch ( const std::exception& error ) {
+            } catch ( const std::exception &error ) {
                 MKT_CORE_LOGGER_ERROR( "{}", error.what() );
             }
         } };
@@ -4999,9 +5289,9 @@ namespace mikoto::editor {
         }
         imgui::widget::ItemTooltip( "%s", MKT_LOC( "volume_material_help" ).c_str() );
         if ( ImGui::BeginDragDropTarget() ) {
-            if ( const auto* payload{ ImGui::AcceptDragDropPayload( "CONTENT_BROWSER_TEXT_MATERIAL" ) } ) {
-                if ( payload->DataSize > 0 && static_cast<const char*>( payload->Data )[payload->DataSize - 1] == '\0' ) {
-                    assign( filesystem::Path{ static_cast<const char*>( payload->Data ) } );
+            if ( const auto *payload{ ImGui::AcceptDragDropPayload( "CONTENT_BROWSER_TEXT_MATERIAL" ) } ) {
+                if ( payload->DataSize > 0 && static_cast<const char *>( payload->Data )[payload->DataSize - 1] == '\0' ) {
+                    assign( filesystem::Path{ static_cast<const char *>( payload->Data ) } );
                 }
             }
             ImGui::EndDragDropTarget();
@@ -5023,10 +5313,10 @@ namespace mikoto::editor {
         }
     }
 
-    auto InspectorPanel::DrawPostProcessComponentTab( scene::Entity& entity ) -> void {
+    auto InspectorPanel::DrawPostProcessComponentTab( scene::Entity &entity ) -> void {
         MKT_BEGIN_PROFILER();
-        scene::PostProcessMaterialComponent& postProcessComponent{ entity.GetComponent<scene::PostProcessMaterialComponent>() };
-        material::PostProcessMaterial* material{ core::checked_cast<material::PostProcessMaterial*>( postProcessComponent.GetMaterial().GetPtr() ) };
+        scene::PostProcessMaterialComponent &postProcessComponent{ entity.GetComponent<scene::PostProcessMaterialComponent>() };
+        material::PostProcessMaterial *material{ core::checked_cast<material::PostProcessMaterial *>( postProcessComponent.GetMaterial().GetPtr() ) };
 
         if ( !material ) {
             return;
@@ -5056,11 +5346,11 @@ namespace mikoto::editor {
             material->SetFilmGrainEnabled( grainEnabled );
         }
 
-        if ( auto* scene{ mState->mActiveScene } ) {
-            const auto accepts{ []( const scene::Entity* candidate ) {
+        if ( auto *scene{ mState->mActiveScene } ) {
+            const auto accepts{ []( const scene::Entity *candidate ) {
                 return candidate && candidate->HasComponent<scene::CameraComponent>() && candidate->GetComponent<scene::CameraComponent>().HasCamera();
             } };
-            auto* cameraEntity{ scene->FindByID( postProcessComponent.GetCameraEntityID() ) };
+            auto *cameraEntity{ scene->FindByID( postProcessComponent.GetCameraEntityID() ) };
             const eastl::string preview{ accepts( cameraEntity ) ? cameraEntity->GetComponent<scene::TagComponent>().GetTag()
                                                                  : MKT_LOC( "post_process_film_grain_no_camera" ) };
 
@@ -5070,10 +5360,10 @@ namespace mikoto::editor {
                     postProcessComponent.SetCameraEntityID( 0 );
                 }
 
-                for ( auto&& entry: scene->GetRegistry().view<scene::TagComponent, scene::CameraComponent>().each() ) {
+                for ( auto &&entry: scene->GetRegistry().view<scene::TagComponent, scene::CameraComponent>().each() ) {
                     const auto handle{ std::get<0>( entry ) };
-                    auto& tag{ std::get<1>( entry ) };
-                    auto& camera{ std::get<2>( entry ) };
+                    auto &tag{ std::get<1>( entry ) };
+                    auto &camera{ std::get<2>( entry ) };
 
                     if ( !camera.HasCamera() ) {
                         continue;
@@ -5092,8 +5382,8 @@ namespace mikoto::editor {
             }
 
             if ( ImGui::BeginDragDropTarget() ) {
-                if ( const auto* payload{ ImGui::AcceptDragDropPayload( "MIKOTO_ENTITY" ) }; payload && payload->DataSize == sizeof( core::u64 ) ) {
-                    auto* candidate{ scene->FindByID( *static_cast<const core::u64*>( payload->Data ) ) };
+                if ( const auto *payload{ ImGui::AcceptDragDropPayload( "MIKOTO_ENTITY" ) }; payload && payload->DataSize == sizeof( core::u64 ) ) {
+                    auto *candidate{ scene->FindByID( *static_cast<const core::u64 *>( payload->Data ) ) };
 
                     if ( accepts( candidate ) ) {
                         postProcessComponent.SetCameraEntityID( candidate->GetComponent<scene::TagComponent>().GetGuid() );
@@ -5107,12 +5397,11 @@ namespace mikoto::editor {
             cameraEntity = scene->FindByID( postProcessComponent.GetCameraEntityID() );
 
             if ( accepts( cameraEntity ) ) {
-                auto& camera{ cameraEntity->GetComponent<scene::CameraComponent>().GetCamera() };
+                auto &camera{ cameraEntity->GetComponent<scene::CameraComponent>().GetCamera() };
                 auto grain{ camera.GetFilmGrainSettings() };
 
                 // Edit the camera's parameters here; the material owns only the enable switch.
-                if ( ImGui::SliderFloat( imgui::widget::LocalizedLabel( "post_process_film_grain_amount", "Amount" ).c_str(),
-                         &grain.mAmount, 0.0f, 1.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp ) ) {
+                if ( DrawFloatProperty( imgui::widget::LocalizedLabel( "post_process_film_grain_amount", "Amount" ).c_str(), &grain.mAmount, { 0.0f, 1.0f }, "%.3f", true ) ) {
                     camera.SetFilmGrainSettings( grain );
                 }
             }
@@ -5126,14 +5415,14 @@ namespace mikoto::editor {
         }
     }
 
-    auto InspectorPanel::DrawMeshColliderComponentTab( scene::Entity& entity ) -> void {
+    auto InspectorPanel::DrawMeshColliderComponentTab( scene::Entity &entity ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( !entity.HasComponent<scene::MeshColliderComponent>() ) {
             return;
         }
 
-        auto& collider{ entity.GetComponent<scene::MeshColliderComponent>() };
+        auto &collider{ entity.GetComponent<scene::MeshColliderComponent>() };
         core::float3 offset{ collider.GetOffset() };
         bool isTrigger{ collider.IsTrigger() };
         bool changed{};
@@ -5143,7 +5432,7 @@ namespace mikoto::editor {
         }
 
         if ( mState->mActiveScene ) {
-            const char* error = mState->mActiveScene->GetPhysicsWorld()->GetColliderError( entity.Get() );
+            const char *error = mState->mActiveScene->GetPhysicsWorld()->GetColliderError( entity.Get() );
 
             if ( *error ) {
                 ImGui::TextWrapped( MKT_LOC( "inspector_collider_disabled" ).c_str(), error );
@@ -5154,7 +5443,7 @@ namespace mikoto::editor {
         changed |= imgui::CheckBox( imgui::widget::LocalizedLabel( "inspector_convex", "Convex" ).c_str(), convex );
         collider.SetConvex( convex );
         ImGui::TextWrapped( MKT_LOC( "inspector_convex_uses_the_mesh_hull_triangle_meshes_require_a_static" ).c_str() );
-        changed |= ImGui::DragFloat3( imgui::widget::LocalizedLabel( "inspector_offset", "Offset" ).c_str(), &offset.x, 0.01f );
+        changed |= DrawFloatVectorProperty( imgui::widget::LocalizedLabel( "inspector_offset", "Offset" ).c_str(), &offset.x, 3, { 0, 0 }, "%.3f", false );
         changed |= imgui::CheckBox( imgui::widget::LocalizedLabel( "inspector_trigger", "Trigger" ).c_str(), isTrigger );
 
         if ( changed ) {
@@ -5167,14 +5456,14 @@ namespace mikoto::editor {
         }
     }
 
-    auto InspectorPanel::DrawBoxColliderComponentTab( scene::Entity& entity ) -> void {
+    auto InspectorPanel::DrawBoxColliderComponentTab( scene::Entity &entity ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( !entity.HasComponent<scene::BoxColliderComponent>() ) {
             return;
         }
 
-        auto& collider{ entity.GetComponent<scene::BoxColliderComponent>() };
+        auto &collider{ entity.GetComponent<scene::BoxColliderComponent>() };
         core::float3 halfExtents{ collider.GetHalfExtents() };
         core::float3 offset{ collider.GetOffset() };
         bool isTrigger{ collider.IsTrigger() };
@@ -5185,15 +5474,15 @@ namespace mikoto::editor {
         }
 
         if ( mState->mActiveScene ) {
-            const char* error = mState->mActiveScene->GetPhysicsWorld()->GetColliderError( entity.Get() );
+            const char *error = mState->mActiveScene->GetPhysicsWorld()->GetColliderError( entity.Get() );
 
             if ( *error ) {
                 ImGui::TextWrapped( MKT_LOC( "inspector_collider_disabled" ).c_str(), error );
             }
         }
 
-        changed |= ImGui::DragFloat3( imgui::widget::LocalizedLabel( "inspector_half_extents", "Half Extents" ).c_str(), &halfExtents.x, 0.01f, 0.001f, FLT_MAX );
-        changed |= ImGui::DragFloat3( imgui::widget::LocalizedLabel( "inspector_offset", "Offset" ).c_str(), &offset.x, 0.01f );
+        changed |= DrawFloatVectorProperty( imgui::widget::LocalizedLabel( "inspector_half_extents", "Half Extents" ).c_str(), &halfExtents.x, 3, { 0.001f, FLT_MAX }, "%.3f", false );
+        changed |= DrawFloatVectorProperty( imgui::widget::LocalizedLabel( "inspector_offset", "Offset" ).c_str(), &offset.x, 3, { 0, 0 }, "%.3f", false );
         changed |= imgui::CheckBox( imgui::widget::LocalizedLabel( "inspector_trigger", "Trigger" ).c_str(), isTrigger );
 
         if ( changed ) {
@@ -5207,14 +5496,14 @@ namespace mikoto::editor {
         }
     }
 
-    auto InspectorPanel::DrawSphereColliderComponentTab( scene::Entity& entity ) -> void {
+    auto InspectorPanel::DrawSphereColliderComponentTab( scene::Entity &entity ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( !entity.HasComponent<scene::SphereColliderComponent>() ) {
             return;
         }
 
-        auto& collider{ entity.GetComponent<scene::SphereColliderComponent>() };
+        auto &collider{ entity.GetComponent<scene::SphereColliderComponent>() };
         float radius{ collider.GetRadius() };
         core::float3 offset{ collider.GetOffset() };
         bool isTrigger{ collider.IsTrigger() };
@@ -5225,15 +5514,15 @@ namespace mikoto::editor {
         }
 
         if ( mState->mActiveScene ) {
-            const char* error = mState->mActiveScene->GetPhysicsWorld()->GetColliderError( entity.Get() );
+            const char *error = mState->mActiveScene->GetPhysicsWorld()->GetColliderError( entity.Get() );
 
             if ( *error ) {
                 ImGui::TextWrapped( MKT_LOC( "inspector_collider_disabled" ).c_str(), error );
             }
         }
 
-        changed |= ImGui::DragFloat( imgui::widget::LocalizedLabel( "inspector_radius", "Radius" ).c_str(), &radius, 0.01f, 0.001f, FLT_MAX );
-        changed |= ImGui::DragFloat3( imgui::widget::LocalizedLabel( "inspector_offset", "Offset" ).c_str(), &offset.x, 0.01f );
+        changed |= DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_radius", "Radius" ).c_str(), &radius, { 0.001f, FLT_MAX }, "%.3f", false );
+        changed |= DrawFloatVectorProperty( imgui::widget::LocalizedLabel( "inspector_offset", "Offset" ).c_str(), &offset.x, 3, { 0, 0 }, "%.3f", false );
         changed |= imgui::CheckBox( imgui::widget::LocalizedLabel( "inspector_trigger", "Trigger" ).c_str(), isTrigger );
 
         if ( changed ) {
@@ -5247,14 +5536,14 @@ namespace mikoto::editor {
         }
     }
 
-    auto InspectorPanel::DrawCapsuleColliderComponentTab( scene::Entity& entity ) -> void {
+    auto InspectorPanel::DrawCapsuleColliderComponentTab( scene::Entity &entity ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( !entity.HasComponent<scene::CapsuleColliderComponent>() ) {
             return;
         }
 
-        auto& collider{ entity.GetComponent<scene::CapsuleColliderComponent>() };
+        auto &collider{ entity.GetComponent<scene::CapsuleColliderComponent>() };
         float radius{ collider.GetRadius() };
         float halfHeight{ collider.GetHalfHeight() };
         core::float3 offset{ collider.GetOffset() };
@@ -5266,16 +5555,16 @@ namespace mikoto::editor {
         }
 
         if ( mState->mActiveScene ) {
-            const char* error = mState->mActiveScene->GetPhysicsWorld()->GetColliderError( entity.Get() );
+            const char *error = mState->mActiveScene->GetPhysicsWorld()->GetColliderError( entity.Get() );
 
             if ( *error ) {
                 ImGui::TextWrapped( MKT_LOC( "inspector_collider_disabled" ).c_str(), error );
             }
         }
 
-        changed |= ImGui::DragFloat( imgui::widget::LocalizedLabel( "inspector_radius", "Radius" ).c_str(), &radius, 0.01f, 0.001f, FLT_MAX );
-        changed |= ImGui::DragFloat( imgui::widget::LocalizedLabel( "inspector_half_height", "Half Height" ).c_str(), &halfHeight, 0.01f, 0.0f, FLT_MAX );
-        changed |= ImGui::DragFloat3( imgui::widget::LocalizedLabel( "inspector_offset", "Offset" ).c_str(), &offset.x, 0.01f );
+        changed |= DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_radius", "Radius" ).c_str(), &radius, { 0.001f, FLT_MAX }, "%.3f", false );
+        changed |= DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_half_height", "Half Height" ).c_str(), &halfHeight, { 0.0f, FLT_MAX }, "%.3f", false );
+        changed |= DrawFloatVectorProperty( imgui::widget::LocalizedLabel( "inspector_offset", "Offset" ).c_str(), &offset.x, 3, { 0, 0 }, "%.3f", false );
         changed |= imgui::CheckBox( imgui::widget::LocalizedLabel( "inspector_trigger", "Trigger" ).c_str(), isTrigger );
 
         if ( changed ) {
@@ -5296,17 +5585,17 @@ namespace mikoto::editor {
         mComponentUis.push_back( ComponentUiInfo{
             .mLabel = eastl::move( label ),
             .mGroup = group,
-            .mPresent = []( const scene::Entity& entity ) {
-            return entity.HasComponent<ComponentType>();
-        },
+            .mPresent = []( const scene::Entity &entity ) {
+                return entity.HasComponent<ComponentType>();
+            },
             .mCallback = callback,
-            .mDraw = []( InspectorPanel& panel, scene::Entity& entity, eastl::string_view label, ComponentUIFunc callback ) {
-            constexpr bool removable{ !eastl::is_same_v<ComponentType, scene::TransformComponent> };
-            DrawComponent<ComponentType>( panel, label, entity, callback, removable );
-        } } );
+            .mDraw = []( InspectorPanel &panel, scene::Entity &entity, eastl::string_view label, ComponentUIFunc callback ) {
+                constexpr bool removable{ !eastl::is_same_v<ComponentType, scene::TransformComponent> };
+                DrawComponent<ComponentType>( panel, label, entity, callback, removable );
+            } } );
     }
 
-    InspectorPanel::InspectorPanel( const InspectorPanelCreateInfo& createInfo )
+    InspectorPanel::InspectorPanel( const InspectorPanelCreateInfo &createInfo )
         : Panel{ "Inspector", "Panel", createInfo.mGroup, createInfo.mIsToggleable },
           mState( createInfo.mState ) {
         MKT_BEGIN_PROFILER();
@@ -5317,10 +5606,15 @@ namespace mikoto::editor {
         RegisterComponent<scene::MeshComponent>( string::Format( fmt::runtime( MKT_LOC( "inspector_mesh" ).c_str() ), ICON_MD_VIEW_IN_AR ), &InspectorPanel::DrawRenderComponentTab, "Rendering" );
 
         // Physics
-        scene::ForEachExtendedPhysicsComponent( [&]<typename T>( const char* name ) {
+        scene::ForEachExtendedPhysicsComponent( [&]<typename T>( const char *name ) {
             eastl::string label{ name };
             label.erase( label.size() - eastl::string_view{ "Component" }.size() );
-            RegisterComponent<T>( PhysicsFieldLabel( label.c_str() ), &InspectorPanel::DrawExtendedPhysicsComponentTab<T>, "Physics" );
+            if constexpr ( std::is_same_v<T, scene::WindAreaComponent> ) {
+                RegisterComponent<T>( MKT_LOC( "wind_area" ).c_str(), &InspectorPanel::DrawWindAreaComponentTab, "Environment" );
+            }
+            else {
+                RegisterComponent<T>( PhysicsFieldLabel( label.c_str() ), &InspectorPanel::DrawExtendedPhysicsComponentTab<T>, "Physics" );
+            }
         } );
         RegisterComponent<scene::VehicleComponent>( MKT_LOC( "inspector_vehicle" ).c_str(), &InspectorPanel::DrawVehicleComponentTab, "Physics" );
         RegisterComponent<scene::VehicleWheelComponent>( MKT_LOC( "inspector_vehicle_wheel" ).c_str(), &InspectorPanel::DrawVehicleWheelComponentTab, "Physics" );
@@ -5345,6 +5639,7 @@ namespace mikoto::editor {
         RegisterComponent<scene::AudioMixerGroupComponent>( MKT_LOC( "audio_group_component" ), &InspectorPanel::DrawAudioMixerGroupComponentTab, "Audio" );
         RegisterComponent<scene::ParticleSimulatorComponent>( MKT_LOC( "particle_simulator_component" ).c_str(), &InspectorPanel::DrawParticleSimulatorComponentTab, "Rendering" );
         RegisterComponent<scene::CloudComponent>( MKT_LOC( "volume_cloud" ).c_str(), &InspectorPanel::DrawVolumeComponentTab<scene::CloudComponent>, "Rendering" );
+        RegisterComponent<scene::CloudInteractionComponent>( "Cloud interaction", &InspectorPanel::DrawCloudInteractionComponentTab, "Rendering" );
         RegisterComponent<scene::FogComponent>( MKT_LOC( "volume_fog" ).c_str(), &InspectorPanel::DrawVolumeComponentTab<scene::FogComponent>, "Rendering" );
         RegisterComponent<scene::TextureRenderComponent>( MKT_LOC( "texture_render" ).c_str(), &InspectorPanel::DrawTextureRenderComponentTab, "Rendering" );
 
@@ -5363,6 +5658,7 @@ namespace mikoto::editor {
 
         // Materials
         RegisterComponent<scene::MaterialComponent>( string::Format( fmt::runtime( MKT_LOC( "inspector_material" ).c_str() ), ICON_MD_INSIGHTS ), &InspectorPanel::DrawMaterialComponentTab, "Rendering" );
+        RegisterComponent<scene::SkyLightComponent>( string::Format( "{} Sky Light", ICON_MD_WB_CLOUDY ), &InspectorPanel::DrawSkyLightComponentTab, "Environment" );
         RegisterComponent<scene::SkyboxMaterialComponent>( string::Format( fmt::runtime( MKT_LOC( "inspector_skybox" ).c_str() ), ICON_MD_CLOUD ), &InspectorPanel::DrawSkyboxComponentTab, "Rendering" );
         RegisterComponent<scene::PostProcessMaterialComponent>( string::Format( fmt::runtime( MKT_LOC( "inspector_post_process" ).c_str() ), ICON_MD_DRAW ), &InspectorPanel::DrawPostProcessComponentTab, "Rendering" );
 
@@ -5377,7 +5673,7 @@ namespace mikoto::editor {
         mTextEditor.SetShowWhitespaces( false );
     }
 
-    auto InspectorPanel::DrawComponents( scene::Entity* entity ) -> void {
+    auto InspectorPanel::DrawComponents( scene::Entity *entity ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( !entity || !mState->mActiveScene ) {
@@ -5385,12 +5681,12 @@ namespace mikoto::editor {
         }
         // Registration order defines a stable inspector layout, independent of
         // EnTT storage creation order. Each entry performs one component query.
-        constexpr core::cstr groups[]{ "Core", "Rendering", "Physics", "Audio", "Scripting", "UI" };
+        constexpr core::cstr groups[]{ "Core", "Rendering", "Environment", "Physics", "Audio", "Scripting", "UI" };
 
-        for ( const auto* group: groups ) {
+        for ( const auto *group: groups ) {
             bool heading{};
 
-            for ( const auto& component: mComponentUis ) {
+            for ( const auto &component: mComponentUis ) {
                 if ( std::strcmp( component.mGroup, group ) != 0 || !component.mPresent( *entity ) ) {
                     continue;
                 }
@@ -5424,7 +5720,7 @@ namespace mikoto::editor {
         mPanelIsHovered = ImGui::IsWindowHovered();
         mPanelIsFocused = ImGui::IsWindowFocused();
 
-        if ( scene::Entity * selectedEntity{ mState->mSelectedEntity };
+        if ( scene::Entity *selectedEntity{ mState->mSelectedEntity };
             selectedEntity &&
             !IsPresent<GroupComponent>( selectedEntity ) ) {
             const core::u64 id{ selectedEntity->GetComponent<scene::TagComponent>().GetGuid() };
@@ -5454,7 +5750,7 @@ namespace mikoto::editor {
                     }
                 }
 
-                const auto& elements{ MKT_LOC( "inspector_entity_types" ) };
+                const auto &elements{ MKT_LOC( "inspector_entity_types" ) };
 
                 ImGui::SetNextItemWidth( ImGui::GetContentRegionAvail().x - .8f );
 
@@ -5491,10 +5787,10 @@ namespace mikoto::editor {
             // Submit after the component widgets so their smaller drop targets
             // take priority. This rectangle adds no layout or scroll extent.
             if ( ImGui::IsWindowHovered( ImGuiHoveredFlags_ChildWindows | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem ) ) {
-                auto* window{ ImGui::GetCurrentWindow() };
+                auto *window{ ImGui::GetCurrentWindow() };
 
                 if ( ImGui::BeginDragDropTargetCustom( window->InnerRect, ImGui::GetID( "##InspectorScriptDrop" ) ) ) {
-                    if ( const auto* payload{ ImGui::AcceptDragDropPayload( "MIKOTO_SCRIPT_SOURCE", ImGuiDragDropFlags_AcceptNoDrawDefaultRect ) } ) {
+                    if ( const auto *payload{ ImGui::AcceptDragDropPayload( "MIKOTO_SCRIPT_SOURCE", ImGuiDragDropFlags_AcceptNoDrawDefaultRect ) } ) {
                         AssignScriptPayload( *selectedEntity, *payload );
                     }
 
@@ -5521,10 +5817,10 @@ namespace mikoto::editor {
         ImGui::End();
     }
 
-    auto InspectorPanel::DrawParticleSimulatorComponentTab( scene::Entity& entity ) -> void {
+    auto InspectorPanel::DrawParticleSimulatorComponentTab( scene::Entity &entity ) -> void {
         MKT_BEGIN_PROFILER();
-        auto& simulator{ entity.GetComponent<scene::ParticleSimulatorComponent>() };
-        auto& assets{ asset::AssetRegistryService::Get() };
+        auto &simulator{ entity.GetComponent<scene::ParticleSimulatorComponent>() };
+        auto &assets{ asset::AssetRegistryService::Get() };
         const auto filter{ filesystem::FileDialogPair{ MKT_LOC( "particle_effect_asset" ).c_str(), "mktpart" } };
         bool load{};
         bool edit{};
@@ -5548,7 +5844,7 @@ namespace mikoto::editor {
                     if ( effect ) {
                         simulator.SetEffect( eastl::move( effect ) );
                     }
-                } catch ( const std::exception& error ) {
+                } catch ( const std::exception &error ) {
                     MKT_CORE_LOGGER_ERROR( "Cannot load particle effect: {}", error.what() );
                 }
             }
@@ -5561,20 +5857,20 @@ namespace mikoto::editor {
             if ( !file.IsEmpty() ) {
                 try {
                     assets.SaveParticleEffect( *simulator.GetEffect(), file );
-                } catch ( const std::exception& error ) {
+                } catch ( const std::exception &error ) {
                     MKT_CORE_LOGGER_ERROR( "Cannot save particle effect: {}", error.what() );
                 }
             }
         }
 
         const auto instances{ simulator.GetInstances() };
-        const bool playing{ eastl::any_of( instances.begin(), instances.end(), []( const auto& instance ) {
+        const bool playing{ eastl::any_of( instances.begin(), instances.end(), []( const auto &instance ) {
             return instance.GetPlayback() == renderer::ParticlePlayback::ePlaying;
         } ) };
         if ( BeginParticleSettingsRows( "##ParticlePlayback" ) ) {
             ( void )ParticleControlRow( "particle_simulation_simulation" );
             if ( ImGui::Button( playing ? MKT_LOC( "inspector_pause" ).c_str() : MKT_LOC( "inspector_play_resume" ).c_str() ) ) {
-                for ( auto& instance: instances ) {
+                for ( auto &instance: instances ) {
                     if ( !playing ) {
                         instance.Play();
                     }
@@ -5585,19 +5881,19 @@ namespace mikoto::editor {
             }
             ImGui::SameLine();
             if ( ImGui::Button( imgui::widget::LocalizedLabel( "inspector_restart", "Restart##ParticleEffect" ).c_str() ) ) {
-                for ( auto& instance: instances ) {
+                for ( auto &instance: instances ) {
                     instance.Restart();
                 }
             }
             ( void )ParticleControlRow( "particle_simulation_emission" );
             if ( ImGui::Button( imgui::widget::LocalizedLabel( "inspector_stop_emitting", "Stop##ParticleEffect" ).c_str() ) ) {
-                for ( auto& instance: instances ) {
+                for ( auto &instance: instances ) {
                     instance.Stop( false );
                 }
             }
             ImGui::SameLine();
             if ( ImGui::Button( imgui::widget::LocalizedLabel( "inspector_clear", "Clear##ParticleEffect" ).c_str() ) ) {
-                for ( auto& instance: instances ) {
+                for ( auto &instance: instances ) {
                     instance.Stop();
                 }
             }
@@ -5619,7 +5915,7 @@ namespace mikoto::editor {
         const auto label{ []( core::usize index ) {
             return string::Format( "{} {}", MKT_LOC( "particle_simulation_particle_emitter" ), index + 1 );
         } };
-        const auto& emitters{ effect->GetEmitters() };
+        const auto &emitters{ effect->GetEmitters() };
         mParticleEmitter = emitters.empty() ? 0 : eastl::min( mParticleEmitter, emitters.size() - 1 );
 
         ImGui::Separator();
@@ -5669,15 +5965,15 @@ namespace mikoto::editor {
             changed |= DrawParticleEmitterSettings( settings );
             if ( changed ) {
                 simulator.SetEmitter( mParticleEmitter, renderer::ParticleEmitterHandle::New(
-                    renderer::ParticleEmitterCreateDescription{ .mSettings = settings, .mMaterial = material } ) );
+                                                            renderer::ParticleEmitterCreateDescription{ .mSettings = settings, .mMaterial = material } ) );
             }
-        } catch ( const std::exception& error ) {
+        } catch ( const std::exception &error ) {
             MKT_CORE_LOGGER_ERROR( "Cannot edit particle emitter: {}", error.what() );
         }
     }
 
-    auto InspectorPanel::DrawCanvasComponentTab( scene::Entity& entity ) -> void {
-        auto& canvas = entity.GetComponent<scene::CanvasComponent>().GetCanvas();
+    auto InspectorPanel::DrawCanvasComponentTab( scene::Entity &entity ) -> void {
+        auto &canvas = entity.GetComponent<scene::CanvasComponent>().GetCanvas();
         bool overlay = canvas.IsOverlay();
 
         if ( imgui::CheckBox( imgui::widget::LocalizedLabel( "inspector_screen_overlay", "Screen overlay" ).c_str(), overlay ) ) {
@@ -5686,14 +5982,14 @@ namespace mikoto::editor {
 
         auto size = canvas.GetReferenceSize();
 
-        if ( ImGui::DragFloat2( imgui::widget::LocalizedLabel( "inspector_reference_resolution", "Reference resolution" ).c_str(), glm::value_ptr( size ), 1, 1, 16384, "%.0f", ImGuiSliderFlags_AlwaysClamp ) ) {
+        if ( DrawFloatVectorProperty( imgui::widget::LocalizedLabel( "inspector_reference_resolution", "Reference resolution" ).c_str(), glm::value_ptr( size ), 2, { 1, 16384 }, "%.0f", true ) ) {
             canvas.SetReferenceSize( size );
         }
 
         if ( !overlay ) {
             float scale = canvas.GetWorldScale();
 
-            if ( ImGui::DragFloat( imgui::widget::LocalizedLabel( "inspector_world_units_per_pixel", "World units per pixel" ).c_str(), &scale, 0.0001f, 0.000001f, 100, "%.6f", ImGuiSliderFlags_AlwaysClamp ) ) {
+            if ( DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_world_units_per_pixel", "World units per pixel" ).c_str(), &scale, { 0.000001f, 100 }, "%.6f", true ) ) {
                 canvas.SetWorldScale( scale );
             }
         }
@@ -5716,7 +6012,7 @@ namespace mikoto::editor {
             mCanvasElement = 0;
         }
 
-        const char* names[]{ MKT_LOC( "inspector_panel" ).c_str(), MKT_LOC( "inspector_rectangle_outline" ).c_str(), MKT_LOC( "inspector_image" ).c_str(), MKT_LOC( "inspector_text" ).c_str(), MKT_LOC( "inspector_line" ).c_str(), MKT_LOC( "inspector_button" ).c_str(), MKT_LOC( "inspector_toggle" ).c_str(), MKT_LOC( "inspector_slider" ).c_str() };
+        const char *names[]{ MKT_LOC( "inspector_panel" ).c_str(), MKT_LOC( "inspector_rectangle_outline" ).c_str(), MKT_LOC( "inspector_image" ).c_str(), MKT_LOC( "inspector_text" ).c_str(), MKT_LOC( "inspector_line" ).c_str(), MKT_LOC( "inspector_button" ).c_str(), MKT_LOC( "inspector_toggle" ).c_str(), MKT_LOC( "inspector_slider" ).c_str() };
         ImGui::TextDisabled( MKT_LOC( "inspector_widgets_belong_to_this_canvas_they_are_not_scene_entities" ).c_str() );
 
         if ( ImGui::Button( imgui::widget::LocalizedLabel( "inspector_add_widget", "Add widget" ).c_str() ) ) {
@@ -5731,7 +6027,7 @@ namespace mikoto::editor {
         }
 
         ImGui::EndDisabled();
-        const auto addMenu = [&]( const char* popup, renderer::CanvasElementId parent ) {
+        const auto addMenu = [&]( const char *popup, renderer::CanvasElementId parent ) {
             if ( ImGui::BeginPopup( popup ) ) {
                 for ( core::i32 type{}; type < 8; ++type ) {
                     if ( ImGui::MenuItem( names[type] ) ) {
@@ -5769,8 +6065,8 @@ namespace mikoto::editor {
         if ( ImGui::BeginChild( "Widget hierarchy", { 0, 180 }, ImGuiChildFlags_Borders ) ) {
             const auto commands{ canvas.GetCommands() };
 
-            for ( const auto& element: canvas.GetResolvedElements() ) {
-                const auto& command{ commands[element.mCommandIndex] };
+            for ( const auto &element: canvas.GetResolvedElements() ) {
+                const auto &command{ commands[element.mCommandIndex] };
                 const auto id{ string::Format( "{}", command.mId ) };
                 ImGui::PushID( id.c_str() );
                 const core::f32 indent{ glm::min( element.mDepth, 16u ) * 14.0f };
@@ -5787,7 +6083,7 @@ namespace mikoto::editor {
         }
 
         ImGui::EndChild();
-        auto* selected{ canvas.FindElement( mCanvasElement ) };
+        auto *selected{ canvas.FindElement( mCanvasElement ) };
 
         if ( !selected ) {
             ImGui::TextDisabled( MKT_LOC( "inspector_select_a_widget_to_edit_its_properties" ).c_str() );
@@ -5796,7 +6092,7 @@ namespace mikoto::editor {
 
         // These buffers retain capacity across frames. Only the active text needs
         // copying; a large canvas no longer allocates an editor buffer per widget.
-        const auto prepareBuffer = []( eastl::vector<char>& buffer, const eastl::string& text, core::usize minimum ) {
+        const auto prepareBuffer = []( eastl::vector<char> &buffer, const eastl::string &text, core::usize minimum ) {
             if ( buffer.size() < text.size() + 1024 || buffer.size() < minimum ) {
                 buffer.resize( eastl::max( minimum, text.size() + 1024 ) );
             }
@@ -5804,7 +6100,7 @@ namespace mikoto::editor {
             std::memcpy( buffer.data(), text.data(), text.size() );
             buffer[text.size()] = '\0';
         };
-        auto& c{ *selected };
+        auto &c{ *selected };
         prepareBuffer( mCanvasNameBuffer, c.mName, 256 );
 
         if ( ImGui::InputText( imgui::widget::LocalizedLabel( "inspector_name", "Name" ).c_str(), mCanvasNameBuffer.data(), mCanvasNameBuffer.size() ) ) {
@@ -5812,16 +6108,16 @@ namespace mikoto::editor {
         }
 
         ImGui::TextDisabled( MKT_LOC( "inspector_widget_id" ).c_str(), static_cast<unsigned long long>( c.mId ) );
-        const auto* parent{ canvas.FindElement( c.mParentId ) };
+        const auto *parent{ canvas.FindElement( c.mParentId ) };
 
         if ( ImGui::BeginCombo( imgui::widget::LocalizedLabel( "inspector_parent", "Parent" ).c_str(), parent ? parent->mName.c_str() : MKT_LOC( "inspector_canvas_root" ).c_str() ) ) {
             if ( ImGui::Selectable( imgui::widget::LocalizedLabel( "inspector_canvas_root", "Canvas root" ).c_str(), !c.mParentId ) ) {
                 canvas.SetParent( c.mId, 0 );
             }
 
-            for ( const auto& candidate: canvas.GetCommands() ) {
+            for ( const auto &candidate: canvas.GetCommands() ) {
                 // Exclude the selected subtree; reparenting may never form a cycle.
-                const renderer::CanvasCommand* ancestor{ &candidate };
+                const renderer::CanvasCommand *ancestor{ &candidate };
                 bool descendant{};
 
                 while ( ancestor ) {
@@ -5852,7 +6148,7 @@ namespace mikoto::editor {
         imgui::CheckBox( imgui::widget::LocalizedLabel( "inspector_enabled", "Enabled" ).c_str(), c.mEnabled );
         imgui::CheckBox( imgui::widget::LocalizedLabel( "inspector_interactable", "Interactable" ).c_str(), c.mInteractable );
         ImGui::TextDisabled( MKT_LOC( "inspector_tab_to_focus_enter_space_to_activate_arrows_adjust_sliders" ).c_str() );
-        auto& t = c.mTransform;
+        auto &t = c.mTransform;
         int mode = static_cast<int>( t.mLayoutMode );
 
         if ( ImGui::Combo( imgui::widget::LocalizedLabel( "inspector_layout", "Layout" ).c_str(), &mode, MKT_LOC( "inspector_absolute_anchored_stretched" ).c_str() ) ) {
@@ -5876,7 +6172,7 @@ namespace mikoto::editor {
             if ( c.mParentId ) {
                 const auto commands{ canvas.GetCommands() };
 
-                for ( const auto& element: canvas.GetResolvedElements( parentSize ) ) {
+                for ( const auto &element: canvas.GetResolvedElements( parentSize ) ) {
                     if ( commands[element.mCommandIndex].mId == c.mParentId ) {
                         parentSize = element.mRect.mSize;
                         break;
@@ -5885,10 +6181,10 @@ namespace mikoto::editor {
             }
         }
 
-        const auto drawResizeValues{ [&]( const char* label, core::float2& value, float speed ) {
+        const auto drawResizeValues{ [&]( const char *label, core::float2 &value, float speed ) {
             const auto previous{ value };
 
-            if ( !ImGui::DragFloat2( label, glm::value_ptr( value ), speed ) ) {
+            if ( !DrawFloatVectorProperty( label, glm::value_ptr( value ), 2, { 0, 0 }, "%.3f", false ) ) {
                 return false;
             }
 
@@ -5908,23 +6204,23 @@ namespace mikoto::editor {
         } };
 
         if ( mode ) {
-            ImGui::SliderFloat2( imgui::widget::LocalizedLabel( "inspector_anchor_min", "Anchor min" ).c_str(), glm::value_ptr( t.mAnchorMin ), 0, 1 );
-            ImGui::SliderFloat2( imgui::widget::LocalizedLabel( "inspector_anchor_max", "Anchor max" ).c_str(), glm::value_ptr( t.mAnchorMax ), 0, 1 );
+            DrawFloatVectorProperty( imgui::widget::LocalizedLabel( "inspector_anchor_min", "Anchor min" ).c_str(), glm::value_ptr( t.mAnchorMin ), 2, { 0, 1 }, "%.3f", false );
+            DrawFloatVectorProperty( imgui::widget::LocalizedLabel( "inspector_anchor_max", "Anchor max" ).c_str(), glm::value_ptr( t.mAnchorMax ), 2, { 0, 1 }, "%.3f", false );
             t.mAnchorMax = glm::max( t.mAnchorMax, t.mAnchorMin );
         }
 
         if ( mode == 2 ) {
             float edges[]{ t.mEdges.mLeft, t.mEdges.mTop, t.mEdges.mRight, t.mEdges.mBottom };
 
-            if ( ImGui::DragFloat4( imgui::widget::LocalizedLabel( "inspector_margins_l_t_r_b", "Margins L/T/R/B" ).c_str(), edges, 1 ) ) {
+            if ( DrawFloatVectorProperty( imgui::widget::LocalizedLabel( "inspector_margins_l_t_r_b", "Margins L/T/R/B" ).c_str(), edges, 4, { 0, 0 }, "%.3f", false ) ) {
                 t.mEdges = { edges[0], edges[1], edges[2], edges[3] };
             }
         }
         else {
-            ImGui::DragFloat2( imgui::widget::LocalizedLabel( "inspector_position", "Position" ).c_str(), glm::value_ptr( t.mAnchoredPosition ), 1 );
+            DrawFloatVectorProperty( imgui::widget::LocalizedLabel( "inspector_position", "Position" ).c_str(), glm::value_ptr( t.mAnchoredPosition ), 2, { 0, 0 }, "%.3f", false );
 
             if ( !image ) {
-                ImGui::DragFloat2( imgui::widget::LocalizedLabel( "inspector_size", "Size" ).c_str(), glm::value_ptr( t.mSizeDelta ), 1 );
+                DrawFloatVectorProperty( imgui::widget::LocalizedLabel( "inspector_size", "Size" ).c_str(), glm::value_ptr( t.mSizeDelta ), 2, { 0, 0 }, "%.3f", false );
             }
         }
 
@@ -5936,24 +6232,24 @@ namespace mikoto::editor {
             }
         }
 
-        ImGui::SliderFloat2( imgui::widget::LocalizedLabel( "inspector_pivot", "Pivot" ).c_str(), glm::value_ptr( t.mPivot ), 0, 1 );
+        DrawFloatVectorProperty( imgui::widget::LocalizedLabel( "inspector_pivot", "Pivot" ).c_str(), glm::value_ptr( t.mPivot ), 2, { 0, 1 }, "%.3f", false );
         drawResizeValues( imgui::widget::LocalizedLabel( "inspector_scale", "Scale" ).c_str(), t.mScale, 0.01f );
-        ImGui::DragFloat( imgui::widget::LocalizedLabel( "inspector_rotation", "Rotation" ).c_str(), &t.mRotation, 0.5f, 0, 0, MKT_LOC( "inspector_deg" ).c_str() );
+        DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_rotation", "Rotation" ).c_str(), &t.mRotation, { 0, 0 }, MKT_LOC( "inspector_deg" ).c_str(), false );
         float color[]{ c.mColor.mR, c.mColor.mG, c.mColor.mB, c.mColor.mA };
 
         if ( ImGui::ColorEdit4( imgui::widget::LocalizedLabel( "inspector_color", "Color" ).c_str(), color ) ) {
             c.mColor = { color[0], color[1], color[2], color[3] };
         }
 
-        ImGui::DragFloat( imgui::widget::LocalizedLabel( "inspector_rounding", "Rounding" ).c_str(), &c.mRounding, 0.5f, 0, 1024, "%.1f", ImGuiSliderFlags_AlwaysClamp );
+        DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_rounding", "Rounding" ).c_str(), &c.mRounding, { 0, 1024 }, "%.1f", true );
 
         if ( c.mType == renderer::CanvasCommandType::eLine || c.mType == renderer::CanvasCommandType::eRect ) {
-            ImGui::DragFloat( imgui::widget::LocalizedLabel( "inspector_thickness", "Thickness" ).c_str(), &c.mThickness, 0.1f, 0, 1024, "%.1f", ImGuiSliderFlags_AlwaysClamp );
+            DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_thickness", "Thickness" ).c_str(), &c.mThickness, { 0, 1024 }, "%.1f", true );
         }
 
         if ( c.mType == renderer::CanvasCommandType::eLine ) {
-            ImGui::DragFloat2( imgui::widget::LocalizedLabel( "inspector_start", "Start" ).c_str(), glm::value_ptr( c.mStart ), 1 );
-            ImGui::DragFloat2( imgui::widget::LocalizedLabel( "inspector_end", "End" ).c_str(), glm::value_ptr( c.mEnd ), 1 );
+            DrawFloatVectorProperty( imgui::widget::LocalizedLabel( "inspector_start", "Start" ).c_str(), glm::value_ptr( c.mStart ), 2, { 0, 0 }, "%.3f", false );
+            DrawFloatVectorProperty( imgui::widget::LocalizedLabel( "inspector_end", "End" ).c_str(), glm::value_ptr( c.mEnd ), 2, { 0, 0 }, "%.3f", false );
         }
 
         if ( c.mType == renderer::CanvasCommandType::eSprite ) {
@@ -6001,7 +6297,7 @@ namespace mikoto::editor {
                 c.mText = mCanvasTextBuffer.data();
             }
 
-            ImGui::DragFloat( imgui::widget::LocalizedLabel( "inspector_font_size", "Font size" ).c_str(), &c.mFontSize, 0.5f, 1, 2048, "%.1f", ImGuiSliderFlags_AlwaysClamp );
+            DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_font_size", "Font size" ).c_str(), &c.mFontSize, { 1, 2048 }, "%.1f", true );
 
             if ( ImGui::Button( imgui::widget::LocalizedLabel( "inspector_choose_font", "Choose font..." ).c_str() ) ) {
                 std::initializer_list<filesystem::FileDialogPair> filters{ { MKT_LOC( "inspector_font" ).c_str(), "ttf,otf" } };
@@ -6023,7 +6319,7 @@ namespace mikoto::editor {
         if ( c.mType == renderer::CanvasCommandType::eSlider ) {
             auto value{ c.mValue };
 
-            if ( ImGui::SliderFloat( imgui::widget::LocalizedLabel( "inspector_value", "Value" ).c_str(), &value, 0, 1 ) ) {
+            if ( DrawFloatProperty( imgui::widget::LocalizedLabel( "inspector_value", "Value" ).c_str(), &value, { 0, 1 }, "%.3f", false ) ) {
                 canvas.SetValue( c.mId, value );
             }
         }

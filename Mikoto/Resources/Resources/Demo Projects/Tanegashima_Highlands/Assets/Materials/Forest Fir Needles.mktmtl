@@ -1,0 +1,48 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Forest Fir Needles",
+  "Material": {
+    "BaseColorFactor": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "MetallicFactor": 0,
+    "RoughnessFactor": 0.9,
+    "DoubleSided": 1,
+    "AlphaMask": 1,
+    "AlphaMaskCutoff": 0.45,
+    "NormalScale": 0.6,
+    "FoliageWind": {
+      "Enabled": true,
+      "Height": 9.32428514758669,
+      "RootHeight": 0,
+      "TrunkBend": 0.025,
+      "BranchMotion": 0.11,
+      "LeafFlutter": 0.06,
+      "Frequency": 1
+    },
+    "Textures": [
+      {
+        "Map": 1,
+        "Present": true,
+        "Used": true,
+        "TexturePath": "../Models/FirTrees/textures/Brunches_Mat_baseColor.png"
+      },
+      {
+        "Map": 2,
+        "Present": true,
+        "Used": true,
+        "TexturePath": "../Models/FirTrees/textures/Brunches_Mat_normal.png"
+      },
+      {
+        "Map": 5,
+        "Present": true,
+        "Used": true,
+        "TexturePath": "../Models/FirTrees/textures/Brunches_Mat_metallicRoughness.png"
+      }
+    ]
+  }
+}

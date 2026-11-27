@@ -19,6 +19,8 @@
 
 #include <Logging/Logger.hh>
 
+#include <Physics/ContactEvents.hh>
+
 #include <Scene/Scene.hh>
 
 #include <Scripting/ScriptingService.hh>
@@ -133,6 +135,32 @@ namespace mikoto::scripting {
 
         if ( mFailed ) {
             MKT_CORE_LOGGER_ERROR( "C#: update disabled for instance {} after an exception. Reload or restart Play to retry.", mEntityID );
+        }
+    }
+
+    auto DotnetScript::OnPhysicsEvent( const physics::ContactEvent &event, scene::Entity &other ) -> void {
+        if ( !mService ) {
+            return;
+        }
+        mService->ProcessReload( *mScene );
+        if ( mFailed ) {
+            return;
+        }
+        if ( !mCreated ) {
+            CreateInstance();
+        }
+        if ( !mCreated ) {
+            return;
+        }
+
+        const auto operation{ static_cast<ManagedOperation>(
+            static_cast<core::u32>( ManagedOperation::eCollisionEnter ) + event.GetCallbackIndex() ) };
+        mFailed = !mService->Execute( *mScene, { .mOperation = operation,
+                                                   .mScene = mSessionID,
+                                                   .mEntity = mEntityID,
+                                                   .mOtherEntity = other.GetComponent<scene::TagComponent>().GetGuid() } );
+        if ( mFailed ) {
+            MKT_CORE_LOGGER_ERROR( "C#: {} failed for instance {}. Reload or restart Play to retry.", event.GetCallbackName(), mEntityID );
         }
     }
 

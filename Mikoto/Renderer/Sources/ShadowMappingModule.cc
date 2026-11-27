@@ -135,6 +135,8 @@ namespace mikoto::renderer {
     auto ShadowMappingModule::RegisterShadowMaps( FrameGraph& graph ) -> void {
         MKT_BEGIN_PROFILER();
         auto& info = graph.GetOrCreate<ShadowMapInfo>();
+        info.mDirectionalSize = mDirectionalSize;
+        info.mDirectionalCascadeCount = mDirectionalCascadeCount;
         const auto create = [&]( core::cstr kind, core::u32 light, core::u32 face, core::u32 size ) {
             const auto texture = graph.Create( FGTextureDescription{}
                 .SetName( string::Format( "{}Shadow_{}_{}", kind, light, face ) )
@@ -222,8 +224,7 @@ namespace mikoto::renderer {
             eDownsample,
             eBlurHorizontal,
             eBlurVertical,
-            eUpsample,
-            eCopyDepth
+            eUpsample
         };
 
         struct VisibilityParameters {
@@ -245,35 +246,43 @@ namespace mikoto::renderer {
 
         // Keep a sampled receiver-depth snapshot separate from the later read-only
         // depth attachment. Material passes can then sample it without changing that attachment's layout.
+        const auto receiverPipeline{ graph.Create( FGPipelineDescription{}
+            .SetName( "ShadowMaps_ReceiverDataPipeline" )
+            .SetPipelineType( rhi::PipelineType::eCompute )
+            .PushShader( "ShadowReceiverDepth_Comp.slang", FGStageType::eCompute ) ) };
         shadows.mVisibilityDepth = graph.Create( FGTextureDescription{}
             .SetName( "ShadowMaps_ReceiverDepth" )
             .SetWidth( imageWidth )
             .SetHeight( imageHeight )
-            .SetFormat( rhi::Format::eR32_FLOAT )
+            .SetFormat( rhi::Format::eRGBA32_FLOAT )
             .SetUsage( rhi::TextureUsageFlagsBits::ShaderResource | rhi::TextureUsageFlagsBits::UnorderedAccess ) );
 
         graph.RegisterPass(
             "ShadowMaps_ReceiverDepth",
             FGPassType::eCompute,
-            []( FGNodeBuilder& builder, core::Blackboard& b ) {
+            []( FGNodeBuilder &builder, core::Blackboard &b ) {
                 builder.UseResource( b.Get<PrepassModuleInfo>().mPrepassDepthTarget, FGPipelineStage::eComputeShader, FGResourceAccess::eRead );
                 builder.UseResource( b.Get<ShadowMapInfo>().mVisibilityDepth, FGPipelineStage::eComputeShader, FGResourceAccess::eWrite );
                 builder.UseResource( b.Get<ShadowMapInfo>().mRecordsBuffer, FGPipelineStage::eComputeShader, FGResourceAccess::eRead );
             },
-            [this, pipeline, imageWidth, imageHeight]( CommandContext& ctx, core::Blackboard& b ) {
+            [receiverPipeline, imageWidth, imageHeight]( CommandContext &ctx, core::Blackboard &b ) {
                 const auto& data{ b.Get<ShadowMapInfo>() };
 
-                if ( !mSoftShadowsEnabled || eastl::all_of( data.mDirectionalRecords.begin(), data.mDirectionalRecords.end(),
-                    []( core::u32 record ) { return record == ~core::u32{}; } ) ) {
+                if ( eastl::all_of( data.mDirectionalRecords.begin(), data.mDirectionalRecords.end(),
+                         []( core::u32 record ) {
+                             return record == ~core::u32{};
+                         } ) ) {
                     return;
                 }
 
-                const VisibilityParameters parameters{
+                struct Parameters {
+                    core::u32 mDepth{};
+                    core::u32 mOutput{};
+                } parameters{
                     .mDepth = ctx.PushTexture_SRV( b.Get<PrepassModuleInfo>().mPrepassDepthTarget ),
                     .mOutput = ctx.PushTexture_UAV( data.mVisibilityDepth ),
-                    .mStage = as<core::u32>( VisibilityStage::eCopyDepth )
                 };
-                ctx.BindPipeline( pipeline );
+                ctx.BindPipeline( receiverPipeline );
                 ctx.PushConstants( parameters );
                 ctx.Dispatch( ( imageWidth + 7 ) / 8, ( imageHeight + 7 ) / 8, 1 );
             } );
@@ -427,7 +436,10 @@ namespace mikoto::renderer {
                 // publish the filtered visibility and its receiver depth without enlarging draw constants.
                 const auto visibility{ shadows.mDirectionalVisibility[slot] };
                 record.mTextureIDs[4] = mSoftShadowsEnabled && visibility.mHandle ? ctx.PushTexture_SRV( visibility ) : ~core::u32{};
-                record.mTextureIDs[5] = visibility.mHandle ? ctx.PushTexture_SRV( shadows.mVisibilityDepth ) : ~core::u32{};
+                const auto receivers{ shadows.mGrassReceiverData[slot] };
+                record.mTextureIDs[5] = receivers.mHandle    ? ctx.PushTexture_SRV( receivers )
+                                        : visibility.mHandle ? ctx.PushTexture_SRV( shadows.mVisibilityDepth )
+                                                             : ~core::u32{};
 
                 for ( core::u32 face = 0; face < mDirectionalCascadeCount; ++face ) {
                     record.mViewProjection[face] = cascades.matrices[face];
@@ -510,9 +522,16 @@ namespace mikoto::renderer {
             core::u32 mRecord;
             core::u32 mFace;
             core::u32 mPadding{};
-        } params{ ctx.GetDeviceBufferAddress( geometry.mGeometryBuffer ), ctx.GetDeviceBufferAddress( geometry.mSkinningBuffer ),
-            ctx.GetDeviceBufferAddress( geometry.mGeometryAllocBuffer ), ctx.GetDeviceBufferAddress( shadows.mRecordsBuffer ),
-            ctx.GetDeviceBufferAddress( geometry.mMaterialsBuffer ), ctx.PushSampler( geometry.mMaterialSampler ), 0, 0 };
+        } params{
+            .mGeometry = ctx.GetDeviceBufferAddress( geometry.mGeometryBuffer ),
+            .mSkinning = ctx.GetDeviceBufferAddress( geometry.mSkinningBuffer ),
+            .mAllocation = ctx.GetDeviceBufferAddress( geometry.mGeometryAllocBuffer ),
+            .mRecords = ctx.GetDeviceBufferAddress( shadows.mRecordsBuffer ),
+            .mMaterials = ctx.GetDeviceBufferAddress( geometry.mMaterialsBuffer ),
+            .mSampler = ctx.PushSampler( geometry.mMaterialSampler ),
+            .mRecord = 0,
+            .mFace = 0,
+        };
 
         for ( const auto& view: mViews ) {
             params.mRecord = view.mRecord;

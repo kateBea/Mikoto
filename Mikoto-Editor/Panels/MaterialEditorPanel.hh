@@ -18,21 +18,21 @@
 #include <EASTL/shared_ptr.h>
 #include <EASTL/unique_ptr.h>
 
-#include <Renderer/Core/ThumbnailRenderer.hh>
-
-#include <Application/PreviewEnvironment.hh>
-#include <Application/ParticleMaterialPreview.hh>
 #include <Application/MaterialGraphEditor.hh>
+#include <Application/ParticleMaterialPreview.hh>
+#include <Application/PreviewEnvironment.hh>
 
 #include <Panels/Panel.hh>
+
+#include <Renderer/Core/ThumbnailRenderer.hh>
 
 namespace mikoto::editor {
 
     struct EditorState;
 
     struct MaterialEditorPanelDescription {
-        EditorState* mState{};
-        renderer::rhi::IGpuDevice* mDevice{};
+        EditorState *mState{};
+        renderer::rhi::IGpuDevice *mDevice{};
 
         eastl::string mGroup{ "Other" };
         bool mIsToggleable{ true };
@@ -41,7 +41,7 @@ namespace mikoto::editor {
     /** @brief Material workspace with a preview/details column and a reserved graph canvas. */
     class MaterialEditorPanel final : public Panel {
     public:
-        explicit MaterialEditorPanel( const MaterialEditorPanelDescription& description );
+        explicit MaterialEditorPanel( const MaterialEditorPanelDescription &description );
 
         auto OnRender( float timeStep ) -> void override;
         ~MaterialEditorPanel() override = default;
@@ -69,8 +69,8 @@ namespace mikoto::editor {
         auto SetMaterial( core::Ref<material::SurfaceMaterial> material ) -> void;
 
     private:
-        EditorState* mEditorState{};
-        renderer::rhi::IGpuDevice* mDevice{};
+        EditorState *mEditorState{};
+        renderer::rhi::IGpuDevice *mDevice{};
         eastl::unique_ptr<renderer::ThumbnailRenderer> mRenderer{};
         eastl::unique_ptr<ParticleMaterialPreview> mParticlePreview{};
         eastl::shared_ptr<ModelLoad> mModelLoad{};
@@ -87,6 +87,7 @@ namespace mikoto::editor {
         renderer::ThumbnailPreviewSettings mPreview{};
 
         PreviewEnvironment mEnvironment{};
+        bool mParticleEnvironment{};
         asset::AssetHandle<asset::Texture> mPreviewEnvironmentAsset{};
         PreviewEnvironment mPostProcessImageLoad{};
         renderer::rhi::TextureHandle mPostProcessImage{};
@@ -104,7 +105,7 @@ namespace mikoto::editor {
         bool mAutoRotate{};
         bool mPreviewPending{};
         bool mPreviewDirty{ true };
-        const scene::Scene* mParticleTargetScene{};
+        const scene::Scene *mParticleTargetScene{};
         core::u64 mParticleTargetEntity{};
         core::usize mParticleTargetEmitter{};
     };
@@ -112,4 +113,3 @@ namespace mikoto::editor {
 }// namespace mikoto::editor
 
 #endif// MIKOTO_PANELS_MATERIAL_EDITOR_PANEL_HH
-

@@ -121,13 +121,13 @@ namespace mikoto::renderer {
                 const auto& p = b.Get<TextRenderingPassParameters>();
                 const auto& color = b.Get<GeomShadingModuleInfo>();
                 struct DrawParams {
-                    core::u32 sampler{};
-                    core::u32 buffer{};
-                    core::u32 glyphOffset{};
+                    core::u32 mSampler{};
+                    core::u32 mBuffer{};
+                    core::u32 mGlyphOffset{};
                 } params{
-                    ctx.PushSampler( color.mDefaultSampler ),
-                    ctx.PushBuffer_SRV( p.mMsdfTextRenderData ),
-                    0
+                    .mSampler = ctx.PushSampler( color.mDefaultSampler ),
+                    .mBuffer = ctx.PushBuffer_SRV( p.mMsdfTextRenderData ),
+                    .mGlyphOffset = 0,
                 };
 
                 const auto dimensions = InferDimensions( mResolution );
@@ -147,7 +147,7 @@ namespace mikoto::renderer {
 
                     ctx.BindPipeline( batch.mIsSlug ? p.mSlugWorldPipeline : p.mMsdfPipeline );
 
-                    params.glyphOffset = batch.mOffset;
+                    params.mGlyphOffset = batch.mOffset;
 
                     ctx.PushConstants( params );
                     ctx.Draw( 6, batch.mCount );
@@ -189,8 +189,9 @@ namespace mikoto::renderer {
                     core::u32 mBuffer{};
                     core::u32 mGlyphOffset{};
                 } params{
-                    ctx.PushSampler( b.Get<GeomShadingModuleInfo>().mDefaultSampler ),
-                    ctx.PushBuffer_SRV( p.mMsdfTextRenderData ), core::as<core::u32>( mWorldGlyphCount )
+                    .mSampler = ctx.PushSampler( b.Get<GeomShadingModuleInfo>().mDefaultSampler ),
+                    .mBuffer = ctx.PushBuffer_SRV( p.mMsdfTextRenderData ),
+                    .mGlyphOffset = core::as<core::u32>( mWorldGlyphCount ),
                 };
 
                 for ( const auto& batch: mBatches ) {

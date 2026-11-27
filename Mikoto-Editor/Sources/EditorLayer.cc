@@ -12,110 +12,111 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <utility>
 #include <array>
 #include <cmath>
+#include <exception>
+#include <filesystem>
 #include <limits>
 #include <memory>
 #include <ranges>
-#include <exception>
-#include <filesystem>
+#include <utility>
 
 #include <imgui.h>
 #include <imgui_internal.h>
 
-#include <EASTL/utility.h>
+#include <EASTL/algorithm.h>
 #include <EASTL/array.h>
 #include <EASTL/hash_map.h>
-#include <EASTL/algorithm.h>
+#include <EASTL/utility.h>
 
-#include <glm/gtx/compatibility.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-
-#include <Core/CVar.hh>
-#include <Core/Core.hh>
-#include <Core/Engine.hh>
-#include <Core/DateTime.hh>
-#include <Core/Profiler.hh>
-#include <Core/Exception.hh>
-#include <Core/LocalizationService.hh>
-
-#include <Logging/Logger.hh>
-
-#include <Math/Math.hh>
-
-#include <Filesystem/File.hh>
-#include <Filesystem/FileSystem.hh>
-#include <Filesystem/FileService.hh>
-
-#include <Platform/CoreEvents.hh>
-#include <Platform/InputSystem.hh>
-#include <Platform/ActionManager.hh>
-
-#include <Assets/Utility.hh>
-#include <Assets/ImageProcessing.hh>
-#include <Assets/AssetRegistryService.hh>
-
-#include <Material/SkyboxMaterial.hh>
-#include <Material/SurfaceMaterial.hh>
-
-#include <Animation/AnimationSystem.hh>
-
-#include <Physics/PhysicSystem.hh>
-
-#include <Renderer/Rhi/GpuDevice.hh>
-#include <Renderer/Rhi/Utility.hh>
-#include <Renderer/Core/RenderSystem.hh>
-#include <Renderer/Gui/CanvasInput.hh>
-
-#include <Scene/Scene.hh>
-#include <Scene/Component.hh>
-#include <Scene/SceneManager.hh>
-
-#include <Scripting/ScriptingService.hh>
-#include <Scripting/Dotnet/DotnetScriptingService.hh>
-
-#include <ImGui/Utility.hh>
-#include <ImGui/ImGuiWidget.hh>
-#include <ImGui/ImGuiService.hh>
-#include <ImGui/IconsMaterialDesign.h>
+#include <glm/gtx/compatibility.hpp>
 
 #include <Theme/PopupStyle.hh>
 
+#include <Animation/AnimationSystem.hh>
+
+#include <Assets/AssetRegistryService.hh>
+#include <Assets/ImageProcessing.hh>
+#include <Assets/Utility.hh>
+
+#include <Core/Core.hh>
+#include <Core/CVar.hh>
+#include <Core/DateTime.hh>
+#include <Core/Engine.hh>
+#include <Core/Exception.hh>
+#include <Core/LocalizationService.hh>
+#include <Core/Profiler.hh>
+
+#include <Filesystem/File.hh>
+#include <Filesystem/FileService.hh>
+#include <Filesystem/FileSystem.hh>
+
+#include <ImGui/IconsMaterialDesign.h>
+#include <ImGui/ImGuiService.hh>
+#include <ImGui/ImGuiWidget.hh>
+#include <ImGui/Utility.hh>
+
+#include <Logging/Logger.hh>
+
+#include <Material/SkyboxMaterial.hh>
+#include <Material/SurfaceMaterial.hh>
+#include <Material/VolumeMaterial.hh>
+
+#include <Math/Math.hh>
+
 #include <Panels/AboutPanel.hh>
-#include <Panels/AudioPanel.hh>
-#include <Panels/StatsPanel.hh>
-#include <Panels/LayoutsPanel.hh>
-#include <Panels/ProjectPanel.hh>
 #include <Panels/AnimatorPanel.hh>
 #include <Panels/AssetsBrowser.hh>
+#include <Panels/AudioMixerPanel.hh>
+#include <Panels/AudioPanel.hh>
+#include <Panels/GamePreviewPanel.hh>
 #include <Panels/GPUStatsPanel.hh>
-#include <Panels/LightingPanel.hh>
-#include <Panels/RendererPanel.hh>
-#include <Panels/SceneControls.hh>
-#include <Panels/SettingsPanel.hh>
-#include <Panels/ViewportPanel.hh>
 #include <Panels/HierarchyPanel.hh>
 #include <Panels/InspectorPanel.hh>
 #include <Panels/LandscapePanel.hh>
-#include <Panels/AudioMixerPanel.hh>
-#include <Panels/GamePreviewPanel.hh>
+#include <Panels/LayoutsPanel.hh>
+#include <Panels/LightingPanel.hh>
 #include <Panels/PreferencesPanel.hh>
+#include <Panels/ProjectPanel.hh>
+#include <Panels/RendererPanel.hh>
+#include <Panels/SceneControls.hh>
 #include <Panels/ScriptGraphPanel.hh>
+#include <Panels/SettingsPanel.hh>
+#include <Panels/StatsPanel.hh>
+#include <Panels/ViewportPanel.hh>
+
+#include <Physics/PhysicSystem.hh>
+
+#include <Platform/ActionManager.hh>
+#include <Platform/CoreEvents.hh>
+#include <Platform/InputSystem.hh>
+
+#include <Renderer/Core/RenderSystem.hh>
+#include <Renderer/Gui/CanvasInput.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
+#include <Renderer/Rhi/Utility.hh>
+
+#include <Scene/Component.hh>
+#include <Scene/Scene.hh>
+#include <Scene/SceneManager.hh>
+
+#include <Scripting/Dotnet/DotnetScriptingService.hh>
+#include <Scripting/ScriptingService.hh>
 #if defined( MIKOTO_EDITOR_TRACY_VIEWER )
 #include <Panels/InstrumentationPanel.hh>
 #endif
-#include <Panels/AudioProfilerPanel.hh>
+#include <Layers/EditorLayer.hh>
+
 #include <Panels/AnimationGraphPanel.hh>
+#include <Panels/AudioProfilerPanel.hh>
 #include <Panels/CompilerStatusPanel.hh>
 #include <Panels/ContentBrowserPanel.hh>
 #include <Panels/MaterialEditorPanel.hh>
+#include <Panels/ParticleSimulationPanel.hh>
 #include <Panels/PassVisualizerPanel.hh>
 #include <Panels/RuntimeConsolePanel.hh>
-#include <Panels/ParticleSimulationPanel.hh>
 #include <Panels/SimulationSettingsPanel.hh>
-
-#include <Layers/EditorLayer.hh>
 
 namespace mikoto::editor {
 
@@ -125,7 +126,7 @@ namespace mikoto::editor {
     using namespace mikoto::renderer;
     using namespace mikoto::renderer::rhi;
 
-    MKT_NODISCARD static auto EditorBeginMenu( const char* label, bool enabled = true ) -> bool {
+    MKT_NODISCARD static auto EditorBeginMenu( const char *label, bool enabled = true ) -> bool {
         // Share a minimum width across dropdowns, including nested menus, while
         // letting ImGui fit longer labels, shortcuts and menu markers automatically.
         const float minimumWidth{ ImGui::GetFontSize() * 13.0f };
@@ -174,7 +175,7 @@ namespace mikoto::editor {
     }
 
     static auto DrawHeaderGlow( ImVec2 origin, float width, float height, core::float4 color ) -> void {
-        auto* draw{ ImGui::GetWindowDrawList() };
+        auto *draw{ ImGui::GetWindowDrawList() };
         const float gradientWidth{ glm::min( width, 360.0f ) };
         const ImU32 left{ ImGui::GetColorU32( ImVec4{ color.r, color.g, color.b, color.a } ) };
         const ImU32 right{ ImGui::GetColorU32( ImVec4{ color.r, color.g, color.b, 0.0f } ) };
@@ -193,29 +194,28 @@ namespace mikoto::editor {
     }
 
     auto EditorState::UpdatePrefabs() -> void {
-        for ( auto& [type, prefab]: mPrefabs ) {
+        for ( auto &[type, prefab]: mPrefabs ) {
             // Import-policy changes invalidate requests; acquire the replacement entry.
             if ( prefab.mRequest.GetState() != asset::AssetState::eUnloaded ) {
                 continue;
             }
 
             // Basic types get priorityzed
-            const bool primitive{ 
-                type == PrefabModelType::eCube || 
+            const bool primitive{
+                type == PrefabModelType::eCube ||
                 type == PrefabModelType::eSphere ||
-                type == PrefabModelType::eCylinder || 
-                type == PrefabModelType::eCone 
+                type == PrefabModelType::eCylinder ||
+                type == PrefabModelType::eCone
             };
 
             const auto priority{ primitive ? asset::LoadPriority::eCritical : asset::LoadPriority::eBackground };
-            prefab.mRequest = asset::AssetRegistryService::Get()->Request<asset::Model>( 
-                prefab.mReference, asset::ModelLoadDescription{ 
-                    .mPriority = priority 
-                } );
+            prefab.mRequest = asset::AssetRegistryService::Get()->Request<asset::Model>(
+                prefab.mReference, asset::ModelLoadDescription{
+                                       .mPriority = priority } );
         }
     }
 
-    auto EditorState::SelectEntity( scene::Entity* entity ) -> void {
+    auto EditorState::SelectEntity( scene::Entity *entity ) -> void {
         MKT_BEGIN_PROFILER();
         mSelectedEntityIDs.clear();
         mSelectedEntity = entity;
@@ -240,7 +240,7 @@ namespace mikoto::editor {
         RefreshHighlights();
     }
 
-    auto EditorState::SelectEntities( const eastl::vector<core::u64>& ids, bool append ) -> void {
+    auto EditorState::SelectEntities( const eastl::vector<core::u64> &ids, bool append ) -> void {
         auto selection{ append ? mSelectedEntityIDs : eastl::vector<core::u64>{} };
         for ( const auto id: ids ) {
             if ( mActiveScene && mActiveScene->FindByID( id ) && eastl::find( selection.begin(), selection.end(), id ) == selection.end() ) {
@@ -249,7 +249,7 @@ namespace mikoto::editor {
         }
 
         SelectEntity( selection.empty() ? nullptr : mActiveScene->FindByID( selection.front() ) );
-        
+
         mSelectedEntityIDs = eastl::move( selection );
 
         RefreshHighlights();
@@ -277,7 +277,7 @@ namespace mikoto::editor {
         bool exists = false;
 
         if ( mActiveScene ) {
-            for ( const auto& [id, entity]: mActiveScene->GetEntities() ) {
+            for ( const auto &[id, entity]: mActiveScene->GetEntities() ) {
                 if ( entity.get() == mSelectedEntity && ( mSelectedEntityID == 0 || id == mSelectedEntityID ) ) {
                     exists = true;
                     break;
@@ -316,10 +316,10 @@ namespace mikoto::editor {
         mActiveScene->SetHighlightRoots( mSelectedEntityIDs );
     }
 
-    EditorLayer::EditorLayer( platform::IWindow* window )
-        : mName{ "EditorLayer" }, 
-        mWindow{ window }, 
-        mDevice{ renderer::RenderSystem::Get()->GetGpuDevice() } {
+    EditorLayer::EditorLayer( platform::IWindow *window )
+        : mName{ "EditorLayer" },
+          mWindow{ window },
+          mDevice{ renderer::RenderSystem::Get()->GetGpuDevice() } {
     }
 
     auto EditorLayer::OnCreate() -> void {
@@ -409,7 +409,7 @@ namespace mikoto::editor {
         if ( IsWorkspaceBusy() || !mEditorState->HasWorkspace() || ImGui::GetIO().AppFocusLost ) {
             SetCameraCapture( false );
 
-            if ( auto* panel{ mPanelRegistry.Get<ViewportPanel>() } ) {
+            if ( auto *panel{ mPanelRegistry.Get<ViewportPanel>() } ) {
                 panel->SuspendInput();
             }
         }
@@ -440,7 +440,7 @@ namespace mikoto::editor {
 
         UpdateWorkspaceViews( timeStep );
 
-        const auto* scenePanel{ mPanelRegistry.Get<ViewportPanel>() };
+        const auto *scenePanel{ mPanelRegistry.Get<ViewportPanel>() };
         SetCameraCapture( mEditorState->mScreenPresentTarget != ScreenPresentTarget::eGame &&
                           scenePanel && scenePanel->IsCameraNavigating() && !IsWorkspaceBusy() );
 
@@ -479,8 +479,8 @@ namespace mikoto::editor {
         MKT_BEGIN_PROFILER();
         mPanelRegistry.Get<PreferencesPanel>()->ApplyPending();
 
-        for ( const auto& [name, visible]: mPendingPanelVisibility ) {
-            for ( const auto& panel: mPanelRegistry | std::ranges::views::values ) {
+        for ( const auto &[name, visible]: mPendingPanelVisibility ) {
+            for ( const auto &panel: mPanelRegistry | std::ranges::views::values ) {
                 if ( panel->GetName() == name ) {
                     panel->SetVisible( visible );
                 }
@@ -504,7 +504,7 @@ namespace mikoto::editor {
 
         mEditorState->mGameCamera = nullptr;
         mEditorRenderer->SetCullingDebugCamera( nullptr );
-        
+
         // The launcher is the entire workspace until a project is opened.
         // Keep docking settings alive, but submit no panels or scene work.
         renderer::RenderSystem::Get()->SetPresentTarget( imgui::ImGuiService::Get()->GetFinalComposition() );
@@ -587,7 +587,7 @@ namespace mikoto::editor {
         return mName;
     }
 
-    auto EditorLayer::OnEvent( platform::Event& event ) -> void {
+    auto EditorLayer::OnEvent( platform::Event &event ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         const auto type{ event.GetType() };
@@ -604,21 +604,21 @@ namespace mikoto::editor {
 
         switch ( type ) {
             case EventType::KEY_PRESSED_EVENT:
-                if ( const auto* key{ dynamic_cast<const KeyPressedEvent*>( MKT_ADDRESSOF( event ) ) } ) {
+                if ( const auto *key{ dynamic_cast<const KeyPressedEvent *>( MKT_ADDRESSOF( event ) ) } ) {
                     HandleKeyPressed( *key );
                 }
                 break;
 
             case EventType::CONTENT_DROPPED_EVENT:
-                HandleContentDropped( *core::checked_cast<const ContentDroppedEvent*>( MKT_ADDRESSOF( event ) ) );
+                HandleContentDropped( *core::checked_cast<const ContentDroppedEvent *>( MKT_ADDRESSOF( event ) ) );
                 break;
 
             case EventType::MOUSE_BUTTON_PRESSED_EVENT:
-                HandleCameraButton( core::checked_cast<const MouseButtonPressedEvent*>( MKT_ADDRESSOF( event ) )->GetMouseButton(), true );
+                HandleCameraButton( core::checked_cast<const MouseButtonPressedEvent *>( MKT_ADDRESSOF( event ) )->GetMouseButton(), true );
                 break;
 
             case EventType::MOUSE_BUTTON_RELEASED_EVENT:
-                HandleCameraButton( core::checked_cast<const MouseButtonReleasedEvent*>( MKT_ADDRESSOF( event ) )->GetMouseButton(), false );
+                HandleCameraButton( core::checked_cast<const MouseButtonReleasedEvent *>( MKT_ADDRESSOF( event ) )->GetMouseButton(), false );
                 break;
 
             default:
@@ -632,7 +632,7 @@ namespace mikoto::editor {
                mDeferredWorkspaceAction != WorkspaceAction::eNone;
     }
 
-    auto EditorLayer::HandleWindowClose( platform::Event& event ) -> void {
+    auto EditorLayer::HandleWindowClose( platform::Event &event ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( mCloseApproved ) {
@@ -652,14 +652,14 @@ namespace mikoto::editor {
                     mPendingWorkspaceAction = WorkspaceAction::eCloseEditor;
                     event.SetHandled( true );
                 }
-            } catch ( const std::exception& error ) {
+            } catch ( const std::exception &error ) {
                 mWorkflowError = error.what();
                 event.SetHandled( true );
             }
         }
     }
 
-    auto EditorLayer::HandleKeyPressed( const KeyPressedEvent& event ) -> void {
+    auto EditorLayer::HandleKeyPressed( const KeyPressedEvent &event ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( HandleDiagnosticShortcut( event ) ) {
@@ -687,7 +687,7 @@ namespace mikoto::editor {
         }
     }
 
-    auto EditorLayer::HandleDiagnosticShortcut( const KeyPressedEvent& event ) -> bool {
+    auto EditorLayer::HandleDiagnosticShortcut( const KeyPressedEvent &event ) -> bool {
         MKT_BEGIN_PROFILER();
 
         if ( !mActionManager || !ImGui::GetCurrentContext() || ImGui::GetIO().WantTextInput ) {
@@ -707,7 +707,7 @@ namespace mikoto::editor {
         return false;
     }
 
-    auto EditorLayer::HandleContentDropped( const ContentDroppedEvent& event ) -> void {
+    auto EditorLayer::HandleContentDropped( const ContentDroppedEvent &event ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( mEditorState->mRuntimeActive ) {
@@ -719,19 +719,19 @@ namespace mikoto::editor {
             return;
         }
 
-        auto& upload{ mEditorState->mUploadContext };
+        auto &upload{ mEditorState->mUploadContext };
         upload.mUploadOnGoing = true;
 
-        for ( const auto& content: event.GetContents() ) {
+        for ( const auto &content: event.GetContents() ) {
             MKT_CORE_LOGGER_DEBUG( "User dropped {}", content.c_str() );
             upload.mDroppedPaths.emplace_back( content );
         }
     }
 
-    auto EditorLayer::OpenDroppedWorkspace( const ContentDroppedEvent& event ) -> bool {
+    auto EditorLayer::OpenDroppedWorkspace( const ContentDroppedEvent &event ) -> bool {
         MKT_BEGIN_PROFILER();
 
-        for ( const auto& content: event.GetContents() ) {
+        for ( const auto &content: event.GetContents() ) {
             const filesystem::Path path{ content };
             const auto type{ filesystem::InferFileTypeFromExtension( path.GetNormalizedExtension() ) };
 
@@ -771,7 +771,7 @@ namespace mikoto::editor {
     auto EditorLayer::InitAssets() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        auto* assets = asset::AssetRegistryService::GetPtr();
+        auto *assets = asset::AssetRegistryService::GetPtr();
 
         if ( !assets || !assets->IsInitialized() ) {
             MKT_THROW_RUNTIME_ERROR( "Prefab loading requires initialized AssetRegistryService. Check the service startup error above." );
@@ -794,7 +794,7 @@ namespace mikoto::editor {
             { PrefabModelType::eSponza, "Resources/Prefabs/sponza/sponza-atrium-3/source/glTF/glTF/Sponza.gltf" },
         } };
 
-        for ( const auto& [type, path]: modelPaths ) {
+        for ( const auto &[type, path]: modelPaths ) {
             const auto reference{ asset::AssetRef<asset::Model>{ filesystem::Path{ path } } };
             mEditorState->mPrefabs.emplace( type, EditorState::Prefab{ .mReference = reference } );
         }
@@ -807,10 +807,10 @@ namespace mikoto::editor {
             auto titleBarIconImage{ asset::ProcessImage2D( filesystem::Path{ "Resources/Editor/MikotoEditor.png" } ) };
 
             if ( titleBarIconImage ) {
-                if ( !mWindow->SetIcon( 
-                    as<const core::ubyte *>( titleBarIconImage->mBufferSpan->GetData() ), 
-                    as<core::i32>( titleBarIconImage->mWidth ), 
-                    as<core::i32>( titleBarIconImage->mHeight ) ) ) {
+                if ( !mWindow->SetIcon(
+                         as<const core::ubyte *>( titleBarIconImage->mBufferSpan->GetData() ),
+                         as<core::i32>( titleBarIconImage->mWidth ),
+                         as<core::i32>( titleBarIconImage->mHeight ) ) ) {
                     MKT_CORE_LOGGER_WARN( "Cannot set the editor window icon." );
                 }
 
@@ -819,15 +819,15 @@ namespace mikoto::editor {
                 }
 
                 mTitleBarIcon = mDevice->CreateTexture( renderer::rhi::TextureCreateDescription{}
-                    .SetName( "Editor title bar icon" )
-                    .SetImageData( titleBarIconImage )
-                    .SetWidth( titleBarIconImage->mWidth )
-                    .SetHeight( titleBarIconImage->mHeight )
-                    .SetDimensions( renderer::rhi::TextureDimension::eTexture2D )
-                    .SetUsage( renderer::rhi::TextureUsageFlagsBits::ShaderResource )
-                    .SetFormat( renderer::rhi::Format::eRGBA8_UNORM ) );
+                        .SetName( "Editor title bar icon" )
+                        .SetImageData( titleBarIconImage )
+                        .SetWidth( titleBarIconImage->mWidth )
+                        .SetHeight( titleBarIconImage->mHeight )
+                        .SetDimensions( renderer::rhi::TextureDimension::eTexture2D )
+                        .SetUsage( renderer::rhi::TextureUsageFlagsBits::ShaderResource )
+                        .SetFormat( renderer::rhi::Format::eRGBA8_UNORM ) );
             }
-        } catch ( const std::exception& error ) {
+        } catch ( const std::exception &error ) {
             MKT_CORE_LOGGER_WARN( "Cannot load the editor title bar icon: {}", error.what() );
         }
     }
@@ -836,19 +836,19 @@ namespace mikoto::editor {
         MKT_BEGIN_PROFILER();
         mEditorState = eastl::make_unique<EditorState>();
 
-        mEditorState->mOpenParticle = [this]( const filesystem::Path& path ) {
+        mEditorState->mOpenParticle = [this]( const filesystem::Path &path ) {
             mPanelRegistry.Get<ParticleSimulationPanel>()->OpenAsset( path );
         };
 
-        mEditorState->mEditParticleEffect = [this]( const asset::ParticleEffectHandle& effect ) {
+        mEditorState->mEditParticleEffect = [this]( const asset::ParticleEffectHandle &effect ) {
             mPanelRegistry.Get<ParticleSimulationPanel>()->EditEffect( effect );
         };
 
-        mEditorState->mOpenScene = [this]( const filesystem::Path& path ) {
+        mEditorState->mOpenScene = [this]( const filesystem::Path &path ) {
             OpenScene( path );
         };
 
-        mEditorState->mOpenProject = [this]( const filesystem::Path& path ) {
+        mEditorState->mOpenProject = [this]( const filesystem::Path &path ) {
             OpenProject( path );
         };
 
@@ -872,10 +872,10 @@ namespace mikoto::editor {
 
         // Editor renderer
         mEditorRenderer = ISceneRenderer::Create()
-            .SetName( "MainSceneRenderer" )
-            .SetRenderResolution( mEditorState->mResolution )
-            .SetDevice( renderer::RenderSystem::Get()->GetGpuDevice() )
-            .Build();
+                              .SetName( "MainSceneRenderer" )
+                              .SetRenderResolution( mEditorState->mResolution )
+                              .SetDevice( renderer::RenderSystem::Get()->GetGpuDevice() )
+                              .Build();
         if ( mEditorRenderer ) {
             mEditorRenderer->Initialize();
         }
@@ -884,11 +884,11 @@ namespace mikoto::editor {
         // Game renderer
         const auto settings{ mEditorRenderer->GetSettings() };
         mGameRenderer = ISceneRenderer::Create()
-            .SetName( "GameSceneRenderer" )
-            .SetDevice( renderer::RenderSystem::Get()->GetGpuDevice() )
-            .SetRenderResolution( settings.mResolution )
-            .SetMultisampling( settings.mMultisampling )
-            .Build();
+                            .SetName( "GameSceneRenderer" )
+                            .SetDevice( renderer::RenderSystem::Get()->GetGpuDevice() )
+                            .SetRenderResolution( settings.mResolution )
+                            .SetMultisampling( settings.mMultisampling )
+                            .Build();
 
         if ( mGameRenderer ) {
             // The hidden game view needs settings, not a second scene graph.
@@ -898,10 +898,10 @@ namespace mikoto::editor {
 
         // Thumbnails renderer
         auto thumbnailRendererDesc{ ThumbnailRendererCreateInfo{}
-            .SetName( "MainThumbnailRenderer" )
-            .SetShaderBasePath( "Resources/Shaders/slang" )
-            .SetRenderResolution( mEditorState->mResolution )
-            .SetDevice( renderer::RenderSystem::Get()->GetGpuDevice() ) };
+                .SetName( "MainThumbnailRenderer" )
+                .SetShaderBasePath( "Resources/Shaders/slang" )
+                .SetRenderResolution( mEditorState->mResolution )
+                .SetDevice( renderer::RenderSystem::Get()->GetGpuDevice() ) };
         mThumbnailRenderer = renderer::ThumbnailRenderer::Create( thumbnailRendererDesc );
 
         if ( mThumbnailRenderer ) {
@@ -922,7 +922,7 @@ namespace mikoto::editor {
         MKT_BEGIN_PROFILER();
 
         const PopupStyle popupStyle{};
-        const auto localizedTitle{ imgui::widget::LocalizedLabel( 
+        const auto localizedTitle{ imgui::widget::LocalizedLabel(
             "editor_layer_scene_rendering_unavailable",
             "Scene rendering unavailable" ) };
 
@@ -936,7 +936,7 @@ namespace mikoto::editor {
         ImGui::SetNextWindowSize( ImVec2{ 440.0f, 0.0f }, ImGuiCond_Appearing );
 
         if ( ImGui::BeginPopupModal( title, nullptr, ImGuiWindowFlags_AlwaysAutoResize ) ) {
-            const auto* device{ renderer::RenderSystem::Get()->GetGpuDevice() };
+            const auto *device{ renderer::RenderSystem::Get()->GetGpuDevice() };
             const core::cstr backend{ device->IsGraphicsApi( renderer::rhi::GraphicsAPI::eOpenGL ) ? "OpenGL" : "D3D11" };
             ImGui::TextWrapped( MKT_LOC( "editor_layer_scene_rendering_is_not_available_with_yet" ).c_str(), backend );
             ImGui::Spacing();
@@ -956,11 +956,11 @@ namespace mikoto::editor {
         MKT_BEGIN_PROFILER_NAMED();
 
         auto cameraDesc{ scene::SceneCameraDescription{}
-            .SetFieldOfView( 45.0f )
-            .SetNearPlane( 0.1f )
-            .SetFarPlane( 3000.0f )
-            .SetTargetWindow( mWindow )
-            .SetAspectRatio( core::as<core::f32>( mWindow->GetWidth() ), core::as<core::f32>( mWindow->GetHeight() ) ) };
+                .SetFieldOfView( 45.0f )
+                .SetNearPlane( 0.1f )
+                .SetFarPlane( 3000.0f )
+                .SetTargetWindow( mWindow )
+                .SetAspectRatio( core::as<core::f32>( mWindow->GetWidth() ), core::as<core::f32>( mWindow->GetHeight() ) ) };
         mEditorCamera = eastl::make_unique<scene::SceneCamera>( cameraDesc );
         mEditorCamera->ResetSettings();
         mEditorCamera->ResetView();
@@ -975,7 +975,7 @@ namespace mikoto::editor {
             .mCaptureVisibility = [this]() {
                 LayoutPanelVisibility visibility{};
 
-                for ( const auto& panel: mPanelRegistry | std::ranges::views::values ) {
+                for ( const auto &panel: mPanelRegistry | std::ranges::views::values ) {
                     visibility.emplace_back( eastl::string{ panel->GetName() }, panel->IsVisible() );
                 }
 
@@ -1145,111 +1145,110 @@ namespace mikoto::editor {
         MKT_BEGIN_PROFILER();
         mActionManager = eastl::make_unique<platform::ActionManager>( platform::ActionManagerCreateInfo{} );
         mActionManager->Initialize();
-        mActionManager->Bind( platform::KeyCode::Key_N, platform::ModKey::eControl,
-            [this]() {
+        mActionManager->Bind( platform::KeyCode::Key_N, platform::ModKey::eControl, [this]() {
             CreateScene();
-        }, "editor_layer_new_scene" );
+        },
+            "editor_layer_new_scene" );
 
-        mActionManager->Bind( platform::KeyCode::Key_L, platform::ModKey::eControl,
-            [this]() {
+        mActionManager->Bind( platform::KeyCode::Key_L, platform::ModKey::eControl, [this]() {
             OpenScene();
-        }, "editor_layer_open_scene" );
+        },
+            "editor_layer_open_scene" );
 
-        mActionManager->Bind( platform::KeyCode::Key_S, platform::ModKey::eControl,
-            [this]() {
+        mActionManager->Bind( platform::KeyCode::Key_S, platform::ModKey::eControl, [this]() {
             SaveScene();
-        }, "editor_layer_save_scene" );
+        },
+            "editor_layer_save_scene" );
 
-        mActionManager->Bind( platform::KeyCode::Key_S, platform::ModKey::eControl | platform::ModKey::eShift,
-            [this]() {
+        mActionManager->Bind( platform::KeyCode::Key_S, platform::ModKey::eControl | platform::ModKey::eShift, [this]() {
             SaveSceneAs();
-        }, "editor_layer_save_scene_as" );
+        },
+            "editor_layer_save_scene_as" );
 
-        mActionManager->Bind( platform::KeyCode::Key_D, platform::ModKey::eControl,
-            [this]() {
+        mActionManager->Bind( platform::KeyCode::Key_D, platform::ModKey::eControl, [this]() {
             MKT_CORE_LOGGER_DEBUG( "You pressed Ctrl + D (Duplicate Entity)" );
             ( void )mEditorState->mActiveScene->DuplicateEntity( mEditorState->mSelectedEntity );
-        }, "shortcut_duplicate_selection" );
+        },
+            "shortcut_duplicate_selection" );
 
-        mActionManager->Bind( platform::KeyCode::Key_P, platform::ModKey::eControl, 
-            [this]() {
+        mActionManager->Bind( platform::KeyCode::Key_P, platform::ModKey::eControl, [this]() {
             MKT_CORE_LOGGER_DEBUG( "You pressed Ctrl + P (Create project)" );
             CreateProject();
-        }, "editor_layer_new_project" );
+        },
+            "editor_layer_new_project" );
 
-        mActionManager->Bind( platform::KeyCode::Key_U, platform::ModKey::eControl, 
-            [this]() {
+        mActionManager->Bind( platform::KeyCode::Key_U, platform::ModKey::eControl, [this]() {
             MKT_CORE_LOGGER_DEBUG( "You pressed Ctrl + U (Open project)" );
             OpenProject();
-        }, "editor_layer_open_project" );
+        },
+            "editor_layer_open_project" );
 
-        mActionManager->Bind( platform::KeyCode::Key_G, platform::ModKey::eControl, 
-            [this]() {
+        mActionManager->Bind( platform::KeyCode::Key_G, platform::ModKey::eControl, [this]() {
             SaveProject();
             MKT_CORE_LOGGER_DEBUG( "You pressed Ctrl + G (Save project)" );
-        }, "editor_layer_save_project" );
+        },
+            "editor_layer_save_project" );
 
-        mActionManager->Bind( platform::KeyCode::Key_A, platform::ModKey::eControl, 
-            []() {
+        mActionManager->Bind( platform::KeyCode::Key_A, platform::ModKey::eControl, []() {
             MKT_CORE_LOGGER_DEBUG( "You pressed Ctrl + A (Select all entities)" );
-        }, "shortcut_select_all_placeholder" );
+        },
+            "shortcut_select_all_placeholder" );
 
-        mActionManager->Bind( platform::KeyCode::Key_I, platform::ModKey::eControl, 
-            [this]() {
+        mActionManager->Bind( platform::KeyCode::Key_I, platform::ModKey::eControl, [this]() {
             MKT_CORE_LOGGER_DEBUG( "You pressed Ctrl + I (ImguiDebugInfo)" );
 
             mShowImGuiDebugInfo = !mShowImGuiDebugInfo;
-        }, "editor_layer_display_imgui_debug_info" );
+        },
+            "editor_layer_display_imgui_debug_info" );
 
-        mActionManager->Bind( platform::KeyCode::Key_N, platform::ModKey::eControl | platform::ModKey::eAlt, 
-            []() {
+        mActionManager->Bind( platform::KeyCode::Key_N, platform::ModKey::eControl | platform::ModKey::eAlt, []() {
             MKT_CORE_LOGGER_DEBUG( "You pressed Ctrl + Alt + N (New entity)" );
-        }, "shortcut_new_entity_placeholder" );
+        },
+            "shortcut_new_entity_placeholder" );
 
-        mActionManager->Bind( platform::KeyCode::Key_C, platform::ModKey::eControl | platform::ModKey::eShift, 
-            [this]() {
+        mActionManager->Bind( platform::KeyCode::Key_C, platform::ModKey::eControl | platform::ModKey::eShift, [this]() {
             mPanelRegistry.Get<RuntimeConsolePanel>()->FocusCommandInput();
-        }, "editor_layer_console" );
+        },
+            "editor_layer_console" );
 
-        mActionManager->Bind( platform::KeyCode::Key_7, platform::ModKey::eControl, 
-            [this]() {
+        mActionManager->Bind( platform::KeyCode::Key_7, platform::ModKey::eControl, [this]() {
             mPanelRegistry.Get<StatsPanel>()->SetVisible( true );
             mPanelRegistry.Get<GPUStatsPanel>()->SetVisible( true );
-        }, "editor_layer_stats" );
+        },
+            "editor_layer_stats" );
 
         // Guizmos
-        mActionManager->Bind( platform::KeyCode::Key_1, platform::ModKey::eControl, 
-            [this]() {
+        mActionManager->Bind( platform::KeyCode::Key_1, platform::ModKey::eControl, [this]() {
             MKT_CORE_LOGGER_DEBUG( "You pressed Ctrl + 1 (Translation Guizmo)" );
-            ViewportPanel* scenePanel{ mPanelRegistry.Get<ViewportPanel>() };
+            ViewportPanel *scenePanel{ mPanelRegistry.Get<ViewportPanel>() };
 
             if ( scenePanel ) {
                 scenePanel->SetGizmoType( imgui::GizmoType::eTranslation );
             }
-        }, "shortcut_gizmo_translate" );
+        },
+            "shortcut_gizmo_translate" );
 
-        mActionManager->Bind( platform::KeyCode::Key_2, platform::ModKey::eControl, 
-            [this]() {
+        mActionManager->Bind( platform::KeyCode::Key_2, platform::ModKey::eControl, [this]() {
             MKT_CORE_LOGGER_DEBUG( "You pressed Ctrl + 2 (Rotation Guizmo)" );
-            ViewportPanel* scenePanel{ mPanelRegistry.Get<ViewportPanel>() };
+            ViewportPanel *scenePanel{ mPanelRegistry.Get<ViewportPanel>() };
 
             if ( scenePanel ) {
                 scenePanel->SetGizmoType( imgui::GizmoType::eRotation );
             }
-        }, "shortcut_gizmo_rotate" );
+        },
+            "shortcut_gizmo_rotate" );
 
-        mActionManager->Bind( platform::KeyCode::Key_3, platform::ModKey::eControl, 
-            [this]() {
+        mActionManager->Bind( platform::KeyCode::Key_3, platform::ModKey::eControl, [this]() {
             MKT_CORE_LOGGER_DEBUG( "You pressed Ctrl + 3 (Scale Guizmo)" );
-            ViewportPanel* scenePanel{ mPanelRegistry.Get<ViewportPanel>() };
+            ViewportPanel *scenePanel{ mPanelRegistry.Get<ViewportPanel>() };
 
             if ( scenePanel ) {
                 scenePanel->SetGizmoType( imgui::GizmoType::eScale );
             }
-        }, "shortcut_gizmo_scale" );
+        },
+            "shortcut_gizmo_scale" );
 
-        mActionManager->Bind( platform::KeyCode::Key_Delete, platform::ModKey::eNone, 
-            [this]() {
+        mActionManager->Bind( platform::KeyCode::Key_Delete, platform::ModKey::eNone, [this]() {
             MKT_CORE_LOGGER_DEBUG( "You pressed Delete (Delete current entity)" );
 
             if ( mEditorState->mSelectedEntity ) {
@@ -1260,27 +1259,28 @@ namespace mikoto::editor {
                 mEditorState->SelectEntity( nullptr );
                 mEditorState->mActiveScene->RemoveEntity( entityID );
             }
-        }, "shortcut_delete_selection" );
+        },
+            "shortcut_delete_selection" );
 
-        mActionManager->Bind( platform::KeyCode::Key_F11, platform::ModKey::eNone,
-            [this]() {
-                ToggleViewportPresentation( ScreenPresentTarget::eScene );
-            }, "shortcut_toggle_viewport_fullscreen" );
+        mActionManager->Bind( platform::KeyCode::Key_F11, platform::ModKey::eNone, [this]() {
+            ToggleViewportPresentation( ScreenPresentTarget::eScene );
+        },
+            "shortcut_toggle_viewport_fullscreen" );
 
-        mActionManager->Bind( platform::KeyCode::Key_F8, platform::ModKey::eNone,
-            [this]() {
-                ToggleViewportPresentation( ScreenPresentTarget::eGame );
-            }, "shortcut_toggle_game_fullscreen" );
+        mActionManager->Bind( platform::KeyCode::Key_F8, platform::ModKey::eNone, [this]() {
+            ToggleViewportPresentation( ScreenPresentTarget::eGame );
+        },
+            "shortcut_toggle_game_fullscreen" );
 
-        mActionManager->Bind( platform::KeyCode::Key_F4, platform::ModKey::eNone, 
-            [this]() {
+        mActionManager->Bind( platform::KeyCode::Key_F4, platform::ModKey::eNone, [this]() {
             mDisplayPhysicsPanelLines = !mDisplayPhysicsPanelLines;
-        }, "shortcut_toggle_physics_lines" );
+        },
+            "shortcut_toggle_physics_lines" );
 
-        mActionManager->Bind( platform::KeyCode::Key_F5, platform::ModKey::eNone, 
-            [this]() {
+        mActionManager->Bind( platform::KeyCode::Key_F5, platform::ModKey::eNone, [this]() {
             mDisplayPhysicsPanelTriangles = !mDisplayPhysicsPanelTriangles;
-        }, "shortcut_toggle_physics_triangles" );
+        },
+            "shortcut_toggle_physics_triangles" );
     }
 
     auto EditorLayer::InitEmptyScene() -> void {
@@ -1304,7 +1304,7 @@ namespace mikoto::editor {
 
         SetCameraCapture( false );
 
-        if ( auto* panel{ mPanelRegistry.Get<ViewportPanel>() } ) {
+        if ( auto *panel{ mPanelRegistry.Get<ViewportPanel>() } ) {
             panel->SuspendInput();
             panel->CancelPicking();
         }
@@ -1322,7 +1322,7 @@ namespace mikoto::editor {
     auto EditorLayer::UpdateDockSpace() -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        const auto& background{ ImGui::GetStyleColorVec4( ImGuiCol_WindowBg ) };
+        const auto &background{ ImGui::GetStyleColorVec4( ImGuiCol_WindowBg ) };
         imgui::ImGuiService::Get()->SetImGuiBackGroundClearColor( { background.x, background.y, background.z, 1.0f } );
 
         constexpr ImGuiWindowFlags windowFlags{
@@ -1332,7 +1332,7 @@ namespace mikoto::editor {
             ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus
         };
 
-        const auto* viewport{ ImGui::GetMainViewport() };
+        const auto *viewport{ ImGui::GetMainViewport() };
         const float statusHeight{ ImGui::GetTextLineHeight() + 12.0f };
         ImGui::SetNextWindowPos( viewport->WorkPos );
         ImGui::SetNextWindowSize( { viewport->WorkSize.x, glm::max( 1.0f, viewport->WorkSize.y - statusHeight ) } );
@@ -1370,7 +1370,8 @@ namespace mikoto::editor {
             }
 
             const ImGuiDockNodeFlags flags{ mEditorState->HasWorkspace() && mEditorState->mScreenPresentTarget == ScreenPresentTarget::ePanels
-                                               ? ImGuiDockNodeFlags_None : ImGuiDockNodeFlags_KeepAliveOnly };
+                                                ? ImGuiDockNodeFlags_None
+                                                : ImGuiDockNodeFlags_KeepAliveOnly };
             // DockSpace lays out its tabs before the individual panels begin.
             const imgui::ImGuiScopedStyleVar tabPadding{ ImGuiStyleVar_FramePadding, imgui::kWindowTabPadding };
             ImGui::DockSpace( ImGui::GetID( "MikotoDockEditor" ), { 0.0f, 0.0f }, flags );
@@ -1379,16 +1380,16 @@ namespace mikoto::editor {
         DrawMainMenuBar();
 
         ImGui::End();
-        
+
         DrawStatusBar();
     }
 
     auto EditorLayer::DrawStatusBar() -> void {
         MKT_BEGIN_PROFILER();
 
-        const auto* viewport{ ImGui::GetMainViewport() };
+        const auto *viewport{ ImGui::GetMainViewport() };
         const float height{ ImGui::GetTextLineHeight() + 12.0f };
-        
+
         ImGui::SetNextWindowPos( { viewport->WorkPos.x, viewport->WorkPos.y + viewport->WorkSize.y - height } );
         ImGui::SetNextWindowSize( { viewport->WorkSize.x, height } );
         ImGui::SetNextWindowViewport( viewport->ID );
@@ -1400,7 +1401,7 @@ namespace mikoto::editor {
         const imgui::ImGuiScopedStyleVar minimumSize{ ImGuiStyleVar_WindowMinSize, ImVec2{ 1.0f, 1.0f } };
 
         ImGui::PushStyleColor( ImGuiCol_WindowBg, ImGui::GetStyleColorVec4( ImGuiCol_MenuBarBg ) );
-        
+
         constexpr ImGuiWindowFlags flags{
             ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoMove |
             ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse |
@@ -1414,29 +1415,29 @@ namespace mikoto::editor {
             const float rowWidth{ glm::max( 0.0f, ImGui::GetContentRegionAvail().x ) };
             const float scale{ ImGui::GetFontSize() / 17.0f };
             const float selectionWidth{ glm::min( 220.0f * scale, rowWidth * 0.2f ) };
-            const auto* activeScene{ mEditorState->HasWorkspace() ? mEditorState->mActiveScene : nullptr };
+            const auto *activeScene{ mEditorState->HasWorkspace() ? mEditorState->mActiveScene : nullptr };
 
-            const eastl::array<const char*, 3> states{
+            const eastl::array<const char *, 3> states{
                 MKT_LOC( "hierarchy_ready" ).c_str(), MKT_LOC( "stats_playing" ).c_str(), MKT_LOC( "stats_simulating" ).c_str()
             };
 
-            constexpr eastl::array<const char*, 3> stateIcons{ ICON_MD_CHECK_CIRCLE, ICON_MD_PLAY_ARROW, ICON_MD_BOLT };
+            constexpr eastl::array<const char *, 3> stateIcons{ ICON_MD_CHECK_CIRCLE, ICON_MD_PLAY_ARROW, ICON_MD_BOLT };
             constexpr eastl::array<ImVec4, 3> stateColors{
                 ImVec4{ 0.55f, 0.76f, 0.48f, 1.0f }, ImVec4{ 0.35f, 0.82f, 0.46f, 1.0f }, ImVec4{ 0.30f, 0.64f, 0.96f, 1.0f }
             };
 
-            const SceneState state{ mEditorState->mRuntimeActive || 
-                ( activeScene && activeScene->IsPlaying() ) ? SceneState::ePlaying :
-                activeScene && activeScene->IsSimulating() ? 
-                SceneState::eSimulating : 
-                SceneState::eIdle };
+            const SceneState state{ mEditorState->mRuntimeActive ||
+                                            ( activeScene && activeScene->IsPlaying() )
+                                        ? SceneState::ePlaying
+                                    : activeScene && activeScene->IsSimulating() ? SceneState::eSimulating
+                                                                                 : SceneState::eIdle };
 
             float stateWidth{};
             const auto stateIndex{ core::as<core::usize>( state ) };
 
             for ( core::usize index{}; index < states.size(); ++index ) {
                 stateWidth = glm::max( stateWidth, ImGui::CalcTextSize( states[index] ).x +
-                    ImGui::CalcTextSize( stateIcons[index] ).x + ImGui::CalcTextSize( " " ).x );
+                                                       ImGui::CalcTextSize( stateIcons[index] ).x + ImGui::CalcTextSize( " " ).x );
             }
 
             // Reserve the longest state label so playback changes cannot shift the next field.
@@ -1448,31 +1449,31 @@ namespace mikoto::editor {
             ImGui::SameLine();
 
             DrawStatusDivider();
-            
+
             const eastl::string_view sceneName{ activeScene ? activeScene->GetName() : eastl::string_view{ MKT_LOC( "editor_status_no_scene" ) } };
             eastl::string sceneLabel{ MKT_LOC( "editor_status_scene" ) };
             sceneLabel += ": ";
             sceneLabel.append( sceneName.data(), sceneName.size() );
-            
+
             DrawStatusField( sceneLabel, glm::min( ImGui::CalcTextSize( sceneLabel.c_str() ).x, 240.0f * scale ) );
-            
+
             ImGui::SameLine();
-            
+
             DrawStatusDivider();
 
             const auto counts{ core::RuntimeConsole::Get()->GetLogCounts() };
             constexpr eastl::array levels{ core::ConsoleLogLevel::eInfo, core::ConsoleLogLevel::eWarning, core::ConsoleLogLevel::eError };
             constexpr eastl::array icons{ ICON_MD_INFO, ICON_MD_WARNING, ICON_MD_ERROR };
 
-            constexpr eastl::array keys{ 
-                "runtime_console_info", 
-                "runtime_console_warn", 
-                "runtime_console_error" 
+            constexpr eastl::array keys{
+                "runtime_console_info",
+                "runtime_console_warn",
+                "runtime_console_error"
             };
 
             constexpr eastl::array colors{
-                ImVec4{ 0.35f, 0.72f, 0.92f, 1.0f }, 
-                ImVec4{ 0.95f, 0.74f, 0.32f, 1.0f }, 
+                ImVec4{ 0.35f, 0.72f, 0.92f, 1.0f },
+                ImVec4{ 0.95f, 0.74f, 0.32f, 1.0f },
                 ImVec4{ 0.95f, 0.35f, 0.35f, 1.0f }
             };
 
@@ -1498,7 +1499,7 @@ namespace mikoto::editor {
                 }
 
                 ImGui::SameLine();
-                
+
                 DrawStatusDivider();
 
                 // Reserve the widest possible digits, independent of the current time.
@@ -1523,7 +1524,7 @@ namespace mikoto::editor {
             if ( activeScene && mEditorState->mSelectedEntityIDs.size() > 1 ) {
                 selection = string::Format( "{} {}", mEditorState->mSelectedEntityIDs.size(), MKT_LOC( "editor_status_selected_entities" ) );
             }
-            else if ( const auto* entity{ activeScene ? activeScene->FindByID( mEditorState->mSelectedEntityID ) : nullptr } ) {
+            else if ( const auto *entity{ activeScene ? activeScene->FindByID( mEditorState->mSelectedEntityID ) : nullptr } ) {
                 selection = entity->GetComponent<scene::TagComponent>().GetTag();
             }
 
@@ -1553,7 +1554,7 @@ namespace mikoto::editor {
 
             const auto version{ string::Format( "{} {}", MKT_LOC( "editor_status_version" ),
                 core::CVarRegistry::Get()->GetValue<eastl::string>( "engine.version", "?" ) ) };
-            const auto* apiName{ renderer::rhi::GetGraphicsApiName( renderer::RenderSystem::Get()->GetActiveGraphicsApi() ) };
+            const auto *apiName{ renderer::rhi::GetGraphicsApiName( renderer::RenderSystem::Get()->GetActiveGraphicsApi() ) };
             const eastl::string api{ apiName ? apiName : MKT_LOC( "stats_unknown" ).c_str() };
             const float spacing{ ImGui::GetStyle().ItemSpacing.x * 2.0f };
             const float statusWidth{ ImGui::CalcTextSize( status.c_str() ).x };
@@ -1561,7 +1562,7 @@ namespace mikoto::editor {
             const float apiWidth{ ImGui::CalcTextSize( api.c_str() ).x };
 
             ImGui::SameLine();
-            
+
             const auto rowStart{ ImGui::GetCursorPos() };
             const float remaining{ glm::max( 0.0f, ImGui::GetContentRegionAvail().x ) };
             const bool showApi{ remaining >= apiWidth };
@@ -1591,7 +1592,6 @@ namespace mikoto::editor {
                 ImGui::TextDisabled( "%s", api.c_str() );
                 imgui::widget::ItemTooltip( "%s", MKT_LOC( "stats_graphics_api" ).c_str() );
             }
-
         }
 
         ImGui::End();
@@ -1599,7 +1599,7 @@ namespace mikoto::editor {
     }
 
     auto EditorLayer::DrawBackgroundActivity( core::f32 trailingWidth ) -> core::f32 {
-        auto* assets{ asset::AssetRegistryService::GetPtr() };
+        auto *assets{ asset::AssetRegistryService::GetPtr() };
         const auto now{ ImGui::GetTime() };
 
         // Query only queue IDs/counters, not the resident asset inventory or GPU memory statistics.
@@ -1609,12 +1609,12 @@ namespace mikoto::editor {
             mStatusWorkRefresh = now + 0.15;
         }
 
-        const auto& loading{ mStatusLoadingProgress };
+        const auto &loading{ mStatusLoadingProgress };
         const usize pending{ loading.mQueued.size() + loading.mLoading.size() };
         const bool compressing{ !mStatusCompressionProgress.empty() };
         const bool workspace{ mWorkspaceOperation.IsBusy() };
         const bool busy{ pending != 0 || compressing || workspace };
-        constexpr const char* popupID{ "##BackgroundTasks" };
+        constexpr const char *popupID{ "##BackgroundTasks" };
         const float scale{ ImGui::GetFontSize() / 17.0f };
 
         // A clicked task list stays available if its final job finishes while it is open.
@@ -1635,7 +1635,7 @@ namespace mikoto::editor {
             if ( compressing ) {
                 usize completed{}, total{};
 
-                for ( const auto& texture: mStatusCompressionProgress ) {
+                for ( const auto &texture: mStatusCompressionProgress ) {
                     completed += texture.mCompletedBlocks;
                     total += texture.mTotalBlocks;
                 }
@@ -1663,12 +1663,12 @@ namespace mikoto::editor {
             occupiedWidth = width + dividerWidth;
 
             ImGui::SetCursorPosX( ImGui::GetCursorPosX() + glm::max( 0.0f,
-                ImGui::GetContentRegionAvail().x - width - dividerWidth - trailingWidth ) );
-            
+                                                               ImGui::GetContentRegionAvail().x - width - dividerWidth - trailingWidth ) );
+
             const auto position{ ImGui::GetCursorScreenPos() };
             const bool clicked{ ImGui::InvisibleButton( "##BackgroundActivity", { width, height } ) };
             hovered = ImGui::IsItemHovered( ImGuiHoveredFlags_DelayShort );
-            auto* draw{ ImGui::GetWindowDrawList() };
+            auto *draw{ ImGui::GetWindowDrawList() };
             const auto textColor{ ImGui::GetColorU32( ImGuiCol_Text ) };
             draw->AddText( position, textColor, label.c_str() );
 
@@ -1734,8 +1734,8 @@ namespace mikoto::editor {
     }
 
     auto EditorLayer::DrawBackgroundActivityDetails( bool expanded ) -> void {
-        auto* assets{ asset::AssetRegistryService::GetPtr() };
-        const auto& loading{ mStatusLoadingProgress };
+        auto *assets{ asset::AssetRegistryService::GetPtr() };
+        const auto &loading{ mStatusLoadingProgress };
         const bool pending{ !loading.mLoading.empty() || !loading.mQueued.empty() };
         const bool compressing{ !mStatusCompressionProgress.empty() };
         const bool workspace{ mWorkspaceOperation.IsBusy() };
@@ -1758,7 +1758,7 @@ namespace mikoto::editor {
             ImGui::Text( MKT_LOC( "editor_status_load_counts" ).c_str(), loading.mLoading.size(), loading.mQueued.size(),
                 loading.mCompleted, loading.mTotal );
 
-            const auto drawAssets{ [&]( const eastl::vector<asset::AssetID>& ids, const char* state ) {
+            const auto drawAssets{ [&]( const eastl::vector<asset::AssetID> &ids, const char *state ) {
                 const usize limit{ expanded ? ids.size() : eastl::min<usize>( ids.size(), 3 ) };
 
                 for ( usize index{}; index < eastl::min( ids.size(), limit ); ++index ) {
@@ -1782,9 +1782,9 @@ namespace mikoto::editor {
             const usize count{ expanded ? mStatusCompressionProgress.size() : eastl::min<usize>( mStatusCompressionProgress.size(), 3 ) };
 
             for ( usize index{}; index < count; ++index ) {
-                const auto& texture{ mStatusCompressionProgress[index] };
+                const auto &texture{ mStatusCompressionProgress[index] };
                 const eastl::string name{ texture.mPath.IsEmpty() ? eastl::string{ MKT_LOC( "editor_status_generated_texture" ) }
-                    : eastl::string{ texture.mPath.GetFilename() } };
+                                                                  : eastl::string{ texture.mPath.GetFilename() } };
                 const float fraction{ as<f32>( texture.mCompletedBlocks ) / as<f32>( texture.mTotalBlocks ) };
                 const auto percent{ string::Format( "{}%", as<u32>( fraction * 100.0f ) ) };
                 ImGui::TextWrapped( "%s", name.c_str() );
@@ -1811,13 +1811,13 @@ namespace mikoto::editor {
         const ImGuiID right{ ImGui::DockBuilderSplitNode( center, ImGuiDir_Right, 0.25f, nullptr, &center ) };
         const ImGuiID bottom{ ImGui::DockBuilderSplitNode( center, ImGuiDir_Down, 0.25f, nullptr, &center ) };
 
-        for ( const auto& panel: mPanelRegistry | std::ranges::views::values ) {
+        for ( const auto &panel: mPanelRegistry | std::ranges::views::values ) {
             if ( panel->IsToggleable() ) {
                 panel->SetVisible( false );
             }
         }
 
-        const auto place{ []( Panel* panel, ImGuiID node ) {
+        const auto place{ []( Panel *panel, ImGuiID node ) {
             panel->SetVisible( true );
             ImGui::DockBuilderDockWindow( panel->GetHeaderName().data(), node );
         } };
@@ -1882,7 +1882,7 @@ namespace mikoto::editor {
             ImGui::EndDisabled();
 
             DrawTitleBarControls();
-            
+
             ImGui::EndMenuBar();
             ImGui::PopStyleVar();
         }
@@ -1925,7 +1925,7 @@ namespace mikoto::editor {
             }
 
             if ( EditorMenuItem( MKT_LOC( "world_selector_button" ).c_str(), nullptr, false,
-                 !mEditorState->mRuntimeActive && !IsWorkspaceBusy() ) ) {
+                     !mEditorState->mRuntimeActive && !IsWorkspaceBusy() ) ) {
                 mWorldSelector.Open();
             }
 
@@ -1938,7 +1938,7 @@ namespace mikoto::editor {
             ImGui::Separator();
 
             // Screen mode
-            const auto& screenMode{ MKT_LOC(
+            const auto &screenMode{ MKT_LOC(
                 mWindow->IsMaximized() ? "editor_layer_windowed" : "editor_layer_fullscreen" ) };
 
             if ( EditorMenuItem( screenMode.c_str(), "Windows + H" ) ) {
@@ -1949,7 +1949,7 @@ namespace mikoto::editor {
                     else {
                         mWindow->SetScreenMode( platform::ScreenMode::eWindowed );
                     }
-                } catch ( const std::exception& e ) {
+                } catch ( const std::exception &e ) {
                     MKT_CORE_LOGGER_ERROR( "Error while changing screen modes. e.what() {}", e.what() );
                 }
             }
@@ -1968,7 +1968,7 @@ namespace mikoto::editor {
         MKT_BEGIN_PROFILER();
 
         if ( EditorBeginMenu( imgui::widget::LocalizedLabel( "editor_layer_default_projects", "Default Projects" ).c_str() ) ) {
-            for ( const auto& path: WorldSelector::FindDemoProjects() ) {
+            for ( const auto &path: WorldSelector::FindDemoProjects() ) {
                 const eastl::string name{ path.GetStem() };
 
                 if ( EditorMenuItem( name.c_str() ) ) {
@@ -1984,7 +1984,7 @@ namespace mikoto::editor {
         MKT_BEGIN_PROFILER();
 
         if ( EditorBeginMenu( MKT_LOC( "editor_layer_menu_edit" ).c_str(), mEditorState->HasWorkspace() ) ) {
-            if ( EditorMenuItem( imgui::widget::LocalizedLabel( "editor_layer_undo", "Undo" ).c_str(), "Ctrl+Z" ) ) { 
+            if ( EditorMenuItem( imgui::widget::LocalizedLabel( "editor_layer_undo", "Undo" ).c_str(), "Ctrl+Z" ) ) {
                 // TODO
             }
 
@@ -2045,7 +2045,7 @@ namespace mikoto::editor {
                 if ( EditorMenuItem( imgui::widget::LocalizedLabel( "editor_layer_cube", "Cube" ).c_str() ) ) {
                     const scene::EntityCreateInfo entityCreateInfo{
                         .mRoot = nullptr,
-                            .mName{ "Cube" },
+                        .mName{ "Cube" },
                         .mModelAsset = mEditorState->GetPrefabReference( PrefabModelType::eCube )
                     };
                     mEditorState->mActiveScene->PushEntity( entityCreateInfo );
@@ -2054,7 +2054,7 @@ namespace mikoto::editor {
                 if ( EditorMenuItem( imgui::widget::LocalizedLabel( "editor_layer_sphere", "Sphere" ).c_str() ) ) {
                     const scene::EntityCreateInfo entityCreateInfo{
                         .mRoot = nullptr,
-                            .mName{ "Sphere" },
+                        .mName{ "Sphere" },
                         .mModelAsset = mEditorState->GetPrefabReference( PrefabModelType::eSphere )
                     };
                     mEditorState->mActiveScene->PushEntity( entityCreateInfo );
@@ -2063,7 +2063,7 @@ namespace mikoto::editor {
                 if ( EditorMenuItem( imgui::widget::LocalizedLabel( "editor_layer_capsule", "Capsule" ).c_str() ) ) {
                     const scene::EntityCreateInfo entityCreateInfo{
                         .mRoot = nullptr,
-                            .mName{ "Capsule" },
+                        .mName{ "Capsule" },
                         .mModelAsset = mEditorState->GetPrefabReference( PrefabModelType::eSphere )
                     };
                     mEditorState->mActiveScene->PushEntity( entityCreateInfo );
@@ -2072,7 +2072,7 @@ namespace mikoto::editor {
                 if ( EditorMenuItem( imgui::widget::LocalizedLabel( "editor_layer_plane", "Plane" ).c_str() ) ) {
                     const scene::EntityCreateInfo entityCreateInfo{
                         .mRoot = nullptr,
-                            .mName{ "Plane" },
+                        .mName{ "Plane" },
                         .mModelAsset = mEditorState->GetPrefabReference( PrefabModelType::eCube )
                     };
                     mEditorState->mActiveScene->PushEntity( entityCreateInfo );
@@ -2081,7 +2081,7 @@ namespace mikoto::editor {
                 if ( EditorMenuItem( imgui::widget::LocalizedLabel( "editor_layer_cylinder", "Cylinder" ).c_str() ) ) {
                     const scene::EntityCreateInfo entityCreateInfo{
                         .mRoot = nullptr,
-                            .mName{ "Cylinder" },
+                        .mName{ "Cylinder" },
                         .mModelAsset = mEditorState->GetPrefabReference( PrefabModelType::eCylinder )
                     };
                     mEditorState->mActiveScene->PushEntity( entityCreateInfo );
@@ -2090,7 +2090,7 @@ namespace mikoto::editor {
                 if ( EditorMenuItem( imgui::widget::LocalizedLabel( "editor_layer_cone", "Cone" ).c_str() ) ) {
                     const scene::EntityCreateInfo entityCreateInfo{
                         .mRoot = nullptr,
-                            .mName{ "Cone" },
+                        .mName{ "Cone" },
                         .mModelAsset = mEditorState->GetPrefabReference( PrefabModelType::eCone )
                     };
                     mEditorState->mActiveScene->PushEntity( entityCreateInfo );
@@ -2111,7 +2111,7 @@ namespace mikoto::editor {
 
             if ( EditorBeginMenu( imgui::widget::LocalizedLabel( "editor_layer_effects", "Effects" ).c_str() ) ) {
                 if ( EditorMenuItem( MKT_LOC( "particle_simulator_component" ).c_str() ) ) {
-                    if ( auto* entity{ mEditorState->mActiveScene->CreateEntity( MKT_LOC( "particle_simulator_component" ) ) } ) {
+                    if ( auto *entity{ mEditorState->mActiveScene->CreateEntity( MKT_LOC( "particle_simulator_component" ) ) } ) {
                         entity->AddComponent<scene::ParticleSimulatorComponent>();
                     }
                 }
@@ -2181,12 +2181,12 @@ namespace mikoto::editor {
                     { "Scripting", "panel_group_scripting" },
                     { "Settings", "panel_group_settings" },
                     { "Other", "panel_group_other" } } };
-                const auto panelGroup{ []( const Panel& panel ) -> eastl::string_view {
+                const auto panelGroup{ []( const Panel &panel ) -> eastl::string_view {
                     return panel.GetGroup().empty() ? eastl::string_view{ "Other" } : eastl::string_view{ panel.GetGroup() };
                 } };
                 eastl::vector<eastl::string_view> groups{};
 
-                for ( const auto& panel: mPanelRegistry | std::ranges::views::values ) {
+                for ( const auto &panel: mPanelRegistry | std::ranges::views::values ) {
                     if ( !panel->IsToggleable() ) {
                         continue;
                     }
@@ -2203,7 +2203,7 @@ namespace mikoto::editor {
                 for ( const auto group: groups ) {
                     eastl::string label{ group };
 
-                    for ( const auto& [name, key]: groupTitles ) {
+                    for ( const auto &[name, key]: groupTitles ) {
                         if ( group == name ) {
                             label = MKT_LOC( key );
                             break;
@@ -2214,7 +2214,7 @@ namespace mikoto::editor {
                     label.append( group.data(), group.size() );
 
                     if ( EditorBeginMenu( label.c_str() ) ) {
-                        for ( const auto& panel: mPanelRegistry | std::ranges::views::values ) {
+                        for ( const auto &panel: mPanelRegistry | std::ranges::views::values ) {
                             if ( !panel->IsToggleable() || panelGroup( *panel ) != group ) {
                                 continue;
                             }
@@ -2283,7 +2283,7 @@ namespace mikoto::editor {
                 mPanelRegistry.Get<RuntimeConsolePanel>()->FocusCommandInput();
             }
 
-            if ( auto* panel{ mPanelRegistry.Get<GamePreviewPanel>() } ) {
+            if ( auto *panel{ mPanelRegistry.Get<GamePreviewPanel>() } ) {
                 bool visible{ panel->IsVisible() };
 
                 if ( EditorMenuItem( imgui::widget::LocalizedLabel( "editor_layer_game", "Game" ).c_str(), nullptr, &visible ) ) {
@@ -2291,7 +2291,7 @@ namespace mikoto::editor {
                 }
             }
 
-            if ( auto* panel = mPanelRegistry.Get<PassVisualizerPanel>() ) {
+            if ( auto *panel = mPanelRegistry.Get<PassVisualizerPanel>() ) {
                 bool visible{ panel->IsVisible() };
 
                 if ( EditorMenuItem( imgui::widget::LocalizedLabel( "editor_layer_pass_visualizer", "Pass Visualizer" ).c_str(), nullptr, &visible ) ) {
@@ -2299,7 +2299,7 @@ namespace mikoto::editor {
                 }
             }
 
-            if ( auto* panel{ mPanelRegistry.Get<AnimationGraphPanel>() } ) {
+            if ( auto *panel{ mPanelRegistry.Get<AnimationGraphPanel>() } ) {
                 bool visible{ panel->IsVisible() };
 
                 if ( EditorMenuItem( imgui::widget::LocalizedLabel( "editor_layer_animation_graph", "Animation Graph" ).c_str(), nullptr, &visible ) ) {
@@ -2307,7 +2307,7 @@ namespace mikoto::editor {
                 }
             }
 
-            if ( auto* panel{ mPanelRegistry.Get<ScriptGraphPanel>() } ) {
+            if ( auto *panel{ mPanelRegistry.Get<ScriptGraphPanel>() } ) {
                 bool visible{ panel->IsVisible() };
 
                 if ( EditorMenuItem( imgui::widget::LocalizedLabel( "editor_layer_script_graph", "Script Graph" ).c_str(), nullptr, &visible ) ) {
@@ -2323,7 +2323,7 @@ namespace mikoto::editor {
         MKT_BEGIN_PROFILER();
 
         if ( EditorBeginMenu( imgui::widget::LocalizedLabel( "editor_layer_physics", "Physics" ).c_str() ) ) {
-            auto& debug{ mEditorRenderer->GetPhysicsDebugSettings() };
+            auto &debug{ mEditorRenderer->GetPhysicsDebugSettings() };
             const bool available{ mEditorState->mPhysicsDebugRendererSimple != nullptr };
             ImGui::BeginDisabled( !available );
             EditorMenuItem( imgui::widget::LocalizedLabel( "editor_layer_show_physics_debug", "Show Physics Debug" ).c_str(), nullptr, &debug.mEnabled );
@@ -2409,7 +2409,7 @@ namespace mikoto::editor {
             if ( EditorMenuItem( imgui::widget::LocalizedLabel( "editor_layer_display_performance_overlay", "Display Performance Overlay" ).c_str(), nullptr, mShowPerformanceOverlay ) ) {
                 mShowPerformanceOverlay = !mShowPerformanceOverlay;
 
-                ViewportPanel* panel{ mPanelRegistry.Get<ViewportPanel>() };
+                ViewportPanel *panel{ mPanelRegistry.Get<ViewportPanel>() };
                 panel->SetEnablePerformanceOverlay( mShowPerformanceOverlay );
             }
 
@@ -2485,6 +2485,27 @@ namespace mikoto::editor {
             }
 
             mikoto::imgui::widget::ItemTooltip( MKT_LOC( "editor_layer_blend_the_cluster_heatmap_over_the_final_image_uses_opaque" ).c_str() );
+            ImGui::SeparatorText( "NRD preview" );
+            auto settings{ mEditorRenderer->GetSettings() };
+            auto &denoiser{ settings.mDenoiser };
+            bool changed{};
+            ImGui::BeginDisabled( !MIKOTO_ENABLE_NRD || !mEditorRenderer->IsDenoiserActive() );
+            if ( EditorMenuItem( "Validation" ) ) {
+                mEditorState->mFinalComposition = mEditorRenderer->GetFinalImage( renderer::FinalImageType::eDenoiserValidation );
+            }
+            if ( EditorMenuItem( "Raw / filtered split", nullptr, denoiser.mSplitScreen > 0 ) ) {
+                denoiser.mSplitScreen = denoiser.mSplitScreen > 0 ? 0.0f : 0.5f;
+                changed = true;
+            }
+            if ( denoiser.mSplitScreen > 0 ) {
+                changed |= ImGui::SliderFloat( "Split position##nrd_preview", &denoiser.mSplitScreen, 0.0f, 1.0f, "%.2f" );
+            }
+            ImGui::EndDisabled();
+            if ( changed ) {
+                mEditorRenderer->ApplySettings( settings );
+                mEditorState->mFinalComposition = mEditorRenderer->GetFinalImage( renderer::FinalImageType::eTonemap_Output );
+            }
+
             ImGui::EndMenu();
         }
     }
@@ -2557,7 +2578,7 @@ namespace mikoto::editor {
         constexpr float sidePadding{ 12.0f };
         const ImVec2 origin{ ImGui::GetWindowPos() };
         const ImVec2 min{ origin.x + sidePadding, origin.y + ( height - size ) * 0.5f };
-        auto* draw{ ImGui::GetWindowDrawList() };
+        auto *draw{ ImGui::GetWindowDrawList() };
         DrawHeaderGlow( origin, ImGui::GetWindowSize().x, height, mEditorState->mHeaderGradientColor );
 
         if ( mTitleBarIcon ) {
@@ -2577,7 +2598,7 @@ namespace mikoto::editor {
             return;
         }
 
-        const auto* viewport{ ImGui::GetMainViewport() };
+        const auto *viewport{ ImGui::GetMainViewport() };
         const ImVec2 origin{ ImGui::GetWindowPos() };
         const float height{ ImGui::GetFontSize() + kTitleBarVerticalPadding * 2.0f };
         const float buttonHeight{ ImGui::GetFontSize() + 12.0f };
@@ -2592,7 +2613,7 @@ namespace mikoto::editor {
             ( origin.y - viewport->Pos.y ) / viewport->Size.y,
             blocked ? 0.0f : dragWidth / viewport->Size.x, height / viewport->Size.y );
 
-        auto* draw{ ImGui::GetWindowDrawList() };
+        auto *draw{ ImGui::GetWindowDrawList() };
 #if defined( NDEBUG )
         constexpr auto buildType{ "RELEASE" };
 #else
@@ -2696,10 +2717,10 @@ namespace mikoto::editor {
 
         if ( ImGui::BeginChild( "EditorUtilities", { 0.0f, height }, ImGuiChildFlags_AlwaysUseWindowPadding,
                  ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_HorizontalScrollbar ) ) {
-            auto* draw{ ImGui::GetWindowDrawList() };
+            auto *draw{ ImGui::GetWindowDrawList() };
             const ImVec2 position{ ImGui::GetWindowPos() };
             const ImVec2 size{ ImGui::GetWindowSize() };
-            
+
             draw->AddLine( position, { position.x + size.x, position.y }, ImGui::GetColorU32( ImGuiCol_Border ) );
 
             if ( !mEditorState->HasWorkspace() ) {
@@ -2707,8 +2728,8 @@ namespace mikoto::editor {
                     { position.x + size.x, position.y + size.y - 1.0f }, ImGui::GetColorU32( ImGuiCol_Border ) );
             }
 
-            const auto button{ [compact]( const char* icon, const char* id, const char* labelKey, const char* tooltip ) {
-                const char* label{ MKT_LOC( labelKey ).c_str() };
+            const auto button{ [compact]( const char *icon, const char *id, const char *labelKey, const char *tooltip ) {
+                const char *label{ MKT_LOC( labelKey ).c_str() };
                 const auto text{ string::Format( "{}{}{}##{}", icon, compact ? "" : "  ", compact ? "" : label, id ) };
                 const bool clicked{ imgui::widget::ToolbarButton( id, text.c_str(), tooltip ) };
                 ImGui::SameLine();
@@ -2726,7 +2747,7 @@ namespace mikoto::editor {
             const bool hasScene{ mEditorState->HasWorkspace() && mEditorState->mActiveScene };
             const bool running{ mEditorState->mRuntimeActive };
             const bool simulating{ hasScene && mEditorState->mActiveScene->IsSimulating() };
-            const auto& toolbar{ mEditorState->mToolbarSettings };
+            const auto &toolbar{ mEditorState->mToolbarSettings };
             ImGui::BeginDisabled( !hasScene || running || simulating );
 
             if ( toolbar.mSave && button( ICON_MD_SAVE, "Save", "editor_layer_save", MKT_LOC( "editor_layer_save_scene_ctrl_s" ).c_str() ) ) {
@@ -2784,18 +2805,18 @@ namespace mikoto::editor {
     auto EditorLayer::UpdateDockSpacePanels( float ts ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        for ( const auto& panel: mPanelRegistry | std::ranges::views::values ) {
+        for ( const auto &panel: mPanelRegistry | std::ranges::views::values ) {
             // Viewports remain interactive during Play, including Scene's Stop button.
             // ViewportPanel guards authoring actions locally while observing the runtime.
             const bool viewportPanel{ panel.get() == mPanelRegistry.Get<GamePreviewPanel>() ||
                                       panel.get() == mPanelRegistry.Get<ViewportPanel>() };
             const bool independentPanel{ panel.get() == mPanelRegistry.Get<AudioPanel>()
 #if defined( MIKOTO_EDITOR_TRACY_VIEWER )
-                || panel.get() == mPanelRegistry.Get<InstrumentationPanel>()
+                                         || panel.get() == mPanelRegistry.Get<InstrumentationPanel>()
 #endif
             };
             ImGui::BeginDisabled( !independentPanel && ( !mEditorState->HasWorkspace() ||
-                                                       ( mEditorState->mRuntimeActive && !viewportPanel ) ) );
+                                                           ( mEditorState->mRuntimeActive && !viewportPanel ) ) );
             panel->OnRender( ts );
             ImGui::EndDisabled();
         }
@@ -2822,10 +2843,11 @@ namespace mikoto::editor {
         if ( requested && mEditorRenderer->IsRenderAvailable() ) {
             mEditorState->ValidateSelection();
             mEditorState->RefreshHighlights();
-            const auto& view{ mEditorState->mViewSettings };
+            const auto &view{ mEditorState->mViewSettings };
             mEditorRenderer->SetArmatureDebugMode( view.mArmatureDebugMode );
-            auto& volumes{ mEditorRenderer->GetSceneVolumeSettings() };
+            auto &volumes{ mEditorRenderer->GetSceneVolumeSettings() };
             volumes.mShowBounds = view.mShowBounds;
+            volumes.mWindDebugView = view.mWindDebugView;
             volumes.mShowCameraFrustums = view.mShowCameraFrustums;
             volumes.mShowPointLightRanges = view.mShowPointLightRanges;
             volumes.mShowSpotLightRanges = view.mShowSpotLightRanges;
@@ -2849,7 +2871,6 @@ namespace mikoto::editor {
 
     auto EditorLayer::UpdateGameCamera() -> void {
         mEditorState->mGameCamera = nullptr;
-        mEditorState->mGameCameraFixedAspect = false;
 
         if ( !mEditorState->mActiveScene ) {
             return;
@@ -2861,14 +2882,12 @@ namespace mikoto::editor {
                 continue;
             }
             // Copy lens/pose state only, never SceneCamera's intrusive reference counter.
-            static_cast<scene::Camera&>( mGameCamera ) = camera.GetCamera();
-            mEditorState->mGameCameraFixedAspect = camera.IsAspectRatioFixed();
+            static_cast<scene::Camera &>( mGameCamera ) = camera.GetCamera();
 
-            if ( !mEditorState->mGameCameraFixedAspect ) {
-                mGameCamera.SetViewportSize( mEditorState->mGamePreviewSize.x, mEditorState->mGamePreviewSize.y );
-            }
+            // Fit the preview lens to its panel without changing the authored camera.
+            mGameCamera.SetViewportSize( mEditorState->mGamePreviewSize.x, mEditorState->mGamePreviewSize.y );
 
-            const auto& world{ transform.GetWorldTransform() };
+            const auto &world{ transform.GetWorldTransform() };
             const auto pose{ scene::Camera::ExtractRenderPose( world ) };
             mGameCamera.SetRenderPose( pose );
             mEditorState->mGameCamera = &mGameCamera;
@@ -2890,7 +2909,7 @@ namespace mikoto::editor {
     }
 
     auto EditorLayer::UpdateGameViewport() -> void {
-        if ( mEditorState->mGameCamera && !mEditorState->mGameCameraFixedAspect ) {
+        if ( mEditorState->mGameCamera ) {
             // The panel measures its content during UI layout. Apply the current
             // size before either renderer consumes the game camera this frame.
             mGameCamera.SetViewportSize( mEditorState->mGamePreviewSize.x, mEditorState->mGamePreviewSize.y );
@@ -2927,7 +2946,7 @@ namespace mikoto::editor {
 
     auto EditorLayer::UpdateViewportState( float ) -> void {
         MKT_BEGIN_PROFILER();
-        ViewportPanel* panel{ mPanelRegistry.Get<ViewportPanel>() };
+        ViewportPanel *panel{ mPanelRegistry.Get<ViewportPanel>() };
         panel->SetTexture( mEditorState->mFinalComposition );
     }
 
@@ -2941,7 +2960,7 @@ namespace mikoto::editor {
     auto EditorLayer::UpdateCameraState( float ts ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        ViewportPanel* scenePanel{ mPanelRegistry.Get<ViewportPanel>() };
+        ViewportPanel *scenePanel{ mPanelRegistry.Get<ViewportPanel>() };
         mEditorCamera->SetViewportSize( eastl::max( scenePanel->GetWidth(), 1.0f ), eastl::max( scenePanel->GetHeight(), 1.0f ) );
 
         mEditorCamera->Update( ts );
@@ -2967,9 +2986,9 @@ namespace mikoto::editor {
 
         mEditorState->mActiveScene->Update( mEditorRenderer.get() );
 
-        scene::SceneCamera* renderCamera{ mEditorCamera.get() };
-        auto& registry{ mEditorState->mActiveScene->GetRegistry() };
-        scene::CameraComponent* selectedCamera{};
+        scene::SceneCamera *renderCamera{ mEditorCamera.get() };
+        auto &registry{ mEditorState->mActiveScene->GetRegistry() };
+        scene::CameraComponent *selectedCamera{};
 
         for ( auto [entity, camera, transform, tag]: registry.view<scene::CameraComponent, scene::TransformComponent, scene::TagComponent>().each() ) {
             if ( !tag.IsActive() || !camera.HasCamera() ) {
@@ -2994,7 +3013,7 @@ namespace mikoto::editor {
             mEditorCamera->SetVignetteSettings( scene::VignetteSettings{} );
         }
 
-        ViewportPanel* scenePanel{ mPanelRegistry.Get<ViewportPanel>() };
+        ViewportPanel *scenePanel{ mPanelRegistry.Get<ViewportPanel>() };
         renderCamera->SetViewportSize( glm::max( scenePanel->GetWidth(), 1.0f ), glm::max( scenePanel->GetHeight(), 1.0f ) );
 
         mEditorState->mActiveCamera = renderCamera;
@@ -3011,7 +3030,7 @@ namespace mikoto::editor {
     // Projects, scene files and workspace transitions.
 
     auto EditorLayer::ApplyTextureCompression( bool enabled ) -> void {
-        auto* assets{ asset::AssetRegistryService::GetPtr() };
+        auto *assets{ asset::AssetRegistryService::GetPtr() };
 
         if ( assets->IsTextureCompressionEnabled() == enabled ) {
             return;
@@ -3023,7 +3042,7 @@ namespace mikoto::editor {
         assets->SetCompressTextures( enabled );
     }
 
-    auto EditorLayer::ActivateProject( project::ProjectHandle project, scene::Scene* scene ) -> void {
+    auto EditorLayer::ActivateProject( project::ProjectHandle project, scene::Scene *scene ) -> void {
         MKT_BEGIN_PROFILER();
         project->RestoreMainCamera( *mEditorCamera );
         mPanelRegistry.Get<ContentBrowserPanel>()->SetProjectDirectory( project->GetAssetsDirectory(), project->GetCacheDirectory() );
@@ -3048,7 +3067,7 @@ namespace mikoto::editor {
             mEditorState->mScriptSolution = mProject->EnsureScriptProject(
                 filesystem::Path{ "Resources/Scripting/Mikoto.ScriptCore.dll" }.ToAbsolute() );
             mEditorState->mScriptProject = mProject->GetScriptProjectPath();
-        } catch ( const std::exception& error ) {
+        } catch ( const std::exception &error ) {
             mWorkflowError = error.what();
         }
     }
@@ -3068,14 +3087,15 @@ namespace mikoto::editor {
         mProject->Serialize( mProject->GetLocation() );
     }
 
-    auto EditorLayer::ApplySceneEnvironment( scene::Scene& scene ) -> void {
+    auto EditorLayer::ApplySceneEnvironment( scene::Scene &scene ) -> void {
         MKT_BEGIN_PROFILER();
         const auto environment{ scene.GetEnvironmentMaterial() };
         // An empty scene explicitly clears the previous environment. Merely
         // skipping the skybox loop would retain its cached IBL and reflections.
         scene.Update( mEditorRenderer.get() );
-        mEditorRenderer->SetRenderBackground( environment ? renderer::SceneBackgroundType::eSkybox : renderer::SceneBackgroundType::eClearColor );
-        scene::CameraComponent* primary{};
+        const bool atmosphericSky{ scene.GetEnvironmentLightingSource() == scene::EnvironmentLightingSource::eAtmosphere };
+        mEditorRenderer->SetRenderBackground( environment || atmosphericSky ? renderer::SceneBackgroundType::eSkybox : renderer::SceneBackgroundType::eClearColor );
+        scene::CameraComponent *primary{};
 
         for ( auto [entity, camera, tag]: scene.GetRegistry().view<scene::CameraComponent, scene::TagComponent>().each() ) {
             if ( !tag.IsActive() || !camera.HasCamera() ) {
@@ -3113,12 +3133,21 @@ namespace mikoto::editor {
         }
     }
 
-    auto EditorLayer::ActivateScene( scene::Scene* scene, const filesystem::Path& path ) -> void {
+    auto EditorLayer::ActivateScene( scene::Scene *scene, const filesystem::Path &path ) -> void {
         MKT_BEGIN_PROFILER();
         // Complete submissions referencing the outgoing scene before releasing
         // its materials. Imports may defer CPU destruction until a later update.
         mDevice->WaitIdle();
-        scene::Scene* previous{ mEditorState->mActiveScene };
+        // Scene and Game must stop presenting the outgoing project's textures
+        // immediately, including hidden views that have not rendered recently.
+        mEditorRenderer->InvalidateSceneOutput();
+        mGameRenderer->InvalidateSceneOutput();
+        mEditorState->mFinalComposition.Reset();
+        if ( auto *viewport{ mPanelRegistry.Get<ViewportPanel>() } ) {
+            viewport->SetTexture( {} );
+            viewport->SuspendInput();
+        }
+        scene::Scene *previous{ mEditorState->mActiveScene };
         mEditorState->SelectEntity( nullptr );
 
         if ( previous ) {
@@ -3180,10 +3209,10 @@ namespace mikoto::editor {
             ActivateProject( project, CreateStarterScene( *project ) );
 
             // Used by the APP to display in the window header
-            auto& cVars{ core::CVarRegistry::Get() };
+            auto &cVars{ core::CVarRegistry::Get() };
             cVars.SetValue<eastl::string>( "project_name", project->GetName().data() );
 
-        } catch ( const std::exception& error ) {
+        } catch ( const std::exception &error ) {
             ApplyTextureCompression( mProject ? mProject->GetCompressTextures() : false );
             mWorkflowError = error.what();
         }
@@ -3225,49 +3254,49 @@ namespace mikoto::editor {
 
         struct LoadState {
             project::ProjectHandle mProject{};
-            scene::Scene* mScene{};
+            scene::Scene *mScene{};
         };
         auto state{ std::make_shared<LoadState>() };
         mWorkflowError.clear();
         const bool started{ mWorkspaceOperation.Start( MKT_LOC( "editor_layer_opening_project" ).c_str(), path.GetC_Str(), { { MKT_LOC( "editor_layer_reading_project_configuration" ).c_str(), [this, state, path]() {
-            state->mProject = mProjectSerializer.Deserialize( path ).As<project::Project>();
+                                                                                                                                  state->mProject = mProjectSerializer.Deserialize( path ).As<project::Project>();
 
-            if ( !state->mProject ) {
-                MKT_THROW_RUNTIME_ERROR( MKT_LOC( "editor_layer_could_not_open_project" ).c_str() );
-            }
+                                                                                                                                  if ( !state->mProject ) {
+                                                                                                                                      MKT_THROW_RUNTIME_ERROR( MKT_LOC( "editor_layer_could_not_open_project" ).c_str() );
+                                                                                                                                  }
 
-            std::filesystem::create_directories( state->mProject->GetAssetsDirectory().GetPathTyped<std::filesystem::path>() );
-            std::filesystem::create_directories( state->mProject->GetCacheDirectory().GetPathTyped<std::filesystem::path>() );
-        } },
+                                                                                                                                  std::filesystem::create_directories( state->mProject->GetAssetsDirectory().GetPathTyped<std::filesystem::path>() );
+                                                                                                                                  std::filesystem::create_directories( state->mProject->GetCacheDirectory().GetPathTyped<std::filesystem::path>() );
+                                                                                                                              } },
                                                                                                                                { MKT_LOC( "editor_layer_loading_the_project_scene_and_assets" ).c_str(), [this, state]() {
-            const auto& loaded{ state->mProject };
-            const bool previous{ asset::AssetRegistryService::Get()->IsTextureCompressionEnabled() };
+                                                                                                                                    const auto &loaded{ state->mProject };
+                                                                                                                                    const bool previous{ asset::AssetRegistryService::Get()->IsTextureCompressionEnabled() };
 
-            try {
-                ApplyTextureCompression( loaded->GetCompressTextures() );
-                state->mScene = loaded->GetScenePath().IsEmpty() ? CreateStarterScene( *loaded ) : scene::SceneManager::Get()->Load( loaded->GetScenePath() );
+                                                                                                                                    try {
+                                                                                                                                        ApplyTextureCompression( loaded->GetCompressTextures() );
+                                                                                                                                        state->mScene = loaded->GetScenePath().IsEmpty() ? CreateStarterScene( *loaded ) : scene::SceneManager::Get()->Load( loaded->GetScenePath() );
 
-                if ( !state->mScene ) {
-                    MKT_THROW_RUNTIME_ERROR( MKT_LOC( "editor_layer_could_not_open_the_project_s_scene" ).c_str() );
-                }
+                                                                                                                                        if ( !state->mScene ) {
+                                                                                                                                            MKT_THROW_RUNTIME_ERROR( MKT_LOC( "editor_layer_could_not_open_the_project_s_scene" ).c_str() );
+                                                                                                                                        }
 
-                // Used by the APP to display in the window header
-                auto& cVars{ core::CVarRegistry::Get() };
-                cVars.SetValue<eastl::string>( "project_name", loaded->GetName().data() );
-            } catch ( ... ) {
-                ApplyTextureCompression( previous );
-                throw;
-            }
-        } },
+                                                                                                                                        // Used by the APP to display in the window header
+                                                                                                                                        auto &cVars{ core::CVarRegistry::Get() };
+                                                                                                                                        cVars.SetValue<eastl::string>( "project_name", loaded->GetName().data() );
+                                                                                                                                    } catch ( ... ) {
+                                                                                                                                        ApplyTextureCompression( previous );
+                                                                                                                                        throw;
+                                                                                                                                    }
+                                                                                                                                } },
                                                                                                                                { MKT_LOC( "editor_layer_applying_project_and_renderer_settings" ).c_str(), [this, state, sandbox]() {
-            ActivateProject( state->mProject, state->mScene );
-            mEditorState->mSandboxMode = sandbox;
+                                                                                                                                    ActivateProject( state->mProject, state->mScene );
+                                                                                                                                    mEditorState->mSandboxMode = sandbox;
 
-            if ( sandbox ) {
-                MatchEditorCameraToScene();
-                mShowSandboxNotice = true;
-            }
-        } } } ) };
+                                                                                                                                    if ( sandbox ) {
+                                                                                                                                        MatchEditorCameraToScene();
+                                                                                                                                        mShowSandboxNotice = true;
+                                                                                                                                    }
+                                                                                                                                } } } ) };
 
         if ( !started ) {
             mWorkflowError = MKT_LOC( "editor_layer_another_workspace_operation_is_already_active" ).c_str();
@@ -3287,7 +3316,7 @@ namespace mikoto::editor {
             }
 
             mWorkflowError.clear();
-        } catch ( const std::exception& error ) {
+        } catch ( const std::exception &error ) {
             mWorkflowError = error.what();
         }
     }
@@ -3310,6 +3339,23 @@ namespace mikoto::editor {
         try {
             ActivateScene( CreateStarterScene( *mProject ), filesystem::Path{} );
 
+            // The starter sky uses raster volumetric clouds, even when the
+            // previous scene was being inspected with the path tracer.
+            auto settings{ mEditorRenderer->GetSettings() };
+            settings.mRayTracing.mPathTracingEnabled = false;
+            settings.mClouds.mEnabled = true;
+            settings.mClouds.mFieldResolution = 256;
+            settings.mClouds.mMaxSteps = 256;
+            settings.mClouds.mSunSteps = 24;
+            settings.mClouds.mStepLength = 12.0f;
+            settings.mClouds.mAmbientIntensity = 0.18f;
+            settings.mClouds.mEdgeDarkening = 0.45f;
+            settings.mClouds.mInnerGlow = 0.5f;
+            settings.mClouds.mDetailMipBias = 0.0f;
+            settings.mClouds.mMaxDistance = glm::max( settings.mClouds.mMaxDistance, 60000.0f );
+            mEditorRenderer->ApplySettings( settings );
+            mProject->SetSceneRendererSettings( settings );
+
             if ( mEditorState->mSandboxMode ) {
                 MatchEditorCameraToScene();
             }
@@ -3318,7 +3364,7 @@ namespace mikoto::editor {
             }
 
             mWorkflowError.clear();
-        } catch ( const std::exception& error ) {
+        } catch ( const std::exception &error ) {
             mWorkflowError = error.what();
         }
     }
@@ -3348,19 +3394,19 @@ namespace mikoto::editor {
 
         // Both deferred steps must share the loaded scene, rather than capture
         // independent copies of an initially null pointer.
-        auto loaded{ std::make_shared<scene::Scene*>( nullptr ) };
+        auto loaded{ std::make_shared<scene::Scene *>( nullptr ) };
         mWorkflowError.clear();
 
         const bool started{ mWorkspaceOperation.Start( MKT_LOC( "editor_layer_opening_scene" ).c_str(), path.GetC_Str(), { { MKT_LOC( "editor_layer_loading_scene_objects_and_assets" ).c_str(), [loaded, path]() {
-            *loaded = scene::SceneManager::Get()->Load( path );
+                                                                                                                                *loaded = scene::SceneManager::Get()->Load( path );
 
-            if ( !*loaded ) {
-                MKT_THROW_RUNTIME_ERROR( MKT_LOC( "editor_layer_could_not_open_scene" ).c_str() );
-            }
-        } },
+                                                                                                                                if ( !*loaded ) {
+                                                                                                                                    MKT_THROW_RUNTIME_ERROR( MKT_LOC( "editor_layer_could_not_open_scene" ).c_str() );
+                                                                                                                                }
+                                                                                                                            } },
                                                                                                                              { MKT_LOC( "editor_layer_preparing_the_scene_and_editor_view" ).c_str(), [this, loaded, path]() {
-            ActivateScene( *loaded, path.ToAbsolute() );
-        } } } ) };
+                                                                                                                                  ActivateScene( *loaded, path.ToAbsolute() );
+                                                                                                                              } } } ) };
 
         if ( !started ) {
             mWorkflowError = MKT_LOC( "editor_layer_another_workspace_operation_is_already_active" ).c_str();
@@ -3394,29 +3440,30 @@ namespace mikoto::editor {
         auto contents{ std::make_shared<eastl::string>() };
         mWorkflowError.clear();
         return mWorkspaceOperation.Start( projectSave ? MKT_LOC( "editor_layer_saving_project" ).c_str() : MKT_LOC( "editor_layer_saving_scene" ).c_str(), target.GetC_Str(), { { MKT_LOC( "editor_layer_serializing_scene_objects_and_asset_references" ).c_str(), [this, target, contents]() {
-            *contents = mEditorState->mActiveScene->SerializeText( target );
-        } },
+                                                                                                                                                                                     *contents = mEditorState->mActiveScene->SerializeText( target );
+                                                                                                                                                                                 } },
                                                                                                                                                                                   { MKT_LOC( "editor_layer_writing_the_scene_file" ).c_str(), [target, contents]() {
-            filesystem::FileHandle file{ filesystem::FileService::Get()->CreateNewFile( target ) };
+                                                                                                                                                                                       filesystem::FileHandle file{ filesystem::FileService::Get()->CreateNewFile( target ) };
 
-            if ( file.IsEmpty() ) {
-                MKT_THROW_RUNTIME_ERROR( "Cannot open scene file for writing." );
-            }
+                                                                                                                                                                                       if ( file.IsEmpty() ) {
+                                                                                                                                                                                           MKT_THROW_RUNTIME_ERROR( "Cannot open scene file for writing." );
+                                                                                                                                                                                       }
 
-            file->Write( *contents );
-        }, true },
+                                                                                                                                                                                       file->Write( *contents );
+                                                                                                                                                                                   },
+                                                                                                                                                                                      true },
                                                                                                                                                                                   { mProject ? MKT_LOC( "editor_layer_saving_project_and_renderer_settings" ).c_str() : MKT_LOC( "editor_layer_finishing_scene_save" ).c_str(), [this, target]() {
-            mEditorState->mActiveScenePath = target;
+                                                                                                                                                                                       mEditorState->mActiveScenePath = target;
 
-            if ( mProject ) {
-                mProject->SetScenePath( target );
-                PersistEditorCamera();
-            }
-        } } },
+                                                                                                                                                                                       if ( mProject ) {
+                                                                                                                                                                                           mProject->SetScenePath( target );
+                                                                                                                                                                                           PersistEditorCamera();
+                                                                                                                                                                                       }
+                                                                                                                                                                                   } } },
             [this, nextAction, nextPath]() {
-            mDeferredWorkspaceAction = nextAction;
-            mDeferredWorkspacePath = nextPath;
-        } );
+                mDeferredWorkspaceAction = nextAction;
+                mDeferredWorkspacePath = nextPath;
+            } );
     }
 
     auto EditorLayer::SaveScene() -> void {
@@ -3426,7 +3473,7 @@ namespace mikoto::editor {
             if ( QueueSceneSave( false ) ) {
                 mWorkflowError.clear();
             }
-        } catch ( const std::exception& error ) {
+        } catch ( const std::exception &error ) {
             mWorkflowError = error.what();
         }
     }
@@ -3438,12 +3485,12 @@ namespace mikoto::editor {
             if ( QueueSceneSave( true ) ) {
                 mWorkflowError.clear();
             }
-        } catch ( const std::exception& error ) {
+        } catch ( const std::exception &error ) {
             mWorkflowError = error.what();
         }
     }
 
-    auto EditorLayer::ConfirmWorkspaceChange( WorkspaceAction action, const filesystem::Path& path ) -> bool {
+    auto EditorLayer::ConfirmWorkspaceChange( WorkspaceAction action, const filesystem::Path &path ) -> bool {
         MKT_BEGIN_PROFILER();
 
         if ( mEditorState->mRuntimeActive || mWorkspaceOperation.IsVisible() ||
@@ -3496,7 +3543,7 @@ namespace mikoto::editor {
             ImGui::OpenPopup( confirmationTitle.c_str() );
         }
 
-        const auto* confirmationViewport{ ImGui::GetMainViewport() };
+        const auto *confirmationViewport{ ImGui::GetMainViewport() };
         const ImVec2 confirmationSize{
             eastl::min( 480.0f, eastl::max( 1.0f, confirmationViewport->WorkSize.x - 32.0f ) ),
             eastl::min( 180.0f, eastl::max( 1.0f, confirmationViewport->WorkSize.y - 32.0f ) )
@@ -3529,7 +3576,7 @@ namespace mikoto::editor {
                         mPendingWorkspacePath = filesystem::Path{};
                         ImGui::CloseCurrentPopup();
                     }
-                } catch ( const std::exception& error ) {
+                } catch ( const std::exception &error ) {
                     mWorkflowError = error.what();
                 }
             }
@@ -3563,7 +3610,7 @@ namespace mikoto::editor {
         }
     }
 
-    auto EditorLayer::ExecuteWorkspaceAction( WorkspaceAction action, const filesystem::Path& path ) -> void {
+    auto EditorLayer::ExecuteWorkspaceAction( WorkspaceAction action, const filesystem::Path &path ) -> void {
         MKT_BEGIN_PROFILER();
         mWorkspaceChangeApproved = true;
 
@@ -3593,7 +3640,7 @@ namespace mikoto::editor {
 
     auto EditorLayer::DrawWelcomeWindow() -> void {
         MKT_BEGIN_PROFILER();
-        const auto* viewport{ ImGui::GetMainViewport() };
+        const auto *viewport{ ImGui::GetMainViewport() };
         constexpr core::f32 preferredWidth{ 440.0f };
         constexpr core::f32 viewportMargin{ 32.0f };
         const core::f32 width{ eastl::min( preferredWidth, eastl::max( 1.0f, mWorkspaceSize.x - viewportMargin ) ) };
@@ -3657,7 +3704,7 @@ namespace mikoto::editor {
             ImGui::OpenPopup( sandboxTitle.c_str() );
         }
 
-        const auto* sandboxViewport{ ImGui::GetMainViewport() };
+        const auto *sandboxViewport{ ImGui::GetMainViewport() };
         const float sandboxWidth{ eastl::min( 480.0f, eastl::max( 1.0f, sandboxViewport->WorkSize.x - 32.0f ) ) };
         ImGui::SetNextWindowViewport( sandboxViewport->ID );
         ImGui::SetNextWindowPos( sandboxViewport->GetWorkCenter(), ImGuiCond_Always, { 0.5f, 0.5f } );
@@ -3684,7 +3731,7 @@ namespace mikoto::editor {
             ImGui::OpenPopup( imgui::widget::LocalizedLabel( "editor_layer_project_operation_failed", "Project operation failed" ).c_str() );
         }
 
-        const auto* errorViewport{ ImGui::GetMainViewport() };
+        const auto *errorViewport{ ImGui::GetMainViewport() };
         const float errorWidth{ eastl::min( 560.0f, eastl::max( 1.0f, errorViewport->WorkSize.x - 32.0f ) ) };
         ImGui::SetNextWindowViewport( errorViewport->ID );
         ImGui::SetNextWindowPos( errorViewport->GetWorkCenter(), ImGuiCond_Always, { 0.5f, 0.5f } );
@@ -3759,15 +3806,20 @@ namespace mikoto::editor {
             mEditorAnimatorSuspensions.clear();
 
             for ( auto [entity, component]: mEditScene->GetRegistry().view<scene::AnimatorComponent>().each() ) {
-                if ( auto* animator{ animation::AnimationSystem::Get()->GetAnimator( component.GetAnimatorID() ) } ) {
+                if ( auto *animator{ animation::AnimationSystem::Get()->GetAnimator( component.GetAnimatorID() ) } ) {
                     mEditorAnimatorSuspensions.emplace( component.GetAnimatorID(), animator->IsSuspended() );
                     animator->SetSuspended( true );
                 }
             }
 
+            // The snapshot preserves GUIDs, but its entities have new addresses.
+            // Clear outgoing highlights/picks, then select the matching runtime
+            // entities by ID so the Inspector and multi-selection stay in sync.
+            const auto selectedEntities{ mEditorState->mSelectedEntityIDs };
             mEditorState->SelectEntity( nullptr );
             mRuntimeScene = eastl::move( runtime );
             mEditorState->mActiveScene = mRuntimeScene.GetPtr();
+            mEditorState->SelectEntities( selectedEntities );
             mEditorState->mRuntimeActive = true;
             // The editor copy remains alive during Play. Silence its preview
             // voices and listeners so they cannot mix with the runtime scene.
@@ -3790,7 +3842,7 @@ namespace mikoto::editor {
             ApplySceneEnvironment( *mRuntimeScene );
             mEditorCamera->EnableCamera( false );
             mWindow->SetCursorMode( platform::CursorMode::eNormal );
-        } catch ( const std::exception& error ) {
+        } catch ( const std::exception &error ) {
             StopPlay();
             mWorkflowError = error.what();
         }
@@ -3808,15 +3860,19 @@ namespace mikoto::editor {
         mEditorCamera->EnableCamera( false );
         mDevice->WaitIdle();
         physics::PhysicSystem::Get()->SetSimulationTarget( mEditScene );
+        // Rebind selection before releasing the runtime scene. Runtime-only
+        // entities are omitted by SelectEntities when absent from the edit scene.
+        const auto selectedEntities{ mEditorState->mSelectedEntityIDs };
         mEditorState->SelectEntity( nullptr );
         mEditorState->mActiveScene = mEditScene;
+        mEditorState->SelectEntities( selectedEntities );
         mEditorState->mRuntimeActive = false;
         mEditorState->mActiveCamera = mEditorCamera.get();
         mEditorRenderer->SetMainCamera( mEditorCamera.get() );
         ApplySceneEnvironment( *mEditScene );
 
-        for ( const auto& [id, suspended]: mEditorAnimatorSuspensions ) {
-            if ( auto* animator{ animation::AnimationSystem::Get()->GetAnimator( id ) } ) {
+        for ( const auto &[id, suspended]: mEditorAnimatorSuspensions ) {
+            if ( auto *animator{ animation::AnimationSystem::Get()->GetAnimator( id ) } ) {
                 animator->SetSuspended( suspended );
             }
         }
@@ -3830,7 +3886,7 @@ namespace mikoto::editor {
             }
         }
 
-        for ( auto& source: mEditorAudioPreviews ) {
+        for ( auto &source: mEditorAudioPreviews ) {
             source->Continue();
         }
 
@@ -3844,8 +3900,8 @@ namespace mikoto::editor {
         }
 
         const auto popupTitle{ imgui::widget::LocalizedLabel( "editor_layer_workspace_progress", "Workspace progress##Operation" ) };
-        const char* popup{ popupTitle.c_str() };
-        const auto* viewport{ ImGui::GetMainViewport() };
+        const char *popup{ popupTitle.c_str() };
+        const auto *viewport{ ImGui::GetMainViewport() };
 
         ImGui::OpenPopup( popup );
         ImGui::SetNextWindowViewport( viewport->ID );
@@ -3868,7 +3924,7 @@ namespace mikoto::editor {
 
             const auto position{ ImGui::GetCursorScreenPos() };
             const float width{ ImGui::GetContentRegionAvail().x };
-            auto* draw{ ImGui::GetWindowDrawList() };
+            auto *draw{ ImGui::GetWindowDrawList() };
             draw->AddRectFilled( position, { position.x + width, position.y + 7.0f }, ImGui::GetColorU32( ImGuiCol_FrameBg ), 3.5f );
 
             if ( busy ) {
@@ -3909,7 +3965,7 @@ namespace mikoto::editor {
     }
 
     auto EditorLayer::HandleUploadAsset() -> void {
-        auto& upload{ mEditorState->mUploadContext };
+        auto &upload{ mEditorState->mUploadContext };
 
         if ( !upload.mUploadOnGoing ) {
             return;
@@ -3922,7 +3978,7 @@ namespace mikoto::editor {
             if ( upload.mDroppedPaths.size() == 1 && asset::IsFileModel( upload.mDroppedPaths.front() ) ) {
                 try {
                     upload.mSettings = asset::ImportConfiguration::Load( upload.mDroppedPaths.front() );
-                } catch ( const std::exception& error ) {
+                } catch ( const std::exception &error ) {
                     upload.mError = error.what();
                 }
             }
@@ -3939,12 +3995,12 @@ namespace mikoto::editor {
 
         bool models{};
 
-        for ( const auto& path: upload.mDroppedPaths ) {
+        for ( const auto &path: upload.mDroppedPaths ) {
             ImGui::TextUnformatted( path.GetC_Str() );
             models |= asset::IsFileModel( path );
         }
 
-        auto& settings{ upload.mSettings };
+        auto &settings{ upload.mSettings };
 
         if ( models ) {
             ImGui::SeparatorText( "Model contents" );
@@ -3983,7 +4039,7 @@ namespace mikoto::editor {
 
                 upload.mUploadOnGoing = false;
                 ImGui::CloseCurrentPopup();
-            } catch ( const std::exception& error ) {
+            } catch ( const std::exception &error ) {
                 upload.mError = error.what();
             }
         }
@@ -4006,10 +4062,10 @@ namespace mikoto::editor {
 
     auto EditorLayer::ImportDroppedAssets() -> void {
         MKT_BEGIN_PROFILER();
-        auto& upload{ mEditorState->mUploadContext };
-        auto& settings{ upload.mSettings };
+        auto &upload{ mEditorState->mUploadContext };
+        auto &settings{ upload.mSettings };
         // Validate every input before scheduling. Cancel never creates scene entities.
-        for ( const auto& path: upload.mDroppedPaths ) {
+        for ( const auto &path: upload.mDroppedPaths ) {
             if ( !path.Exists() || ( !asset::IsFileModel( path ) && !asset::IsFileImage( path ) ) ) {
                 MKT_THROW_RUNTIME_ERROR( string::Format( "Unsupported import: {}", path.GetC_Str() ) );
             }
@@ -4019,7 +4075,7 @@ namespace mikoto::editor {
             const auto path{ upload.mDroppedPaths.front() };
 
             if ( asset::IsFileModel( path ) ) {
-                auto* assets{ asset::AssetRegistryService::GetPtr() };
+                auto *assets{ asset::AssetRegistryService::GetPtr() };
                 const auto reference{ asset::AssetRef<asset::Model>{ path } };
                 // Reuse resident geometry unless the chosen import policy changed.
                 if ( settings != asset::ImportConfiguration::Load( path ) ) {
@@ -4056,7 +4112,7 @@ namespace mikoto::editor {
             return;
         }
 
-        OpenProject( filesystem::Path{ "Resources/Demo Projects/Sandbox/Sandbox.mktproj" }, true );
+        OpenProject( filesystem::Path{ "Resources/Demo Projects/Mikoto_Sandbox/Sandbox.mktproj" }, true );
     }
 
     auto EditorLayer::MatchEditorCameraToScene() -> void {
@@ -4077,7 +4133,7 @@ namespace mikoto::editor {
         }
     }
 
-    auto EditorLayer::CreateStarterScene( const project::Project& project ) -> scene::Scene* {
+    auto EditorLayer::CreateStarterScene( const project::Project &project ) -> scene::Scene * {
         MKT_BEGIN_PROFILER();
         const auto cube{ mEditorState->GetPrefab( PrefabModelType::eCube ) };
 
@@ -4085,7 +4141,7 @@ namespace mikoto::editor {
             MKT_THROW_RUNTIME_ERROR( "The starter scene requires the built-in cube prefab." );
         }
 
-        const auto& vertices{ cube->GetMeshNode( 0 ).GetCollisionVertices() };
+        const auto &vertices{ cube->GetMeshNode( 0 ).GetCollisionVertices() };
 
         if ( vertices.empty() ) {
             MKT_THROW_RUNTIME_ERROR( "The cube prefab has no collider geometry." );
@@ -4094,7 +4150,7 @@ namespace mikoto::editor {
         core::float3 minimum{ vertices.front() };
         core::float3 maximum{ vertices.front() };
 
-        for ( const auto& vertex: vertices ) {
+        for ( const auto &vertex: vertices ) {
             minimum = glm::min( minimum, vertex );
             maximum = glm::max( maximum, vertex );
         }
@@ -4106,49 +4162,57 @@ namespace mikoto::editor {
             MKT_THROW_RUNTIME_ERROR( "The cube prefab has invalid bounds." );
         }
 
-        const filesystem::Path controller{ project.GetAssetsDirectory().GetPathTyped<std::filesystem::path>() / "Scripts/Lua/StarterBoxController.lua" };
-
-        if ( !controller.Exists() ) {
-            // Install a normal project asset once; later New Scene operations
-            // preserve edits the user has made to this controller.
-            const auto source{ filesystem::FileHandle::New( filesystem::Path{ "Resources/Script-Examples/StarterBoxController.lua" } ) };
-            filesystem::FileHandle file{ filesystem::FileService::Get()->CreateNewFile( controller ) };
-
-            if ( file.IsEmpty() ) {
-                MKT_THROW_RUNTIME_ERROR( "Cannot create the starter controller script." );
+        // Project-owned scripts remain editable. Distinct names preserve older
+        // user-authored WASD box controllers when a new scene is created.
+        const auto installController{ [&]( core::cstr language, core::cstr name ) {
+            const filesystem::Path target{ project.GetAssetsDirectory().GetPathTyped<std::filesystem::path>() / "Scripts" / language / name };
+            if ( !target.Exists() ) {
+                const auto source{ filesystem::FileHandle::New( filesystem::Path{
+                    std::filesystem::path{ "Resources/Script-Examples" } / name } ) };
+                auto file{ filesystem::FileService::Get()->CreateNewFile( target ) };
+                if ( file.IsEmpty() ) {
+                    MKT_THROW_RUNTIME_ERROR( "Cannot create the starter controller script." );
+                }
+                file->Write( source->GetContentsString() );
             }
+            return target;
+        } };
+        const auto cubeController{ installController( "Lua", "StarterCubesController.lua" ) };
+        const auto characterController{ installController( "CSharp", "PlaygroundCharacterController.cs" ) };
 
-            file->Write( source->GetContentsString() );
-        }
-
-        scene::Scene* scene{ scene::SceneManager::Get()->CreateScene( "Starter Scene" ) };
+        scene::Scene *scene{ scene::SceneManager::Get()->CreateScene( "Starter Scene" ) };
 
         try {
-            const auto makeBox = [&]( core::cstr name, const core::float3& position, const core::float3& dimensions,
-                                     const core::float4& color, scene::RigidBodyComponent::BodyType type ) {
-                scene::Entity* entity{ scene->CreateEntity( scene::EntityCreateInfo{ .mName = name, .mModel = cube } ) };
+            const auto makeBox = [&]( core::cstr name, const core::float3 &position, const core::float3 &dimensions,
+                                     const core::float4 &color, scene::RigidBodyComponent::BodyType type ) {
+                scene::Entity *entity{ scene->CreateEntity( scene::EntityCreateInfo{ .mName = name, .mModel = cube } ) };
                 const core::float3 scale{ dimensions / size };
 
-                auto& transform{ entity->GetComponent<scene::TransformComponent>() };
+                auto &transform{ entity->GetComponent<scene::TransformComponent>() };
                 // Normalize the imported prefab to world-space dimensions and
                 // keep its mesh-space collider offset aligned with the visual.
                 transform.SetTransform( core::float4x4{ 1.0f } );
                 transform.SetUniformSale( false );
                 transform.SetScale( scale );
-                transform.SetTranslation( position - center * scale );
+                // Lift the starter ground and boxes 10 cm above the editor grid at Y = 0.
+                transform.SetTranslation( position + core::float3{ 0.0f, 0.1f, 0.0f } - center * scale );
 
-                auto& collider{ entity->AddComponent<scene::BoxColliderComponent>() };
+                auto &collider{ entity->AddComponent<scene::BoxColliderComponent>() };
                 collider.SetHalfExtents( size * 0.5f );
                 collider.SetOffset( center );
 
-                auto& body{ entity->AddComponent<scene::RigidBodyComponent>() };
+                auto &body{ entity->AddComponent<scene::RigidBodyComponent>() };
                 body.SetBodyType( type );
                 body.SetMass( 1.0f );
                 body.SetUseGravity( type == scene::RigidBodyComponent::BodyType::eDynamic );
                 body.SetFriction( 0.65f );
                 body.SetRestitution( 0.1f );
 
-                auto material{ entity->GetComponent<scene::MaterialComponent>().GetMaterial().As<material::SurfaceMaterial>() };
+                // The prefab importer shares materials; each starter object needs
+                // its own tint and checkerboard settings.
+                auto material{ core::Ref<material::SurfaceMaterial>::New(
+                    *entity->GetComponent<scene::MaterialComponent>().GetMaterial().As<material::SurfaceMaterial>().GetPtr() ) };
+                entity->GetComponent<scene::MaterialComponent>().SetMaterial( material );
                 material->RemoveTexture( material::MapType::eBaseColor );
                 material->SetBaseColorFactor( color );
                 material->SetMetallicFactor( 0.0f );
@@ -4157,34 +4221,141 @@ namespace mikoto::editor {
                 return entity;
             };
 
-            makeBox( "Ground (Static)", { 0.0f, -0.5f, 0.0f }, { 16.0f, 1.0f, 16.0f },
-                { 0.55f, 0.58f, 0.62f, 1.0f }, scene::RigidBodyComponent::BodyType::eStatic );
-            auto* player{ makeBox( "Blue Box (WASD / Space / R)", { 0.0f, 3.0f, 0.0f }, core::float3{ 1.0f },
-                { 0.12f, 0.4f, 0.9f, 1.0f }, scene::RigidBodyComponent::BodyType::eDynamic ) };
-            player->AddComponent<scene::ScriptComponent>( controller );
-            makeBox( "Falling Box A", { 2.0f, 1.5f, -1.0f }, core::float3{ 1.0f },
-                { 0.95f, 0.45f, 0.12f, 1.0f }, scene::RigidBodyComponent::BodyType::eDynamic );
-            makeBox( "Falling Box B", { 2.0f, 3.0f, -1.0f }, core::float3{ 1.0f },
-                { 0.2f, 0.75f, 0.35f, 1.0f }, scene::RigidBodyComponent::BodyType::eDynamic );
+            auto *ground{ makeBox( "Checkerboard ground (Static)", { 0.0f, -0.5f, 0.0f }, { 32.0f, 1.0f, 28.0f },
+                { 1.0f, 1.0f, 1.0f, 1.0f }, scene::RigidBodyComponent::BodyType::eStatic ) };
+            auto checkerboard{ material::CheckerboardSettings{} };
+            checkerboard.mEnabled = true;
+            checkerboard.mCellSize = 1.0f;
+            ground->GetComponent<scene::MaterialComponent>().GetMaterial().As<material::SurfaceMaterial>()->SetCheckerboard( checkerboard );
 
-            auto* cameraEntity{ scene->CreateEntity( "Camera" ) };
-            auto& camera{ cameraEntity->AddComponent<scene::CameraComponent>() };
+            const core::float4 wallColor{ 0.075f, 0.11f, 0.16f, 1.0f };
+            makeBox( "Back wall / controls", { 0.0f, 1.5f, -13.7f }, { 32.0f, 3.0f, 0.6f }, wallColor, scene::RigidBodyComponent::BodyType::eStatic );
+            makeBox( "Left wall", { -15.7f, 1.5f, 0.0f }, { 0.6f, 3.0f, 28.0f }, wallColor, scene::RigidBodyComponent::BodyType::eStatic );
+            makeBox( "Right wall", { 15.7f, 1.5f, 0.0f }, { 0.6f, 3.0f, 28.0f }, wallColor, scene::RigidBodyComponent::BodyType::eStatic );
+            makeBox( "Front low wall", { 0.0f, 0.45f, 13.7f }, { 32.0f, 0.9f, 0.6f }, wallColor, scene::RigidBodyComponent::BodyType::eStatic );
+
+            const auto fallingCube{ [&]( core::cstr name, const core::float3 &position, const core::float4 &color ) {
+                auto *box{ makeBox( name, position, core::float3{ 1.6f }, color, scene::RigidBodyComponent::BodyType::eDynamic ) };
+                box->AddComponent<scene::ScriptComponent>( cubeController );
+            } };
+            fallingCube( "Blue cube (IJKL / U / R)", { -5.0f, 3.0f, -1.0f }, { 0.12f, 0.4f, 0.9f, 1.0f } );
+            fallingCube( "Amber falling cube", { -2.0f, 5.0f, -1.0f }, { 0.95f, 0.45f, 0.12f, 1.0f } );
+            fallingCube( "Green falling cube", { 1.0f, 7.0f, -1.0f }, { 0.2f, 0.75f, 0.35f, 1.0f } );
+            fallingCube( "Red falling cube", { 4.0f, 9.0f, -1.0f }, { 0.85f, 0.08f, 0.07f, 1.0f } );
+
+            // Use the same animated Xbot, capsule, and visual normalization as
+            // Animation_Playground. The capsule owner must retain unit scale.
+            auto *player{ scene->CreateEntity( "Player" ) };
+            player->GetComponent<scene::TransformComponent>().SetTranslation( { 0.0f, 0.15f, 6.0f } );
+            player->GetComponent<scene::TransformComponent>().SetRotation( { 0.0f, 180.0f, 0.0f } );
+            auto &character{ player->AddComponent<scene::CharacterControllerComponent>() };
+            character.SetRadius( 0.26f );
+            character.SetHalfHeight( 0.62f );
+            character.SetMaxSlopeAngle( 0.85f );
+            character.SetMaxStepHeight( 0.3f );
+            character.SetMaxStrength( 120.0f );
+            const auto model{ asset::AssetRegistryService::Get()->LoadAsset<asset::Model>(
+                filesystem::Path{ "Resources/Demo Projects/Animation_Playground/Assets/Models/PlayerXbot.gltf" } ) };
+            if ( !model || !model->IsSkinned() ) {
+                MKT_THROW_RUNTIME_ERROR( "The starter scene requires the Animation_Playground character." );
+            }
+            auto *visual{ scene->CreateEntity( scene::EntityCreateInfo{ .mRoot = player, .mName = "Player visual", .mModel = model } ) };
+            const core::float4x4 meshTransform{
+                core::float4{ 0.0099487075f, 0.0f, 0.0f, 0.0f },
+                core::float4{ 0.0f, 0.0099487075f, 2.209056826e-18f, 0.0f },
+                core::float4{ 0.0f, -2.209056826e-18f, 0.0099487075f, 0.0f },
+                core::float4{ -2.665541311e-08f, 0.00321455934f, -0.01652417146f, 1.0f }
+            };
+            for ( const auto childID: visual->GetComponent<scene::RelationComponent>().GetChildren() ) {
+                if ( auto *child{ scene->FindByID( childID ) } ) {
+                    child->GetComponent<scene::TransformComponent>().SetTransform( meshTransform );
+                }
+            }
+            if ( auto *animator{ animation::AnimationSystem::Get()->GetAnimator( visual->GetComponent<scene::AnimatorComponent>().GetAnimatorID() ) } ) {
+                animator->PlayAnimation( "Idle" );
+            }
+            player->AddComponent<scene::ScriptComponent>( characterController, scripting::ScriptLanguage::eCSharp, "PlaygroundCharacterController" );
+
+            auto *controls{ scene->CreateEntity( "Wall instructions" ) };
+            auto &text{ controls->AddComponent<scene::TextComponent>(
+                "WASD: character | Shift: run | Space: jump\nIJKL: move all cubes | U: toss cubes\nRMB: orbit | Wheel: zoom | F: foot IK\nR: reset character and cubes", 0.44f, 0.0f, true ) };
+            text.SetFont( asset::AssetRegistryService::Get()->LoadAsset<renderer::Font>( filesystem::Path{ "Resources/Fonts/Inter/static/Inter-Regular.ttf" } ) );
+            text.SetAlignment( scene::TextAlignment::eCenter );
+            text.SetLineSpacing( 1.3f );
+            text.SetColor( 1.0f, 0.95f, 0.82f, 1.0f );
+            text.SetOutlineWidth( 0.025f );
+            controls->GetComponent<scene::TransformComponent>().SetTranslation( { 0.0f, 2.7f, -13.34f } );
+
+            auto *cameraEntity{ scene->CreateEntity( "Orbit camera" ) };
+            auto &camera{ cameraEntity->AddComponent<scene::CameraComponent>() };
             camera.SetMainCamera( true );
-            // With no environment the renderer uses the clear color. If the
-            // user adds a skybox later, the starter camera displays it in Play.
             camera.SetClearFlags( scene::CameraClearFlags::eSkybox );
             camera.SetClearColor( renderer::rhi::Color{ 0.16f, 0.19f, 0.24f, 1.0f } );
-            camera.SetExposure( 1.0f );
-            camera.GetCamera().SetClipPlanes( 0.1f, 100.0f );
+            camera.SetGamma( 2.2f );
+            camera.SetExposure( 0.85f );
+            camera.GetCamera().SetClipPlanes( 0.1f, 60000.0f );
             cameraEntity->GetComponent<scene::TransformComponent>().SetTransform(
-                glm::inverse( glm::lookAt( core::float3{ 8.0f, 6.5f, 10.0f }, core::float3{ 0.0f, 1.0f, 0.0f }, core::float3{ 0.0f, 1.0f, 0.0f } ) ) );
+                glm::inverse( glm::lookAt( core::float3{ 10.0f, 8.0f, 14.0f }, core::float3{ 0.0f, 1.0f, 0.0f }, core::float3{ 0.0f, 1.0f, 0.0f } ) ) );
 
-            auto* sun{ scene->CreateEntity( "Sun" ) };
-            auto& light{ sun->AddComponent<scene::LightComponent>( renderer::LightType::eDirectional ).Get<renderer::DirectionalLight>() };
-            light.SetDirection( core::float3{ -0.5f, -1.0f, -0.35f } );
-            light.SetColor( core::float3{ 1.0f, 0.95f, 0.88f } );
+            auto *sun{ scene->CreateEntity( "Sun" ) };
+            auto &light{ sun->AddComponent<scene::LightComponent>( renderer::LightType::eDirectional ).Get<renderer::DirectionalLight>() };
+            light.SetDirection( core::float3{ -0.65f, -0.44f, -0.62f } );
+            light.SetColor( core::float3{ 1.0f, 0.95f, 0.85f } );
             light.SetIntensity( 3.0f );
             light.SetIsShadowCaster( true );
+
+            auto atmosphere{ scene->GetAtmosphereSettings() };
+            atmosphere.mSunElevation = 26.0f;
+            atmosphere.mSunAzimuth = 135.0f;
+            // This is a multiplier on the directional light's intensity.
+            // A neutral value avoids amplifying the starter sun twice.
+            atmosphere.mSunIlluminance = 1.0f;
+            atmosphere.mAerialDistance = 80.0f;
+            atmosphere.mUseDirectionalLight = true;
+            scene->SetAtmosphereSettings( atmosphere );
+            scene->SetEnvironmentLightingSource( scene::EnvironmentLightingSource::eAtmosphere );
+
+            auto *skyEntity{ scene->CreateEntity( "Sky light - atmosphere IBL" ) };
+            auto &sky{ skyEntity->AddComponent<scene::SkyLightComponent>() };
+            sky.SetSource( scene::SkyLightSource::eAtmosphere );
+            sky.SetIntensity( 0.5f );
+            sky.SetOcclusionEnabled( true );
+
+            // Procedural_Cumulus is the seeded preview preset (21, nine formations,
+            // scale .52) in a 4 x 1.6 x 4 km box. It contains no density grid;
+            // authored-sky materials remain separately available.
+            // Keep an editable project-owned material. Later New Scene actions
+            // reuse the user's changes to it rather than resetting the asset.
+            const filesystem::Path cloudPath{ project.GetAssetsDirectory().GetPathTyped<std::filesystem::path>() /
+                                              "Materials/Procedural_Cumulus_Sky.mktmtl" };
+            auto cloudMaterial{ material::VolumeMaterialHandle::New( "Procedural cumulus sky" ) };
+
+            if ( cloudPath.Exists() ) {
+                cloudMaterial->Deserialize( cloudPath );
+            }
+            else {
+                cloudMaterial->Deserialize( filesystem::Path{ "Resources/Clouds/Procedural_Cumulus.mktmtl" } );
+                cloudMaterial->Serialize( cloudPath );
+            }
+
+            // Older generated materials used the entity GUID as their seed.
+            // Give this preset a repeatable pattern while preserving other edits.
+            if ( cloudMaterial->GetSettings().mCloudSeed == 0 ) {
+                auto settings{ cloudMaterial->GetSettings() };
+                settings.mCloudSeed = 21;
+                cloudMaterial->SetSettings( settings );
+            }
+
+            auto *cloudEntity{ scene->CreateEntity( "High cumulus sky" ) };
+            auto &clouds{ cloudEntity->AddComponent<scene::CloudComponent>() };
+            clouds.SetShape( scene::CloudShape::eSkyLayer );
+            clouds.SetMaterial( cloudMaterial );
+            clouds.SetBottomAltitude( 1400.0f );
+            clouds.SetLayerThickness( 1600.0f );
+            // Match the procedural preview's 4 x 1.6 x 4 km authoring domain.
+            clouds.SetHorizonRadius( 2000.0f );
+            clouds.SetWindDirection( core::float2{ 1.0f, 0.2f } );
+            clouds.SetWindSpeed( 18.0f );
             return scene;
         } catch ( ... ) {
             scene::SceneManager::Get()->Unload( scene );

@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <cmath>
-#include <mutex>
 #include <cfloat>
+#include <cmath>
 #include <cstring>
+#include <mutex>
 #include <stdexcept>
 
 #include <EASTL/algorithm.h>
@@ -23,35 +23,35 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/common.hpp>
 
+#include <Application/MaterialProperties.hh>
+#include <Application/ParticleProperties.hh>
+#include <Application/ThumbnailCache.hh>
+
+#include <Assets/AssetRegistryService.hh>
+#include <Assets/MeshFactory.hh>
+
 #include <Core/Exception.hh>
 #include <Core/LocalizationService.hh>
 
-#include <Threading/TaskService.hh>
-
 #include <Filesystem/FileSystem.hh>
 
-#include <Assets/MeshFactory.hh>
-#include <Assets/AssetRegistryService.hh>
+#include <ImGui/IconsMaterialDesign.h>
+#include <ImGui/ImGuiService.hh>
+#include <ImGui/ImGuiWidget.hh>
+#include <ImGui/Utility.hh>
 
-#include <Material/Utility.hh>
-#include <Material/TextMaterial.hh>
-#include <Material/VolumeMaterial.hh>
-#include <Material/SkyboxMaterial.hh>
+#include <Layers/EditorLayer.hh>
+
 #include <Material/ParticleMaterial.hh>
 #include <Material/PostProcessMaterial.hh>
-
-#include <ImGui/Utility.hh>
-#include <ImGui/ImGuiWidget.hh>
-#include <ImGui/ImGuiService.hh>
-#include <ImGui/IconsMaterialDesign.h>
-
-#include <Application/ThumbnailCache.hh>
-#include <Application/MaterialProperties.hh>
-#include <Application/ParticleProperties.hh>
+#include <Material/SkyboxMaterial.hh>
+#include <Material/TextMaterial.hh>
+#include <Material/Utility.hh>
+#include <Material/VolumeMaterial.hh>
 
 #include <Panels/MaterialEditorPanel.hh>
 
-#include <Layers/EditorLayer.hh>
+#include <Threading/TaskService.hh>
 
 namespace mikoto::editor {
     using namespace core;
@@ -68,7 +68,7 @@ namespace mikoto::editor {
         bool mComplete{};
     };
 
-    MaterialEditorPanel::MaterialEditorPanel( const MaterialEditorPanelDescription& description )
+    MaterialEditorPanel::MaterialEditorPanel( const MaterialEditorPanelDescription &description )
         : Panel{ "Material Editor", "Panel", description.mGroup, description.mIsToggleable },
           mEditorState{ description.mState },
           mDevice{ description.mDevice } {
@@ -78,8 +78,8 @@ namespace mikoto::editor {
 
         // Keep this viewport's output independent of browser thumbnail jobs.
         mRenderer = renderer::ThumbnailRenderer::Create( renderer::ThumbnailRendererCreateInfo{}
-            .SetName( "Material Editor Preview" )
-            .SetDevice( mDevice ) );
+                .SetName( "Material Editor Preview" )
+                .SetDevice( mDevice ) );
         mRenderer->Initialize();
     }
 
@@ -101,12 +101,12 @@ namespace mikoto::editor {
         mGraph.Reset();
         mError.clear();
 
-        mMaterial = dynamic_cast<material::SurfaceMaterial*>( mMaterialResource.GetPtr() ) ? mMaterialResource.As<material::SurfaceMaterial>() : core::Ref<material::SurfaceMaterial>{};
+        mMaterial = dynamic_cast<material::SurfaceMaterial *>( mMaterialResource.GetPtr() ) ? mMaterialResource.As<material::SurfaceMaterial>() : core::Ref<material::SurfaceMaterial>{};
 
         mName.fill( '\0' );
 
         if ( mMaterialResource ) {
-            const auto& name{ mMaterialResource->GetName() };
+            const auto &name{ mMaterialResource->GetName() };
             std::memcpy( mName.data(), name.data(), eastl::min( name.size(), mName.size() - 1 ) );
         }
 
@@ -140,13 +140,12 @@ namespace mikoto::editor {
                 model = MeshFactory::Get()->ImportModel( ModelLoadDescription{
                     .mFile = filesystem::FileHandle::New( path ),
                     .mApi = renderer::rhi::GraphicsAPI::eVulkan,
-                    .mExtractTextures = true
-                } );
+                    .mExtractTextures = true } );
 
                 if ( !model || !model->GetMeshNodeCount() ) {
                     MKT_THROW_RUNTIME_ERROR( "Material sphere has no mesh." );
                 }
-            } catch ( const std::exception& exception ) {
+            } catch ( const std::exception &exception ) {
                 error = exception.what();
             }
 
@@ -208,15 +207,16 @@ namespace mikoto::editor {
 
         mPanelIsHovered = ImGui::IsWindowHovered( ImGuiHoveredFlags_ChildWindows );
         mPanelIsFocused = ImGui::IsWindowFocused( ImGuiFocusedFlags_ChildWindows );
-        const bool particlePreview{ dynamic_cast<const material::ParticleMaterial*>( mMaterialResource.GetPtr() ) != nullptr };
-        const bool flatPreview{ dynamic_cast<const material::TextMaterial*>( mMaterialResource.GetPtr() ) ||
-            dynamic_cast<const material::PostProcessMaterial*>( mMaterialResource.GetPtr() ) };
+        const bool particlePreview{ dynamic_cast<const material::ParticleMaterial *>( mMaterialResource.GetPtr() ) != nullptr };
+        const bool flatPreview{ dynamic_cast<const material::TextMaterial *>( mMaterialResource.GetPtr() ) ||
+                                dynamic_cast<const material::PostProcessMaterial *>( mMaterialResource.GetPtr() ) };
 
         try {
             if ( !flatPreview ) {
-                if ( !mEnvironment.IsRequested() ) {
-                    mEnvironment.Request( PreviewEnvironment::StreetPath() );
+                if ( !mEnvironment.IsRequested() || ( particlePreview && !mParticleEnvironment ) ) {
+                    mEnvironment.Request( particlePreview ? PreviewEnvironment::DaylightPath() : PreviewEnvironment::StreetPath() );
                 }
+                mParticleEnvironment = particlePreview;
 
                 if ( mEnvironment.Poll( mPreviewEnvironmentAsset ) ) {
                     const auto environment{ mPreviewEnvironmentAsset.GetIfReady() };
@@ -241,7 +241,7 @@ namespace mikoto::editor {
                     }
                 }
             }
-        } catch ( const std::exception& error ) {
+        } catch ( const std::exception &error ) {
             mError = error.what();
         }
 
@@ -315,7 +315,7 @@ namespace mikoto::editor {
     }
 
     auto MaterialEditorPanel::DrawGraph() -> void {
-        material::MaterialGraph* graph{};
+        material::MaterialGraph *graph{};
 
         if ( mMaterial ) {
             graph = mMaterial->GetGraph();
@@ -324,14 +324,14 @@ namespace mikoto::editor {
                 // Start a new graph with the edited material's surface factors.
                 graph->InitializeDefault();
 
-                for ( auto& node: graph->GetNodes() ) {
+                for ( auto &node: graph->GetNodes() ) {
                     if ( node.mType != material::MaterialNodeType::eStandardSurface ) {
                         continue;
                     }
 
-                    const auto& color{ mMaterial->GetBaseColorFactor() };
+                    const auto &color{ mMaterial->GetBaseColorFactor() };
 
-                    for ( auto& pin: node.mInputs ) {
+                    for ( auto &pin: node.mInputs ) {
                         if ( pin.mName == "base_color" ) {
                             pin.mValue = color;
                         }
@@ -356,10 +356,10 @@ namespace mikoto::editor {
                 mUnsaved = true;
             }
         }
-        else if ( auto* particle{ dynamic_cast<material::ParticleMaterial*>( mMaterialResource.GetPtr() ) } ) {
+        else if ( auto *particle{ dynamic_cast<material::ParticleMaterial *>( mMaterialResource.GetPtr() ) } ) {
             graph = particle->GetGraph();
         }
-        else if ( auto* postProcess{ dynamic_cast<material::PostProcessMaterial*>( mMaterialResource.GetPtr() ) } ) {
+        else if ( auto *postProcess{ dynamic_cast<material::PostProcessMaterial *>( mMaterialResource.GetPtr() ) } ) {
             graph = postProcess->GetGraph();
         }
 
@@ -410,10 +410,10 @@ namespace mikoto::editor {
     auto MaterialEditorPanel::DrawToolbar() -> void {
         // Applying to the selected entity is disabled in Play. Materials opened
         // from the Inspector are already shared with their owning component.
-        auto* selected{ mEditorState ? mEditorState->mSelectedEntity : nullptr };
+        auto *selected{ mEditorState ? mEditorState->mSelectedEntity : nullptr };
         material::MaterialHandle selectedMaterial{};
 
-        const bool particleMaterial{ dynamic_cast<const material::ParticleMaterial*>( mMaterialResource.GetPtr() ) != nullptr };
+        const bool particleMaterial{ dynamic_cast<const material::ParticleMaterial *>( mMaterialResource.GetPtr() ) != nullptr };
         const bool particleTarget{ selected && selected->HasComponent<scene::ParticleSimulatorComponent>() };
         if ( particleMaterial && particleTarget ) {
             const auto entityID{ selected->GetComponent<scene::TagComponent>().GetGuid() };
@@ -422,9 +422,9 @@ namespace mikoto::editor {
                 mParticleTargetEntity = entityID;
                 mParticleTargetEmitter = 0;
             }
-            const auto& simulator{ selected->GetComponent<scene::ParticleSimulatorComponent>() };
-            if ( const auto& effect{ simulator.GetEffect() }; effect && !effect->GetEmitters().empty() ) {
-                const auto& emitters{ effect->GetEmitters() };
+            const auto &simulator{ selected->GetComponent<scene::ParticleSimulatorComponent>() };
+            if ( const auto &effect{ simulator.GetEffect() }; effect && !effect->GetEmitters().empty() ) {
+                const auto &emitters{ effect->GetEmitters() };
                 mParticleTargetEmitter = eastl::min( mParticleTargetEmitter, emitters.size() - 1 );
                 const auto label{ []( core::usize index ) {
                     return string::Format( "{} {}", MKT_LOC( "particle_simulation_particle_emitter" ), index + 1 );
@@ -468,11 +468,11 @@ namespace mikoto::editor {
                              ( ( mMaterial && selected->HasComponent<scene::MaterialComponent>() ) ||
                                  ( particleMaterial && particleTarget &&
                                      !selected->GetComponent<scene::ParticleSimulatorComponent>().GetInstances().empty() ) ||
-                                 ( dynamic_cast<material::VolumeMaterial*>( mMaterialResource.GetPtr() ) &&
+                                 ( dynamic_cast<material::VolumeMaterial *>( mMaterialResource.GetPtr() ) &&
                                      ( selected->HasComponent<scene::CloudComponent>() || selected->HasComponent<scene::FogComponent>() ) ) ||
-                                 ( dynamic_cast<material::PostProcessMaterial*>( mMaterialResource.GetPtr() ) && selected->HasComponent<scene::PostProcessMaterialComponent>() ) ||
-                                 ( dynamic_cast<material::TextMaterial*>( mMaterialResource.GetPtr() ) && selected->HasComponent<scene::TextComponent>() ) ||
-                                 ( dynamic_cast<material::SkyboxMaterial*>( mMaterialResource.GetPtr() ) && selected->HasComponent<scene::SkyboxMaterialComponent>() ) ) };
+                                 ( dynamic_cast<material::PostProcessMaterial *>( mMaterialResource.GetPtr() ) && selected->HasComponent<scene::PostProcessMaterialComponent>() ) ||
+                                 ( dynamic_cast<material::TextMaterial *>( mMaterialResource.GetPtr() ) && selected->HasComponent<scene::TextComponent>() ) ||
+                                 ( dynamic_cast<material::SkyboxMaterial *>( mMaterialResource.GetPtr() ) && selected->HasComponent<scene::SkyboxMaterialComponent>() ) ) };
 
         if ( ImGui::Button( imgui::widget::LocalizedLabel( "material_editor_new", "New" ).c_str() ) ) {
             ImGui::OpenPopup( imgui::widget::LocalizedLabel( "material_editor_new_material_type", "New material type" ).c_str() );
@@ -560,18 +560,17 @@ namespace mikoto::editor {
                     selected->GetComponent<scene::MaterialComponent>().SetMaterial( material::SurfaceMaterialHandle::New( *mMaterial ) );
                 }
                 else if ( particleMaterial && particleTarget ) {
-                    auto& simulator{ selected->GetComponent<scene::ParticleSimulatorComponent>() };
+                    auto &simulator{ selected->GetComponent<scene::ParticleSimulatorComponent>() };
                     const auto emitter{ simulator.GetEffect()->GetEmitters()[mParticleTargetEmitter] };
                     simulator.SetEmitter( mParticleTargetEmitter, renderer::ParticleEmitterHandle::New(
-                        renderer::ParticleEmitterCreateDescription{
-                            .mSettings = emitter->GetSettings(),
-                            .mMaterial = mMaterialResource.As<material::ParticleMaterial>()
-                        } ) );
+                                                                      renderer::ParticleEmitterCreateDescription{
+                                                                          .mSettings = emitter->GetSettings(),
+                                                                          .mMaterial = mMaterialResource.As<material::ParticleMaterial>() } ) );
                 }
                 else {
                     auto clone{ CloneMaterial( *mMaterialResource ) };
 
-                    if ( dynamic_cast<material::VolumeMaterial*>( clone.GetPtr() ) ) {
+                    if ( dynamic_cast<material::VolumeMaterial *>( clone.GetPtr() ) ) {
                         if ( selected->HasComponent<scene::CloudComponent>() ) {
                             selected->GetComponent<scene::CloudComponent>().SetMaterial( clone.As<material::VolumeMaterial>() );
                         }
@@ -581,20 +580,20 @@ namespace mikoto::editor {
                         SetAsset( clone );
                         mUnsaved = true;
                     }
-                    else if ( dynamic_cast<material::TextMaterial*>( clone.GetPtr() ) ) {
+                    else if ( dynamic_cast<material::TextMaterial *>( clone.GetPtr() ) ) {
                         selected->GetComponent<scene::TextComponent>().SetMaterial( clone.As<material::TextMaterial>() );
                     }
-                    else if ( dynamic_cast<material::SkyboxMaterial*>( clone.GetPtr() ) ) {
+                    else if ( dynamic_cast<material::SkyboxMaterial *>( clone.GetPtr() ) ) {
                         selected->GetComponent<scene::SkyboxMaterialComponent>().SetMaterial( clone );
                     }
-                    else if ( dynamic_cast<material::PostProcessMaterial*>( clone.GetPtr() ) ) {
+                    else if ( dynamic_cast<material::PostProcessMaterial *>( clone.GetPtr() ) ) {
                         selected->GetComponent<scene::PostProcessMaterialComponent>().SetMaterial( clone );
                         // Continue editing the instance just assigned to this entity.
                         SetAsset( clone );
                         mUnsaved = true;
                     }
                 }
-            } catch ( const std::exception& error ) {
+            } catch ( const std::exception &error ) {
                 mError = error.what();
             }
         }
@@ -605,14 +604,14 @@ namespace mikoto::editor {
     }
 
     auto MaterialEditorPanel::DrawPreview( core::f32 timeStep ) -> void {
-        if ( dynamic_cast<material::VolumeMaterial*>( mMaterialResource.GetPtr() ) ) {
+        if ( dynamic_cast<material::VolumeMaterial *>( mMaterialResource.GetPtr() ) ) {
             ImGui::TextWrapped( "%s", MKT_LOC( "volume_preview_help" ).c_str() );
             return;
         }
 
-        const auto* particle{ dynamic_cast<const material::ParticleMaterial*>( mMaterialResource.GetPtr() ) };
-        const auto* text{ dynamic_cast<const material::TextMaterial*>( mMaterialResource.GetPtr() ) };
-        const auto* post{ dynamic_cast<const material::PostProcessMaterial*>( mMaterialResource.GetPtr() ) };
+        const auto *particle{ dynamic_cast<const material::ParticleMaterial *>( mMaterialResource.GetPtr() ) };
+        const auto *text{ dynamic_cast<const material::TextMaterial *>( mMaterialResource.GetPtr() ) };
+        const auto *post{ dynamic_cast<const material::PostProcessMaterial *>( mMaterialResource.GetPtr() ) };
         const bool meshPreview{ !text && !post };
 
         if ( text ) {
@@ -665,8 +664,8 @@ namespace mikoto::editor {
                     mPreview.mDistance = glm::clamp( mPreview.mDistance - ImGui::GetIO().MouseWheel * 0.3f, 2.0f, 20.0f );
                 }
                 if ( const auto image{ mParticlePreview->Render(
-                    mMaterialResource.As<material::ParticleMaterial>(), mPreview, mPreviewEnvironmentAsset,
-                    timeStep, width, height ) } ) {
+                         mMaterialResource.As<material::ParticleMaterial>(), mPreview, mPreviewEnvironmentAsset,
+                         timeStep, width, height ) } ) {
                     ImGui::GetWindowDrawList()->AddImage( imgui::ImGuiService::Get()->GetTextureID( image ),
                         origin, { origin.x + available.x, origin.y + available.y } );
                 }
@@ -680,7 +679,7 @@ namespace mikoto::editor {
 
                 mPreviewDirty |= mPostProcessImageLoad.Poll( mPostProcessImage );
                 if ( !mPostProcessImage ) {
-                    const auto& error{ mPostProcessImageLoad.GetError() };
+                    const auto &error{ mPostProcessImageLoad.GetError() };
 
                     if ( error.empty() ) {
                         ImGui::TextDisabled( "%s", MKT_LOC( "material_editor_loading_post_process_image" ).c_str() );
@@ -715,12 +714,12 @@ namespace mikoto::editor {
                     mPreviewPending = true;
                 }
             }
-        } catch ( const std::exception& error ) {
+        } catch ( const std::exception &error ) {
             mError = error.what();
         }
 
         if ( mPreviewTexture ) {
-            const auto& texture{ mPreviewTexture };
+            const auto &texture{ mPreviewTexture };
 
             const core::f32 sourceAspect{ core::as<core::f32>( texture->GetWidth() ) / texture->GetHeight() };
             const core::f32 targetAspect{ available.x / available.y };
@@ -813,7 +812,7 @@ namespace mikoto::editor {
                     mMaterial->SetTexture( type, loaded );
                     mPreviewDirty = mUnsaved = true;
                 }
-            } catch ( const std::exception& error ) {
+            } catch ( const std::exception &error ) {
                 mError = error.what();
             }
         }
@@ -836,19 +835,19 @@ namespace mikoto::editor {
         if ( mMaterial ) {
             domain = 0;
         }
-        else if ( dynamic_cast<material::PostProcessMaterial*>( mMaterialResource.GetPtr() ) ) {
+        else if ( dynamic_cast<material::PostProcessMaterial *>( mMaterialResource.GetPtr() ) ) {
             domain = 1;
         }
-        else if ( dynamic_cast<material::TextMaterial*>( mMaterialResource.GetPtr() ) ) {
+        else if ( dynamic_cast<material::TextMaterial *>( mMaterialResource.GetPtr() ) ) {
             domain = 2;
         }
-        else if ( dynamic_cast<ParticleMaterial*>( mMaterialResource.GetPtr() ) ) {
+        else if ( dynamic_cast<ParticleMaterial *>( mMaterialResource.GetPtr() ) ) {
             domain = 3;
         }
-        else if ( dynamic_cast<material::SkyboxMaterial*>( mMaterialResource.GetPtr() ) ) {
+        else if ( dynamic_cast<material::SkyboxMaterial *>( mMaterialResource.GetPtr() ) ) {
             domain = 4;
         }
-        else if ( dynamic_cast<material::VolumeMaterial*>( mMaterialResource.GetPtr() ) ) {
+        else if ( dynamic_cast<material::VolumeMaterial *>( mMaterialResource.GetPtr() ) ) {
             domain = 5;
         }
 
@@ -861,7 +860,7 @@ namespace mikoto::editor {
                 variants[previous] = mMaterialResource;
             }
 
-            auto& selected{ variants[domain] };
+            auto &selected{ variants[domain] };
 
             if ( !selected ) {
                 switch ( domain ) {
@@ -1138,8 +1137,8 @@ namespace mikoto::editor {
     }
 
     auto MaterialEditorPanel::DrawLighting() -> void {
-        if ( dynamic_cast<const material::TextMaterial*>( mMaterialResource.GetPtr() ) ||
-             dynamic_cast<const material::PostProcessMaterial*>( mMaterialResource.GetPtr() ) ) {
+        if ( dynamic_cast<const material::TextMaterial *>( mMaterialResource.GetPtr() ) ||
+             dynamic_cast<const material::PostProcessMaterial *>( mMaterialResource.GetPtr() ) ) {
             return;
         }
 
@@ -1168,13 +1167,9 @@ namespace mikoto::editor {
                 if ( !path.IsEmpty() ) {
                     mEnvironment.Request( path );
                 }
-            } catch ( const std::exception& error ) {
+            } catch ( const std::exception &error ) {
                 mError = error.what();
             }
-        }
-
-        if ( ImGui::Button( imgui::widget::LocalizedLabel( "material_editor_street_environment", "Street environment" ).c_str() ) ) {
-            mEnvironment.Request( PreviewEnvironment::StreetPath() );
         }
 
         if ( !mEnvironment.GetError().empty() ) {
@@ -1201,7 +1196,7 @@ namespace mikoto::editor {
                 mEditorState->mRequestMaterialEditor = true;
                 mError.clear();
             }
-        } catch ( const std::exception& error ) {
+        } catch ( const std::exception &error ) {
             mError = error.what();
         }
     }
@@ -1228,7 +1223,7 @@ namespace mikoto::editor {
 
             mUnsaved = false;
             mError.clear();
-        } catch ( const std::exception& error ) {
+        } catch ( const std::exception &error ) {
             mError = error.what();
         }
     }
@@ -1236,10 +1231,10 @@ namespace mikoto::editor {
     auto MaterialEditorPanel::DrawOtherMaterial() -> void {
         bool changed{};
 
-        if ( auto* volume{ dynamic_cast<material::VolumeMaterial*>( mMaterialResource.GetPtr() ) } ) {
+        if ( auto *volume{ dynamic_cast<material::VolumeMaterial *>( mMaterialResource.GetPtr() ) } ) {
             changed = DrawVolumeMaterial( *volume );
         }
-        else if ( auto* text{ dynamic_cast<material::TextMaterial*>( mMaterialResource.GetPtr() ) } ) {
+        else if ( auto *text{ dynamic_cast<material::TextMaterial *>( mMaterialResource.GetPtr() ) } ) {
             auto color{ text->GetColor() };
             auto opacity{ text->GetOpacity() };
 
@@ -1255,14 +1250,14 @@ namespace mikoto::editor {
 
             ImGui::TextWrapped( "%s", MKT_LOC( "material_editor_used_by_msdf_and_slug_text_the_component_tint_multiplies" ).c_str() );
         }
-        else if ( auto* particle{ dynamic_cast<ParticleMaterial*>( mMaterialResource.GetPtr() ) } ) {
+        else if ( auto *particle{ dynamic_cast<ParticleMaterial *>( mMaterialResource.GetPtr() ) } ) {
             try {
                 changed = DrawParticleMaterial( *particle );
-            } catch ( const std::exception& error ) {
+            } catch ( const std::exception &error ) {
                 mError = error.what();
             }
         }
-        else if ( auto* post{ dynamic_cast<material::PostProcessMaterial*>( mMaterialResource.GetPtr() ) } ) {
+        else if ( auto *post{ dynamic_cast<material::PostProcessMaterial *>( mMaterialResource.GetPtr() ) } ) {
             core::i32 category{ core::as<core::i32>( post->GetCategory() ) };
             const core::cstr categories[]{ MKT_LOC( "post_process_category_built_in" ).c_str(), MKT_LOC( "post_process_category_custom" ).c_str() };
 
@@ -1308,7 +1303,7 @@ namespace mikoto::editor {
             changed |= DrawPostProcessBloom( *post );
             changed |= DrawPostProcessChromaticAberration( *post );
         }
-        else if ( auto* sky{ dynamic_cast<material::SkyboxMaterial*>( mMaterialResource.GetPtr() ) } ) {
+        else if ( auto *sky{ dynamic_cast<material::SkyboxMaterial *>( mMaterialResource.GetPtr() ) } ) {
             core::i32 type{ static_cast<core::i32>( sky->GetType() ) };
 
             if ( ImGui::Combo( imgui::widget::LocalizedLabel( "material_editor_source", "Source" ).c_str(), &type, MKT_LOC( "material_editor_six_faces_equirectangular" ).c_str() ) ) {
@@ -1344,7 +1339,7 @@ namespace mikoto::editor {
 
                             changed = true;
                         }
-                    } catch ( const std::exception& error ) {
+                    } catch ( const std::exception &error ) {
                         mError = error.what();
                     }
                 }
@@ -1354,7 +1349,7 @@ namespace mikoto::editor {
                 choose( MKT_LOC( "material_editor_choose_panorama" ).c_str(), -1 );
             }
             else {
-                const char* labels[]{ MKT_LOC( "material_editor_front" ).c_str(), MKT_LOC( "material_editor_back" ).c_str(), MKT_LOC( "material_editor_left" ).c_str(), MKT_LOC( "material_editor_right" ).c_str(), MKT_LOC( "material_editor_top" ).c_str(), MKT_LOC( "material_editor_bottom" ).c_str() };
+                const char *labels[]{ MKT_LOC( "material_editor_front" ).c_str(), MKT_LOC( "material_editor_back" ).c_str(), MKT_LOC( "material_editor_left" ).c_str(), MKT_LOC( "material_editor_right" ).c_str(), MKT_LOC( "material_editor_top" ).c_str(), MKT_LOC( "material_editor_bottom" ).c_str() };
 
                 for ( core::i32 face{}; face < 6; ++face ) {
                     choose( labels[face], face );

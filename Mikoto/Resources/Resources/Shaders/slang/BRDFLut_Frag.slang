@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Preintegrate the GGX environment BRDF over sampled microfacet directions. The two output
+// channels encode the scale and bias applied to material Fresnel reflectance.
+
 #pragma once
 
 #include "base/Base.slang"
@@ -20,11 +23,11 @@
 const static uint NUM_SAMPLES = 1024;
 
 struct FSInput {
-    float2 UV : TEXCOORD0;
+    float2 mUV : TEXCOORD0;
 };
 
 struct FSOutput {
-    float4 Color : SV_Target0;
+    float4 mColor : SV_Target0;
 };
 
 float G_SchlicksmithGGX( float dotNL, float dotNV, float roughness ) {
@@ -65,6 +68,6 @@ float2 BRDF( float NoV, float roughness ) {
 [shader( "fragment" )]
 FSOutput main( FSInput input ) {
     FSOutput o;
-    o.Color = float4( BRDF( input.UV.x, input.UV.y ), 0.0, 1.0 );
+    o.mColor = float4( BRDF( input.mUV.x, input.mUV.y ), 0.0, 1.0 );
     return o;
 }

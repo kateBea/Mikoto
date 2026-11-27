@@ -20,17 +20,18 @@
 
 #include <Material/VolumeMaterial.hh>
 
-#include <Renderer/Core/Volumes.hh>
 #include <Renderer/Core/CommandContext.hh>
+#include <Renderer/Core/Volumes.hh>
 #include <Renderer/ForwardRenderer/Passes/CameraModule.hh>
-#include <Renderer/ForwardRenderer/Passes/VolumeModule.hh>
+#include <Renderer/ForwardRenderer/Passes/CloudsModule.hh>
+#include <Renderer/ForwardRenderer/Passes/GeometryShadingModule.hh>
 #include <Renderer/ForwardRenderer/Passes/PrepassModule.hh>
 #include <Renderer/ForwardRenderer/Passes/ShadowMappingModule.hh>
-#include <Renderer/ForwardRenderer/Passes/GeometryShadingModule.hh>
+#include <Renderer/ForwardRenderer/Passes/VolumeModule.hh>
 
-#include <Scene/Scene.hh>
 #include <Scene/Camera.hh>
 #include <Scene/Component.hh>
+#include <Scene/Scene.hh>
 
 namespace mikoto::renderer {
 
@@ -127,17 +128,51 @@ namespace mikoto::renderer {
         return parameters;
     }
 
-    static auto VolumeHash( const eastl::vector<ubyte> &data ) -> u64 {
+    static auto VolumeHash( const void *data, usize bytes ) -> u64 {
         u64 hash{ 1469598103934665603ull };
-        for ( const auto byte: data ) {
-            hash = ( hash ^ byte ) * 1099511628211ull;
+        const auto *values{ static_cast<const ubyte *>( data ) };
+        for ( usize i{}; i < bytes; ++i ) {
+            hash = ( hash ^ values[i] ) * 1099511628211ull;
         }
 
         return hash;
     }
 
+    struct VolumeMajorantGrid {
+        uint3 mDimensions{};
+        eastl::vector<f32> mValues{};
+    };
+
+    // Include every texel whose trilinear filter can touch a coarse cell.
+    // These are upper bounds, not averages: underestimates bias null tracking.
+    static auto BuildVolumeMajorants( uint3 size, const eastl::vector<f32> &density ) -> VolumeMajorantGrid {
+        VolumeMajorantGrid result{};
+        result.mDimensions = glm::max( ( size - 1u + 7u ) / 8u, uint3{ 1 } );
+        const auto cells{ result.mDimensions };
+        result.mValues.resize( usize( cells.x ) * cells.y * cells.z );
+        for ( u32 z{}; z < cells.z; ++z ) {
+            for ( u32 y{}; y < cells.y; ++y ) {
+                for ( u32 x{}; x < cells.x; ++x ) {
+                    const uint3 cell{ x, y, z };
+                    const uint3 lo{ cell * ( size - 1u ) / cells };
+                    const uint3 hi{ ( ( cell + 1u ) * ( size - 1u ) + cells - 1u ) / cells };
+                    f32 maximum{};
+                    for ( u32 iz{ lo.z }; iz <= hi.z; ++iz ) {
+                        for ( u32 iy{ lo.y }; iy <= hi.y; ++iy ) {
+                            for ( u32 ix{ lo.x }; ix <= hi.x; ++ix ) {
+                                maximum = glm::max( maximum, density[ix + usize( size.x ) * ( iy + usize( size.y ) * iz )] );
+                            }
+                        }
+                    }
+                    result.mValues[x + usize( cells.x ) * ( y + usize( cells.y ) * z )] = maximum;
+                }
+            }
+        }
+        return result;
+    }
+
     static auto MakeVolumeRecord( const VolumeMaterial &material, float4x4 world, float3 dimensions,
-                                  f32 referenceHeight, f32 multiplier, bool sphere, bool casts, bool receives, float3 wind ) -> VolumeRecord {
+        f32 referenceHeight, f32 multiplier, bool sphere, bool casts, bool receives, float3 wind ) -> VolumeRecord {
         const auto &s{ material.GetSettings() };
         const MediumProperties properties{
             .mAbsorption = s.mAbsorption,
@@ -152,6 +187,11 @@ namespace mikoto::renderer {
         result.mNoise = float4{ s.mNoiseScale, s.mErosionScale, s.mErosion, s.mCoverage };
         result.mFlags = uint4{ sphere, as<u32>( s.mDensityModel ), casts, receives };
         result.mWindOctaves = float4{ wind, as<f32>( s.mOctaves ) };
+        result.mCloudPattern = uint4{ s.mCloudFormationCount, s.mCloudSeed, 0, 0 };
+        result.mCloudProfile = float4{ as<f32>( s.mCloudForm ), s.mCloudProfileDepth,
+            s.mCloudFormationScale, s.mCloudFormationVariation };
+        result.mCloudWeather = float4{ s.mWeatherScale, s.mCoverageVariation,
+            s.mCloudTypeVariation, s.mCloudHeightVariation };
 
         // Height falloff is otherwise unused for the procedural/grid density models.
         if ( s.mDensityModel == VolumeDensityModel::eExponentialHeight ) {
@@ -159,7 +199,8 @@ namespace mikoto::renderer {
         }
 
         result.mGrid = uint4{ material.GetGridDimensions(), 0 };
-        result.mExtinctionMajorant = float4{ properties.GetExtinction() * s.mDensity * multiplier, s.mDensity * multiplier };
+        const f32 bound{ s.mDensityModel == VolumeDensityModel::eDensityGrid && material.GetDensityGrid().empty() ? 0.0f : s.mDensity * multiplier };
+        result.mExtinctionMajorant = float4{ properties.GetExtinction() * bound, bound };
         return result;
     }
 
@@ -167,11 +208,11 @@ namespace mikoto::renderer {
         mData.resize( 16, 0 );
     }
 
-    auto VolumeModule::GetData() const -> const eastl::vector<core::ubyte>& {
+    auto VolumeModule::GetData() const -> const eastl::vector<core::ubyte> & {
         return mData;
     }
 
-    auto VolumeModule::Prepare( const Scene *scene, const Camera *camera, f32 ambientScale ) -> bool {
+    auto VolumeModule::Prepare( const Scene *scene, const Camera *camera, f32 ambientScale, bool includeClouds ) -> bool {
         MKT_BEGIN_PROFILER();
 
         mHistoryValid &= mScene == scene && mCamera == camera && mAmbientScale == ambientScale;
@@ -184,7 +225,7 @@ namespace mikoto::renderer {
         if ( scene ) {
             const auto &registry{ scene->GetRegistry() };
             for ( const auto [entity, tag, transform, source]: registry.view<TagComponent, TransformComponent, CloudComponent>().each() ) {
-                if ( !tag.IsActive() || !source.GetMaterial() ) {
+                if ( !includeClouds || !tag.IsActive() || !source.GetMaterial() ) {
                     continue;
                 }
                 const auto &cloud{ source };
@@ -199,6 +240,8 @@ namespace mikoto::renderer {
                 }
                 const auto direction{ glm::length( cloud.GetWindDirection() ) > 0 ? glm::normalize( cloud.GetWindDirection() ) : float2{ 0 } };
                 const float2 wind{ direction * cloud.GetWindSpeed() * as<f32>( scene->GetVolumeTime() ) };
+                // Bounds and authored grids must move with the same wind as density.
+                world[3] += float4{ wind.x, 0, wind.y, 0 };
                 entries.push_back( { tag.GetGuid(), MakeVolumeRecord( *cloud.GetMaterial(), world, dimensions, world[3].y, cloud.GetDensityMultiplier(), cloud.GetShape() == CloudShape::eSphere, cloud.IsShadowCaster(), cloud.IsShadowReceiver(), float3{ wind.x, 0, wind.y } ), cloud.GetMaterial() } );
             }
 
@@ -226,22 +269,46 @@ namespace mikoto::renderer {
         } );
 
         mCount = as<u32>( entries.size() );
-        mData.assign( 16 + entries.size() * sizeof( VolumeRecord ), 0 );
-        std::memcpy( mData.data(), &mCount, sizeof( mCount ) );
-
-        for ( usize i{}; i < entries.size(); ++i ) {
-            auto &entry{ entries[i] };
-            const auto &grid{ entry.mMaterial->GetDensityGrid() };
-            if ( !grid.empty() ) {
-                entry.mRecord.mGrid.w = as<u32>( mData.size() );
-                const auto offset{ mData.size() };
+        const usize headerBytes{ 16 + entries.size() * sizeof( VolumeRecord ) };
+        u64 payloadHash{ entries.size() };
+        for ( const auto &entry: entries ) {
+            const auto size{ entry.mMaterial->GetGridDimensions() };
+            payloadHash = ( payloadHash ^ entry.mMaterial->GetGridHash() ^ VolumeHash( &size, sizeof( size ) ) ) * 1099511628211ull;
+        }
+        const bool payloadChanged{ payloadHash != mPayloadHash || mGridOffsets.size() != entries.size() };
+        if ( payloadChanged || mData.size() < headerBytes ) {
+            mPayloadDirty = true;
+            mPayloadHash = payloadHash;
+            mData.assign( headerBytes, 0 );
+            mGridOffsets.assign( entries.size(), 0 );
+            mMajorantLayouts.assign( entries.size(), uint4{} );
+            for ( usize i{}; i < entries.size(); ++i ) {
+                const auto &grid{ entries[i].mMaterial->GetDensityGrid() };
+                if ( grid.empty() ) {
+                    continue;
+                }
+                const usize offset{ mData.size() };
+                mGridOffsets[i] = as<u32>( offset );
                 mData.resize( offset + grid.size() * sizeof( f32 ) );
                 std::memcpy( mData.data() + offset, grid.data(), grid.size() * sizeof( f32 ) );
+
+                const auto bounds{ BuildVolumeMajorants( entries[i].mMaterial->GetGridDimensions(), grid ) };
+                const usize majorantOffset{ mData.size() };
+                mMajorantLayouts[i] = uint4{ bounds.mDimensions, as<u32>( majorantOffset ) };
+                mData.resize( majorantOffset + bounds.mValues.size() * sizeof( f32 ) );
+                std::memcpy( mData.data() + majorantOffset, bounds.mValues.data(), bounds.mValues.size() * sizeof( f32 ) );
             }
-            std::memcpy( mData.data() + 16 + i * sizeof( VolumeRecord ), &entry.mRecord, sizeof( VolumeRecord ) );
+        }
+        std::memcpy( mData.data(), &mCount, sizeof( mCount ) );
+        for ( usize i{}; i < entries.size(); ++i ) {
+            entries[i].mRecord.mGrid.w = mGridOffsets[i];
+            entries[i].mRecord.mMajorantGrid = mMajorantLayouts[i];
+            std::memcpy( mData.data() + 16 + i * sizeof( VolumeRecord ), &entries[i].mRecord, sizeof( VolumeRecord ) );
         }
 
-        const u64 hash{ VolumeHash( mData ) };
+        // Animated placement invalidates accumulation, but does not recopy or
+        // rehash immutable voxel payloads or rebuild their majorant grids.
+        const u64 hash{ VolumeHash( mData.data(), headerBytes ) ^ payloadHash };
         const bool changed{ hash != mHash };
         mHash = hash;
         mUploadDirty |= changed;
@@ -252,49 +319,44 @@ namespace mikoto::renderer {
 
     auto VolumeModule::RegisterUpload( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER();
+        mUploadDirty = mPayloadDirty = true;
 
         auto &info{ graph.GetOrCreate<VolumeModuleInfo>() };
         info.mData = graph.Create( FGBufferDescription{}
             .SetName( "Volumes_Data" )
-            .SetUsage( BufferUsageFlagsBits::Structured | 
-                BufferUsageFlagsBits::CopyDest )
+            .SetUsage( BufferUsageFlagsBits::Structured |
+                           BufferUsageFlagsBits::CopyDest )
             .SetSizeBytes( 16 )
             .SetHeapType( HeapType::eDeviceLocal ) );
 
+        // Allocate before the upload pass records barriers for the new storage.
         graph.RegisterPass(
-            "Volumes_Upload",
+            "Pass_Volumes_Prepare",
             FGPassType::eTransfer,
             []( FGNodeBuilder &builder, Blackboard &b ) {
                 builder.UseResource( b.Get<VolumeModuleInfo>().mData, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
-                if ( const auto *fog{ b.TryGet<FogModuleInfo>() } ) {
-                    builder.UseResource( fog->mFrame, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
-                }
             },
             [this]( CommandContext &context, Blackboard &b ) {
-                if ( const auto *fog{ b.TryGet<FogModuleInfo>() }; fog && mCamera ) {
-                    auto frame{ mFogFrame };
-                    const f32 distance{ glm::max( mCamera->GetFarPlane(), 0.001f ) };
-                    frame.mRange = float4{ 0.0f, distance, mFogFrame.mRange.y, mHistoryValid ? 0.9f : 0.0f };
-                    frame.mTextures = uint4{ context.PushTexture_SRV( fog->mRadiance ), context.PushTexture_SRV( fog->mTransmittance ),
-                                             context.PushSampler( fog->mSampler ), mCount };
-                    context.CopyBuffer( fog->mFrame, 0, &frame, sizeof( frame ) );
-
-                    mFogFrame.mPreviousViewProjection = mCamera->GetViewProjection();
-                    mFogFrame.mPreviousInverseViewProjection = glm::inverse( mFogFrame.mPreviousViewProjection );
-                    mFogFrame.mPreviousCamera = float4{ mCamera->GetPosition(), 1.0f };
-                    mFogFrame.mRange.y = distance;
-                    ++mFogFrame.mFrame.x;
-                    mFogFrame.mFrame.y = mCamera->IsOrthographic();
-                    mHistoryValid = mCount != 0;
+                if ( context.EnsureBufferCapacity( b.Get<VolumeModuleInfo>().mData, mData.size() ) ) {
+                    mPayloadDirty = mUploadDirty = true;
                 }
-                
+            } );
+
+        graph.RegisterPass(
+            "Pass_Volumes_Upload",
+            FGPassType::eTransfer,
+            []( FGNodeBuilder &builder, Blackboard &b ) {
+                builder.UseResource( b.Get<VolumeModuleInfo>().mData, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
+            },
+            [this]( CommandContext &context, Blackboard &b ) {
                 if ( !mUploadDirty ) {
                     return;
                 }
 
                 const auto buffer{ b.Get<VolumeModuleInfo>().mData };
-                context.EnsureBufferCapacity( buffer, mData.size() );
-                context.CopyBuffer( buffer, 0, mData.data(), mData.size() );
+                const usize bytes{ mPayloadDirty ? mData.size() : 16 + mCount * sizeof( VolumeRecord ) };
+                context.CopyBuffer( buffer, 0, mData.data(), bytes );
+                mPayloadDirty = false;
 
                 mUploadDirty = false;
             } );
@@ -316,16 +378,16 @@ namespace mikoto::renderer {
         mHistoryValid = false;
         auto &info{ graph.GetOrCreate<FogModuleInfo>() };
         info.mFrame = graph.Create( FGBufferDescription{}
-                                        .SetName( "Fog_Frame" )
-                                        .SetSizeBytes( sizeof( FogFrameData ) )
-                                        .SetUsage( BufferUsageFlagsBits::Structured | BufferUsageFlagsBits::CopyDest )
-                                        .SetHeapType( HeapType::eDeviceLocal ) );
+            .SetName( "Fog_Frame" )
+            .SetSizeBytes( sizeof( FogFrameData ) )
+            .SetUsage( BufferUsageFlagsBits::Structured | BufferUsageFlagsBits::CopyDest )
+            .SetHeapType( HeapType::eDeviceLocal ) );
         auto volume{ FGTextureDescription{}
-                         .SetWidth( mFogFrame.mGrid.x * mFogFrame.mGrid.w )
-                         .SetHeight( mFogFrame.mGrid.y * mFogFrame.mGrid.w )
-                         .SetFormat( Format::eRGBA16_FLOAT )
-                         .SetUsage( TextureUsageFlagsBits::ShaderResource | TextureUsageFlagsBits::UnorderedAccess |
-                                    TextureUsageFlagsBits::CopySource | TextureUsageFlagsBits::CopyDest ) };
+            .SetWidth( mFogFrame.mGrid.x * mFogFrame.mGrid.w )
+            .SetHeight( mFogFrame.mGrid.y * mFogFrame.mGrid.w )
+            .SetFormat( Format::eRGBA16_FLOAT )
+            .SetUsage( TextureUsageFlagsBits::ShaderResource | TextureUsageFlagsBits::UnorderedAccess |
+                           TextureUsageFlagsBits::CopySource | TextureUsageFlagsBits::CopyDest ) };
         info.mLighting = graph.Create( volume.SetName( "Fog_Lighting" ) );
         info.mExtinction = graph.Create( volume.SetName( "Fog_Extinction" ) );
         info.mHistory = graph.Create( volume.SetName( "Fog_LightingHistory" ) );
@@ -333,15 +395,43 @@ namespace mikoto::renderer {
         info.mRadiance = graph.Create( volume.SetName( "Fog_IntegratedRadiance" ) );
         info.mTransmittance = graph.Create( volume.SetName( "Fog_IntegratedTransmittance" ) );
         info.mSceneCopy = graph.Create( FGTextureDescription{}
-                                            .SetName( "Fog_SceneCopy" )
-                                            .SetWidth( width )
-                                            .SetHeight( height )
-                                            .SetFormat( Format::eRGBA16_FLOAT )
-                                            .SetUsage( TextureUsageFlagsBits::ShaderResource | TextureUsageFlagsBits::CopyDest ) );
+            .SetName( "Fog_SceneCopy" )
+            .SetWidth( width )
+            .SetHeight( height )
+            .SetFormat( Format::eRGBA16_FLOAT )
+            .SetUsage( TextureUsageFlagsBits::ShaderResource | TextureUsageFlagsBits::CopyDest ) );
         info.mSampler = graph.Create( FGSamplerDescription{}
-                                          .SetName( "Fog_VolumeSampler" )
-                                          .SetFilter( SamplerFilter::eLinear )
-                                          .SetWrap( SamplerWrapMode::eClampToEdge ) );
+            .SetName( "Fog_VolumeSampler" )
+            .SetFilter( SamplerFilter::eLinear )
+            .SetWrap( SamplerWrapMode::eClampToEdge ) );
+
+        // Register after allocation so the graph sees the frame's copy-write edge.
+        graph.RegisterPass(
+            "Pass_Fog_Upload",
+            FGPassType::eTransfer,
+            []( FGNodeBuilder &builder, Blackboard &b ) {
+                builder.UseResource( b.Get<FogModuleInfo>().mFrame, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
+            },
+            [this]( CommandContext &context, Blackboard &b ) {
+                if ( !mCamera ) {
+                    return;
+                }
+                const auto &fog{ b.Get<FogModuleInfo>() };
+                auto frame{ mFogFrame };
+                const f32 distance{ glm::max( mCamera->GetFarPlane(), 0.001f ) };
+                frame.mRange = float4{ 0.0f, distance, mFogFrame.mRange.y, mHistoryValid ? 0.9f : 0.0f };
+                frame.mTextures = uint4{ context.PushTexture_SRV( fog.mRadiance ), context.PushTexture_SRV( fog.mTransmittance ),
+                    context.PushSampler( fog.mSampler ), mCount };
+                context.CopyBuffer( fog.mFrame, 0, &frame, sizeof( frame ) );
+
+                mFogFrame.mPreviousViewProjection = mCamera->GetViewProjection();
+                mFogFrame.mPreviousInverseViewProjection = glm::inverse( mFogFrame.mPreviousViewProjection );
+                mFogFrame.mPreviousCamera = float4{ mCamera->GetPosition(), 1.0f };
+                mFogFrame.mRange.y = distance;
+                ++mFogFrame.mFrame.x;
+                mFogFrame.mFrame.y = mCamera->IsOrthographic();
+                mHistoryValid = mCount != 0;
+            } );
 
         RegisterFogLighting( graph );
         RegisterFogIntegration( graph );
@@ -350,15 +440,23 @@ namespace mikoto::renderer {
 
     auto VolumeModule::RegisterFogLighting( FrameGraph &graph ) -> void {
         const auto pipeline{ graph.Create( FGPipelineDescription{}
-                                               .SetName( "Fog_Lighting" )
-                                               .SetPipelineType( PipelineType::eCompute )
-                                               .PushShader( "FogLighting_Comp.slang", FGStageType::eCompute ) ) };
+            .SetName( "Fog_Lighting" )
+            .SetPipelineType( PipelineType::eCompute )
+            .PushShader( "FogLighting_Comp.slang", FGStageType::eCompute ) ) };
 
         graph.RegisterPass(
             "Fog_Lighting",
             FGPassType::eCompute,
             []( FGNodeBuilder &builder, Blackboard &b ) {
                 const auto &fog{ b.Get<FogModuleInfo>() };
+                if ( const auto *clouds{ b.TryGet<CloudsModuleInfo>() } ) {
+                    builder.UseResource( clouds->mFrame, FGPipelineStage::eComputeShader, FGResourceAccess::eRead );
+                    builder.UseResource( clouds->mModels, FGPipelineStage::eComputeShader, FGResourceAccess::eRead );
+                    for ( const auto &volume: clouds->mVolumes ) {
+                        builder.UseResource( volume.mLighting, FGPipelineStage::eComputeShader, FGResourceAccess::eRead );
+                    }
+                }
+
                 builder.UseResource( b.Get<VolumeModuleInfo>().mData, FGPipelineStage::eComputeShader, FGResourceAccess::eRead );
                 builder.UseResource( b.Get<CameraModuleInfo>().mCameraData, FGPipelineStage::eComputeShader, FGResourceAccess::eRead );
                 builder.UseResource( b.Get<PrepassModuleInfo>().mLightsBuffer, FGPipelineStage::eComputeShader, FGResourceAccess::eRead );
@@ -388,9 +486,9 @@ namespace mikoto::renderer {
 
     auto VolumeModule::RegisterFogIntegration( FrameGraph &graph ) -> void {
         const auto pipeline{ graph.Create( FGPipelineDescription{}
-                                               .SetName( "Fog_Integration" )
-                                               .SetPipelineType( PipelineType::eCompute )
-                                               .PushShader( "FogIntegrate_Comp.slang", FGStageType::eCompute ) ) };
+            .SetName( "Fog_Integration" )
+            .SetPipelineType( PipelineType::eCompute )
+            .PushShader( "FogIntegrate_Comp.slang", FGStageType::eCompute ) ) };
 
         graph.RegisterPass(
             "Fog_Integration",
@@ -439,14 +537,14 @@ namespace mikoto::renderer {
 
     auto VolumeModule::RegisterFogComposite( FrameGraph &graph ) -> void {
         const auto pipeline{ graph.Create( FGPipelineDescription{}
-                                               .SetName( "Fog_Composite" )
-                                               .SetPipelineType( PipelineType::eGraphics )
-                                               .SetTopology( PrimitiveTopology::eTriangleList )
-                                               .SetDepthTest( false )
-                                               .SetDepthWrite( false )
-                                               .AddColorFormat( Format::eRGBA16_FLOAT )
-                                               .PushShader( "FullQuad_Vert.slang", FGStageType::eVertex )
-                                               .PushShader( "FogComposite_Frag.slang", FGStageType::ePixel ) ) };
+            .SetName( "Fog_Composite" )
+            .SetPipelineType( PipelineType::eGraphics )
+            .SetTopology( PrimitiveTopology::eTriangleList )
+            .SetDepthTest( false )
+            .SetDepthWrite( false )
+            .AddColorFormat( Format::eRGBA16_FLOAT )
+            .PushShader( "FullQuad_Vert.slang", FGStageType::eVertex )
+            .PushShader( "FogComposite_Frag.slang", FGStageType::ePixel ) ) };
 
         graph.RegisterPass(
             "Fog_SceneCopy",
@@ -484,8 +582,8 @@ namespace mikoto::renderer {
                 const auto [width, height]{ InferDimensions( mResolution ) };
                 context.PushConstants( MakeFogParameters( context, b, 2 ) );
                 context.BeginRender( RenderBeginDescription{}
-                                         .SetRenderArea( Rect{ as<i32>( width ), as<i32>( height ) } )
-                                         .AddRenderTarget( b.Get<GeomShadingModuleInfo>().mColorImage, Color{}, LoadOp::eClear ) );
+                    .SetRenderArea( Rect{ as<i32>( width ), as<i32>( height ) } )
+                    .AddRenderTarget( b.Get<GeomShadingModuleInfo>().mColorImage, Color{}, LoadOp::eClear ) );
                 context.SetViewportState( ViewportState{}.AddViewportAndScissorRect( Viewport{ width, height } ) );
                 context.BindPipeline( pipeline );
                 context.Draw( 3 );
@@ -497,15 +595,15 @@ namespace mikoto::renderer {
         // Seed all samples with the fogged opaque result before blending transparent
         // surfaces. Their shader evaluates fog at each surface's own depth.
         const auto pipeline{ graph.Create( FGPipelineDescription{}
-                                               .SetName( "Fog_Multisample" )
-                                               .SetPipelineType( PipelineType::eGraphics )
-                                               .SetTopology( PrimitiveTopology::eTriangleList )
-                                               .SetMultisampling( samples )
-                                               .SetDepthTest( false )
-                                               .SetDepthWrite( false )
-                                               .AddColorFormat( Format::eRGBA16_FLOAT )
-                                               .PushShader( "FullQuad_Vert.slang", FGStageType::eVertex )
-                                               .PushShader( "FogComposite_Frag.slang", FGStageType::ePixel ) ) };
+            .SetName( "Fog_Multisample" )
+            .SetPipelineType( PipelineType::eGraphics )
+            .SetTopology( PrimitiveTopology::eTriangleList )
+            .SetMultisampling( samples )
+            .SetDepthTest( false )
+            .SetDepthWrite( false )
+            .AddColorFormat( Format::eRGBA16_FLOAT )
+            .PushShader( "FullQuad_Vert.slang", FGStageType::eVertex )
+            .PushShader( "FogComposite_Frag.slang", FGStageType::ePixel ) ) };
         graph.RegisterPass(
             "Fog_Multisample",
             FGPassType::eGraphics,
@@ -518,8 +616,8 @@ namespace mikoto::renderer {
                 const auto [width, height]{ InferDimensions( mResolution ) };
                 context.PushConstants( MakeFogParameters( context, b, 3 ) );
                 context.BeginRender( RenderBeginDescription{}
-                                         .SetRenderArea( Rect{ as<i32>( width ), as<i32>( height ) } )
-                                         .AddRenderTarget( b.Get<GeomShadingModuleInfo>().mRasterColorImage, Color{}, LoadOp::eClear ) );
+                    .SetRenderArea( Rect{ as<i32>( width ), as<i32>( height ) } )
+                    .AddRenderTarget( b.Get<GeomShadingModuleInfo>().mRasterColorImage, Color{}, LoadOp::eClear ) );
                 context.SetViewportState( ViewportState{}.AddViewportAndScissorRect( Viewport{ width, height } ) );
                 context.BindPipeline( pipeline );
                 context.Draw( 3 );

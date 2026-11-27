@@ -5,7 +5,7 @@
 
 {
   "Version": 1,
-  "Project": "Dragon Transmission",
+  "Project": "Dragon_Transmission",
   "Assets": "Assets",
   "Cache": "Assets/.cache",
   "Scene": "Scene/Dragon_Transmission.mktscn",
@@ -29,7 +29,7 @@
     "NavigationMode": "Fly",
     "Position": [
       0,
-      0.98,
+      1.08,
       4.2
     ],
     "Direction": [

@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Reconstruct the hit triangle and its interpolated attributes from acceleration-structure
+// indices. The ray payload carries this geometric hit data back to the integrator.
+
 #include "PathTracing_Common.slang"
 
 // PBRT's error-bounded spawn points adapted to hardware traversal using NVIDIA's
@@ -51,7 +54,7 @@ void ReconstructHit( float3 a, float3 b, float3 c, float2 barycentrics,
 
 [shader( "closesthit" )]
 void main( inout Hit payload, BuiltInTriangleIntersectionAttributes attributes ) {
-    payload.Distance = RayTCurrent();
+    payload.mDistance = RayTCurrent();
 
     // Each BLAS has local primitive IDs; the TLAS instance selects its index-buffer range.
     uint triangle = InstanceID() + PrimitiveIndex();
@@ -72,9 +75,9 @@ void main( inout Hit payload, BuiltInTriangleIntersectionAttributes attributes )
     ReconstructHit( a, b, c, barycentrics, ObjectToWorld3x4(), WorldToObject3x4(),
         position, positionError, geometricNormal );
 
-    payload.Triangle = triangle;
-    payload.Barycentrics = barycentrics;
-    payload.Position = position;
-    payload.PositionError = positionError;
-    payload.GeometricNormal = geometricNormal;
+    payload.mTriangle = triangle;
+    payload.mBarycentrics = barycentrics;
+    payload.mPosition = position;
+    payload.mPositionError = positionError;
+    payload.mGeometricNormal = geometricNormal;
 }

@@ -15,16 +15,20 @@
 // A four-vertex strip covers the target; noise is evaluated only in the fragment stage.
 // Keep UV in register 0 to match the fragment signature on D3D12.
 // https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-signatures
+
+// Generate the quad coordinates used by procedural noise passes. The fragment stage maps these
+// normalized coordinates into its noise domain.
+
 struct NoiseVaryings {
-    float2 uv : TEXCOORD0;
-    float4 position : SV_Position;
+    float2 mUv : TEXCOORD0;
+    float4 mPosition : SV_Position;
 };
 
 [shader("vertex")]
 NoiseVaryings main( uint vertexIndex : SV_VertexID ) {
     NoiseVaryings output;
-    output.uv = float2( float( vertexIndex & 1 ), float( vertexIndex >> 1 ) );
-    output.position = float4( output.uv * 2.0f - 1.0f, 0.0f, 1.0f );
+    output.mUv = float2( float( vertexIndex & 1 ), float( vertexIndex >> 1 ) );
+    output.mPosition = float4( output.mUv * 2.0f - 1.0f, 0.0f, 1.0f );
     return output;
 }
 

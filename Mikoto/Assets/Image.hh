@@ -63,6 +63,8 @@ namespace mikoto::asset {
         core::u32 mWidth{};
         core::u32 mHeight{};
         core::u32 mChannels{};
+        // Buffer contains tightly packed levels from mip zero to the last mip.
+        core::u32 mMipCount{ 1 };
 
         ImageFormat mFormat{ ImageFormat::eRGBA8_UINT };
 

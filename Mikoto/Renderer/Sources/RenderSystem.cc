@@ -12,28 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <utility>
-#include <array>
-#include <thread>
 #include <algorithm>
+#include <array>
 #include <exception>
+#include <thread>
+#include <utility>
 
-#include <slang.h>
 #include <slang-com-ptr.h>
+#include <slang.h>
 
 #include <Core/Core.hh>
-#include <Core/Types.hh>
-#include <Core/Profiler.hh>
 #include <Core/Exception.hh>
+#include <Core/Profiler.hh>
+#include <Core/Types.hh>
+
+#include <ImGui/ImGuiService.hh>
 
 #include <Logging/Logger.hh>
-
-#include <Threading/TaskService.hh>
 
 #include <Renderer/Core/RenderSystem.hh>
 #include <Renderer/Core/SlangCompiler.hh>
 
-#include <ImGui/ImGuiService.hh>
+#include <Threading/TaskService.hh>
 
 namespace mikoto::renderer {
 
@@ -57,7 +57,7 @@ namespace mikoto::renderer {
     }
 
 
-    RenderSystem::RenderSystem( const RenderSystemCreateInfo& options )
+    RenderSystem::RenderSystem( const RenderSystemCreateInfo &options )
         : mWindow{ options.mWindow }, mApi{ options.mApi }, mRefreshRate{ options.mRefreshRate }, mEnableImGui{ options.mEnableImGui } {
     }
 
@@ -92,9 +92,9 @@ namespace mikoto::renderer {
             mSlangAvailable.notify_all();
             mSlangAvailable.wait( lock, [this] {
                 return std::none_of( mSlangCompilers.begin(), mSlangCompilers.end(),
-                    []( const auto& context ) {
-                    return context->mInUse;
-                } );
+                    []( const auto &context ) {
+                        return context->mInUse;
+                    } );
             } );
         }
 
@@ -123,12 +123,12 @@ namespace mikoto::renderer {
         mContext->Update();
     }
 
-    auto RenderSystem::BatchSubmission( rhi::SubmitInfo&& submitInfo, rhi::QueueType queue ) -> void {
+    auto RenderSystem::BatchSubmission( rhi::SubmitInfo &&submitInfo, rhi::QueueType queue ) -> void {
         MKT_BEGIN_PROFILER();
         mContext->BatchSubmission( eastl::move( submitInfo ), queue );
     }
 
-    auto RenderSystem::AcquireVideoBitstream( const Ref<asset::VideoClip>& clip, rhi::IVideoDecoder* decoder ) -> Ref<VideoBitstream> {
+    auto RenderSystem::AcquireVideoBitstream( const Ref<asset::VideoClip> &clip, rhi::IVideoDecoder *decoder ) -> Ref<VideoBitstream> {
         const auto found{ mVideoBitstreams.find( clip.GetPtr() ) };
 
         if ( found != mVideoBitstreams.end() ) {
@@ -147,7 +147,8 @@ namespace mikoto::renderer {
         for ( auto entry{ mVideoBitstreams.begin() }; entry != mVideoBitstreams.end(); ) {
             if ( entry->second->GetRefCount() == 1 ) {
                 entry = mVideoBitstreams.erase( entry );
-            } else {
+            }
+            else {
                 ++entry;
             }
         }
@@ -183,22 +184,21 @@ namespace mikoto::renderer {
 
     auto RenderSystem::AcquireSlangSession() -> SlangSessionLease {
         MKT_BEGIN_PROFILER();
-        SlangCompilerContext* available{};
+        SlangCompilerContext *available{};
         {
             std::unique_lock lock{ mSlangMutex };
             mSlangAvailable.wait( lock, [this] {
                 return mSlangStopping || mSlangCompilers.size() < mSlangSessionLimit ||
-                       std::any_of( mSlangCompilers.begin(), mSlangCompilers.end(),
-                           []( const auto& context ) {
-                    return !context->mInUse;
-                } );
+                       std::any_of( mSlangCompilers.begin(), mSlangCompilers.end(), []( const auto &context ) {
+                           return !context->mInUse;
+                       } );
             } );
 
             if ( mSlangStopping ) {
                 MKT_THROW_RUNTIME_ERROR( "The Slang session pool is stopped." );
             }
 
-            for ( const auto& context: mSlangCompilers ) {
+            for ( const auto &context: mSlangCompilers ) {
                 if ( !context->mInUse ) {
                     available = context.get();
                     break;
@@ -223,7 +223,7 @@ namespace mikoto::renderer {
         return lease;
     }
 
-    auto RenderSystem::ReleaseSlangSession( SlangCompilerContext& context ) -> void {
+    auto RenderSystem::ReleaseSlangSession( SlangCompilerContext &context ) -> void {
         const std::lock_guard lock{ mSlangMutex };
         context.mInUse = false;
 
@@ -235,22 +235,22 @@ namespace mikoto::renderer {
         }
     }
 
-    auto RenderSystem::GetContext() -> RenderContext* {
+    auto RenderSystem::GetContext() -> RenderContext * {
         MKT_BEGIN_PROFILER();
         return mContext.get();
     }
 
-    auto RenderSystem::GetContext() const -> const RenderContext* {
+    auto RenderSystem::GetContext() const -> const RenderContext * {
         MKT_BEGIN_PROFILER();
         return mContext.get();
     }
 
-    auto RenderSystem::GetGpuDevice() -> renderer::rhi::IGpuDevice* {
+    auto RenderSystem::GetGpuDevice() -> renderer::rhi::IGpuDevice * {
         MKT_BEGIN_PROFILER();
         return mContext->GetGpuDevice();
     }
 
-    auto RenderSystem::GetGpuDevice() const -> const renderer::rhi::IGpuDevice* {
+    auto RenderSystem::GetGpuDevice() const -> const renderer::rhi::IGpuDevice * {
         MKT_BEGIN_PROFILER();
         return mContext->GetGpuDevice();
     }
@@ -262,7 +262,7 @@ namespace mikoto::renderer {
 
     auto RenderSystem::InitializeSlang() -> void {
         MKT_BEGIN_PROFILER();
-        const auto* tasks{ threading::TaskService::GetPtr() };
+        const auto *tasks{ threading::TaskService::GetPtr() };
         const auto concurrency{ tasks && tasks->IsInitialized()
                                     ? tasks->GetWorkersCount()
                                     : std::thread::hardware_concurrency() };
@@ -315,15 +315,15 @@ namespace mikoto::renderer {
         mImguiService->Initialize();
     }
 
-    auto RenderSystem::PrepareSlangSession( SlangCompilerContext& context ) -> void {
+    auto RenderSystem::PrepareSlangSession( SlangCompilerContext &context ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( SLANG_FAILED( slang::createGlobalSession( context.mGlobal.writeRef() ) ) ) {
             MKT_THROW_RUNTIME_ERROR( "Cannot create the Slang global session." );
         }
 
-        const char* profile{};
-        const char* apiMacro{};
+        const char *profile{};
+        const char *apiMacro{};
 
         switch ( mApi ) {
             case rhi::GraphicsAPI::eVulkan:
@@ -375,6 +375,10 @@ namespace mikoto::renderer {
 
         context.mMacros[0] = { apiMacro, "1" };
         SlangInt macroCount{ 1 };
+#if MIKOTO_ENABLE_NRD
+        context.mMacros[macroCount++] = { "MKT_NRD_AVAILABLE", "1" };
+        static const char *nrdIncludes[]{ MIKOTO_NRD_SHADER_INCLUDE_DIR };
+#endif
 #if !defined( NDEBUG )
         if ( mApi != rhi::GraphicsAPI::eOpenGL ) {
             context.mMacros[macroCount++] = { "MKT_DEBUG", "1" };
@@ -385,6 +389,10 @@ namespace mikoto::renderer {
             .targets = context.mTargets.data(),
             .targetCount = core::as<SlangInt>( context.mTargets.size() ),
             .defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR,
+#if MIKOTO_ENABLE_NRD
+            .searchPaths = nrdIncludes,
+            .searchPathCount = 1,
+#endif
             .preprocessorMacros = context.mMacros.data(),
             .preprocessorMacroCount = macroCount,
             .compilerOptionEntries = context.mOptions.data(),
@@ -407,7 +415,7 @@ namespace mikoto::renderer {
             context.mRayOptions[2].value.intValue0 = SLANG_DEBUG_INFO_LEVEL_NONE;
 
             description.compilerOptionEntries = context.mRayOptions.data();
-            
+
             context.mCacheKeys[2] = ShaderSessionKey( *context.mGlobal, description );
             if ( !SLANG_SUCCEEDED( context.mGlobal->createSession( description, context.mRaySession.writeRef() ) ) ) {
                 MKT_THROW_RUNTIME_ERROR( "Cannot create the optimized Slang ray-generation session." );

@@ -1,0 +1,16 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Plaque",
+  "Material": {
+    "BaseColorFactor": [
+      0.018,
+      0.025,
+      0.035,
+      1
+    ],
+    "MetallicFactor": 0,
+    "RoughnessFactor": 0.55,
+    "AlphaMask": 0
+  }
+}

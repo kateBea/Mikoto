@@ -18,8 +18,12 @@
 // Command validate slang offline (Example)
 // slangc Skybox_Vert.slang -profile glsl_450 -target spirv -entry main -stage vertex
 
+// Backend binding declarations and CPU-compatible push-constant access. Vulkan uses native push
+// constants; D3D12 reconstructs the uploaded words without introducing cbuffer row padding.
+
 #pragma once
 
+#include "ShaderConstants.slang"
 #include "BufferReference.slang"
 
 #define MKT_SHADER_TRUE            1
@@ -68,16 +72,21 @@ struct PushConstantMatrix4x4 {
 
 // Root constants carry the CPU bytes verbatim. Decode a flat array so HLSL
 // cbuffer row padding cannot change nested structures or array strides.
+// D3D12 exposes 128 root-constant bytes as eight uint4 vectors; packed CPU layouts are decoded
+// word by word.
+static const uint kPushConstantVectorCount = 8;
+static const uint kPushConstantWordsPerVector = 4;
+
 struct PushConstantWords {
-    uint4 words[8];
+    uint4 mWords[kPushConstantVectorCount];
 };
 
 ConstantBuffer<PushConstantWords> mktPushConstants : register( b0 );
 
 T LoadPushConstants<T>() {
-    uint words[sizeof( T ) / 4];
-    for ( uint i = 0; i < sizeof( T ) / 4; ++i ) {
-        words[i] = mktPushConstants.words[i / 4][i % 4];
+    uint words[sizeof( T ) / sizeof( uint )];
+    for ( uint i = 0; i < sizeof( T ) / sizeof( uint ); ++i ) {
+        words[i] = mktPushConstants.mWords[i / kPushConstantWordsPerVector][i % kPushConstantWordsPerVector];
     }
     return bit_cast<T>( words );
 }

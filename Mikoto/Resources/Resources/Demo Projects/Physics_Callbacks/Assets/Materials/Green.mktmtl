@@ -1,0 +1,15 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Green",
+  "Material": {
+    "BaseColorFactor": [
+      0.12,
+      0.65,
+      0.35,
+      1
+    ],
+    "MetallicFactor": 0,
+    "RoughnessFactor": 0.72
+  }
+}

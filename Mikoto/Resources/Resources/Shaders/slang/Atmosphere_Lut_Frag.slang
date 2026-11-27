@@ -12,15 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Generate atmosphere lookup data selected by the pass parameters. Direction and altitude are
+// reconstructed from texel coordinates before integrating the medium.
+
 #pragma once
 
 #include "Atmosphere_Common.slang"
 
+// Stage IDs match the CPU LUT draws; transmittance and sky radiance use different integration budgets.
+static const uint kAtmosTransmittanceStage = 0;
+static const uint kAtmosEnvironmentStage = 3;
+static const uint kAtmosTransmittanceSteps = 64;
+static const uint kAtmosSkyIntegrationSteps = 32;
+
 [shader( "fragment" )]
 float4 main( float2 uv : TEXCOORD0 ) : SV_Target0 {
     AtmosphereData a = Atmosphere();
-    if ( parameters.mStage == 0 ) {
-        float3 origin, direction;
+    if ( parameters.mStage == kAtmosTransmittanceStage ) {
+        float3 origin;
+        float3 direction;
         AtmosTransmittanceRay( a, uv, origin, direction );
 
         // Transmittance is only defined for paths reaching the top boundary.
@@ -29,16 +39,17 @@ float4 main( float2 uv : TEXCOORD0 ) : SV_Target0 {
         float b = dot( origin, direction );
         float distance = max( 0, -b + sqrt( max( 0, b * b - dot( origin, origin ) + a.mRadii.y * a.mRadii.y ) ) );
         float3 opticalDepth = 0;
-        for ( uint i = 0; i < 64; ++i ) {
-            float3 position = origin + direction * ( distance * ( i + 0.5 ) / 64 );
-            opticalDepth += AtmosSampleMedium( a, position ).mExtinction * ( distance / 64 );
+        for ( uint i = 0; i < kAtmosTransmittanceSteps; ++i ) {
+            float3 position = origin + direction * ( distance * ( i + 0.5 ) / float( kAtmosTransmittanceSteps ) );
+            opticalDepth += AtmosSampleMedium( a, position ).mExtinction * ( distance / float( kAtmosTransmittanceSteps ) );
         }
 
         return float4( exp( -opticalDepth ), 1 );
     }
 
-    float3 origin, direction;
-    if ( parameters.mStage == 3 ) {
+    float3 origin;
+    float3 direction;
+    if ( parameters.mStage == kAtmosEnvironmentStage ) {
         // IBL uses a fixed observer at ground level, so flying the editor
         // camera does not continuously rerun expensive cubemap convolution.
         origin = float3( 0, a.mRadii.x + AtmosGroundOffset, 0 );
@@ -50,7 +61,7 @@ float4 main( float2 uv : TEXCOORD0 ) : SV_Target0 {
         direction = AtmosSkyDirection( a, origin, uv );
     }
 
-    AtmosIntegration result = AtmosIntegrate( a, origin, direction, a.mSunDirection.xyz, 1e6, 32, true, false, true );
+    AtmosIntegration result = AtmosIntegrate( a, origin, direction, a.mSunDirection.xyz, 1e6, kAtmosSkyIntegrationSteps, true, false, true );
 
     // The sun disk is not baked into IBL: direct sunlight belongs to the
     // directional light, and a sub-texel disk aliases during convolution.

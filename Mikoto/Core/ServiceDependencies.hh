@@ -157,10 +157,15 @@ namespace mikoto::core {
                                ServiceList<physics::PhysicSystem, scripting::ScriptingService, animation::AnimationSystem>> {
     };
 
+    // Scripts receive contacts only after physics jobs and pose synchronization join.
     template<>
     struct ServiceDependencies<scripting::ScriptingService>
         : ServiceDependencySet<ServiceList<filesystem::FileService, filesystem::FileWatcherService>,
-                               InputUpdateDependencies> {
+#if MIKOTO_MODULE_PHYSICS
+              ServiceList<physics::PhysicSystem>> {
+#else
+              InputUpdateDependencies> {
+#endif
     };
 
     template<>

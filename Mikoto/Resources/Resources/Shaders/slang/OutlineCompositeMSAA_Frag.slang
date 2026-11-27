@@ -12,18 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Evaluate distance from the nearest silhouette boundary and blend the configured outline over
+// scene color. The MSAA variant reads the matching multisample scene inputs.
+
 #pragma once
 
 #include "base/OutlineComposite_Helpers.slang"
 MKT_DECLARE_TEXTURE_SRV( Texture2DMS<float4> ) interiorMasks;
 
 [shader( "fragment" )]
-float4 main( sample float2 uv : TEXCOORD0, float4 position : SV_Position,
-    uint sampleIndex : SV_SampleIndex ) : SV_Target0
-{
+float4 main( sample float2 uv : TEXCOORD0, float4 position : SV_Position, uint sampleIndex : SV_SampleIndex ) : SV_Target0 {
     int2 pixel = int2( position.xy );
     // Test the actual covered sample, rather than a resolved mask threshold.
     // This prevents outlines filling selected interiors or erasing partially covered edge pixels.
-    if ( interiorMasks[parameters.Interior].Load( pixel, sampleIndex ).r > 0.0f ) { discard; }
+    if ( interiorMasks[parameters.mInterior].Load( pixel, sampleIndex ).r > 0.0f ) {
+        discard;
+    }
     return EvaluateOutline( pixel, uv );
 }

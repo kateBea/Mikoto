@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Trace short hemisphere rays from visible surfaces to estimate ambient visibility. The AO mode
+// shares scene intersection and camera-ray conventions with the path tracer.
+
 #pragma once
 
 // Ambient occlusion estimates visibility with its own progressive history.
@@ -21,7 +24,7 @@
 // https://pbrt.org/fileformat-v4#integrators (ambientocclusion: cossample, maxdistance)
 float AmbientOcclusion( Surface surface, float3 view, float2 sample, bool cosineSampling,
     float maxDistance, inout uint random ) {
-    float3 normal = dot( surface.GeometricNormal, view ) >= 0.0 ? surface.GeometricNormal : -surface.GeometricNormal;
+    float3 normal = dot( surface.mGeometricNormal, view ) >= 0.0 ? surface.mGeometricNormal : -surface.mGeometricNormal;
     float3 local;
     float pdf;
     if ( cosineSampling ) {
@@ -44,19 +47,20 @@ float AmbientOcclusion( Surface surface, float3 view, float2 sample, bool cosine
 }
 
 void RenderAmbientOcclusion( uint2 pixel ) {
-    if ( Parameters.Occlusion.x == 0 ) {
+    if ( Parameters.mOcclusion.x == 0 ) {
         return;
     }
 
-    uint previous = Parameters.Occlusion.z;
-    uint count = min( Parameters.Occlusion.y, MAX_OCCLUSION_HISTORY_SAMPLES - min( previous, MAX_OCCLUSION_HISTORY_SAMPLES ) );
+    uint previous = Parameters.mOcclusion.z;
+    uint count = min( Parameters.mOcclusion.y, MAX_OCCLUSION_HISTORY_SAMPLES - min( previous, MAX_OCCLUSION_HISTORY_SAMPLES ) );
     if ( count == 0 ) {
         return;
     }
     // AO owns its sample stream/history and never perturbs the transport estimator.
     uint random = ( pixel.x + pixel.y * DispatchRaysDimensions().x + 1u ) ^
-        ( Parameters.Frame.x * SAMPLE_STREAMS_PER_FRAME * SAMPLE_SEED_STRIDE ) ^ OCCLUSION_SEED_SALT;
-    float3 origin, direction;
+        ( Parameters.mFrame.x * SAMPLE_STREAMS_PER_FRAME * SAMPLE_SEED_STRIDE ) ^ OCCLUSION_SEED_SALT;
+    float3 origin;
+    float3 direction;
     GenerateCameraRay( pixel, float2( 0.5 ), origin, direction );
     Surface surface;
     Hit hit;
@@ -64,11 +68,11 @@ void RenderAmbientOcclusion( uint2 pixel ) {
     if ( Intersect( origin, direction, RAY_MAX_DISTANCE, random, surface, hit, true ) ) {
         for ( uint index = 0; index < count; ++index ) {
             float2 sample = Random2D( random );
-            sum += AmbientOcclusion( surface, -direction, sample, Parameters.Occlusion.w != 0,
-                Parameters.OcclusionMaxDistance, random );
+            sum += AmbientOcclusion( surface, -direction, sample, Parameters.mOcclusion.w != 0,
+                Parameters.mOcclusionMaxDistance, random );
         }
     }
-    float history = previous > 0 ? RayTextures[Parameters.OcclusionHistory].Load( int3( pixel, 0 ) ).r : 0.0;
+    float history = previous > 0 ? RayTextures[Parameters.mOcclusionHistory].Load( int3( pixel, 0 ) ).r : 0.0;
     float average = ( history * float( previous ) + sum ) / float( previous + count );
-    RayImages[Parameters.OcclusionOutput][pixel] = float4( average, average, average, 1.0 );
+    RayImages[Parameters.mOcclusionOutput][pixel] = float4( average, average, average, 1.0 );
 }

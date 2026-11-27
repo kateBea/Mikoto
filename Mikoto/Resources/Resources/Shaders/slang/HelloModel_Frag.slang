@@ -20,26 +20,26 @@
 using namespace mikoto;
 
 struct FSInput {
-    float2 uv : ATTRIBUTE3;
+    float2 mUv : ATTRIBUTE3;
 };
 
 struct FSOutput {
-    float4 color : SV_Target;
+    float4 mColor : SV_Target;
 };
 
 struct DrawParams {
-    uint VertexID;
-    uint IndexID;
-    uint OffsetsID;
+    uint mVertexID;
+    uint mIndexID;
+    uint mOffsetsID;
 
-    uint SamplerID;
+    uint mSamplerID;
 
-    uint TextureID;
+    uint mTextureID;
 
-    uint IndexOffsetID;
-    uint VertexOffsetID;
+    uint mIndexOffsetID;
+    uint mVertexOffsetID;
 
-    uint TransformID;
+    uint mTransformID;
 };
 
 MKT_DECLARE_PUSH_CONSTANT( DrawParams, uParams );
@@ -53,7 +53,7 @@ MKT_DECLARE_TEXTURE_SRV( TextureCube ) TextureCubes;
 FSOutput main( FSInput input ) {
     FSOutput o;
 
-    o.color = Texture2Ds[uParams.TextureID].Sample( Samplers[uParams.SamplerID], input.uv );
+    o.mColor = Texture2Ds[uParams.mTextureID].Sample( Samplers[uParams.mSamplerID], input.mUv );
 
     return o;
 }

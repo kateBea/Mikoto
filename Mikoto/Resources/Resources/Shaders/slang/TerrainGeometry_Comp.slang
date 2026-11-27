@@ -12,33 +12,39 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Generate terrain vertices, normals and triangle indices from the height source. Height
+// texture sampling and procedural noise share the uploaded terrain dimensions.
+
 #include "base/Memory_Helpers.slang"
 
 // Matches TerrainBuildDescription in TerrainGenerationModule.cc (64 bytes).
+// Matches the CPU terrain geometry dispatch divisor.
+static const uint kTerrainGeometryGroupSize = 128;
+
 struct TerrainBuildDescription {
-    float2 origin;
-    float vertexSpacing;
-    float heightScale;
-    float baseElevation;
-    uint columns;
-    uint rows;
-    uint firstVertex;
-    uint firstIndex;
-    uint indexCount;
-    uint heightmapWidth;
-    uint heightmapHeight;
-    uint64_t heightmapOffset;
-    uint heightmapSource;
-    uint padding;
+    float2 mOrigin;
+    float mVertexSpacing;
+    float mHeightScale;
+    float mBaseElevation;
+    uint mColumns;
+    uint mRows;
+    uint mFirstVertex;
+    uint mFirstIndex;
+    uint mIndexCount;
+    uint mHeightmapWidth;
+    uint mHeightmapHeight;
+    uint64_t mHeightmapOffset;
+    uint mHeightmapSource;
+    uint mPadding;
 };
 
 struct TerrainGeometryParameters {
-    RWBufferReference<float4> vertices;
-    RWBufferReference<uint> indices;
-    BufferReference<TerrainBuildDescription> descriptions;
-    Pointer heightmapPixels;
-    uint terrain;
-    uint noiseTexture;
+    RWBufferReference<float4> mVertices;
+    RWBufferReference<uint> mIndices;
+    BufferReference<TerrainBuildDescription> mDescriptions;
+    Pointer mHeightmapPixels;
+    uint mTerrain;
+    uint mNoiseTexture;
 };
 MKT_DECLARE_PUSH_CONSTANT( TerrainGeometryParameters, parameters );
 MKT_DECLARE_TEXTURE_SRV( Texture2D<float4> ) textures;
@@ -46,13 +52,13 @@ MKT_DECLARE_TEXTURE_SRV( Texture2D<float4> ) textures;
 // Red supplies numerical height. Imported pixels retain their original RGBA8
 // or RGBA32F representation; generated noise can be read directly from its target.
 float TerrainHeightTexel( TerrainBuildDescription description, uint2 pixel ) {
-    if ( description.heightmapSource == 3u ) {
-        return textures[parameters.noiseTexture].Load( int3( pixel, 0 ) ).r;
+    if ( description.mHeightmapSource == 3u ) {
+        return textures[parameters.mNoiseTexture].Load( int3( pixel, 0 ) ).r;
     }
 
-    uint index = pixel.y * description.heightmapWidth + pixel.x;
-    Pointer address = parameters.heightmapPixels + description.heightmapOffset;
-    if ( description.heightmapSource == 2u ) {
+    uint index = pixel.y * description.mHeightmapWidth + pixel.x;
+    Pointer address = parameters.mHeightmapPixels + description.mHeightmapOffset;
+    if ( description.mHeightmapSource == 2u ) {
         BufferReference<float4> pixels = (BufferReference<float4>)address;
         return pixels[index].r;
     }
@@ -61,15 +67,15 @@ float TerrainHeightTexel( TerrainBuildDescription description, uint2 pixel ) {
 }
 
 float SampleTerrainHeight( TerrainBuildDescription description, float2 uv ) {
-    if ( description.heightmapSource == 0u ) {
+    if ( description.mHeightmapSource == 0u ) {
         return 0.0f;
     }
 
     // Preserve the previous CPU sampling convention: UV endpoints map exactly
     // to image endpoints, including rectangular sources and grids.
-    float2 pixel = saturate( uv ) * float2( description.heightmapWidth - 1, description.heightmapHeight - 1 );
+    float2 pixel = saturate( uv ) * float2( description.mHeightmapWidth - 1, description.mHeightmapHeight - 1 );
     uint2 lower = uint2( pixel );
-    uint2 upper = min( lower + 1u, uint2( description.heightmapWidth - 1, description.heightmapHeight - 1 ) );
+    uint2 upper = min( lower + 1u, uint2( description.mHeightmapWidth - 1, description.mHeightmapHeight - 1 ) );
     float2 blend = pixel - float2( lower );
 
     float a = TerrainHeightTexel( description, lower );
@@ -80,41 +86,43 @@ float SampleTerrainHeight( TerrainBuildDescription description, float2 uv ) {
 }
 
 [shader("compute")]
-[numthreads(128, 1, 1)]
+[numthreads( kTerrainGeometryGroupSize, 1, 1 )]
+// Each invocation addresses one terrain-grid element. Height samples establish position and
+// finite-difference slopes; the generated index stream connects neighboring grid vertices.
 void main( uint3 thread : SV_DispatchThreadID ) {
-    TerrainBuildDescription description = parameters.descriptions[parameters.terrain];
+    TerrainBuildDescription description = parameters.mDescriptions[parameters.mTerrain];
     uint vertex = thread.x;
-    if ( vertex >= description.columns * description.rows ) {
+    if ( vertex >= description.mColumns * description.mRows ) {
         return;
     }
 
-    uint row = vertex / description.columns;
-    uint column = vertex % description.columns;
-    float2 uv = float2( column, row ) / float2( description.columns - 1, description.rows - 1 );
+    uint row = vertex / description.mColumns;
+    uint column = vertex % description.mColumns;
+    float2 uv = float2( column, row ) / float2( description.mColumns - 1, description.mRows - 1 );
     float height = SampleTerrainHeight( description, uv );
-    parameters.vertices[description.firstVertex + vertex] = float4(
-        description.origin.x + float( column ) * description.vertexSpacing,
-        description.baseElevation + height * description.heightScale,
-        description.origin.y + float( row ) * description.vertexSpacing,
+    parameters.mVertices[description.mFirstVertex + vertex] = float4(
+        description.mOrigin.x + float( column ) * description.mVertexSpacing,
+        description.mBaseElevation + height * description.mHeightScale,
+        description.mOrigin.y + float( row ) * description.mVertexSpacing,
         height );
 
     // Each quad owns six output indices. Vertex and index writes cover separate
     // elements, so threads need no atomics or synchronization within this dispatch.
-    uint quadsPerRow = description.columns - 1;
-    uint quadCount = quadsPerRow * (description.rows - 1);
+    uint quadsPerRow = description.mColumns - 1;
+    uint quadCount = quadsPerRow * (description.mRows - 1);
     if ( vertex < quadCount ) {
         uint quadRow = vertex / quadsPerRow;
         uint quadColumn = vertex % quadsPerRow;
-        uint a = quadRow * description.columns + quadColumn;
-        uint c = a + description.columns;
-        uint index = description.firstIndex + vertex * 6;
+        uint a = quadRow * description.mColumns + quadColumn;
+        uint c = a + description.mColumns;
+        uint index = description.mFirstIndex + vertex * kVerticesPerQuad;
         // Same counter-clockwise topology as the original CPU grid.
-        parameters.indices[index + 0] = a;
-        parameters.indices[index + 1] = c;
-        parameters.indices[index + 2] = a + 1;
-        parameters.indices[index + 3] = a + 1;
-        parameters.indices[index + 4] = c;
-        parameters.indices[index + 5] = c + 1;
+        parameters.mIndices[index + 0] = a;
+        parameters.mIndices[index + 1] = c;
+        parameters.mIndices[index + 2] = a + 1;
+        parameters.mIndices[index + 3] = a + 1;
+        parameters.mIndices[index + 4] = c;
+        parameters.mIndices[index + 5] = c + 1;
     }
 }
 

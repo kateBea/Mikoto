@@ -20,8 +20,8 @@
 
 #include <Renderer/Core/FrameGraph.hh>
 
-#include <Scene/Scene.hh>
 #include <Scene/Camera.hh>
+#include <Scene/Scene.hh>
 
 namespace mikoto::renderer {
 
@@ -35,12 +35,12 @@ namespace mikoto::renderer {
         core::float4x4 mProjection{};
 
         core::float4x4 mInverseProjection{};
-        core::float4x4 mInverseViewProjection{}; // inverse(proj * view)
+        core::float4x4 mInverseViewProjection{};// inverse(proj * view)
 
         core::float4 mCameraPosition{};
 
-        core::float4 mPlaneBounds{}; // Near and far plane (x = zNear, y = zFar)
-        core::float4 mScreenDimensions{}; // Width and Height (x = Width, y = Height)
+        core::float4 mPlaneBounds{};     // Near and far plane (x = zNear, y = zFar)
+        core::float4 mScreenDimensions{};// Width and Height (x = Width, y = Height)
 
         core::f32 mGamma{ 2.0f };
         core::f32 mExposure{ 1.0f };
@@ -51,6 +51,7 @@ namespace mikoto::renderer {
         core::u64 mAtmosphere{};
         core::u32 mAtmosphereTransmittance{};
         core::u32 mAtmosphereSampler{};
+        core::u64 mClouds{};
     };
 
     struct CameraModuleInfo {
@@ -61,17 +62,17 @@ namespace mikoto::renderer {
     public:
         explicit CameraModule( rhi::RenderResolution resolution );
 
-        auto RegisterCameraSetupPass( FrameGraph& graph ) -> void;
+        auto RegisterCameraSetupPass( FrameGraph &graph ) -> void;
 
         auto SetGamma( core::f32 value ) -> void;
         auto SetExposure( core::f32 value ) -> void;
 
         auto SetVisualizeCascades( bool enabled ) -> void;
-        auto SetCamera( const scene::Camera* camera ) -> void;
+        auto SetCamera( const scene::Camera *camera ) -> void;
 
     private:
         CameraData mCameraData{};
-        const scene::Camera* mCamera{};
+        const scene::Camera *mCamera{};
 
         core::f32 mGamma{ 1.0f };
         core::f32 mExposure{ 1.0f };
@@ -81,4 +82,3 @@ namespace mikoto::renderer {
 }// namespace mikoto::renderer
 
 #endif// MIKOTO_RENDERER_FORWARD_RENDERER_CAMERA_MODULE_HH
-

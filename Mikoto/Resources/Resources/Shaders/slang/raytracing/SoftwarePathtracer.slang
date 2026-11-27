@@ -23,14 +23,17 @@
 // GPU port of my CPU pathtracer available at:
 // https://github.com/kateBea/RT-In-One-WeekEnd.
 
+// Software intersection and shading used by the compute fallback tracer. Uploaded scene
+// primitives are tested directly instead of using a hardware acceleration structure.
+
 #pragma once
 #include "../base/Memory_Helpers.slang"
 
 // Trace the demo sphere list in compute using the original CPU transport model.
 namespace swrt {
     struct Ray {
-        float3 origin;
-        float3 direction;
+        float3 mOrigin;
+        float3 mDirection;
     };
 
     // Matches the upload in CpuPathTraceModule.
@@ -41,19 +44,19 @@ namespace swrt {
     static const float MAX_HIT_DISTANCE = 3.402823466e+38;
 
     struct Sphere {
-        float4 centerRadius;
-        float4 albedoParameter;
-        uint material;
-        uint3 padding;
+        float4 mCenterRadius;
+        float4 mAlbedoParameter;
+        uint mMaterial;
+        uint3 mPadding;
     };
 
     struct Hit {
-        float3 position;
-        float3 normal;
-        float3 albedo;
-        float parameter;
-        uint material;
-        bool frontFace;
+        float3 mPosition;
+        float3 mNormal;
+        float3 mAlbedo;
+        float mParameter;
+        uint mMaterial;
+        bool mFrontFace;
     };
 
     // Independent pixel streams replace the CPU's shared mt19937 ray sampler.
@@ -98,10 +101,10 @@ namespace swrt {
         uint closestSphere = sphereCount;
         hit = ( Hit )0;
         for ( uint i = 0; i < sphereCount; ++i ) {
-            float4 sphere = spheres[i].centerRadius;
-            float3 oc = sphere.xyz - ray.origin;
-            float a = dot( ray.direction, ray.direction );
-            float h = dot( ray.direction, oc );
+            float4 sphere = spheres[i].mCenterRadius;
+            float3 oc = sphere.xyz - ray.mOrigin;
+            float a = dot( ray.mDirection, ray.mDirection );
+            float h = dot( ray.mDirection, oc );
             float c = dot( oc, oc ) - sphere.w * sphere.w;
             float discriminant = h * h - a * c;
             if ( discriminant < 0 ) {
@@ -123,13 +126,13 @@ namespace swrt {
             return false;
         }
         Sphere sphere = spheres[closestSphere];
-        hit.position = ray.origin + closest * ray.direction;
-        float3 outwardNormal = ( hit.position - sphere.centerRadius.xyz ) / sphere.centerRadius.w;
-        hit.frontFace = dot( ray.direction, outwardNormal ) < 0;
-        hit.normal = hit.frontFace ? outwardNormal : -outwardNormal;
-        hit.albedo = sphere.albedoParameter.rgb;
-        hit.parameter = sphere.albedoParameter.w;
-        hit.material = sphere.material;
+        hit.mPosition = ray.mOrigin + closest * ray.mDirection;
+        float3 outwardNormal = ( hit.mPosition - sphere.mCenterRadius.xyz ) / sphere.mCenterRadius.w;
+        hit.mFrontFace = dot( ray.mDirection, outwardNormal ) < 0;
+        hit.mNormal = hit.mFrontFace ? outwardNormal : -outwardNormal;
+        hit.mAlbedo = sphere.mAlbedoParameter.rgb;
+        hit.mParameter = sphere.mAlbedoParameter.w;
+        hit.mMaterial = sphere.mMaterial;
         return true;
     }
 
@@ -147,35 +150,35 @@ namespace swrt {
     }
 
     bool Scatter( Ray incoming, Hit hit, inout uint state, out Ray scattered, out float3 attenuation ) {
-        scattered.origin = hit.position;
-        attenuation = hit.albedo;
-        if ( hit.material == MATERIAL_DIFFUSE ) {
-            scattered.direction = hit.normal + RandomUnitVector( state );
-            if ( all( abs( scattered.direction ) < 1e-8 ) ) {
-                scattered.direction = hit.normal;
+        scattered.mOrigin = hit.mPosition;
+        attenuation = hit.mAlbedo;
+        if ( hit.mMaterial == MATERIAL_DIFFUSE ) {
+            scattered.mDirection = hit.mNormal + RandomUnitVector( state );
+            if ( all( abs( scattered.mDirection ) < 1e-8 ) ) {
+                scattered.mDirection = hit.mNormal;
             }
             return true;
         }
-        if ( hit.material == MATERIAL_METAL ) {
-            scattered.direction = normalize( reflect( incoming.direction, hit.normal ) ) +
-                                  min( hit.parameter, 1.0 ) * RandomUnitVector( state );
-            return dot( scattered.direction, hit.normal ) > 0;
+        if ( hit.mMaterial == MATERIAL_METAL ) {
+            scattered.mDirection = normalize( reflect( incoming.mDirection, hit.mNormal ) ) +
+                                  min( hit.mParameter, 1.0 ) * RandomUnitVector( state );
+            return dot( scattered.mDirection, hit.mNormal ) > 0;
         }
 
         attenuation = float3( 1 );
-        float ratio = hit.frontFace ? 1.0 / hit.parameter : hit.parameter;
-        float3 direction = normalize( incoming.direction );
-        float cosine = min( dot( -direction, hit.normal ), 1.0 );
+        float ratio = hit.mFrontFace ? 1.0 / hit.mParameter : hit.mParameter;
+        float3 direction = normalize( incoming.mDirection );
+        float cosine = min( dot( -direction, hit.mNormal ), 1.0 );
         float sine = sqrt( 1 - cosine * cosine );
         bool reflectRay = ratio * sine > 1;
         if ( !reflectRay ) {
             reflectRay = Reflectance( cosine, ratio ) > Random( state );
         }
-        scattered.direction = reflectRay ? reflect( direction, hit.normal ) : Refract( direction, hit.normal, ratio );
+        scattered.mDirection = reflectRay ? reflect( direction, hit.mNormal ) : Refract( direction, hit.mNormal, ratio );
 
         // Fidelity note: material.hh overwrites the reflection choice with
         // refraction. Preserve that behavior (including RNG consumption) here.
-        scattered.direction = Refract( direction, hit.normal, ratio );
+        scattered.mDirection = Refract( direction, hit.mNormal, ratio );
         return true;
     }
 
@@ -184,7 +187,7 @@ namespace swrt {
         for ( uint depth = 0; depth < MAX_BOUNCES; ++depth ) {
             Hit hit;
             if ( !HitWorld( ray, spheres, sphereCount, hit ) ) {
-                float blend = 0.5 * ( normalize( ray.direction ).y + 1 );
+                float blend = 0.5 * ( normalize( ray.mDirection ).y + 1 );
                 return throughput * lerp( float3( 1 ), float3( 0.5, 0.7, 1 ), blend );
             }
             Ray scattered;

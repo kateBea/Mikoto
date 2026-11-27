@@ -851,6 +851,8 @@ namespace mikoto::renderer::vulkan {
         MKT_NODISCARD auto GetDescriptorAllocator() -> DescriptorAllocatorHandle;
 
         MKT_NODISCARD auto GetDevice() -> VkDevice;
+        MKT_NODISCARD auto SupportsOidn() const -> bool;
+        MKT_NODISCARD auto GetEnabledExtensions() const -> eastl::span<const eastl::string>;
         MKT_NODISCARD auto GetAllocator() -> GpuMemoryAllocator*;
         MKT_NODISCARD auto GetPhysicalDevice() const -> const PhysicalDevice*;
         MKT_NODISCARD auto SupportsSceneMultisampling( rhi::Multisampling samples ) const -> bool override;
@@ -926,6 +928,7 @@ namespace mikoto::renderer::vulkan {
         eastl::unique_ptr<IDescriptorAllocatorPool> mDescriptorAllocatorPool{};
 
         eastl::vector<eastl::string> mExtensions{};
+        bool mOidnSupported{};
 
         // Presentation support (only if requested)
         VkSurfaceKHR mSurface{};

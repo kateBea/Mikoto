@@ -12,23 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <EASTL/numeric_limits.h>
-
 #include <volk.h>
 
+#include <EASTL/numeric_limits.h>
+
 #include <Core/Core.hh>
-#include <Core/Types.hh>
 #include <Core/Profiler.hh>
+#include <Core/Types.hh>
+
+#include <Filesystem/FileService.hh>
+#include <Filesystem/FileSystem.hh>
 
 #include <Logging/Assert.hh>
 
 #include <Memory/Allocator.hh>
 
-#include <Filesystem/FileSystem.hh>
-#include <Filesystem/FileService.hh>
-
-#include <Renderer/Rhi/Vulkan/VulkanDevice.hh>
 #include <Renderer/Rhi/Vulkan/VulkanContext.hh>
+#include <Renderer/Rhi/Vulkan/VulkanDevice.hh>
 #include <Renderer/Rhi/Vulkan/VulkanHelpers.hh>
 #include <Renderer/Rhi/Vulkan/VulkanTexture.hh>
 
@@ -48,7 +48,7 @@ namespace mikoto::renderer::vulkan {
     }
 
 
-    Sampler::Sampler( const renderer::rhi::SamplerCreateDescription& desc )
+    Sampler::Sampler( const renderer::rhi::SamplerCreateDescription &desc )
         : mMipLevels{ desc.mMipLevels },
           mMinFilter{ desc.mMinFilter },
           mMagFilter{ desc.mMagFilter },
@@ -68,7 +68,7 @@ namespace mikoto::renderer::vulkan {
         mCreateInfo.addressModeV = GetSamplerWrap( mWrapV );
         mCreateInfo.addressModeW = GetSamplerWrap( mWrapW );
 
-        mCreateInfo.maxAnisotropy = 1.0f;
+        mCreateInfo.maxAnisotropy = desc.mMaxAnisotropy;
         mCreateInfo.mipLodBias = 0.0f;
         mCreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
         mCreateInfo.minLod = 0.0f;
@@ -100,7 +100,7 @@ namespace mikoto::renderer::vulkan {
 
         mDebugName = name;
 
-        Device* device{ core::checked_cast<Device*>( mDevice ) };
+        Device *device{ core::checked_cast<Device *>( mDevice ) };
         device->SetDebugName( VK_OBJECT_TYPE_SAMPLER, core::rc_cast<core::u64>( mSampler ), mDebugName );
     }
 
@@ -159,23 +159,23 @@ namespace mikoto::renderer::vulkan {
 
     auto Sampler::Destroy() -> void {
         MKT_BEGIN_PROFILER();
-        vkDestroySampler( core::checked_cast<Device*>( mDevice )->GetDevice(), mSampler, nullptr );
+        vkDestroySampler( core::checked_cast<Device *>( mDevice )->GetDevice(), mSampler, nullptr );
         mIsAllocated = false;
     }
 
     auto Sampler::Initialize() -> void {
         MKT_BEGIN_PROFILER();
-        const Device* device{ core::checked_cast<const Device*>( mDevice ) };
+        const Device *device{ core::checked_cast<const Device *>( mDevice ) };
         mCreateInfo.anisotropyEnable = device->GetActivePhysicalDeviceFeatures().samplerAnisotropy;
 
-        const VkPhysicalDeviceProperties& deviceProps{ device->GetPhysicalDevice()->mProperties };
+        const VkPhysicalDeviceProperties &deviceProps{ device->GetPhysicalDevice()->mProperties };
         const core::f32 deviceMaxAnisotropy{ deviceProps.limits.maxSamplerAnisotropy };
 
         if ( mCreateInfo.maxAnisotropy > deviceMaxAnisotropy ) {
             mCreateInfo.maxAnisotropy = deviceMaxAnisotropy;
         }
 
-        MKT_VK_CHECK( vkCreateSampler( core::checked_cast<Device*>( mDevice )->GetDevice(),
+        MKT_VK_CHECK( vkCreateSampler( core::checked_cast<Device *>( mDevice )->GetDevice(),
             MKT_ADDRESSOF( mCreateInfo ), nullptr, MKT_ADDRESSOF( mSampler ) ) );
 
         mCreateInfo.pNext = nullptr;
@@ -183,9 +183,10 @@ namespace mikoto::renderer::vulkan {
         mIsAllocated = true;
     }
 
-    Texture::Texture( const renderer::rhi::TextureCreateDescription& data )
+    Texture::Texture( const renderer::rhi::TextureCreateDescription &data )
         : mWidth{ data.mWidth },
           mHeight{ data.mHeight },
+          mDepth{ data.mDimension == rhi::TextureDimension::eTexture3D ? data.mDepth : 1u },
           mMipCount{ data.mMipCount },
           mImageData{ data.mImageHandle },
           mBufferSpan{ data.mBufferSpan },
@@ -202,7 +203,7 @@ namespace mikoto::renderer::vulkan {
         mResourceType = data.mResourceType;
     }
 
-    Texture::Texture( const ExternalTextureDescription& info )
+    Texture::Texture( const ExternalTextureDescription &info )
         : Texture{ renderer::rhi::TextureCreateDescription{}
             .SetWidth( info.mWidth )
             .SetHeight( info.mHeight )
@@ -226,16 +227,16 @@ namespace mikoto::renderer::vulkan {
             return;
         }
 
-        vkDestroyImageView( core::checked_cast<Device*>( mDevice )->GetDevice(), mImageViewSrv, nullptr );
+        vkDestroyImageView( core::checked_cast<Device *>( mDevice )->GetDevice(), mImageViewSrv, nullptr );
 
-        for ( auto& faces: mImageViewRtvList ) {
-            for ( auto& face: faces ) {
-                vkDestroyImageView( core::checked_cast<Device*>( mDevice )->GetDevice(), face, nullptr );
+        for ( auto &faces: mImageViewRtvList ) {
+            for ( auto &face: faces ) {
+                vkDestroyImageView( core::checked_cast<Device *>( mDevice )->GetDevice(), face, nullptr );
             }
         }
 
         if ( !mIsImageExternal ) {
-            auto* allocator{ core::as<GpuMemoryAllocator*>( core::checked_cast<Device*>( mDevice )->GetAllocator() ) };
+            auto *allocator{ core::as<GpuMemoryAllocator *>( core::checked_cast<Device *>( mDevice )->GetAllocator() ) };
             allocator->FreeImage( mImageAllocation );
         }
 
@@ -267,8 +268,8 @@ namespace mikoto::renderer::vulkan {
         // commands, then we wait for that completion this blocks the caller
         // but client should ideally offload this task to worker threads
         const auto submitInfo{ renderer::rhi::SubmitInfo{}
-            .AddSignal( fence, fenceValue )
-            .AddCommandList( cmd ) };
+                .AddSignal( fence, fenceValue )
+                .AddCommandList( cmd ) };
         mDevice->GetQueue( renderer::rhi::QueueType::eTransfer )->ExecuteCommandLists( submitInfo );
         ( void )fence->Wait( fenceValue, eastl::numeric_limits<core::u64>::max() );// Host wait
     }
@@ -283,17 +284,17 @@ namespace mikoto::renderer::vulkan {
 
         mDebugName = name;
 
-        Device* device{ core::checked_cast<Device*>( mDevice ) };
+        Device *device{ core::checked_cast<Device *>( mDevice ) };
 
         device->SetDebugName( VK_OBJECT_TYPE_IMAGE, core::rc_cast<core::u64>( mImageAllocation.mImage ), mDebugName );
 
         if ( mImageAllocation.mAllocation ) {
-            auto* allocator{ core::checked_cast<Device*>( mDevice )->GetAllocator() };
+            auto *allocator{ core::checked_cast<Device *>( mDevice )->GetAllocator() };
             allocator->SetAllocationName( mImageAllocation.mAllocation, mDebugName.c_str() );
         }
 
-        for ( const auto& faces: mImageViewRtvList ) {
-            for ( auto& face: faces ) {
+        for ( const auto &faces: mImageViewRtvList ) {
+            for ( auto &face: faces ) {
                 device->SetDebugName( VK_OBJECT_TYPE_IMAGE_VIEW, core::rc_cast<core::u64>( face ), mDebugName );
             }
         }
@@ -313,7 +314,7 @@ namespace mikoto::renderer::vulkan {
         return mAspectFlags;
     }
 
-    auto Texture::GetRenderView( core::u32 mipLevel, core::u32 face ) const -> const VkImageView& {
+    auto Texture::GetRenderView( core::u32 mipLevel, core::u32 face ) const -> const VkImageView & {
         MKT_BEGIN_PROFILER();
         MKT_ASSERT( mipLevel < mImageViewRtvList.size(), "Mip level out of bounds" );
         return mImageViewRtvList[mipLevel][face];
@@ -339,7 +340,7 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Texture::GetNativeHandle( renderer::rhi::ObjectType type ) const -> renderer::rhi::Object {
-        return const_cast<Texture*>( this )->GetNativeHandle( type );
+        return const_cast<Texture *>( this )->GetNativeHandle( type );
     }
 
     auto Texture::Initialize() -> void {
@@ -351,13 +352,13 @@ namespace mikoto::renderer::vulkan {
             const VkExtent3D extent{
                 core::as<core::u32>( mWidth ),
                 core::as<core::u32>( mHeight ),
-                1
+                mDepth
             };
 
             mImageAllocation.mImageCreateInfo.format = vulkan::GetFormat( mFormat );
             mImageAllocation.mImageCreateInfo.extent = extent;
 
-            // This texture is a 2D image always
+            // Voxel depth is independent of array layers, including storage views.
             mImageAllocation.mImageCreateInfo.imageType = GetTextureType( mDimension );
             mImageAllocation.mImageCreateInfo.usage = GetImageUsage( mTextureUsage );
 
@@ -397,7 +398,7 @@ namespace mikoto::renderer::vulkan {
             mImageAllocation.mAllocationCreateInfo.flags |= VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
             mImageAllocation.mAllocationCreateInfo.priority = 1.0f;
 
-            auto* allocator{ core::checked_cast<Device*>( mDevice )->GetAllocator() };
+            auto *allocator{ core::checked_cast<Device *>( mDevice )->GetAllocator() };
             MKT_VK_CHECK( allocator->AllocateImage( mImageAllocation ) );
 
             allocator->SetAllocationName( mImageAllocation.mAllocation, mDebugName.c_str() );
@@ -423,8 +424,8 @@ namespace mikoto::renderer::vulkan {
                 // commands, then we wait for that completion this blocks the caller
                 // but client should ideally offload this task to worker threads
                 const auto submitInfo{ renderer::rhi::SubmitInfo{}
-                    .AddSignal( fence, fenceValue )
-                    .AddCommandList( cmd ) };
+                        .AddSignal( fence, fenceValue )
+                        .AddCommandList( cmd ) };
                 mDevice->GetQueue( renderer::rhi::QueueType::eTransfer )->ExecuteCommandLists( submitInfo );
                 ( void )fence->Wait( fenceValue, eastl::numeric_limits<core::u64>::max() );
             }
@@ -467,7 +468,7 @@ namespace mikoto::renderer::vulkan {
             // Prepare mip levels
             mImageViewRtvList.resize( GetMipLevelCount() );
 
-            for ( auto& faces: mImageViewRtvList ) {
+            for ( auto &faces: mImageViewRtvList ) {
                 faces.resize( faceCount );
             }
 
@@ -483,12 +484,12 @@ namespace mikoto::renderer::vulkan {
             // One attachment/storage view per mip and cube face.
             for ( core::usize mipLevelIndex{ 0 }; mipLevelIndex < GetMipLevelCount(); ++mipLevelIndex ) {
                 for ( core::u32 faceIndex{}; faceIndex < faceCount; faceIndex++ ) {
-                    mImageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+                    mImageViewCreateInfo.viewType = mDimension == rhi::TextureDimension::eTexture3D ? VK_IMAGE_VIEW_TYPE_3D : VK_IMAGE_VIEW_TYPE_2D;
                     mImageViewCreateInfo.subresourceRange.levelCount = 1;
                     mImageViewCreateInfo.subresourceRange.baseMipLevel = mipLevelIndex;
                     mImageViewCreateInfo.subresourceRange.baseArrayLayer = faceIndex;// 0=+X, 1=-X, 2=+Y, 3=-Y, 4=+Z, 5=-Z
 
-                    MKT_VK_CHECK( vkCreateImageView( core::checked_cast<Device*>( mDevice )->GetDevice(),
+                    MKT_VK_CHECK( vkCreateImageView( core::checked_cast<Device *>( mDevice )->GetDevice(),
                         MKT_ADDRESSOF( mImageViewCreateInfo ), nullptr,
                         MKT_ADDRESSOF( mImageViewRtvList[mipLevelIndex][faceIndex] ) ) );
                 }
@@ -501,7 +502,7 @@ namespace mikoto::renderer::vulkan {
         mImageViewCreateInfo.subresourceRange.levelCount = mMipCount;
         mImageViewCreateInfo.viewType = vulkan::GetViewType( mDimension );
         mImageViewCreateInfo.subresourceRange.layerCount = mDimension == renderer::rhi::TextureDimension::eTextureCube ? renderer::rhi::kMaxCubeFaces : 1;
-        MKT_VK_CHECK( vkCreateImageView( core::checked_cast<Device*>( mDevice )->GetDevice(),
+        MKT_VK_CHECK( vkCreateImageView( core::checked_cast<Device *>( mDevice )->GetDevice(),
             MKT_ADDRESSOF( mImageViewCreateInfo ), nullptr,
             MKT_ADDRESSOF( mImageViewSrv ) ) );
 
@@ -509,19 +510,21 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto Texture::GetStorageSizeBytes() const -> usize {
-        const auto& format{ rhi::GetFormatInfo( mFormat ) };
+        const auto &format{ rhi::GetFormatInfo( mFormat ) };
         const usize block{ eastl::max<usize>( 1, format.mBlockSize ) };
 
         usize result{};
         usize width{ mWidth };
         usize height{ mHeight };
+        usize depth{ mDepth };
 
         for ( u32 mip{}; mip < mMipCount; ++mip ) {
             result += ( ( width + block - 1 ) / block ) *
-                      ( ( height + block - 1 ) / block ) * format.mBytesPerBlock;
+                      ( ( height + block - 1 ) / block ) * depth * format.mBytesPerBlock;
 
             width = eastl::max<usize>( 1, width / 2 );
             height = eastl::max<usize>( 1, height / 2 );
+            depth = eastl::max<usize>( 1, depth / 2 );
         }
 
         return result * ( mDimension == TextureDimension::eTextureCube ? 6u : 1u );
@@ -537,6 +540,10 @@ namespace mikoto::renderer::vulkan {
 
     auto Texture::GetHeight() const -> core::u32 {
         return mHeight;
+    }
+
+    auto Texture::GetDepth() const -> core::u32 {
+        return mDepth;
     }
 
     auto Texture::GetTextureUsage() const -> rhi::TextureUsageFlags {
@@ -566,4 +573,4 @@ namespace mikoto::renderer::vulkan {
     auto Texture::GetMipLevelCount() const -> core::u32 {
         return mMipCount;
     }
-}
+}// namespace mikoto::renderer::vulkan

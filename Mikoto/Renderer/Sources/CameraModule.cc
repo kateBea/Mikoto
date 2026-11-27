@@ -13,17 +13,18 @@
 // limitations under the License.
 
 #include <Core/Core.hh>
-#include <Core/Types.hh>
 #include <Core/Profiler.hh>
+#include <Core/Types.hh>
 
 #include <Renderer/Core/CommandContext.hh>
-#include <Renderer/ForwardRenderer/Passes/CameraModule.hh>
-#include <Renderer/ForwardRenderer/Passes/VolumeModule.hh>
 #include <Renderer/ForwardRenderer/Passes/AtmosphericScatteringModule.hh>
+#include <Renderer/ForwardRenderer/Passes/CameraModule.hh>
+#include <Renderer/ForwardRenderer/Passes/CloudsModule.hh>
+#include <Renderer/ForwardRenderer/Passes/VolumeModule.hh>
 
-#include <Scene/Scene.hh>
 #include <Scene/Camera.hh>
 #include <Scene/Component.hh>
+#include <Scene/Scene.hh>
 
 namespace mikoto::renderer {
 
@@ -64,12 +65,15 @@ namespace mikoto::renderer {
         graph.RegisterPass(
             "CameraInfoPass",
             FGPassType::eTransfer,
-            []( FGNodeBuilder &builder, Blackboard& b ) {
+            []( FGNodeBuilder &builder, Blackboard &b ) {
                 builder.UseResource( b.Get<CameraModuleInfo>().mCameraData, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
-                if ( const auto* volumes{ b.TryGet<VolumeModuleInfo>() } ) {
+                if ( const auto *clouds{ b.TryGet<CloudsModuleInfo>() } ) {
+                    builder.UseResource( clouds->mFrame, FGPipelineStage::eCopy, FGResourceAccess::eRead );
+                }
+                if ( const auto *volumes{ b.TryGet<VolumeModuleInfo>() } ) {
                     builder.UseResource( volumes->mData, FGPipelineStage::eCopy, FGResourceAccess::eRead );
                 }
-                if ( const auto* fog{ b.TryGet<FogModuleInfo>() } ) {
+                if ( const auto *fog{ b.TryGet<FogModuleInfo>() } ) {
                     builder.UseResource( fog->mFrame, FGPipelineStage::eCopy, FGResourceAccess::eRead );
                 }
             },
@@ -91,8 +95,9 @@ namespace mikoto::renderer {
                 mCameraData.mVolumes = b.Contains<VolumeModuleInfo>() ? ctx.GetDeviceBufferAddress( b.Get<VolumeModuleInfo>().mData ) : 0;
                 mCameraData.mFogFrame = b.Contains<FogModuleInfo>() ? ctx.GetDeviceBufferAddress( b.Get<FogModuleInfo>().mFrame ) : 0;
 
+                mCameraData.mClouds = b.Contains<CloudsModuleInfo>() ? ctx.GetDeviceBufferAddress( b.Get<CloudsModuleInfo>().mFrame ) : 0;
                 mCameraData.mAtmosphere = 0;
-                if ( const auto* atmosphere{ b.TryGet<AtmosphereModuleInfo>() }; atmosphere && atmosphere->mSunLight ) {
+                if ( const auto *atmosphere{ b.TryGet<AtmosphereModuleInfo>() }; atmosphere && atmosphere->mSunLight ) {
                     // Surface passes consume these bindings after the LUT bake.
                     mCameraData.mAtmosphere = ctx.GetDeviceBufferAddress( atmosphere->mParameters );
                     mCameraData.mAtmosphereTransmittance = ctx.PushTexture_SRV( atmosphere->mTransmittance );
@@ -106,4 +111,4 @@ namespace mikoto::renderer {
     auto CameraModule::SetVisualizeCascades( bool enabled ) -> void {
         mCameraData.mVisualizeCascades = enabled ? MKT_SHADER_TRUE : MKT_SHADER_FALSE;
     }
-}
+}// namespace mikoto::renderer

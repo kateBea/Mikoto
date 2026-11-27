@@ -17,19 +17,19 @@
 #include "base/Base.slang"
 
 struct VSInput {
-    float3 position : POSITION;
-    float2 uv0 : TEXCOORD0;
+    float3 mPosition : POSITION;
+    float2 mUv0 : TEXCOORD0;
 };
 
 struct VSOutput {
-    float4 position : SV_POSITION;
-    float2 uv : TEXCOORD;
+    float4 mPosition : SV_POSITION;
+    float2 mUv : TEXCOORD;
 };
 
 struct MyData {
-    float4x4 model;
-    float4x4 view;
-    float4x4 projection;
+    float4x4 mModel;
+    float4x4 mView;
+    float4x4 mProjection;
 };
 
 #if defined( MKT_SUPPORT_D3D11 )
@@ -42,9 +42,9 @@ DECL_BINDING( 2, 0 ) ConstantBuffer<MyData> parameters;
 VSOutput main( VSInput input ) {
     VSOutput o;
 
-    o.position = parameters.projection * parameters.view * parameters.model * float4( input.position, 1.0 );
+    o.mPosition = parameters.mProjection * parameters.mView * parameters.mModel * float4( input.mPosition, 1.0 );
 
-    o.uv = input.uv0;
+    o.mUv = input.mUv0;
 
     return o;
 }

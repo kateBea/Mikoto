@@ -9,6 +9,8 @@
       1,
       1
     ],
-    "TexturePath": "../Textures/kenney_particle-pack/PNG (Transparent)/magic_03.png"
+    "TexturePath": "../Textures/kenney_particle-pack/PNG (Transparent)/magic_03.png",
+    "BloomEnabled": true,
+    "BloomIntensity": 3
   }
 }

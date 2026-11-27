@@ -12,21 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Gather near-layer bokeh and estimate its coverage over the background. Output RGB is
+// premultiplied by opacity for later layer composition.
+
 #include "base/DepthOfField_Helpers.slang"
 
 MKT_DECLARE_PUSH_CONSTANT( DepthOfFieldParameters, parameters );
 
 [shader( "compute" )]
-[numthreads( 8, 8, 1 )]
+[numthreads( kImageGroupWidth, kImageGroupHeight, 1 )]
 void main( uint3 thread : SV_DispatchThreadID ) {
     if ( any( thread.xy >= uint2( parameters.mTargetWidth, parameters.mTargetHeight ) ) ) { return; }
-    float4 bounds = DoFLoad( parameters.mInputs[4], int2( thread.xy / 8 ) );
+    float4 bounds = DoFLoad( parameters.mInputs[kDoFTileBoundsInput], int2( thread.xy / kDoFTileSize ) );
     float radius = max( -bounds.x, 0.0 );
     if ( radius < 0.25 ) {
         dofOutputs[parameters.mOutputs[0]][thread.xy] = 0.0;
         return;
     }
 
+    // Select a color mip from the gather radius and tile CoC range. Wide kernels can use
+    // coarser input while depth transitions retain finer source information.
     uint mip = DoFGatherMip( radius, bounds, parameters );
     uint rings = max( parameters.mRingCount, 1u );
     float3 color = 0.0;
@@ -56,6 +61,8 @@ void main( uint3 thread : SV_DispatchThreadID ) {
             coverage += weight;
         }
     }
+    // Separate accumulated color normalization from foreground coverage. Premultiplying the
+    // output permits correct foreground-over-background composition at recombine time.
     float opacity = saturate( coverage );
     float3 normalized = color / max( weightSum, 1e-5 );
     // Premultiplied RGB is required when this coverage later blends over the background.

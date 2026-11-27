@@ -25,6 +25,10 @@
 
 #include <Filesystem/File.hh>
 
+namespace mikoto::physics {
+    struct ContactEvent;
+}
+
 namespace mikoto::scene {
     class Entity;
     class Scene;
@@ -106,6 +110,10 @@ namespace mikoto::scripting {
          * @param timeStep Elapsed frame time in seconds.
          */
         virtual auto Update( float timeStep ) -> void = 0;
+
+        /** Receives body-pair notifications on the engine thread, outside solver callbacks. */
+        virtual auto OnPhysicsEvent( const physics::ContactEvent &, scene::Entity & ) -> void {
+        }
 
         /** @brief Reloads source where supported by the implementation. */
         virtual auto ReloadScript() -> void = 0;

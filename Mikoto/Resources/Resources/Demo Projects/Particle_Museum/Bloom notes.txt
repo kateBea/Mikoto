@@ -1,0 +1,5 @@
+PARTICLE BLOOM
+Bloom is enabled in the project renderer. Hearth Fire, Golden Sparks, Arcane
+Bloom and Lightning Reactor use their actual emitter material assets as bloom
+sources. Their HDR colours and per-material intensities feed the existing
+particle bloom mask; smoke and dust materials remain non-emissive.

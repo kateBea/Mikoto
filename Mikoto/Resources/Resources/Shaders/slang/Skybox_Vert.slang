@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Project the sky cube with camera translation removed. The interpolated cube direction anchors
+// the environment to orientation while the camera moves.
+
 #pragma once
 
 #include "base/Base.slang"
@@ -22,25 +25,25 @@
 #include "base/Memory_Helpers.slang"
 
 struct VSOutput {
-    float3 Direction : TEXCOORD0;
-    float4 PositionH : SV_Position;
+    float3 mDirection : TEXCOORD0;
+    float4 mPositionH : SV_Position;
 };
 
 struct DrawParams {
-    uint CameraBufferID;
-    uint BasicSamplerID;
+    uint mCameraBufferID;
+    uint mBasicSamplerID;
 
     uint mVertexBufferID;
     uint mIndexBufferID;
 
-    uint SkyboxCubeRtID;
-    uint PrefilterCubeRtID;
+    uint mSkyboxCubeRtID;
+    uint mPrefilterCubeRtID;
 
-    uint BackGroundType;// Prefilter map, Original skybox, clear color
+    uint mBackGroundType;// Prefilter map, Original skybox, clear color
 
-    uint MaxMipLevel;
-    float Exposure;
-    float Gamma;
+    uint mMaxMipLevel;
+    float mExposure;
+    float mGamma;
 };
 
 MKT_DECLARE_STRUCTURED_SRV buffers;
@@ -56,17 +59,17 @@ VSOutput main( uint vID : SV_VertexID ) {
     uint index = indexBuffer.Read<uint>( 0, vID );
     VertexDescription vertex = vertexBuffer.Read<VertexDescription>( 0, index );
 
-    CameraInfo camera = buffers[parameters.CameraBufferID].Read<CameraInfo>( 0, 0 );
+    CameraInfo camera = buffers[parameters.mCameraBufferID].Read<CameraInfo>( 0, 0 );
 
     // Remove translation from view matrix to expan the cube
     float4x4 viewNoTrans = RemoveTranslation( camera.mViewMatrix );
 
     // Skybox direction
-    o.Direction = vertex.position;
+    o.mDirection = vertex.mPosition;
 
     // Project to clip space
-    float4 clip = mul( camera.mProjection, mul( viewNoTrans, float4( vertex.position, 1.0 ) ) );
-    o.PositionH = clip;
+    float4 clip = mul( camera.mProjection, mul( viewNoTrans, float4( vertex.mPosition, 1.0 ) ) );
+    o.mPositionH = clip;
 
     return o;
 }

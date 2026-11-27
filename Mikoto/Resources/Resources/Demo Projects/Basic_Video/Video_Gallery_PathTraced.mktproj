@@ -1,0 +1,46 @@
+# Original two-wall video gallery, restored alongside Video Neighborhood.
+{
+  "Version": 1,
+  "Project": "Basic_Video",
+  "Assets": "Assets",
+  "Cache": "Assets/.cache",
+  "Scene": "Scene/Video_Gallery.mktscn",
+  "CompressTextures": false,
+  "AutoSave": false,
+  "Renderer": {
+    "Version": 1,
+    "Resolution": 1,
+    "Samples": 1,
+    "PathTracing": true,
+    "PathSamplesPerFrame": 2,
+    "PathMaxBounces": 12,
+    "PathMaxSamples": 4096,
+    "BloomEnabled": true,
+    "BloomThreshold": 1,
+    "BloomIntensity": 0.12,
+    "SsaoEnabled": false,
+    "RayTracedAmbientOcclusion": false
+  },
+  "EditorCamera": {
+    "NavigationMode": "Fly",
+    "Position": [
+      0,
+      4.1,
+      12
+    ],
+    "Direction": [
+      0,
+      -0.25,
+      -0.9682458
+    ],
+    "Projection": "Perspective",
+    "FieldOfView": 52,
+    "NearPlane": 0.05,
+    "FarPlane": 150,
+    "MovementSpeed": 6,
+    "RotationSpeed": 10,
+    "SmoothTime": 0.1,
+    "AllowPitch": true,
+    "AllowYaw": true
+  }
+}

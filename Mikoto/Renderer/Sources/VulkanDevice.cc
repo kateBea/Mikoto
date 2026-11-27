@@ -12,32 +12,39 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <bit>
 #include <array>
+#include <bit>
+#include <cstring>
 #include <ranges>
 #include <vector>
-#include <cstring>
 
-#include <EASTL/utility.h>
-#include <EASTL/sort.h>
-#include <EASTL/array.h>
-#include <EASTL/vector.h>
+#include <vk_mem_alloc.h>
+#include <volk.h>
+
+#if MIKOTO_ENABLE_OIDN
+#include <vk_oidn/vk_oidn.h>
+#endif
+
 #include <EASTL/algorithm.h>
+#include <EASTL/array.h>
+#include <EASTL/sort.h>
 #include <EASTL/unordered_map.h>
 #include <EASTL/unordered_set.h>
-
-#include <volk.h>
-#include <vk_mem_alloc.h>
+#include <EASTL/utility.h>
+#include <EASTL/vector.h>
 
 #if defined( MIKOTO_ENABLE_TRACY )
 #include <tracy/TracyVulkan.hpp>
 #endif
 
 #include <Core/Core.hh>
-#include <Core/Types.hh>
-#include <Core/Profiler.hh>
-#include <Core/Platform.hh>
 #include <Core/Exception.hh>
+#include <Core/Platform.hh>
+#include <Core/Profiler.hh>
+#include <Core/Types.hh>
+
+#include <Filesystem/FileService.hh>
+#include <Filesystem/FileSystem.hh>
 
 #include <Logging/Assert.hh>
 #include <Logging/Logger.hh>
@@ -47,22 +54,19 @@
 
 #include <Memory/Allocator.hh>
 
-#include <Filesystem/FileSystem.hh>
-#include <Filesystem/FileService.hh>
-
+#include <Renderer/Core/RenderSystem.hh>
+#include <Renderer/Rhi/GpuAllocator.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/Utility.hh>
-#include <Renderer/Rhi/GpuDevice.hh>
-#include <Renderer/Rhi/GpuAllocator.hh>
-#include <Renderer/Core/RenderSystem.hh>
-#include <Renderer/Rhi/Vulkan/VulkanDevice.hh>
+#include <Renderer/Rhi/Vulkan/VulkanAccelerationStructure.hh>
 #include <Renderer/Rhi/Vulkan/VulkanContext.hh>
+#include <Renderer/Rhi/Vulkan/VulkanDevice.hh>
 #include <Renderer/Rhi/Vulkan/VulkanHelpers.hh>
-#include <Renderer/Rhi/Vulkan/VulkanTexture.hh>
 #include <Renderer/Rhi/Vulkan/VulkanPipeline.hh>
 #include <Renderer/Rhi/Vulkan/VulkanQueryPool.hh>
+#include <Renderer/Rhi/Vulkan/VulkanTexture.hh>
 #include <Renderer/Rhi/Vulkan/VulkanVideoDecoder.hh>
-#include <Renderer/Rhi/Vulkan/VulkanAccelerationStructure.hh>
 
 namespace mikoto::renderer::vulkan {
 
@@ -148,7 +152,7 @@ namespace mikoto::renderer::vulkan {
         auto Flip() -> void override;
         auto SetPoolSizeMultiplier( VkDescriptorType type, float multiplier ) -> void override;
 
-        auto ReturnAllocator( DescriptorAllocatorHandle& handle, bool bIsFull ) -> void;
+        auto ReturnAllocator( DescriptorAllocatorHandle &handle, bool bIsFull ) -> void;
 
         MKT_NODISCARD auto GetAllocator() -> DescriptorAllocatorHandle override;
         MKT_NODISCARD auto CreatePool( int count, VkDescriptorPoolCreateFlags flags ) -> VkDescriptorPool;
@@ -170,7 +174,7 @@ namespace mikoto::renderer::vulkan {
     };
 
 
-    Device::Device( const renderer::rhi::GpuDeviceCreateInfo& createInfo )
+    Device::Device( const renderer::rhi::GpuDeviceCreateInfo &createInfo )
         : mApi{ createInfo.mApi }, mDeviceType{ createInfo.mDeviceType }, mRequestedFeatures{ createInfo.mFeatureSupportFlags } {
     }
 
@@ -210,8 +214,8 @@ namespace mikoto::renderer::vulkan {
         MKT_CORE_LOGGER_INFO( "VulkanDevice::Init - Initializing Vulkan Device." );
 
         // Prepare context info
-        Context* pContext{ core::checked_cast<Context*>( RenderSystem::Get()->GetContext() ) };
-        Instance& pInstance{ pContext->GetInstance() };
+        Context *pContext{ core::checked_cast<Context *>( RenderSystem::Get()->GetContext() ) };
+        Instance &pInstance{ pContext->GetInstance() };
 
         // Choose primary physical device
         if ( IsFeatureRequested( renderer::rhi::GpuFeatureSupportFlagsBits::WindowPresentation ) ) {
@@ -220,12 +224,12 @@ namespace mikoto::renderer::vulkan {
         }
 
         const auto pdIt{
-            std::ranges::find_if( 
+            std::ranges::find_if(
                 pInstance.mPhysicalDevices,
-                [this]( PhysicalDevice& dev ) {
+                [this]( PhysicalDevice &dev ) {
                     return IsDeviceSuitable( dev );
                 } )
-            };
+        };
 
         if ( pdIt != pInstance.mPhysicalDevices.end() ) {
             // Once initialized the instance physical device list never mutates
@@ -235,8 +239,8 @@ namespace mikoto::renderer::vulkan {
             mDeviceName = mPhysicalDevice->mProperties.deviceName;
             mVendorID = string::Format( "{}", mPhysicalDevice->mProperties.vendorID );
             mDriverVersion = string::Format( "{}", mPhysicalDevice->mProperties.driverVersion );
-        } 
-        else {  
+        }
+        else {
             MKT_CORE_LOGGER_INFO( "No suitable physical device with the desired features." );
             return;
         }
@@ -273,7 +277,7 @@ namespace mikoto::renderer::vulkan {
         // Clear upload manager
         mUploadManager.reset();
 
-        for ( auto& queue: mQueues | std::ranges::views::values ) {
+        for ( auto &queue: mQueues | std::ranges::views::values ) {
             queue.Reset();
         }
 
@@ -285,7 +289,7 @@ namespace mikoto::renderer::vulkan {
         mIsInitialized = false;
     }
 
-    auto Device::CreateBuffer( const renderer::rhi::BufferCreateDescription& description ) -> renderer::rhi::BufferHandle {
+    auto Device::CreateBuffer( const renderer::rhi::BufferCreateDescription &description ) -> renderer::rhi::BufferHandle {
         MKT_BEGIN_PROFILER();
         renderer::rhi::BufferHandle buffer{ core::Ref<Buffer>::New( description ) };
 
@@ -299,7 +303,7 @@ namespace mikoto::renderer::vulkan {
         return buffer;
     }
 
-    auto Device::CreateBuffer( const BufferCreateDescription& description, const VkVideoProfileInfoKHR& profile ) -> BufferHandle {
+    auto Device::CreateBuffer( const BufferCreateDescription &description, const VkVideoProfileInfoKHR &profile ) -> BufferHandle {
         MKT_BEGIN_PROFILER();
         auto buffer{ Ref<Buffer>::New( description ) };
 
@@ -312,7 +316,7 @@ namespace mikoto::renderer::vulkan {
         return buffer;
     }
 
-    auto Device::CreateTexture( const renderer::rhi::TextureCreateDescription& description ) -> renderer::rhi::TextureHandle {
+    auto Device::CreateTexture( const renderer::rhi::TextureCreateDescription &description ) -> renderer::rhi::TextureHandle {
         MKT_BEGIN_PROFILER();
         renderer::rhi::TextureHandle texture{ core::Ref<Texture>::New( description ) };
 
@@ -326,12 +330,12 @@ namespace mikoto::renderer::vulkan {
         return texture;
     }
 
-    auto Device::CreateTextureNative( renderer::rhi::ObjectType type, renderer::rhi::Object object, const renderer::rhi::TextureCreateDescription& description ) -> renderer::rhi::TextureHandle {
+    auto Device::CreateTextureNative( renderer::rhi::ObjectType type, renderer::rhi::Object object, const renderer::rhi::TextureCreateDescription &description ) -> renderer::rhi::TextureHandle {
         MKT_BEGIN_PROFILER();
         return renderer::rhi::TextureHandle::CreateEmpty();
     }
 
-    auto Device::CreateSampler( const renderer::rhi::SamplerCreateDescription& description ) -> renderer::rhi::SamplerHandle {
+    auto Device::CreateSampler( const renderer::rhi::SamplerCreateDescription &description ) -> renderer::rhi::SamplerHandle {
         MKT_BEGIN_PROFILER();
         renderer::rhi::SamplerHandle sampler{ core::Ref<Sampler>::New( description ) };
 
@@ -346,7 +350,7 @@ namespace mikoto::renderer::vulkan {
     }
 
 
-    auto Device::CreateShader( const renderer::rhi::ShaderModuleCreateDescription& desc ) -> renderer::rhi::ShaderModuleHandle {
+    auto Device::CreateShader( const renderer::rhi::ShaderModuleCreateDescription &desc ) -> renderer::rhi::ShaderModuleHandle {
         MKT_BEGIN_PROFILER();
         renderer::rhi::ShaderModuleHandle result{ core::Ref<Shader>::New( desc ) };
 
@@ -361,7 +365,7 @@ namespace mikoto::renderer::vulkan {
     }
 
 
-    auto Device::CreateVideoDecoder( const VideoDecoderDescription& description ) -> VideoDecoderHandle {
+    auto Device::CreateVideoDecoder( const VideoDecoderDescription &description ) -> VideoDecoderHandle {
         if ( !GetQueue( QueueType::eVideoDecode ) || !description.mConfiguration ) {
             return {};
         }
@@ -376,7 +380,7 @@ namespace mikoto::renderer::vulkan {
         return decoder;
     }
 
-    auto Device::CreateInputLayout( const renderer::rhi::InputLayoutCreateDescription& desc ) -> renderer::rhi::InputLayoutHandle {
+    auto Device::CreateInputLayout( const renderer::rhi::InputLayoutCreateDescription &desc ) -> renderer::rhi::InputLayoutHandle {
         MKT_BEGIN_PROFILER();
         renderer::rhi::InputLayoutHandle layout{ core::Ref<InputLayout>::New( desc ) };
 
@@ -390,7 +394,7 @@ namespace mikoto::renderer::vulkan {
         return layout;
     }
 
-    auto Device::CreateBindingLayout( const renderer::rhi::BindingLayoutDescription& desc ) -> renderer::rhi::BindingLayoutHandle {
+    auto Device::CreateBindingLayout( const renderer::rhi::BindingLayoutDescription &desc ) -> renderer::rhi::BindingLayoutHandle {
         MKT_BEGIN_PROFILER();
         renderer::rhi::BindingLayoutHandle layout{ core::Ref<BindingLayout>::New( desc ) };
 
@@ -404,7 +408,7 @@ namespace mikoto::renderer::vulkan {
         return layout;
     }
 
-    auto Device::CreatePipelineLayout( const renderer::rhi::PipelineLayoutCreateDescription& desc ) -> renderer::rhi::PipelineLayoutHandle {
+    auto Device::CreatePipelineLayout( const renderer::rhi::PipelineLayoutCreateDescription &desc ) -> renderer::rhi::PipelineLayoutHandle {
         MKT_BEGIN_PROFILER();
         renderer::rhi::PipelineLayoutHandle layout{ core::Ref<PipelineLayout>::New( desc ) };
 
@@ -418,7 +422,7 @@ namespace mikoto::renderer::vulkan {
         return layout;
     }
 
-    auto Device::CreateBindingTable( const renderer::rhi::BindingTableDescription& desc, renderer::rhi::BindingLayoutHandle layout ) -> renderer::rhi::BindingTableHandle {
+    auto Device::CreateBindingTable( const renderer::rhi::BindingTableDescription &desc, renderer::rhi::BindingLayoutHandle layout ) -> renderer::rhi::BindingTableHandle {
         MKT_BEGIN_PROFILER();
         renderer::rhi::BindingTableHandle set{ core::Ref<BindingTable>::New( desc, layout ) };
 
@@ -432,10 +436,10 @@ namespace mikoto::renderer::vulkan {
         return set;
     }
 
-    auto Device::UpdateBindingTable( const rhi::BindingTableDescription& desc, rhi::BindingTableHandle table ) -> void {
+    auto Device::UpdateBindingTable( const rhi::BindingTableDescription &desc, rhi::BindingTableHandle table ) -> void {
     }
 
-    auto Device::CreateSwapChain( const renderer::rhi::SwapChainDescription& description ) -> rhi::SwapChainHandle {
+    auto Device::CreateSwapChain( const renderer::rhi::SwapChainDescription &description ) -> rhi::SwapChainHandle {
         MKT_BEGIN_PROFILER();
         return rhi::SwapChainHandle::CreateEmpty();
     }
@@ -454,18 +458,18 @@ namespace mikoto::renderer::vulkan {
         return fence;
     }
 
-    auto Device::UnMap( renderer::rhi::IBuffer* buffer ) -> void {
+    auto Device::UnMap( renderer::rhi::IBuffer *buffer ) -> void {
         MKT_BEGIN_PROFILER();
-        Buffer* b{ core::checked_cast<Buffer*>( buffer ) };
+        Buffer *b{ core::checked_cast<Buffer *>( buffer ) };
 
         if ( b->IsMapped() ) {
             b->PersistentUnmap();
         }
     }
 
-    auto Device::Map( renderer::rhi::IBuffer* buffer ) -> void* {
+    auto Device::Map( renderer::rhi::IBuffer *buffer ) -> void * {
         MKT_BEGIN_PROFILER();
-        Buffer* b{ core::checked_cast<Buffer*>( buffer ) };
+        Buffer *b{ core::checked_cast<Buffer *>( buffer ) };
 
         if ( !b->IsMapped() ) {
             b->PersistentMap();
@@ -476,11 +480,11 @@ namespace mikoto::renderer::vulkan {
         return b->GetMappedAddress();
     }
 
-    auto Device::ReadTextureRegion( const rhi::ITexture*, const rhi::Rect&, eastl::span<core::u8> ) -> bool {
+    auto Device::ReadTextureRegion( const rhi::ITexture *, const rhi::Rect &, eastl::span<core::u8> ) -> bool {
         return false;
     }
 
-    auto Device::CreateDescriptorTableLayout( const renderer::rhi::DescriptorTableLayoutDescription& desc ) -> renderer::rhi::BindingLayoutHandle {
+    auto Device::CreateDescriptorTableLayout( const renderer::rhi::DescriptorTableLayoutDescription &desc ) -> renderer::rhi::BindingLayoutHandle {
         MKT_BEGIN_PROFILER();
         renderer::rhi::BindingLayoutHandle layout{ core::Ref<BindingLayout>::New( desc ) };
 
@@ -516,7 +520,7 @@ namespace mikoto::renderer::vulkan {
     auto Device::ReleaseDescriptorTableIndex( rhi::DescriptorTableHandle descriptorTable, core::u32 bindingIndex, rhi::DescriptorTableIndex index ) -> void {
         MKT_BEGIN_PROFILER();
 
-        DescriptorTable* table{ core::checked_cast<DescriptorTable*>( descriptorTable.GetPtr() ) };
+        DescriptorTable *table{ core::checked_cast<DescriptorTable *>( descriptorTable.GetPtr() ) };
 
         if ( !table ) {
             return;
@@ -525,9 +529,9 @@ namespace mikoto::renderer::vulkan {
         table->FreeIndex( bindingIndex, index );
     }
 
-    auto Device::WriteDescriptorTable( renderer::rhi::DescriptorTableHandle descriptorTable, const renderer::rhi::BindingTableItem& item ) -> renderer::rhi::DescriptorTableIndex {
+    auto Device::WriteDescriptorTable( renderer::rhi::DescriptorTableHandle descriptorTable, const renderer::rhi::BindingTableItem &item ) -> renderer::rhi::DescriptorTableIndex {
         MKT_BEGIN_PROFILER();
-        DescriptorTable* table{ core::checked_cast<DescriptorTable*>( descriptorTable.GetPtr() ) };
+        DescriptorTable *table{ core::checked_cast<DescriptorTable *>( descriptorTable.GetPtr() ) };
         renderer::rhi::DescriptorTableIndex resourceIndex{ table->AllocateNextIndex( item.mBindingIndex ) };
 
         DescriptorWriter writer{};
@@ -535,7 +539,7 @@ namespace mikoto::renderer::vulkan {
         switch ( item.mResourceType ) {
             case renderer::rhi::ResourceType::eRayTracingAccelStruct:
                 writer.WriteAccelerationStructure( item.mBindingIndex,
-                    core::checked_cast<AccelerationStructure*>( item.mResource )->Handle(), resourceIndex );
+                    core::checked_cast<AccelerationStructure *>( item.mResource )->Handle(), resourceIndex );
                 break;
             case renderer::rhi::ResourceType::eTexture_SRV:
                 // A descriptor declares the layout at shader access, not the
@@ -543,7 +547,7 @@ namespace mikoto::renderer::vulkan {
                 // Frame-graph barriers transition it to this layout before use.
                 writer.WriteImage(
                     item.mBindingIndex,
-                    core::checked_cast<Texture*>( item.mResource )->GetNativeHandle( renderer::rhi::ObjectType::Vk_ImageView ),
+                    core::checked_cast<Texture *>( item.mResource )->GetNativeHandle( renderer::rhi::ObjectType::Vk_ImageView ),
                     GetDescriptorType( item.mResourceType ),
                     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, resourceIndex );
                 break;
@@ -553,7 +557,7 @@ namespace mikoto::renderer::vulkan {
                 // matching the unordered-access transition before dispatch.
                 writer.WriteImage(
                     item.mBindingIndex,
-                    core::checked_cast<Texture*>( item.mResource )->GetRenderView( item.mSubResourceSet.mBaseMipLevel, item.mSubResourceSet.mBaseArraySlice ),
+                    core::checked_cast<Texture *>( item.mResource )->GetRenderView( item.mSubResourceSet.mBaseMipLevel, item.mSubResourceSet.mBaseArraySlice ),
                     GetDescriptorType( item.mResourceType ),
                     VK_IMAGE_LAYOUT_GENERAL, resourceIndex );
                 break;
@@ -570,15 +574,15 @@ namespace mikoto::renderer::vulkan {
                 // storage-buffer descriptors in Vulkan.
                 writer.WriteBuffer(
                     item.mBindingIndex,
-                    core::checked_cast<Buffer*>( item.mResource )->GetNativeHandle( renderer::rhi::ObjectType::Vk_Buffer ),
-                    core::checked_cast<Buffer*>( item.mResource )->GetSizeBytes(),
+                    core::checked_cast<Buffer *>( item.mResource )->GetNativeHandle( renderer::rhi::ObjectType::Vk_Buffer ),
+                    core::checked_cast<Buffer *>( item.mResource )->GetSizeBytes(),
                     0,
                     GetDescriptorType( item.mResourceType ), resourceIndex );
                 break;
             case renderer::rhi::ResourceType::eSampler:
                 writer.WriteSampler(
                     item.mBindingIndex,
-                    core::checked_cast<Sampler*>( item.mResource )->GetNativeHandle( renderer::rhi::ObjectType::Vk_Sampler ), resourceIndex );
+                    core::checked_cast<Sampler *>( item.mResource )->GetNativeHandle( renderer::rhi::ObjectType::Vk_Sampler ), resourceIndex );
                 break;
             default:;
         }
@@ -587,13 +591,13 @@ namespace mikoto::renderer::vulkan {
         writer.UpdateSet( mLogicalDevice, descriptorSet );
         {
             std::lock_guard lock{ table->mDescriptorMutex };
-            table->mResources[( core::u64{ item.mBindingIndex } << 32 ) | resourceIndex] = core::checked_cast<rhi::DeviceObject*>( item.mResource );
+            table->mResources[( core::u64{ item.mBindingIndex } << 32 ) | resourceIndex] = core::checked_cast<rhi::DeviceObject *>( item.mResource );
         }
 
         return resourceIndex;
     }
 
-    auto Device::CreateTexture( const ExternalTextureDescription& info ) -> renderer::rhi::TextureHandle {
+    auto Device::CreateTexture( const ExternalTextureDescription &info ) -> renderer::rhi::TextureHandle {
         MKT_BEGIN_PROFILER();
         renderer::rhi::TextureHandle texture{ core::Ref<Texture>::New( info ) };
 
@@ -643,7 +647,7 @@ namespace mikoto::renderer::vulkan {
         }
     }
 
-    auto Device::CreateShaderTable( const rhi::ShaderTableDescription& description ) -> rhi::ShaderTableHandle {
+    auto Device::CreateShaderTable( const rhi::ShaderTableDescription &description ) -> rhi::ShaderTableHandle {
         MKT_BEGIN_PROFILER();
         rhi::ShaderTableHandle table{ core::Ref<ShaderTable>::New( description ) };
 
@@ -656,7 +660,7 @@ namespace mikoto::renderer::vulkan {
         return table;
     }
 
-    auto Device::CreatePipeline( const renderer::rhi::ComputePipelineDescription& description ) -> renderer::rhi::PipelineHandle {
+    auto Device::CreatePipeline( const renderer::rhi::ComputePipelineDescription &description ) -> renderer::rhi::PipelineHandle {
         MKT_BEGIN_PROFILER();
         renderer::rhi::PipelineHandle computePipeline{ core::Ref<ComputePipeline>::New( description, mPipelineCache ) };
 
@@ -670,7 +674,7 @@ namespace mikoto::renderer::vulkan {
         return computePipeline;
     }
 
-    auto Device::CreatePipeline( const renderer::rhi::GraphicsPipelineDescription& description ) -> renderer::rhi::PipelineHandle {
+    auto Device::CreatePipeline( const renderer::rhi::GraphicsPipelineDescription &description ) -> renderer::rhi::PipelineHandle {
         MKT_BEGIN_PROFILER();
 
         PipelineHandle graphicsPipeline{ core::Ref<GraphicsPipeline>::New( description, mPipelineCache ) };
@@ -687,7 +691,7 @@ namespace mikoto::renderer::vulkan {
 
     auto Device::CreateCommandList( renderer::rhi::QueueType queueType ) -> renderer::rhi::CommandListHandle {
         MKT_BEGIN_PROFILER();
-        Queue* queue{ core::checked_cast<Queue*>( GetQueue( queueType ) ) };
+        Queue *queue{ core::checked_cast<Queue *>( GetQueue( queueType ) ) };
         renderer::rhi::CommandListHandle handle{ renderer::rhi::CommandListHandle::CreateEmpty() };
 
         if ( queue ) {
@@ -708,7 +712,7 @@ namespace mikoto::renderer::vulkan {
                IsFeatureSupported( GpuFeatureSupportFlagsBits::HardwareRayTracing );
     }
 
-    auto Device::CreateAccelStructure( const renderer::rhi::AccelStructureCreateDescription& description ) -> AccelStructureHandle {
+    auto Device::CreateAccelStructure( const renderer::rhi::AccelStructureCreateDescription &description ) -> AccelStructureHandle {
         MKT_BEGIN_PROFILER();
         renderer::rhi::AccelStructureHandle accelerationStructure{ core::Ref<AccelerationStructure>::New( description ) };
 
@@ -722,7 +726,7 @@ namespace mikoto::renderer::vulkan {
         return accelerationStructure;
     }
 
-    auto Device::CreatePipeline( const renderer::rhi::RayTracingPipelineDescription& description ) -> renderer::rhi::RayTracingPipelineHandle {
+    auto Device::CreatePipeline( const renderer::rhi::RayTracingPipelineDescription &description ) -> renderer::rhi::RayTracingPipelineHandle {
         MKT_BEGIN_PROFILER();
         PipelineHandle rayTracingPipeline{ core::Ref<RayTracingPipeline>::New( description, mPipelineCache ) };
 
@@ -736,7 +740,7 @@ namespace mikoto::renderer::vulkan {
         return rayTracingPipeline;
     }
 
-    auto Device::CreateCommandList( const rhi::CommandListCreateDescription& desc ) -> rhi::CommandListHandle {
+    auto Device::CreateCommandList( const rhi::CommandListCreateDescription &desc ) -> rhi::CommandListHandle {
         MKT_BEGIN_PROFILER();
         return renderer::rhi::CommandListHandle::CreateEmpty();
     }
@@ -755,7 +759,7 @@ namespace mikoto::renderer::vulkan {
         }
 
         if ( type == renderer::rhi::QueryType::eTimestamp ) {
-            const auto* family{ mPhysicalDevice->GetQueueWithSupport( queue == renderer::rhi::QueueType::eGraphics ? renderer::rhi::QueueOpSupportFlagsBits::Graphics : renderer::rhi::QueueOpSupportFlagsBits::Compute ) };
+            const auto *family{ mPhysicalDevice->GetQueueWithSupport( queue == renderer::rhi::QueueType::eGraphics ? renderer::rhi::QueueOpSupportFlagsBits::Graphics : renderer::rhi::QueueOpSupportFlagsBits::Compute ) };
 
             if ( !family ) {
                 result.mReason = "No queue family supports the requested queue type.";
@@ -824,7 +828,7 @@ namespace mikoto::renderer::vulkan {
         return result;
     }
 
-    auto Device::CreateQueryPool( const renderer::rhi::QueryPoolDescription& description ) -> renderer::rhi::QueryPoolHandle {
+    auto Device::CreateQueryPool( const renderer::rhi::QueryPoolDescription &description ) -> renderer::rhi::QueryPoolHandle {
         if ( !GetQueryCapabilities( description.mType, description.mQueue ).mSupported ) {
             return renderer::rhi::QueryPoolHandle::CreateEmpty();
         }
@@ -844,7 +848,7 @@ namespace mikoto::renderer::vulkan {
     auto Device::RunGarbageCollection() -> void {
         MKT_BEGIN_PROFILER();
 
-        for ( auto& queue: mQueues | std::ranges::views::values ) {
+        for ( auto &queue: mQueues | std::ranges::views::values ) {
             queue->CollectGarbage();
         }
 
@@ -854,24 +858,24 @@ namespace mikoto::renderer::vulkan {
 
     auto Device::WaitIdle() -> void {
         MKT_BEGIN_PROFILER();
-        
+
         MKT_VK_CHECK( vkDeviceWaitIdle( mLogicalDevice ) );
 
         // Drop completed recording refs while allocators and descriptor pools
         // still exist, including command lists that will never be used again.
-        for ( auto& queue: mQueues | std::ranges::views::values ) {
+        for ( auto &queue: mQueues | std::ranges::views::values ) {
             queue->CollectGarbage();
         }
     }
 
-    auto Device::GetDummySampler() -> Sampler* {
+    auto Device::GetDummySampler() -> Sampler * {
         MKT_BEGIN_PROFILER();
-        return core::checked_cast<Sampler*>( mDummySampler.GetPtr() );
+        return core::checked_cast<Sampler *>( mDummySampler.GetPtr() );
     }
 
-    auto Device::GetDummyPipelineLayout() -> PipelineLayout* {
+    auto Device::GetDummyPipelineLayout() -> PipelineLayout * {
         MKT_BEGIN_PROFILER();
-        return core::checked_cast<PipelineLayout*>( mEmptyPipelineLayout.GetPtr() );
+        return core::checked_cast<PipelineLayout *>( mEmptyPipelineLayout.GetPtr() );
     }
 
     auto Device::GetLayoutForEmptySet() -> VkDescriptorSetLayout {
@@ -879,7 +883,7 @@ namespace mikoto::renderer::vulkan {
         return mEmptyBindingLayout->GetNativeHandle( renderer::rhi::ObjectType::Vk_DescriptorSetLayout );
     }
 
-    auto Device::GetUploadManager() -> GpuUploadManager* {
+    auto Device::GetUploadManager() -> GpuUploadManager * {
         MKT_BEGIN_PROFILER();
         return mUploadManager.get();
     }
@@ -889,13 +893,14 @@ namespace mikoto::renderer::vulkan {
         return mDescriptorAllocatorPool->GetAllocator();
     }
 
-    auto Device::GetPhysicalDevice() const -> const PhysicalDevice* {
+    auto Device::GetPhysicalDevice() const -> const PhysicalDevice * {
         MKT_BEGIN_PROFILER();
         return mPhysicalDevice;
     }
 
     auto Device::SupportsSceneMultisampling( rhi::Multisampling samples ) const -> bool {
-        VkImageFormatProperties color{}, depth{};
+        VkImageFormatProperties color{};
+        VkImageFormatProperties depth{};
         const auto physical{ mPhysicalDevice->mPhysicalDevice };
 
         if ( vkGetPhysicalDeviceImageFormatProperties( physical, VK_FORMAT_R16G16B16A16_SFLOAT,
@@ -913,12 +918,12 @@ namespace mikoto::renderer::vulkan {
         return ( color.sampleCounts & depth.sampleCounts & count ) != 0;
     }
 
-    auto Device::GetAllocator() -> GpuMemoryAllocator* {
+    auto Device::GetAllocator() -> GpuMemoryAllocator * {
         MKT_BEGIN_PROFILER();
-        return core::checked_cast<GpuMemoryAllocator*>( mGpuAllocator.get() );
+        return core::checked_cast<GpuMemoryAllocator *>( mGpuAllocator.get() );
     }
 
-    auto Device::GetQueue( renderer::rhi::QueueType type ) -> renderer::rhi::IQueue* {
+    auto Device::GetQueue( renderer::rhi::QueueType type ) -> renderer::rhi::IQueue * {
         MKT_BEGIN_PROFILER();
         const auto it{ mQueues.find( type ) };
         return it != mQueues.end() ? it->second.GetPtr() : nullptr;
@@ -943,32 +948,32 @@ namespace mikoto::renderer::vulkan {
         return mGpuAllocator->GetMemoryAvailable();
     }
 
-    auto Device::GetActivePhysicalDeviceFeatures() const -> const VkPhysicalDeviceFeatures& {
+    auto Device::GetActivePhysicalDeviceFeatures() const -> const VkPhysicalDeviceFeatures & {
         MKT_BEGIN_PROFILER();
         return mEnabledFeatures;
     }
 
-    auto Device::GetActivePhysicalDeviceFeatures2() const -> const VkPhysicalDeviceFeatures2& {
+    auto Device::GetActivePhysicalDeviceFeatures2() const -> const VkPhysicalDeviceFeatures2 & {
         MKT_BEGIN_PROFILER();
         return mEnabledFeatures2;
     }
 
-    auto Device::GetActive11Features() const -> const VkPhysicalDeviceVulkan11Features& {
+    auto Device::GetActive11Features() const -> const VkPhysicalDeviceVulkan11Features & {
         MKT_BEGIN_PROFILER();
         return mEnabled11Features;
     }
 
-    auto Device::GetActive12Features() const -> const VkPhysicalDeviceVulkan12Features& {
+    auto Device::GetActive12Features() const -> const VkPhysicalDeviceVulkan12Features & {
         MKT_BEGIN_PROFILER();
         return mEnabled12Features;
     }
 
-    auto Device::GetActive13Features() const -> const VkPhysicalDeviceVulkan13Features& {
+    auto Device::GetActive13Features() const -> const VkPhysicalDeviceVulkan13Features & {
         MKT_BEGIN_PROFILER();
         return mEnabled13Features;
     }
 
-    auto Device::CreateSwapChain( const SwapChainCreateInfo& createInfo ) -> VulkanSwapChainHandle {
+    auto Device::CreateSwapChain( const SwapChainCreateInfo &createInfo ) -> VulkanSwapChainHandle {
         MKT_BEGIN_PROFILER();
         VulkanSwapChainHandle handle{ VulkanSwapChainHandle::New( createInfo ) };
 
@@ -983,7 +988,7 @@ namespace mikoto::renderer::vulkan {
         MKT_BEGIN_PROFILER();
 
         // Core Vulkan 1.3 features are validated during physical-device selection.
-         
+
         // Slang's SPIR-V 1.6 discard path requires shaderDemoteToHelperInvocation.
         mEnabled13Features = initializers::PhysicalDeviceVulkan13Features();
         mEnabled13Features.synchronization2 = VK_TRUE;
@@ -1089,6 +1094,52 @@ namespace mikoto::renderer::vulkan {
         mEnabledFeatures2.pNext = MKT_ADDRESSOF( mEnabled11Features );
         mEnabledFeatures2.features = mEnabledFeatures;
 
+        // OIDN is optional. Do not make ordinary rendering require FP16,
+        // cooperative matrices, or push descriptors on devices lacking them.
+        VkPhysicalDeviceCooperativeMatrixFeaturesKHR oidnCooperative{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_COOPERATIVE_MATRIX_FEATURES_KHR };
+#if MIKOTO_ENABLE_OIDN
+        const auto &supported{ *mPhysicalDevice };
+        mOidnSupported = supported.mFeatures.shaderInt16 && supported.mFeatures.shaderInt64 &&
+                         supported.mFeatures.shaderStorageImageReadWithoutFormat && supported.mFeatures.shaderStorageImageWriteWithoutFormat &&
+                         supported.mFeatures11.storageBuffer16BitAccess && supported.mFeatures12.shaderFloat16 &&
+                         supported.mFeatures12.bufferDeviceAddress && supported.mFeatures12.vulkanMemoryModel &&
+                         supported.mFeatures12.vulkanMemoryModelDeviceScope && supported.mFeatures13.maintenance4 &&
+                         supported.mFeatures13.subgroupSizeControl && supported.mFeatures13.computeFullSubgroups &&
+                         supported.IsExtensionAvailable( VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME );
+        if ( mOidnSupported ) {
+            bool cooperative{};
+            if ( supported.IsExtensionAvailable( VK_KHR_COOPERATIVE_MATRIX_EXTENSION_NAME ) ) {
+                VkPhysicalDeviceFeatures2 query{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
+                query.pNext = &oidnCooperative;
+                vkGetPhysicalDeviceFeatures2( supported.mPhysicalDevice, &query );
+                cooperative = oidnCooperative.cooperativeMatrix;
+                oidnCooperative.cooperativeMatrixRobustBufferAccess = VK_FALSE;
+            }
+
+            std::vector<const char *> extensions{};
+            vkoidn::getRequiredDeviceExtensions( Context::Get()->GetInstance().mInstance,
+                supported.mPhysicalDevice, vkGetInstanceProcAddr, extensions );
+            for ( const auto *extension: extensions ) {
+                if ( !cooperative && std::strcmp( extension, VK_KHR_COOPERATIVE_MATRIX_EXTENSION_NAME ) == 0 ) {
+                    continue;
+                }
+                if ( eastl::none_of( mExtensions.begin(), mExtensions.end(), [extension]( const auto &name ) {
+                         return name == extension;
+                     } ) ) {
+                    mExtensions.emplace_back( extension );
+                }
+            }
+
+            if ( cooperative ) {
+                oidnCooperative.pNext = mEnabled13Features.pNext;
+                mEnabled13Features.pNext = &oidnCooperative;
+            }
+            vkoidn::enableRequiredFeatures( mEnabledFeatures2, mEnabled11Features, mEnabled12Features,
+                mEnabled13Features, cooperative ? &oidnCooperative : nullptr );
+            mEnabledFeatures = mEnabledFeatures2.features;
+        }
+#endif
+
         VkDeviceCreateInfo createInfo{ initializers::DeviceCreateInfo() };
         createInfo.pNext = MKT_ADDRESSOF( mEnabledFeatures2 );
 
@@ -1114,8 +1165,8 @@ namespace mikoto::renderer::vulkan {
         eastl::vector<VkDeviceQueueCreateInfo> queueCreateInfos{};
         eastl::vector queuePriority( kMaxQueuesPerFamily, kQueueDefaultPriority );
 
-        for ( const auto& familyIndex: queueFamilies ) {
-            auto& queueCreateInfo{ queueCreateInfos.emplace_back( initializers::DeviceQueueCreateInfo() ) };
+        for ( const auto &familyIndex: queueFamilies ) {
+            auto &queueCreateInfo{ queueCreateInfos.emplace_back( initializers::DeviceQueueCreateInfo() ) };
 
             queueCreateInfo.queueFamilyIndex = familyIndex;
 
@@ -1126,10 +1177,10 @@ namespace mikoto::renderer::vulkan {
         createInfo.queueCreateInfoCount = core::as<core::u32>( queueCreateInfos.size() );
         createInfo.pQueueCreateInfos = queueCreateInfos.data();
 
-        eastl::vector<const char*> extensionNames{};
+        eastl::vector<const char *> extensionNames{};
         extensionNames.reserve( mExtensions.size() );
 
-        for ( const auto& extension: mExtensions ) {
+        for ( const auto &extension: mExtensions ) {
             extensionNames.emplace_back( extension.c_str() );
         }
 
@@ -1142,14 +1193,14 @@ namespace mikoto::renderer::vulkan {
         mEnabled13Features.pNext = nullptr;
         MKT_VK_CHECK( result );
 
-#if defined(MIKOTO_DEBUG)
+#if defined( MIKOTO_DEBUG )
         if ( IsFeatureRequested( GpuFeatureSupportFlagsBits::MeshShaders ) &&
-            !IsFeatureSupported( GpuFeatureSupportFlagsBits::MeshShaders ) ) {
+             !IsFeatureSupported( GpuFeatureSupportFlagsBits::MeshShaders ) ) {
             MKT_CORE_LOGGER_WARN( "Mesh shader support was requested but is not available on this device." );
         }
 
         if ( IsFeatureRequested( GpuFeatureSupportFlagsBits::HardwareRayTracing ) &&
-            !IsFeatureSupported( GpuFeatureSupportFlagsBits::HardwareRayTracing ) ) {
+             !IsFeatureSupported( GpuFeatureSupportFlagsBits::HardwareRayTracing ) ) {
             MKT_CORE_LOGGER_WARN( "Hardware ray tracing support was requested but is not available on this device." );
         }
 #endif
@@ -1170,13 +1221,13 @@ namespace mikoto::renderer::vulkan {
 
         // Roles selecting the same family share queue zero, including transfer uploads.
         // Dedicated transfer/compute queues can be introduced through the existing queue API.
-        ankerl::unordered_dense::map<renderer::rhi::QueueType, const VulkanQueueData*> queuesIndices{};
+        ankerl::unordered_dense::map<renderer::rhi::QueueType, const VulkanQueueData *> queuesIndices{};
         queuesIndices[renderer::rhi::QueueType::eGraphics] = mPhysicalDevice->GetQueueWithSupport( renderer::rhi::QueueOpSupportFlagsBits::Graphics );
         queuesIndices[renderer::rhi::QueueType::eCompute] = mPhysicalDevice->GetQueueWithSupport( renderer::rhi::QueueOpSupportFlagsBits::Compute );
         queuesIndices[renderer::rhi::QueueType::eTransfer] = mPhysicalDevice->GetQueueWithSupport( renderer::rhi::QueueOpSupportFlagsBits::Transfer );
 
         if ( mEnabled11Features.samplerYcbcrConversion &&
-            IsFeatureRequested( GpuFeatureSupportFlagsBits::VideoDecoding ) ) {
+             IsFeatureRequested( GpuFeatureSupportFlagsBits::VideoDecoding ) ) {
             queuesIndices[rhi::QueueType::eVideoDecode] = mPhysicalDevice->GetQueueWithSupport( rhi::QueueOpSupportFlagsBits::VideoDecode );
         }
 
@@ -1187,7 +1238,7 @@ namespace mikoto::renderer::vulkan {
         // Keep track of families that already have a queue
         ankerl::unordered_dense::map<core::u32, core::Ref<Queue>> queueFamilyTracking{};
 
-        for ( constexpr core::u32 kQueueIndex{ 0 }; const auto& [queueType, queueData]: queuesIndices ) {
+        for ( constexpr core::u32 kQueueIndex{ 0 }; const auto &[queueType, queueData]: queuesIndices ) {
             const auto it{ queueFamilyTracking.find( queueData->FamilyIndex ) };
 
             // Video encoding and enqueuing for now
@@ -1229,9 +1280,9 @@ namespace mikoto::renderer::vulkan {
         }
 
         mPipelineCachePath = filesystem::PathBuilder{}
-            .SetPath( kPipelineCacheDirectory )
-            .SetPath( "pipeline_pache.bin" )
-            .Build();
+                                 .SetPath( kPipelineCacheDirectory )
+                                 .SetPath( "pipeline_pache.bin" )
+                                 .Build();
 
         ( void )filesystem::CreateIfNotExistsDirectory( kPipelineCacheDirectory );
 
@@ -1254,7 +1305,7 @@ namespace mikoto::renderer::vulkan {
     auto Device::InitDescriptorAllocator() -> void {
         MKT_BEGIN_PROFILER();
 
-        Context* ctx{ core::checked_cast<Context*>( RenderSystem::Get()->GetContext() ) };
+        Context *ctx{ core::checked_cast<Context *>( RenderSystem::Get()->GetContext() ) };
         mDescriptorAllocatorPool = IDescriptorAllocatorPool::Create( mLogicalDevice, ctx->GetMaxFramesInFlight() );
 
         constexpr float poolMultiplier{ 3.0f };
@@ -1310,14 +1361,14 @@ namespace mikoto::renderer::vulkan {
 
             if ( filesystem::FileService::HasInstance() ) {
                 filesystem::FileHandle file{ filesystem::FileService::Get()->LoadFile( mPipelineCachePath ) };
-                file->Write( core::rc_cast<const char*>( data.data() ), core::as<core::usize>( data.size() ) );
+                file->Write( core::rc_cast<const char *>( data.data() ), core::as<core::usize>( data.size() ) );
             }
         }
 
         vkDestroyPipelineCache( mLogicalDevice, mPipelineCache, nullptr );
     }
 
-    auto Device::IsDeviceSuitable( const PhysicalDevice& device ) -> bool {
+    auto Device::IsDeviceSuitable( const PhysicalDevice &device ) -> bool {
         MKT_BEGIN_PROFILER();
 
         // Device class and Vulkan 1.3 are renderer requirements, independently of optional requests.
@@ -1333,7 +1384,7 @@ namespace mikoto::renderer::vulkan {
 
         // Match the core features enabled by InitLogicalDevice. Vulkan version support alone
         // does not guarantee optional feature bits such as descriptor indexing or shaderInt64.
-        // shaderInt64 is forced to be required for now because we are using device buffer address there's 
+        // shaderInt64 is forced to be required for now because we are using device buffer address there's
         // alternative approach for devices not supporting it but this is being done for simplicy for now.
         if ( !device.mFeatures.shaderInt64 || !device.mFeatures.sampleRateShading ||
              !device.mFeatures.multiDrawIndirect || !device.mFeatures.drawIndirectFirstInstance ||
@@ -1359,11 +1410,19 @@ namespace mikoto::renderer::vulkan {
         return device.HasQueueSupport( queueSupport );
     }
 
+    auto Device::SupportsOidn() const -> bool {
+        return mOidnSupported;
+    }
+
+    auto Device::GetEnabledExtensions() const -> eastl::span<const eastl::string> {
+        return mExtensions;
+    }
+
     auto Device::GetDevice() -> VkDevice {
         return mLogicalDevice;
     }
 
-    CommandList::CommandList( rhi::QueueType queueType, rhi::IQueue* queue, core::u32 familyIndex )
+    CommandList::CommandList( rhi::QueueType queueType, rhi::IQueue *queue, core::u32 familyIndex )
         // See comment in AllocateCmdList() from Queue definition
         : mQueueType{ queueType }, mQueue{ queue }, mQueueFamilyIndex{ familyIndex } {
         MKT_BEGIN_PROFILER();
@@ -1374,12 +1433,12 @@ namespace mikoto::renderer::vulkan {
             0.1f );
     }
 
-    auto CommandList::GetStatistics() const -> const rhi::CommandListStatistics& {
+    auto CommandList::GetStatistics() const -> const rhi::CommandListStatistics & {
         static const rhi::CommandListStatistics empty{};
         return mRecordingContext.empty() ? empty : mRecordingContext[mRecordingContextIndex].mStatistics;
     }
 
-    auto CommandList::Open( const renderer::rhi::CommandListBeginDescription& desc ) -> void {
+    auto CommandList::Open( const renderer::rhi::CommandListBeginDescription &desc ) -> void {
         std::lock_guard lock{ mRecordingMutex };
         MKT_BEGIN_PROFILER();
 
@@ -1390,7 +1449,7 @@ namespace mikoto::renderer::vulkan {
         mBoundRayTracingPipeline = nullptr;
         mBoundShaderTable = nullptr;
 
-        auto* queue{ core::checked_cast<Queue*>( mQueue ) };
+        auto *queue{ core::checked_cast<Queue *>( mQueue ) };
         core::u32 selected{ ( mRecordingContextIndex + 1 ) % static_cast<core::u32>( mRecordingContext.size() ) };
 
         // Cycle through the recording slots until the GPU has finished one.
@@ -1408,7 +1467,7 @@ namespace mikoto::renderer::vulkan {
         VkCommandBufferBeginInfo beginInfo{ initializers::CommandBufferBeginInfo() };
         beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-        Device* device{ core::checked_cast<Device*>( mDevice ) };
+        Device *device{ core::checked_cast<Device *>( mDevice ) };
         MKT_VK_CHECK( vkResetCommandPool( device->GetDevice(), mRecordingContext[mRecordingContextIndex].mCommandPool, MKT_VK_FLAGS_NONE ) );
         MKT_VK_CHECK( vkResetCommandBuffer( mCurrentCommandBuffer, MKT_VK_FLAGS_NONE ) );
         MKT_VK_CHECK( vkBeginCommandBuffer( mCurrentCommandBuffer, MKT_ADDRESSOF( beginInfo ) ) );
@@ -1461,10 +1520,10 @@ namespace mikoto::renderer::vulkan {
     }
 
 
-    auto CommandList::AcquireResource( const rhi::BufferBarrierDescription& description, rhi::IQueue* sourceQueue ) -> void {
+    auto CommandList::AcquireResource( const rhi::BufferBarrierDescription &description, rhi::IQueue *sourceQueue ) -> void {
         MKT_BEGIN_PROFILER();
 
-        const auto family{ core::checked_cast<Queue*>( sourceQueue )->GetFamilyIndex() };
+        const auto family{ core::checked_cast<Queue *>( sourceQueue )->GetFamilyIndex() };
 
         if ( family == mQueueFamilyIndex ) {
             return;
@@ -1480,6 +1539,7 @@ namespace mikoto::renderer::vulkan {
         VkBufferMemoryBarrier2 barrier{ VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2 };
         barrier.dstStageMask = GetStageMask( description.mStageAfter );
         barrier.dstAccessMask = GetAccessMask( description.mAccessAfter );
+
         // The other half has no local synchronization scope.
         barrier.srcQueueFamilyIndex = family;
         barrier.dstQueueFamilyIndex = mQueueFamilyIndex;
@@ -1495,13 +1555,13 @@ namespace mikoto::renderer::vulkan {
         mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mImageCount += dependency.imageMemoryBarrierCount;
         mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mBufferCount += dependency.bufferMemoryBarrierCount;
         mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mMemoryCount += dependency.memoryBarrierCount;
-        
+
         vkCmdPipelineBarrier2( mCurrentCommandBuffer, &dependency );
     }
 
 
-    auto CommandList::ReleaseResource( const rhi::BufferBarrierDescription& description, rhi::IQueue* destQueue ) -> void {
-        const auto family{ core::checked_cast<Queue*>( destQueue )->GetFamilyIndex() };
+    auto CommandList::ReleaseResource( const rhi::BufferBarrierDescription &description, rhi::IQueue *destQueue ) -> void {
+        const auto family{ core::checked_cast<Queue *>( destQueue )->GetFamilyIndex() };
 
         if ( family == mQueueFamilyIndex ) {
             return;
@@ -1537,8 +1597,8 @@ namespace mikoto::renderer::vulkan {
     }
 
 
-    auto CommandList::AcquireResource( const rhi::TextureBarrierDescription& description, rhi::IQueue* sourceQueue ) -> void {
-        const auto family{ core::checked_cast<Queue*>( sourceQueue )->GetFamilyIndex() };
+    auto CommandList::AcquireResource( const rhi::TextureBarrierDescription &description, rhi::IQueue *sourceQueue ) -> void {
+        const auto family{ core::checked_cast<Queue *>( sourceQueue )->GetFamilyIndex() };
 
         if ( family == mQueueFamilyIndex ) {
             return;
@@ -1565,7 +1625,7 @@ namespace mikoto::renderer::vulkan {
         barrier.image = description.mTexture->GetNativeHandle( rhi::ObjectType::Vk_Image );
         barrier.oldLayout = vulkan::GetImageLayout( description.mLayoutBefore );
         barrier.newLayout = vulkan::GetImageLayout( description.mLayoutAfter );
-        const auto& range{ description.mSubresourceSet };
+        const auto &range{ description.mSubresourceSet };
         barrier.subresourceRange = {
             .aspectMask = GetAspectMask( description.mTexture->GetFormat() ),
             .baseMipLevel = range.mBaseMipLevel,
@@ -1587,11 +1647,11 @@ namespace mikoto::renderer::vulkan {
     }
 
 
-    auto CommandList::ReleaseResource( const rhi::TextureBarrierDescription& description, rhi::IQueue* destQueue ) -> void {
+    auto CommandList::ReleaseResource( const rhi::TextureBarrierDescription &description, rhi::IQueue *destQueue ) -> void {
         MKT_BEGIN_PROFILER();
 
         // Queue family transfer is only a thing for different queue family indices
-        const auto family{ core::checked_cast<Queue*>( destQueue )->GetFamilyIndex() };
+        const auto family{ core::checked_cast<Queue *>( destQueue )->GetFamilyIndex() };
         if ( family == mQueueFamilyIndex ) {
             return;
         }
@@ -1620,7 +1680,7 @@ namespace mikoto::renderer::vulkan {
         barrier.image = description.mTexture->GetNativeHandle( rhi::ObjectType::Vk_Image );
         barrier.oldLayout = vulkan::GetImageLayout( description.mLayoutBefore );
         barrier.newLayout = vulkan::GetImageLayout( description.mLayoutAfter );
-        const auto& range{ description.mSubresourceSet };
+        const auto &range{ description.mSubresourceSet };
         barrier.subresourceRange = {
             .aspectMask = GetAspectMask( description.mTexture->GetFormat() ),
             .baseMipLevel = range.mBaseMipLevel,
@@ -1642,7 +1702,7 @@ namespace mikoto::renderer::vulkan {
     }
 
 
-    auto CommandList::DecodeVideo( const VideoDecodeDescription& description ) -> void {
+    auto CommandList::DecodeVideo( const VideoDecodeDescription &description ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( !mRecording || mIsRenderScopeActive || GetQueueType() != QueueType::eVideoDecode ) {
@@ -1650,15 +1710,15 @@ namespace mikoto::renderer::vulkan {
         }
 
         auto decoderOwner{ description.mDecoder };
-        auto* decoder{ core::checked_cast<VideoDecoder*>( decoderOwner.GetPtr() ) };
+        auto *decoder{ core::checked_cast<VideoDecoder *>( decoderOwner.GetPtr() ) };
 
         if ( !decoder || !description.mPicture || !description.mOutput || !description.mReconstruction.mSurface ||
              !decoder->MatchesConfiguration( *description.mPicture ) ) {
             MKT_THROW_RUNTIME_ERROR( "Video decode operation has missing resources or changed H.264 parameters." );
         }
 
-        const auto& bitstreamBuffer{ description.mBitstream };
-        const auto& bitstreamRange{ description.mBitstreamRange };
+        const auto &bitstreamBuffer{ description.mBitstream };
+        const auto &bitstreamRange{ description.mBitstreamRange };
 
         if ( !bitstreamBuffer || !bitstreamRange.mByteSize ||
              bitstreamRange.mByteOffset > bitstreamBuffer->GetSizeBytes() ||
@@ -1679,7 +1739,7 @@ namespace mikoto::renderer::vulkan {
         const auto count{ description.mReferences.size() };
 
         for ( usize index{}; index <= count; ++index ) {
-            const auto& reference{ index == count ? description.mReconstruction : description.mReferences[index] };
+            const auto &reference{ index == count ? description.mReconstruction : description.mReferences[index] };
             auto image{ reference.mSurface->GetImage() };
             RetainResource( reference.mSurface.GetPtr() );
 
@@ -1711,7 +1771,7 @@ namespace mikoto::renderer::vulkan {
             vkCmdControlVideoCodingKHR( mCurrentCommandBuffer, &reset );
         }
 
-        const auto& slice{ description.mPicture->GetSlices().front() };
+        const auto &slice{ description.mPicture->GetSlices().front() };
 
         StdVideoDecodeH264PictureInfo picture{};
         picture.seq_parameter_set_id = description.mPicture->GetSps().seq_parameter_set_id;
@@ -1787,7 +1847,7 @@ namespace mikoto::renderer::vulkan {
         mImageBarriers.clear();
     }
 
-    auto CommandList::SetTransition( renderer::rhi::IBuffer* buffer, renderer::rhi::ResourceStates newState ) -> void {
+    auto CommandList::SetTransition( renderer::rhi::IBuffer *buffer, renderer::rhi::ResourceStates newState ) -> void {
         MKT_BEGIN_PROFILER();
         // https://docs.vulkan.org/guide/latest/synchronization.html#synchronization
         // https://docs.vulkan.org/samples/latest/samples/performance/pipeline_barriers/README.html
@@ -1839,9 +1899,9 @@ namespace mikoto::renderer::vulkan {
         }
     }
 
-    auto CommandList::SetTransition( renderer::rhi::ITexture* texture, renderer::rhi::ResourceStates newState ) -> void {
+    auto CommandList::SetTransition( renderer::rhi::ITexture *texture, renderer::rhi::ResourceStates newState ) -> void {
         MKT_BEGIN_PROFILER();
-        
+
         RetainResource( texture );
 
         const renderer::rhi::ResourceStates oldState{ texture->GetResourceState() };
@@ -1867,8 +1927,7 @@ namespace mikoto::renderer::vulkan {
                 .baseMipLevel = 0,
                 .levelCount = texture->GetMipLevelCount(),
                 .baseArrayLayer = 0,
-                .layerCount = texture->GetDimension() == renderer::rhi::TextureDimension::eTextureCube ? renderer::rhi::kMaxCubeFaces : 1 
-            }
+                .layerCount = texture->GetDimension() == renderer::rhi::TextureDimension::eTextureCube ? renderer::rhi::kMaxCubeFaces : 1 }
         };
 
         VkDependencyInfo dependencyInfo{
@@ -1878,7 +1937,7 @@ namespace mikoto::renderer::vulkan {
         };
 
         ++mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mCallCount;
-        
+
         mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mImageCount += dependencyInfo.imageMemoryBarrierCount;
         mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mBufferCount += dependencyInfo.bufferMemoryBarrierCount;
         mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mMemoryCount += dependencyInfo.memoryBarrierCount;
@@ -1895,18 +1954,18 @@ namespace mikoto::renderer::vulkan {
         mEnableAutomaticBarriers = enable;
     }
 
-    auto CommandList::BindShaderTable( rhi::IShaderTable* table ) -> void {
+    auto CommandList::BindShaderTable( rhi::IShaderTable *table ) -> void {
         MKT_BEGIN_PROFILER();
         RetainResource( table );
 
         mBoundShaderTable = table;
     }
 
-    auto CommandList::DispatchRays( const rhi::RayTracingDispatchDescription& desc ) -> void {
+    auto CommandList::DispatchRays( const rhi::RayTracingDispatchDescription &desc ) -> void {
         MKT_BEGIN_PROFILER();
 
-        RayTracingPipeline* pPipeline{ core::checked_cast<RayTracingPipeline*>( mBoundRayTracingPipeline ) };
-        ShaderTable* pShaderTable{ core::checked_cast<ShaderTable*>( mBoundShaderTable ) };
+        RayTracingPipeline *pPipeline{ core::checked_cast<RayTracingPipeline *>( mBoundRayTracingPipeline ) };
+        ShaderTable *pShaderTable{ core::checked_cast<ShaderTable *>( mBoundShaderTable ) };
 
         RetainResource( pPipeline );
         RetainResource( pShaderTable->GetBuffer().GetPtr() );
@@ -1927,20 +1986,20 @@ namespace mikoto::renderer::vulkan {
             desc.mWidth, desc.mHeight, desc.mDepth );
     }
 
-    auto CommandList::SetTransition( const renderer::rhi::TransitionDescription& description ) -> void {
+    auto CommandList::SetTransition( const renderer::rhi::TransitionDescription &description ) -> void {
         MKT_BEGIN_PROFILER();
 
-        for ( const auto& transition: description.mBuffers ) {
+        for ( const auto &transition: description.mBuffers ) {
             SetTransition( transition.mBuffer, transition.mState );
         }
 
-        for ( const auto& transition: description.mTextures ) {
+        for ( const auto &transition: description.mTextures ) {
             SetTransition( transition.mTexture, transition.mState );
         }
     }
 
     // https://docs.vulkan.org/guide/latest/synchronization_examples.html
-    auto CommandList::SetBarrier( const renderer::rhi::BarrierDescription& description ) -> void {
+    auto CommandList::SetBarrier( const renderer::rhi::BarrierDescription &description ) -> void {
         MKT_BEGIN_PROFILER();
 
         // Enhanced barriers honor the caller's explicit synchronization scopes.
@@ -1950,8 +2009,8 @@ namespace mikoto::renderer::vulkan {
         eastl::fixed_vector<VkImageMemoryBarrier2, 30> images{};
         eastl::fixed_vector<VkBufferMemoryBarrier2, 30> buffers{};
 
-        for ( const renderer::rhi::BufferBarrierDescription& barrierDescription: description.mBuffers ) {
-            renderer::rhi::IBuffer* buffer{ barrierDescription.mBuffer };
+        for ( const renderer::rhi::BufferBarrierDescription &barrierDescription: description.mBuffers ) {
+            renderer::rhi::IBuffer *buffer{ barrierDescription.mBuffer };
 
             if ( !buffer ) {
                 continue;
@@ -1974,8 +2033,8 @@ namespace mikoto::renderer::vulkan {
                     .size = barrierDescription.mRange.mByteSize == 0 ? VK_WHOLE_SIZE : barrierDescription.mRange.mByteSize } );
         }
 
-        for ( const renderer::rhi::TextureBarrierDescription& barrierDescription: description.mTextures ) {
-            Texture* texture{ core::checked_cast<Texture*>( barrierDescription.mTexture ) };
+        for ( const renderer::rhi::TextureBarrierDescription &barrierDescription: description.mTextures ) {
+            Texture *texture{ core::checked_cast<Texture *>( barrierDescription.mTexture ) };
 
             if ( !texture ) {
                 continue;
@@ -2017,17 +2076,13 @@ namespace mikoto::renderer::vulkan {
                 barrier.dstAccessMask = VK_ACCESS_2_NONE;
             }
 
-            const auto& subResources{ barrierDescription.mSubresourceSet };
+            const auto &subResources{ barrierDescription.mSubresourceSet };
             barrier.subresourceRange = {
                 .aspectMask = GetAspectMask( texture->GetFormat() ),
                 .baseMipLevel = subResources.mBaseMipLevel,
-                .levelCount = subResources.mNumMipLevels == renderer::rhi::TextureSubresourceSet::kAllMipLevels ? 
-                    VK_REMAINING_MIP_LEVELS :
-                    subResources.mNumMipLevels,
+                .levelCount = subResources.mNumMipLevels == renderer::rhi::TextureSubresourceSet::kAllMipLevels ? VK_REMAINING_MIP_LEVELS : subResources.mNumMipLevels,
                 .baseArrayLayer = subResources.mBaseArraySlice,
-                .layerCount = subResources.mNumArraySlices == renderer::rhi::TextureSubresourceSet::kAllArraySlices ?
-                    VK_REMAINING_ARRAY_LAYERS :
-                    subResources.mNumArraySlices
+                .layerCount = subResources.mNumArraySlices == renderer::rhi::TextureSubresourceSet::kAllArraySlices ? VK_REMAINING_ARRAY_LAYERS : subResources.mNumArraySlices
             };
 
             images.push_back( barrier );
@@ -2051,20 +2106,20 @@ namespace mikoto::renderer::vulkan {
     }
 
 
-    auto CommandList::SetClearColor( renderer::rhi::ITexture* renderTarget, renderer::rhi::Color color ) -> void {
+    auto CommandList::SetClearColor( renderer::rhi::ITexture *renderTarget, renderer::rhi::Color color ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( !renderTarget ) {
             return;
         }
-        
+
 
         if ( mIsRenderScopeActive ) {
             EndRenderPass();
         }
 
         RetainResource( renderTarget );
-        
+
         // Image needs to be VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
         if ( mEnableAutomaticBarriers ) {
             SetTransition( renderTarget, renderer::rhi::ResourceStates::eCopyDest );
@@ -2086,12 +2141,12 @@ namespace mikoto::renderer::vulkan {
         // Clear all layers starting from baseArrayLayer
         range.layerCount = VK_REMAINING_ARRAY_LAYERS;
 
-        vkCmdClearColorImage( mCurrentCommandBuffer, 
+        vkCmdClearColorImage( mCurrentCommandBuffer,
             renderTarget->GetNativeHandle( renderer::rhi::ObjectType::Vk_Image ),
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clearColor, 1, &range );
     }
 
-    auto CommandList::Write( renderer::rhi::IBuffer* src, renderer::rhi::ITexture* dest ) -> void {
+    auto CommandList::Write( renderer::rhi::IBuffer *src, renderer::rhi::ITexture *dest ) -> void {
         MKT_BEGIN_PROFILER();
 
         RetainResource( src );
@@ -2113,7 +2168,7 @@ namespace mikoto::renderer::vulkan {
         copyRegion.imageExtent = {
             dest->GetWidth(),
             dest->GetHeight(),
-            1
+            dest->GetDepth()
         };
 
         // If called on the owner thread we use the primary
@@ -2127,7 +2182,7 @@ namespace mikoto::renderer::vulkan {
             &copyRegion );
     }
 
-    auto CommandList::Write( renderer::rhi::ITexture* texture, const void* data, core::usize byteSize ) -> void {
+    auto CommandList::Write( renderer::rhi::ITexture *texture, const void *data, core::usize byteSize ) -> void {
         MKT_BEGIN_PROFILER();
 
         RetainResource( texture );
@@ -2140,42 +2195,23 @@ namespace mikoto::renderer::vulkan {
             SetTransition( texture, renderer::rhi::ResourceStates::eCopyDest );
         }
 
-        GpuUploadAllocation* allocation{ mUploadManager->SubAllocate( byteSize, eastl::max<core::usize>( 4, renderer::rhi::GetFormatInfo( texture->GetFormat() ).mBytesPerBlock ) ) };
-        SetTransition( allocation->mBuffer, renderer::rhi::ResourceStates::eCopySource );
-
-        std::memcpy( allocation->mMappedMemory, data, byteSize );
-
-        // Describe the region to copy
-        VkBufferImageCopy copyRegion{};
-        copyRegion.bufferOffset = allocation->mOffset;
-        copyRegion.bufferRowLength = 0;  // Tightly packed
-        copyRegion.bufferImageHeight = 0;// Tightly packed
-
-        copyRegion.imageSubresource.aspectMask = GetAspectMask( texture->GetFormat() );
-
-        copyRegion.imageSubresource.mipLevel = 0;
-        copyRegion.imageSubresource.baseArrayLayer = 0;
-        copyRegion.imageSubresource.layerCount = 1;
-
-        copyRegion.imageOffset = { 0, 0, 0 };
-        copyRegion.imageExtent = {
-            texture->GetWidth(),
-            texture->GetHeight(),
-            1
-        };
-
-        vkCmdCopyBufferToImage(
-            mCurrentCommandBuffer,
-            allocation->mBuffer->GetNativeHandle( renderer::rhi::ObjectType::Vk_Buffer ),
-            texture->GetNativeHandle( renderer::rhi::ObjectType::Vk_Image ),
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            1,
-            &copyRegion );
-
-        mRecordingContext[mRecordingContextIndex].mInFlightSubAllocations.emplace_back( allocation );
+        // Each subresource gets an aligned upload range, including small mips.
+        for ( const auto &region: rhi::GetTextureUploadRegions( *texture, byteSize ) ) {
+            auto *allocation{ mUploadManager->SubAllocate( region.mSize, eastl::max<core::usize>( 4, rhi::GetFormatInfo( texture->GetFormat() ).mBytesPerBlock ) ) };
+            SetTransition( allocation->mBuffer, rhi::ResourceStates::eCopySource );
+            std::memcpy( allocation->mMappedMemory, static_cast<const core::u8 *>( data ) + region.mOffset, region.mSize );
+            VkBufferImageCopy copy{};
+            copy.bufferOffset = allocation->mOffset;
+            copy.imageSubresource = { GetAspectMask( texture->GetFormat() ), region.mMip, region.mLayer, 1 };
+            copy.imageExtent = { region.mWidth, region.mHeight, region.mDepth };
+            vkCmdCopyBufferToImage( mCurrentCommandBuffer,
+                allocation->mBuffer->GetNativeHandle( rhi::ObjectType::Vk_Buffer ),
+                texture->GetNativeHandle( rhi::ObjectType::Vk_Image ), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy );
+            mRecordingContext[mRecordingContextIndex].mInFlightSubAllocations.emplace_back( allocation );
+        }
     }
 
-    auto CommandList::Write( renderer::rhi::IBuffer* buffer, core::usize destOffset, const void* data, core::usize byteSize ) -> void {
+    auto CommandList::Write( renderer::rhi::IBuffer *buffer, core::usize destOffset, const void *data, core::usize byteSize ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( !buffer || buffer->GetOwningDevice() != mDevice || destOffset > buffer->GetSizeBytes() ||
@@ -2189,8 +2225,8 @@ namespace mikoto::renderer::vulkan {
 
         // Upload heaps need a host write and flush, with no GPU recording or submission.
         if ( buffer->GetHeapType() == rhi::HeapType::eUpload ) {
-            auto* destination{ core::checked_cast<Buffer*>( buffer ) };
-            auto* mapped{ static_cast<core::u8*>( destination->GetMappedAddress() ) };
+            auto *destination{ core::checked_cast<Buffer *>( buffer ) };
+            auto *mapped{ static_cast<core::u8 *>( destination->GetMappedAddress() ) };
 
             if ( !mapped ) {
                 MKT_THROW_RUNTIME_ERROR( "Vulkan upload buffer is not mapped." );
@@ -2233,7 +2269,7 @@ namespace mikoto::renderer::vulkan {
             // Instead of using the GPU default allocator I can declare a linear allocator for every command buffer
             // On first usage (lazy create) I create the buffer with a large enough size
             // every time I call End() I just reset the allocator?
-            GpuUploadAllocation* allocation{ mUploadManager->SubAllocate( byteSize ) };
+            GpuUploadAllocation *allocation{ mUploadManager->SubAllocate( byteSize ) };
 
             SetTransition( allocation->mBuffer, renderer::rhi::ResourceStates::eCopySource );
 
@@ -2255,18 +2291,18 @@ namespace mikoto::renderer::vulkan {
         }
     }
 
-    auto CommandList::Write( renderer::rhi::IBuffer* buffer, const void* data, core::usize byteSize ) -> void {
+    auto CommandList::Write( renderer::rhi::IBuffer *buffer, const void *data, core::usize byteSize ) -> void {
         MKT_BEGIN_PROFILER();
         Write( buffer, 0, data, byteSize );
     }
 
-    auto CommandList::Draw( const renderer::rhi::DrawArguments& args ) -> void {
+    auto CommandList::Draw( const renderer::rhi::DrawArguments &args ) -> void {
         MKT_BEGIN_PROFILER();
         ++mRecordingContext[mRecordingContextIndex].mStatistics.mDrawCallCount;
         vkCmdDraw( mCurrentCommandBuffer, args.mVertexCount, args.mInstanceCount, args.mFirstVertex, args.mFirstInstance );
     }
 
-    auto CommandList::DrawIndexed( const renderer::rhi::DrawArguments& args ) -> void {
+    auto CommandList::DrawIndexed( const renderer::rhi::DrawArguments &args ) -> void {
         MKT_BEGIN_PROFILER();
         ++mRecordingContext[mRecordingContextIndex].mStatistics.mDrawCallCount;
         vkCmdDrawIndexed(
@@ -2285,7 +2321,7 @@ namespace mikoto::renderer::vulkan {
             return;
         }
 
-        Buffer* pIndirectBuffer{ core::checked_cast<Buffer*>( mIndirectBuffer ) };
+        Buffer *pIndirectBuffer{ core::checked_cast<Buffer *>( mIndirectBuffer ) };
         ++mRecordingContext[mRecordingContextIndex].mStatistics.mDrawCallCount;
         vkCmdDrawIndirect( mCurrentCommandBuffer,
             *pIndirectBuffer, offset, drawCount, MKT_SIZEOF( VkDrawIndirectCommand ) );
@@ -2298,13 +2334,13 @@ namespace mikoto::renderer::vulkan {
             return;
         }
 
-        Buffer* pIndirectBuffer{ core::checked_cast<Buffer*>( mIndirectBuffer ) };
+        Buffer *pIndirectBuffer{ core::checked_cast<Buffer *>( mIndirectBuffer ) };
         ++mRecordingContext[mRecordingContextIndex].mStatistics.mDrawCallCount;
         vkCmdDrawIndexedIndirect( mCurrentCommandBuffer,
             *pIndirectBuffer, offset, drawCount, MKT_SIZEOF( VkDrawIndexedIndirectCommand ) );
     }
 
-    auto CommandList::SetPushConstants( renderer::rhi::IPipelineLayout* pipelineLayout, const void* data, core::usize byteSize, renderer::rhi::ShaderFlags visibility ) -> void {
+    auto CommandList::SetPushConstants( renderer::rhi::IPipelineLayout *pipelineLayout, const void *data, core::usize byteSize, renderer::rhi::ShaderFlags visibility ) -> void {
         MKT_BEGIN_PROFILER();
 
         RetainResource( pipelineLayout );
@@ -2333,9 +2369,9 @@ namespace mikoto::renderer::vulkan {
 
         mDebugName = name;
 
-        auto* device{ core::checked_cast<Device*>( mDevice ) };
+        auto *device{ core::checked_cast<Device *>( mDevice ) };
 
-        for ( const auto& ctx: mRecordingContext ) {
+        for ( const auto &ctx: mRecordingContext ) {
             device->SetDebugName( VK_OBJECT_TYPE_COMMAND_BUFFER, core::rc_cast<core::u64>( ctx.mCommandBuffer ), mDebugName );
 
             const eastl::string commandPoolTag{ string::Format( "CommandPool for command list: {}", mDebugName ) };
@@ -2343,13 +2379,13 @@ namespace mikoto::renderer::vulkan {
         }
     }
 
-    auto CommandList::SetBarrier( const renderer::rhi::BufferBarrierDescription& barrier ) -> void {
+    auto CommandList::SetBarrier( const renderer::rhi::BufferBarrierDescription &barrier ) -> void {
     }
 
-    auto CommandList::SetBarrier( const renderer::rhi::TextureBarrierDescription& barrier ) -> void {
+    auto CommandList::SetBarrier( const renderer::rhi::TextureBarrierDescription &barrier ) -> void {
     }
 
-    auto CommandList::Copy( renderer::rhi::IBuffer* src, renderer::rhi::IBuffer* dest ) -> void {
+    auto CommandList::Copy( renderer::rhi::IBuffer *src, renderer::rhi::IBuffer *dest ) -> void {
         MKT_BEGIN_PROFILER();
         Copy( src, dest, 0 );
     }
@@ -2358,10 +2394,10 @@ namespace mikoto::renderer::vulkan {
         return mQueueType;
     }
 
-    auto CommandList::Build( rhi::IAccelerationStructure* resource ) -> void {
+    auto CommandList::Build( rhi::IAccelerationStructure *resource ) -> void {
         MKT_BEGIN_PROFILER();
 
-        AccelerationStructure* pAccelStructure{ core::checked_cast<AccelerationStructure*>( resource ) };
+        AccelerationStructure *pAccelStructure{ core::checked_cast<AccelerationStructure *>( resource ) };
 
         if ( !pAccelStructure ) {
             MKT_THROW_RUNTIME_ERROR( "Acceleration structure belongs to a different backend or is null." );
@@ -2370,8 +2406,8 @@ namespace mikoto::renderer::vulkan {
         RetainResource( resource );
 
         if ( pAccelStructure->GetType() == renderer::rhi::AccelStructureType::eTopLevel ) {
-            for ( auto& instance: pAccelStructure->mDescription.mInstances ) {
-                AccelerationStructure* bottom{ core::checked_cast<AccelerationStructure*>( instance.mBottomLevel.GetPtr() ) };
+            for ( auto &instance: pAccelStructure->mDescription.mInstances ) {
+                AccelerationStructure *bottom{ core::checked_cast<AccelerationStructure *>( instance.mBottomLevel.GetPtr() ) };
 
                 if ( !bottom->IsBuilt() ) {
                     Build( bottom );
@@ -2407,7 +2443,7 @@ namespace mikoto::renderer::vulkan {
         barrier.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT;
         barrier.dstStageMask = VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR | VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR;
         barrier.dstAccessMask = VK_ACCESS_2_ACCELERATION_STRUCTURE_READ_BIT_KHR | VK_ACCESS_2_ACCELERATION_STRUCTURE_WRITE_BIT_KHR | VK_ACCESS_2_SHADER_READ_BIT;
-        
+
         VkDependencyInfo dependency{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
         dependency.memoryBarrierCount = 1;
         dependency.pMemoryBarriers = &barrier;
@@ -2431,7 +2467,7 @@ namespace mikoto::renderer::vulkan {
         pAccelStructure->mBuilt = true;
     }
 
-    auto CommandList::Copy( renderer::rhi::IBuffer* src, renderer::rhi::IBuffer* dest, core::usize dstOffset ) -> void {
+    auto CommandList::Copy( renderer::rhi::IBuffer *src, renderer::rhi::IBuffer *dest, core::usize dstOffset ) -> void {
         MKT_BEGIN_PROFILER();
 
         RetainResource( src );
@@ -2467,7 +2503,7 @@ namespace mikoto::renderer::vulkan {
             &region );
     }
 
-    auto CommandList::Copy( renderer::rhi::IBuffer* dest, renderer::rhi::ITexture* src ) -> void {
+    auto CommandList::Copy( renderer::rhi::IBuffer *dest, renderer::rhi::ITexture *src ) -> void {
         MKT_BEGIN_PROFILER();
 
         RetainResource( src );
@@ -2497,10 +2533,10 @@ namespace mikoto::renderer::vulkan {
 
             // Target texture subresource options (mip levels, array layers).
             .imageSubresource = {
-                            .aspectMask = core::checked_cast<Texture*>( src )->GetAspectMask(),// Target is color data
-                            .mipLevel = 0,                                                     // Base mipmap level
-                            .baseArrayLayer = 0,                                               // Target the first layer
-                            .layerCount = 1                                                    // Copying exactly 1 layer
+                .aspectMask = core::checked_cast<Texture *>( src )->GetAspectMask(),// Target is color data
+                .mipLevel = 0,                                                      // Base mipmap level
+                .baseArrayLayer = 0,                                                // Target the first layer
+                .layerCount = 1                                                     // Copying exactly 1 layer
             },
 
             // Destination starting coordinates (x, y, z) within the image.
@@ -2508,9 +2544,9 @@ namespace mikoto::renderer::vulkan {
 
             // Size of the pixel region to copy.
             .imageExtent = {
-                        .width = src->GetWidth(),  // Width of the region in pixels
-                        .height = src->GetHeight(),// Height of the region in pixels
-                        .depth = 1                 // Depth is 1 for standard 2D textures
+                .width = src->GetWidth(),  // Width of the region in pixels
+                .height = src->GetHeight(),// Height of the region in pixels
+                .depth = src->GetDepth()   // Full voxel depth for volume readback
             }
         };
 
@@ -2522,7 +2558,7 @@ namespace mikoto::renderer::vulkan {
         vkCmdCopyImageToBuffer( mCurrentCommandBuffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, buffer, core::as<core::u32>( regions.size() ), regions.data() );
     }
 
-    auto CommandList::Copy( rhi::IBuffer* dest, rhi::ITexture* src, const renderer::rhi::TextureSlice& srcSlice ) -> void {
+    auto CommandList::Copy( rhi::IBuffer *dest, rhi::ITexture *src, const renderer::rhi::TextureSlice &srcSlice ) -> void {
         MKT_BEGIN_PROFILER();
 
         RetainResource( src );
@@ -2552,10 +2588,10 @@ namespace mikoto::renderer::vulkan {
 
             // Target texture subresource options (mip levels, array layers).
             .imageSubresource = {
-                            .aspectMask = core::checked_cast<Texture*>( src )->GetAspectMask(),
-                            .mipLevel = srcSlice.mMipLevel,
-                            .baseArrayLayer = srcSlice.mArrayLayer,
-                            .layerCount = 1 },
+                .aspectMask = core::checked_cast<Texture *>( src )->GetAspectMask(),
+                .mipLevel = srcSlice.mMipLevel,
+                .baseArrayLayer = srcSlice.mArrayLayer,
+                .layerCount = 1 },
 
             // Destination starting coordinates (x, y, z) within the image.
             .imageOffset = { ( core::i32 )srcSlice.x, ( core::i32 )srcSlice.y, ( core::i32 )srcSlice.z },
@@ -2572,12 +2608,12 @@ namespace mikoto::renderer::vulkan {
         vkCmdCopyImageToBuffer( mCurrentCommandBuffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, buffer, core::as<core::u32>( regions.size() ), regions.data() );
     }
 
-    auto CommandList::BeginRenderPass( renderer::rhi::RenderPassDescription& state ) -> void {
+    auto CommandList::BeginRenderPass( renderer::rhi::RenderPassDescription &state ) -> void {
         MKT_BEGIN_PROFILER();
 
         RetainResource( state.mDepthTarget.mRenderTarget.GetPtr() );
 
-        for ( const auto& target: state.mCurrentRenderTargets ) {
+        for ( const auto &target: state.mCurrentRenderTargets ) {
             RetainResource( target.mRenderTarget.GetPtr() );
         }
 
@@ -2589,20 +2625,20 @@ namespace mikoto::renderer::vulkan {
 #if MIKOTO_DEBUG
         // Validate against every attached image, not against the requested tile's size.
         // Never move a bad rectangle to the origin: doing so clears unrelated atlas pages.
-        const auto validateArea = [&]( const renderer::rhi::ITexture& texture, core::u32 mip ) {
+        const auto validateArea = [&]( const renderer::rhi::ITexture &texture, core::u32 mip ) {
             MKT_ASSERT( mip < texture.GetMipLevelCount() && mip < 32, "Render-target mip level out of bounds" );
 
             const core::u32 width{ eastl::max( 1u, texture.GetWidth() >> mip ) };
             const core::u32 height{ eastl::max( 1u, texture.GetHeight() >> mip ) };
 
-            const auto& area{ state.mRenderArea };
+            const auto &area{ state.mRenderArea };
 
             MKT_ASSERT( RenderAreaFits( area.mMinX, area.mMinY, area.mMaxX, area.mMaxY, width, height ),
                 string::Format( "Render area [{}, {}) x [{}, {}) exceeds attachment mip {} dimensions {} x {} or is empty/negative.",
                     area.mMinX, area.mMaxX, area.mMinY, area.mMaxY, mip, width, height ) );
         };
 
-        for ( const auto& target: state.mCurrentRenderTargets ) {
+        for ( const auto &target: state.mCurrentRenderTargets ) {
             validateArea( *target.mRenderTarget, target.mSubresourceSet.mBaseMipLevel );
         }
 
@@ -2617,7 +2653,7 @@ namespace mikoto::renderer::vulkan {
         }
 
         if ( mEnableAutomaticBarriers ) {
-            for ( auto& rt: state.mCurrentRenderTargets ) {
+            for ( auto &rt: state.mCurrentRenderTargets ) {
                 SetTransition( rt.mRenderTarget.GetPtr(), renderer::rhi::ResourceStates::eRenderTarget );
             }
 
@@ -2647,11 +2683,11 @@ namespace mikoto::renderer::vulkan {
 
         eastl::fixed_vector<VkRenderingAttachmentInfo, renderer::rhi::kMaxRenderTargets> colorImages{};
 
-        for ( const auto& renderTargetProps: state.mCurrentRenderTargets ) {
-            const Texture* texture{ core::checked_cast<const Texture*>( renderTargetProps.mRenderTarget.GetPtr() ) };
+        for ( const auto &renderTargetProps: state.mCurrentRenderTargets ) {
+            const Texture *texture{ core::checked_cast<const Texture *>( renderTargetProps.mRenderTarget.GetPtr() ) };
 
             VkAttachmentLoadOp loadOp{ renderTargetProps.mLoadOp == renderer::rhi::LoadOp::eClear ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD };
-            VkRenderingAttachmentInfo& colorAttachment{ colorImages.emplace_back( VkRenderingAttachmentInfo{} ) };
+            VkRenderingAttachmentInfo &colorAttachment{ colorImages.emplace_back( VkRenderingAttachmentInfo{} ) };
             colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
             colorAttachment.imageView = texture->GetRenderView( renderTargetProps.mSubresourceSet.mBaseMipLevel, renderTargetProps.mSubresourceSet.mBaseArraySlice );
             colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -2668,7 +2704,7 @@ namespace mikoto::renderer::vulkan {
         VkRenderingAttachmentInfo depthAttachment{};
 
         if ( hasDepthTarget ) {
-            const Texture* texture{ core::checked_cast<const Texture*>( state.mDepthTarget.mRenderTarget.GetPtr() ) };
+            const Texture *texture{ core::checked_cast<const Texture *>( state.mDepthTarget.mRenderTarget.GetPtr() ) };
             VkAttachmentLoadOp loadOp{ state.mDepthTarget.mLoadOp == renderer::rhi::LoadOp::eClear ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD };
 
             depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
@@ -2708,13 +2744,13 @@ namespace mikoto::renderer::vulkan {
         mIsRenderScopeActive = false;
     }
 
-    auto CommandList::BindPipeline( renderer::rhi::IPipeline* pipeline ) -> void {
+    auto CommandList::BindPipeline( renderer::rhi::IPipeline *pipeline ) -> void {
         MKT_BEGIN_PROFILER();
 
         RetainResource( pipeline );
 
         mBoundRayTracingPipeline = pipeline->GetPipelineType() == rhi::PipelineType::eRayTracing
-                                       ? core::checked_cast<RayTracingPipeline*>( pipeline )
+                                       ? core::checked_cast<RayTracingPipeline *>( pipeline )
                                        : nullptr;
 
         VkPipelineBindPoint bindPoint{ VK_PIPELINE_BIND_POINT_MAX_ENUM };
@@ -2742,7 +2778,7 @@ namespace mikoto::renderer::vulkan {
 
         eastl::fixed_vector<VkViewport, renderer::rhi::kMaxViewports> vkViewports{};
 
-        for ( const auto& viewport: viewports ) {
+        for ( const auto &viewport: viewports ) {
             VkViewport value{
                 .x = viewport.mMinX,
                 .y = viewport.mMinY,
@@ -2775,7 +2811,7 @@ namespace mikoto::renderer::vulkan {
         MKT_BEGIN_PROFILER();
         eastl::fixed_vector<VkRect2D, renderer::rhi::kMaxScissors> scissors{};
 
-        for ( const auto& scissor: scissorRects ) {
+        for ( const auto &scissor: scissorRects ) {
             scissors.emplace_back( VkRect2D{
                 .offset = { scissor.mMinX, scissor.mMinY },
                 .extent = { core::as<core::u32>( scissor.ComputeWidth() ), core::as<core::u32>( scissor.ComputeHeight() ) } } );
@@ -2784,7 +2820,7 @@ namespace mikoto::renderer::vulkan {
         vkCmdSetScissor( mCurrentCommandBuffer, 0, core::as<core::u32>( scissors.size() ), scissors.data() );
     }
 
-    auto CommandList::SetViewportState( const renderer::rhi::ViewportState& vs ) -> void {
+    auto CommandList::SetViewportState( const renderer::rhi::ViewportState &vs ) -> void {
         MKT_BEGIN_PROFILER();
         SetViewport( vs.mViewports );
         SetScissors( vs.mScissorRects );
@@ -2792,8 +2828,8 @@ namespace mikoto::renderer::vulkan {
 
     auto CommandList::SetPolygonLineWidth( core::f32 width ) -> void {
         MKT_BEGIN_PROFILER();
-        Device* device{ core::checked_cast<Device*>( mDevice ) };
-        const PhysicalDevice* pPhysicalDevice{ device->GetPhysicalDevice() };
+        Device *device{ core::checked_cast<Device *>( mDevice ) };
+        const PhysicalDevice *pPhysicalDevice{ device->GetPhysicalDevice() };
 
         // Does physical device support wide lines
         if ( pPhysicalDevice->mFeatures.wideLines == VK_FALSE ) {
@@ -2816,7 +2852,7 @@ namespace mikoto::renderer::vulkan {
         vkCmdSetLineWidth( mCurrentCommandBuffer, width );
     }
 
-    auto CommandList::BindIndexBuffer( renderer::rhi::IBuffer* buffer ) -> void {
+    auto CommandList::BindIndexBuffer( renderer::rhi::IBuffer *buffer ) -> void {
         MKT_BEGIN_PROFILER();
         RetainResource( buffer );
 
@@ -2827,7 +2863,7 @@ namespace mikoto::renderer::vulkan {
         vkCmdBindIndexBuffer( mCurrentCommandBuffer, buffer->GetNativeHandle( renderer::rhi::ObjectType::Vk_Buffer ), 0, GetIndexType( buffer->GetFormat() ) );
     }
 
-    auto CommandList::BindIndirectBuffer( renderer::rhi::IBuffer* buffer ) -> void {
+    auto CommandList::BindIndirectBuffer( renderer::rhi::IBuffer *buffer ) -> void {
         MKT_BEGIN_PROFILER();
         RetainResource( buffer );
 
@@ -2838,7 +2874,7 @@ namespace mikoto::renderer::vulkan {
         mIndirectBuffer = buffer;
     }
 
-    auto CommandList::BindVertexBuffer( const renderer::rhi::VertexBufferBinding& binding ) -> void {
+    auto CommandList::BindVertexBuffer( const renderer::rhi::VertexBufferBinding &binding ) -> void {
         MKT_BEGIN_PROFILER();
         eastl::array bindings{ binding };
         BindVertexBuffers( bindings );
@@ -2851,7 +2887,7 @@ namespace mikoto::renderer::vulkan {
 
         core::u32 firstBinding{};
 
-        for ( const auto& binding: bindings ) {
+        for ( const auto &binding: bindings ) {
             RetainResource( binding.mBuffer );
             offsets.emplace_back( binding.mOffset );
 
@@ -2868,18 +2904,18 @@ namespace mikoto::renderer::vulkan {
         vkCmdBindVertexBuffers( mCurrentCommandBuffer, firstBinding, core::as<core::u32>( bindings.size() ), buffers.data(), offsets.data() );
     }
 
-    auto CommandList::BindPipelineResources( const renderer::rhi::BindResourcesDescription& desc ) -> void {
+    auto CommandList::BindPipelineResources( const renderer::rhi::BindResourcesDescription &desc ) -> void {
         MKT_BEGIN_PROFILER();
 
         RetainResource( desc.mPipelineLayout );
 
-        for ( const auto& set: desc.mResourceSets ) {
+        for ( const auto &set: desc.mResourceSets ) {
             RetainResource( set.second );
 
-            if ( const auto* table{ dynamic_cast<const DescriptorTable*>( set.second ) } ) {
+            if ( const auto *table{ dynamic_cast<const DescriptorTable *>( set.second ) } ) {
                 std::lock_guard lock{ table->mDescriptorMutex };
 
-                for ( const auto& [index, resource]: table->mResources ) {
+                for ( const auto &[index, resource]: table->mResources ) {
                     RetainResource( resource.GetPtr() );
                 }
             }
@@ -2909,9 +2945,9 @@ namespace mikoto::renderer::vulkan {
 
         VkPipelineLayout layout{ desc.mPipelineLayout->GetNativeHandle( renderer::rhi::ObjectType::Vk_PipelineLayout ) };
 
-        for ( const auto& resourceSet: desc.mResourceSets ) {
+        for ( const auto &resourceSet: desc.mResourceSets ) {
             // Get the interface because descriptor tables can also be IBindingSet
-            const renderer::rhi::IBindingTable* set{ core::checked_cast<const renderer::rhi::IBindingTable*>( resourceSet.second ) };
+            const renderer::rhi::IBindingTable *set{ core::checked_cast<const renderer::rhi::IBindingTable *>( resourceSet.second ) };
 
             std::array<VkDescriptorSet, 1> sets{ set->GetNativeHandle( renderer::rhi::ObjectType::Vk_DescriptorSet ) };
 
@@ -2927,14 +2963,14 @@ namespace mikoto::renderer::vulkan {
         }
     }
 
-    auto CommandList::Copy( renderer::rhi::ITexture* src, const renderer::rhi::TextureSlice& srcSlice, renderer::rhi::ITexture* dest, const renderer::rhi::TextureSlice& destSlice ) -> void {
+    auto CommandList::Copy( renderer::rhi::ITexture *src, const renderer::rhi::TextureSlice &srcSlice, renderer::rhi::ITexture *dest, const renderer::rhi::TextureSlice &destSlice ) -> void {
         MKT_BEGIN_PROFILER();
 
         RetainResource( src );
         RetainResource( dest );
 
-        const auto srcTexture{ core::checked_cast<Texture*>( src ) };
-        const auto dstTexture{ core::checked_cast<Texture*>( dest ) };
+        const auto srcTexture{ core::checked_cast<Texture *>( src ) };
+        const auto dstTexture{ core::checked_cast<Texture *>( dest ) };
 
         MKT_ASSERT( srcTexture != nullptr, "Source Vulkan texture cannot be null" );
         MKT_ASSERT( dstTexture != nullptr, "Destination Vulkan texture cannot be null" );
@@ -3037,14 +3073,14 @@ namespace mikoto::renderer::vulkan {
         }
     }
 
-    auto CommandList::Resolve( renderer::rhi::ITexture* src, const renderer::rhi::TextureSlice& srcSlice, renderer::rhi::ITexture* dest, const renderer::rhi::TextureSlice& destSlice ) -> void {
+    auto CommandList::Resolve( renderer::rhi::ITexture *src, const renderer::rhi::TextureSlice &srcSlice, renderer::rhi::ITexture *dest, const renderer::rhi::TextureSlice &destSlice ) -> void {
         MKT_BEGIN_PROFILER();
 
         RetainResource( src );
         RetainResource( dest );
         // To resolve a multisample color image to a non-multisample color image.
-        const auto srcTexture{ core::checked_cast<Texture*>( src ) };
-        const auto dstTexture{ core::checked_cast<Texture*>( dest ) };
+        const auto srcTexture{ core::checked_cast<Texture *>( src ) };
+        const auto dstTexture{ core::checked_cast<Texture *>( dest ) };
 
         MKT_ASSERT( srcTexture != nullptr, "Source Vulkan texture cannot be null" );
         MKT_ASSERT( dstTexture != nullptr, "Destination Vulkan texture cannot be null" );
@@ -3128,11 +3164,11 @@ namespace mikoto::renderer::vulkan {
         return renderer::rhi::Object( mCurrentCommandBuffer );
     }
 
-    auto CommandList::Reset( rhi::IQueryPool* queryPool ) -> void {
-        auto& pool{ ValidateQueryPool( queryPool ) };
-        auto& commands{ *this };
+    auto CommandList::Reset( rhi::IQueryPool *queryPool ) -> void {
+        auto &pool{ ValidateQueryPool( queryPool ) };
+        auto &commands{ *this };
 
-        if ( pool.mActive != ~0u || static_cast<CommandList&>( commands ).mIsRenderScopeActive ) {
+        if ( pool.mActive != ~0u || static_cast<CommandList &>( commands ).mIsRenderScopeActive ) {
             MKT_THROW_RUNTIME_ERROR( "Query reset requires no active query or render pass." );
         }
 
@@ -3140,9 +3176,9 @@ namespace mikoto::renderer::vulkan {
         eastl::fill( pool.mStates.begin(), pool.mStates.end(), QueryPool::SlotState::eReady );
     }
 
-    auto CommandList::BeginQuery( rhi::IQueryPool* queryPool, core::u32 index ) -> void {
-        auto& pool{ ValidateQueryPool( queryPool ) };
-        auto& commands{ *this };
+    auto CommandList::BeginQuery( rhi::IQueryPool *queryPool, core::u32 index ) -> void {
+        auto &pool{ ValidateQueryPool( queryPool ) };
+        auto &commands{ *this };
 
         pool.ValidateRange( index, 1 );
 
@@ -3156,9 +3192,9 @@ namespace mikoto::renderer::vulkan {
         pool.mActiveCommands = &commands;
     }
 
-    auto CommandList::EndQuery( rhi::IQueryPool* queryPool, core::u32 index ) -> void {
-        auto& pool{ ValidateQueryPool( queryPool ) };
-        auto& commands{ *this };
+    auto CommandList::EndQuery( rhi::IQueryPool *queryPool, core::u32 index ) -> void {
+        auto &pool{ ValidateQueryPool( queryPool ) };
+        auto &commands{ *this };
 
         pool.ValidateRange( index, 1 );
 
@@ -3172,10 +3208,10 @@ namespace mikoto::renderer::vulkan {
         pool.mActiveCommands = nullptr;
     }
 
-    auto CommandList::WriteTimestamp( rhi::IQueryPool* queryPool, core::u32 index ) -> void {
+    auto CommandList::WriteTimestamp( rhi::IQueryPool *queryPool, core::u32 index ) -> void {
         MKT_BEGIN_PROFILER();
 
-        auto& pool{ ValidateQueryPool( queryPool ) };
+        auto &pool{ ValidateQueryPool( queryPool ) };
 
         RetainResource( &pool );
 
@@ -3189,8 +3225,8 @@ namespace mikoto::renderer::vulkan {
         pool.mStates[index] = QueryPool::SlotState::eEnded;
     }
 
-    auto CommandList::Resolve( rhi::IQueryPool* queryPool, core::u32 first, core::u32 count ) -> void {
-        auto& pool{ ValidateQueryPool( queryPool ) };
+    auto CommandList::Resolve( rhi::IQueryPool *queryPool, core::u32 first, core::u32 count ) -> void {
+        auto &pool{ ValidateQueryPool( queryPool ) };
         RetainResource( &pool );
 
         pool.ValidateRange( first, count );
@@ -3207,14 +3243,14 @@ namespace mikoto::renderer::vulkan {
         // requires Resolve so the D3D12 readback path has the same lifecycle.
     }
 
-    auto CommandList::ValidateQueryPool( rhi::IQueryPool* queryPool ) const -> QueryPool& {
-        auto* nativePool{ dynamic_cast<QueryPool*>( queryPool ) };
+    auto CommandList::ValidateQueryPool( rhi::IQueryPool *queryPool ) const -> QueryPool & {
+        auto *nativePool{ dynamic_cast<QueryPool *>( queryPool ) };
 
         if ( !nativePool ) {
             MKT_THROW_RUNTIME_ERROR( "Query pool belongs to a different backend or is null." );
         }
 
-        auto& pool{ *nativePool };
+        auto &pool{ *nativePool };
 
         if ( !pool.IsReady() || this->mDevice != pool.mDevice || !this->mRecording ) {
             MKT_THROW_RUNTIME_ERROR( "Queries require an initialized pool and a recording command list from the same Vulkan device." );
@@ -3238,12 +3274,12 @@ namespace mikoto::renderer::vulkan {
 #else
         constexpr core::u64 connection{};
 #endif
-        auto& queue{ *core::checked_cast<Queue*>( mQueue ) };
+        auto &queue{ *core::checked_cast<Queue *>( mQueue ) };
         if ( queue.mGpuProfilerConnection != connection ) {
             queue.InitializeGpuProfiler( connection );
         }
 
-        auto& profiler{ mRecordingContext[mRecordingContextIndex].mGpuProfiler };
+        auto &profiler{ mRecordingContext[mRecordingContextIndex].mGpuProfiler };
         profiler = queue.mGpuProfiler;
         if ( profiler ) {
             // Record query resets in the same queue order as the profiled passes.
@@ -3252,7 +3288,7 @@ namespace mikoto::renderer::vulkan {
     }
 
     auto CommandList::BeginGpuProfileZone( eastl::string_view name, std::source_location source ) -> void {
-        auto* profiler{ mRecordingContext[mRecordingContextIndex].mGpuProfiler.get() };
+        auto *profiler{ mRecordingContext[mRecordingContextIndex].mGpuProfiler.get() };
         if ( !profiler || !TracyIsConnected ) {
             return;
         }
@@ -3295,14 +3331,14 @@ namespace mikoto::renderer::vulkan {
     }
 
 
-    auto CommandList::MarkExecuted( rhi::IQueue* queue, core::u64 submissionID ) -> void {
+    auto CommandList::MarkExecuted( rhi::IQueue *queue, core::u64 submissionID ) -> void {
         MKT_BEGIN_PROFILER();
         std::lock_guard lock{ mRecordingMutex };
         mRecordingContext[mRecordingContextIndex].mSubmissionID = submissionID;
         mReadyForSubmission = false;
     }
 
-    auto CommandList::ValidateSubmission( const rhi::IQueue* queue ) const -> void {
+    auto CommandList::ValidateSubmission( const rhi::IQueue *queue ) const -> void {
         std::lock_guard lock{ mRecordingMutex };
 
         if ( queue != mQueue || mRecording || !mReadyForSubmission ) {
@@ -3313,7 +3349,7 @@ namespace mikoto::renderer::vulkan {
     // TODO: Objects are created with a track state flag we can use that to determine
     // if this method needs to be called, if the client is already ensuring the resource will stay alive for the entire
     // duration of the CommandList execution than this responsibility can be offloaded to the client so we don't need to extend its lifetime.
-    auto CommandList::RetainResource( const renderer::rhi::DeviceObject* resource ) -> void {
+    auto CommandList::RetainResource( const renderer::rhi::DeviceObject *resource ) -> void {
         if ( !resource ) {
             //MKT_CORE_LOGGER_WARN( "Trying to keep alive a null device object." );
             return;
@@ -3330,14 +3366,14 @@ namespace mikoto::renderer::vulkan {
         // Barriers and binds often mention the same object many times.
         // One reference per recording avoids allocation/refcount churn.
         mRecordingContext[mRecordingContextIndex].mInFlightResources.try_emplace(
-            resource, const_cast<renderer::rhi::DeviceObject*>( resource ) );
+            resource, const_cast<renderer::rhi::DeviceObject *>( resource ) );
     }
 
     auto CommandList::ReleaseCompletedResources() -> void {
         std::lock_guard lock{ mRecordingMutex };
-        const auto completed{ core::checked_cast<Queue*>( mQueue )->GetCurrentTimeline() };
+        const auto completed{ core::checked_cast<Queue *>( mQueue )->GetCurrentTimeline() };
 
-        for ( auto& context: mRecordingContext ) {
+        for ( auto &context: mRecordingContext ) {
             // A recycled slot can already hold a new recording that has not
             // been submitted. Its old timeline value must not release it.
             if ( &context == &mRecordingContext[mRecordingContextIndex] && ( mRecording || mReadyForSubmission ) ) {
@@ -3360,12 +3396,12 @@ namespace mikoto::renderer::vulkan {
 
     auto CommandList::Initialize() -> void {
         MKT_BEGIN_PROFILER();
-        mUploadManager = core::checked_cast<Device*>( mDevice )->GetUploadManager();
+        mUploadManager = core::checked_cast<Device *>( mDevice )->GetUploadManager();
 
-        Device* pDevice{ core::checked_cast<Device*>( mDevice ) };
+        Device *pDevice{ core::checked_cast<Device *>( mDevice ) };
         mRecordingContext.resize( kMaxRecordingContext );
 
-        for ( auto& item: mRecordingContext ) {
+        for ( auto &item: mRecordingContext ) {
             VkCommandPoolCreateInfo createInfo{ initializers::CommandPoolCreateInfo() };
             createInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
             createInfo.queueFamilyIndex = mQueueFamilyIndex;
@@ -3388,19 +3424,19 @@ namespace mikoto::renderer::vulkan {
 
     auto CommandList::Destroy() -> void {
         MKT_BEGIN_PROFILER();
-        Device* pDevice{ core::checked_cast<Device*>( mDevice ) };
+        Device *pDevice{ core::checked_cast<Device *>( mDevice ) };
 
 #if defined( MIKOTO_ENABLE_TRACY )
         EndGpuProfileZone();
 #endif
-        for ( auto& item: mRecordingContext ) {
+        for ( auto &item: mRecordingContext ) {
             vkFreeCommandBuffers( pDevice->GetDevice(),
                 item.mCommandPool, 1,
                 MKT_ADDRESSOF( item.mCommandBuffer ) );
 
             vkDestroyCommandPool( pDevice->GetDevice(), item.mCommandPool, nullptr );
 
-            for ( auto& subAllocations: item.mInFlightSubAllocations ) {
+            for ( auto &subAllocations: item.mInFlightSubAllocations ) {
                 // Set it to false we to tell the allocator
                 // this allocation can already be destroyed
                 subAllocations->mInUse.clear();
@@ -3422,10 +3458,10 @@ namespace mikoto::renderer::vulkan {
         ClearState( mRecordingContext[mRecordingContextIndex] );
     }
 
-    auto CommandList::ClearState( RecordingContext& context ) -> void {
+    auto CommandList::ClearState( RecordingContext &context ) -> void {
         MKT_BEGIN_PROFILER();
 
-        for ( auto* allocation: context.mInFlightSubAllocations ) {
+        for ( auto *allocation: context.mInFlightSubAllocations ) {
             allocation->mInUse.clear();
         }
 
@@ -3437,12 +3473,12 @@ namespace mikoto::renderer::vulkan {
 #endif
     }
 
-    auto SubmitSemaphoresInfo::AddCommandList( renderer::rhi::CommandListHandle cmd ) -> SubmitSemaphoresInfo& {
+    auto SubmitSemaphoresInfo::AddCommandList( renderer::rhi::CommandListHandle cmd ) -> SubmitSemaphoresInfo & {
         mCommands.emplace_back( cmd );
         return *this;
     }
 
-    auto SubmitSemaphoresInfo::AddWaitFence( renderer::rhi::FenceHandle fence, core::u64 value, VkPipelineStageFlags2 pipelineStage ) -> SubmitSemaphoresInfo& {
+    auto SubmitSemaphoresInfo::AddWaitFence( renderer::rhi::FenceHandle fence, core::u64 value, VkPipelineStageFlags2 pipelineStage ) -> SubmitSemaphoresInfo & {
         mSyncObjects.emplace_back( fence.GetPtr() );
         mWaitSemaphores.emplace_back( VkSemaphoreSubmitInfo{
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
@@ -3454,7 +3490,7 @@ namespace mikoto::renderer::vulkan {
         return *this;
     }
 
-    auto SubmitSemaphoresInfo::AddSignalFence( renderer::rhi::FenceHandle fence, core::u64 value, VkPipelineStageFlags2 pipelineStage ) -> SubmitSemaphoresInfo& {
+    auto SubmitSemaphoresInfo::AddSignalFence( renderer::rhi::FenceHandle fence, core::u64 value, VkPipelineStageFlags2 pipelineStage ) -> SubmitSemaphoresInfo & {
         mSyncObjects.emplace_back( fence.GetPtr() );
         mSignalSemaphores.emplace_back( VkSemaphoreSubmitInfo{
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
@@ -3466,7 +3502,7 @@ namespace mikoto::renderer::vulkan {
         return *this;
     }
 
-    auto SubmitSemaphoresInfo::AddWaitSemaphore( BinarySemaphoreHandle semaphore, VkPipelineStageFlags2 pipelineStage ) -> SubmitSemaphoresInfo& {
+    auto SubmitSemaphoresInfo::AddWaitSemaphore( BinarySemaphoreHandle semaphore, VkPipelineStageFlags2 pipelineStage ) -> SubmitSemaphoresInfo & {
         mSyncObjects.emplace_back( semaphore.GetPtr() );
         mWaitSemaphores.emplace_back( VkSemaphoreSubmitInfo{
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
@@ -3478,7 +3514,7 @@ namespace mikoto::renderer::vulkan {
         return *this;
     }
 
-    auto SubmitSemaphoresInfo::AddSignalSemaphore( BinarySemaphoreHandle semaphore, VkPipelineStageFlags2 pipelineStage ) -> SubmitSemaphoresInfo& {
+    auto SubmitSemaphoresInfo::AddSignalSemaphore( BinarySemaphoreHandle semaphore, VkPipelineStageFlags2 pipelineStage ) -> SubmitSemaphoresInfo & {
         mSyncObjects.emplace_back( semaphore.GetPtr() );
         mSignalSemaphores.emplace_back( VkSemaphoreSubmitInfo{
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
@@ -3511,7 +3547,7 @@ namespace mikoto::renderer::vulkan {
 
     auto Queue::Initialize() -> void {
         MKT_BEGIN_PROFILER();
-        Device* device{ core::checked_cast<Device*>( mDevice ) };
+        Device *device{ core::checked_cast<Device *>( mDevice ) };
 
         vkGetDeviceQueue( device->GetDevice(), mFamilyIndex, mQueueIndex, MKT_ADDRESSOF( mQueue ) );
 
@@ -3536,7 +3572,7 @@ namespace mikoto::renderer::vulkan {
             return;
         }
 
-        auto* device{ core::checked_cast<Device*>( mDevice ) };
+        auto *device{ core::checked_cast<Device *>( mDevice ) };
         if ( !device->GetQueryCapabilities( QueryType::eTimestamp, QueueType::eGraphics ).mSupported ) {
             return;
         }
@@ -3564,8 +3600,10 @@ namespace mikoto::renderer::vulkan {
         }
 
         constexpr char kName[]{ "Vulkan Graphics" };
-        auto* profiler{ tracy::CreateVkContext( device->GetPhysicalDevice()->mPhysicalDevice, calibration.mDevice, mQueue, commands, nullptr, nullptr ) };
-        mGpuProfiler.reset( profiler, []( tracy::VkCtx* context ) { TracyVkDestroy( context ); } );
+        auto *profiler{ tracy::CreateVkContext( device->GetPhysicalDevice()->mPhysicalDevice, calibration.mDevice, mQueue, commands, nullptr, nullptr ) };
+        mGpuProfiler.reset( profiler, []( tracy::VkCtx *context ) {
+            TracyVkDestroy( context );
+        } );
         TracyVkContextName( profiler, kName, sizeof( kName ) - 1 );
     }
 #endif
@@ -3587,29 +3625,29 @@ namespace mikoto::renderer::vulkan {
         mIsAllocated = false;
     }
 
-    auto Queue::Present( const VkPresentInfoKHR& info ) -> VkResult {
+    auto Queue::Present( const VkPresentInfoKHR &info ) -> VkResult {
         MKT_BEGIN_PROFILER();
         std::lock_guard lock{ mSubmissionMutex };
         return vkQueuePresentKHR( mQueue, MKT_ADDRESSOF( info ) );
     }
 
-    auto Queue::ExecuteCommandLists( const renderer::rhi::SubmitInfo& submitInfo ) -> void {
+    auto Queue::ExecuteCommandLists( const renderer::rhi::SubmitInfo &submitInfo ) -> void {
         MKT_BEGIN_PROFILER();
 
         std::lock_guard lock{ mSubmissionMutex };
 
         eastl::fixed_vector<VkCommandBufferSubmitInfo, 10> submissions{};
 
-        for ( const auto& commandHandle: submitInfo.mCommands ) {
-            const CommandList* cmd{ core::checked_cast<const CommandList*>( commandHandle.GetPtr() ) };
+        for ( const auto &commandHandle: submitInfo.mCommands ) {
+            const CommandList *cmd{ core::checked_cast<const CommandList *>( commandHandle.GetPtr() ) };
 
             cmd->ValidateSubmission( this );
 
             VkCommandBuffer native{ cmd->GetNativeHandle( renderer::rhi::ObjectType::Vk_CmdBuffer ) };
 
-            if ( eastl::any_of( submissions.begin(), submissions.end(), [native]( const auto& entry ) {
-                return entry.commandBuffer == native;
-            } ) ) {
+            if ( eastl::any_of( submissions.begin(), submissions.end(), [native]( const auto &entry ) {
+                     return entry.commandBuffer == native;
+                 } ) ) {
                 MKT_THROW_RUNTIME_ERROR( "Vulkan submission contains the same recording twice." );
             }
 
@@ -3636,8 +3674,8 @@ namespace mikoto::renderer::vulkan {
 
         // Caller signals
         if ( !submitInfo.mSignals.empty() ) {
-            for ( const auto& [signalValue, signalFence]: submitInfo.mSignals ) {
-                const Fence* fence{ core::checked_cast<const Fence*>( signalFence.GetPtr() ) };
+            for ( const auto &[signalValue, signalFence]: submitInfo.mSignals ) {
+                const Fence *fence{ core::checked_cast<const Fence *>( signalFence.GetPtr() ) };
                 signalInfos.emplace_back( VkSemaphoreSubmitInfo{
                     .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
                     .pNext = nullptr,
@@ -3653,8 +3691,8 @@ namespace mikoto::renderer::vulkan {
 
         // Caller waits
         if ( !submitInfo.mWaits.empty() ) {
-            for ( const auto& [waitValue, waitFence]: submitInfo.mWaits ) {
-                const Fence* fence{ core::checked_cast<const Fence*>( waitFence.GetPtr() ) };
+            for ( const auto &[waitValue, waitFence]: submitInfo.mWaits ) {
+                const Fence *fence{ core::checked_cast<const Fence *>( waitFence.GetPtr() ) };
                 waitInfos.emplace_back( VkSemaphoreSubmitInfo{
                     .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
                     .pNext = nullptr,
@@ -3692,7 +3730,7 @@ namespace mikoto::renderer::vulkan {
 
             // Failed submissions never own a command list or its staging allocations.
             for ( auto command: submitInfo.mCommands ) {
-                core::checked_cast<CommandList*>( command.GetPtr() )->MarkExecuted( this, mTimelineValue );
+                core::checked_cast<CommandList *>( command.GetPtr() )->MarkExecuted( this, mTimelineValue );
             }
 
             vkQueueEndDebugUtilsLabelEXT( mQueue );
@@ -3716,7 +3754,7 @@ namespace mikoto::renderer::vulkan {
     auto Queue::WaitCompletionValue( core::u64 value ) -> void {
         MKT_BEGIN_PROFILER();
 
-        Device* device{ core::checked_cast<Device*>( mDevice ) };
+        Device *device{ core::checked_cast<Device *>( mDevice ) };
         VkSemaphore semaphore{ mTimelineSemaphore->GetNativeHandle( renderer::rhi::ObjectType::Vk_Semaphore ) };
 
         VkSemaphoreWaitInfo waitInfo{
@@ -3729,7 +3767,7 @@ namespace mikoto::renderer::vulkan {
         MKT_VK_CHECK( vkWaitSemaphores( device->GetDevice(), &waitInfo, UINT64_MAX ) );
     }
 
-    auto Queue::ExecuteCommandLists( SubmitSemaphoresInfo&& submitInfo ) -> core::u64 {
+    auto Queue::ExecuteCommandLists( SubmitSemaphoresInfo &&submitInfo ) -> core::u64 {
         MKT_BEGIN_PROFILER();
 
         // A frame without an acquired image still needs its completion signal.
@@ -3740,17 +3778,17 @@ namespace mikoto::renderer::vulkan {
         std::lock_guard lock{ mSubmissionMutex };
 
         const core::u64 submissionID{ mTimelineValue };
-        Fence* timeline{ core::checked_cast<Fence*>( mTimelineSemaphore.GetPtr() ) };
+        Fence *timeline{ core::checked_cast<Fence *>( mTimelineSemaphore.GetPtr() ) };
 
         eastl::fixed_vector<VkCommandBufferSubmitInfo, kMaxSubmits> cmdInfos{};
 
-        for ( auto& commandHandle: submitInfo.mCommands ) {
-            CommandList* pCommandList{ core::checked_cast<CommandList*>( commandHandle.GetPtr() ) };
+        for ( auto &commandHandle: submitInfo.mCommands ) {
+            CommandList *pCommandList{ core::checked_cast<CommandList *>( commandHandle.GetPtr() ) };
             VkCommandBuffer native{ *pCommandList };
 
-            if ( eastl::any_of( cmdInfos.begin(), cmdInfos.end(), [native]( const auto& entry ) {
-                return entry.commandBuffer == native;
-            } ) ) {
+            if ( eastl::any_of( cmdInfos.begin(), cmdInfos.end(), [native]( const auto &entry ) {
+                     return entry.commandBuffer == native;
+                 } ) ) {
                 MKT_THROW_RUNTIME_ERROR( "Vulkan submission contains the same recording twice." );
             }
 
@@ -3801,7 +3839,7 @@ namespace mikoto::renderer::vulkan {
             MKT_VK_CHECK( vkQueueSubmit2( mQueue, 1, &queueSubmitInfo, VK_NULL_HANDLE ) );
 
             for ( auto command: submitInfo.mCommands ) {
-                core::checked_cast<CommandList*>( command.GetPtr() )->MarkExecuted( this, submissionID );
+                core::checked_cast<CommandList *>( command.GetPtr() )->MarkExecuted( this, submissionID );
             }
 
             vkQueueEndDebugUtilsLabelEXT( mQueue );
@@ -3857,7 +3895,7 @@ namespace mikoto::renderer::vulkan {
         return mFamilyIndex;
     }
 
-    auto IDescriptorAllocatorPool::Create( const VkDevice& device, core::i32 nFrames ) -> eastl::unique_ptr<IDescriptorAllocatorPool> {
+    auto IDescriptorAllocatorPool::Create( const VkDevice &device, core::i32 nFrames ) -> eastl::unique_ptr<IDescriptorAllocatorPool> {
         auto impl{ eastl::make_unique<DescriptorAllocatorPoolImpl>() };
         impl->mDevice = device;
         impl->mFrameIndex = 0;
@@ -3871,14 +3909,14 @@ namespace mikoto::renderer::vulkan {
     }
 
     DescriptorAllocatorHandle::~DescriptorAllocatorHandle() {
-        auto* implPool{ as<DescriptorAllocatorPoolImpl*>( mOwnerPool ) };
+        auto *implPool{ as<DescriptorAllocatorPoolImpl *>( mOwnerPool ) };
 
         if ( implPool ) {
             implPool->ReturnAllocator( *this, false );
         }
     }
 
-    DescriptorAllocatorHandle::DescriptorAllocatorHandle( DescriptorAllocatorHandle&& other ) noexcept {
+    DescriptorAllocatorHandle::DescriptorAllocatorHandle( DescriptorAllocatorHandle &&other ) noexcept {
         MKT_BEGIN_PROFILER();
 
         Return();
@@ -3892,7 +3930,7 @@ namespace mikoto::renderer::vulkan {
         other.mDescriptorPool = VkDescriptorPool{};
     }
 
-    auto DescriptorAllocatorHandle::operator=( DescriptorAllocatorHandle&& other ) noexcept -> DescriptorAllocatorHandle& {
+    auto DescriptorAllocatorHandle::operator=( DescriptorAllocatorHandle &&other ) noexcept -> DescriptorAllocatorHandle & {
         MKT_BEGIN_PROFILER();
 
         Return();
@@ -3910,7 +3948,7 @@ namespace mikoto::renderer::vulkan {
 
     auto DescriptorAllocatorHandle::Return() -> void {
         MKT_BEGIN_PROFILER();
-        auto* implPool{ core::as<DescriptorAllocatorPoolImpl*>( mOwnerPool ) };
+        auto *implPool{ core::as<DescriptorAllocatorPoolImpl *>( mOwnerPool ) };
 
         if ( implPool ) {
             implPool->ReturnAllocator( *this, false );
@@ -3921,9 +3959,9 @@ namespace mikoto::renderer::vulkan {
         mOwnerPool = nullptr;
     }
 
-    auto DescriptorAllocatorHandle::Allocate( const VkDescriptorSetLayout& layout, VkDescriptorSet& builtSet ) -> bool {
+    auto DescriptorAllocatorHandle::Allocate( const VkDescriptorSetLayout &layout, VkDescriptorSet &builtSet ) -> bool {
         MKT_BEGIN_PROFILER();
-        auto* implPool{ core::as<DescriptorAllocatorPoolImpl*>( mOwnerPool ) };
+        auto *implPool{ core::as<DescriptorAllocatorPoolImpl *>( mOwnerPool ) };
 
         VkDescriptorSetAllocateInfo allocInfo;
         allocInfo.pNext = nullptr;
@@ -3967,7 +4005,7 @@ namespace mikoto::renderer::vulkan {
         sizes.reserve( mPoolSizes.mSizes.size() );
 
         for ( auto sz: mPoolSizes.mSizes ) {
-            sizes.push_back( { sz.mType, (u32)( sz.mMultiplier * count ) } );
+            sizes.push_back( { sz.mType, ( u32 )( sz.mMultiplier * count ) } );
         }
 
         VkDescriptorPoolCreateInfo pool_info = {};
@@ -3990,7 +4028,7 @@ namespace mikoto::renderer::vulkan {
             vkDestroyDescriptorPool( mDevice, allocator.mPool, nullptr );
         }
 
-        for ( auto&& storage: mDescriptorPools ) {
+        for ( auto &&storage: mDescriptorPools ) {
             for ( DescriptorAllocator allocator: storage->mFullAllocators ) {
                 vkDestroyDescriptorPool( mDevice, allocator.mPool, nullptr );
             }
@@ -4026,7 +4064,7 @@ namespace mikoto::renderer::vulkan {
     auto DescriptorAllocatorPoolImpl::SetPoolSizeMultiplier( VkDescriptorType type, float multiplier ) -> void {
         MKT_BEGIN_PROFILER();
 
-        for ( auto& s: mPoolSizes.mSizes ) {
+        for ( auto &s: mPoolSizes.mSizes ) {
             if ( s.mType == type ) {
                 s.mMultiplier = multiplier;
                 return;
@@ -4040,7 +4078,7 @@ namespace mikoto::renderer::vulkan {
         mPoolSizes.mSizes.push_back( newSize );
     }
 
-    auto DescriptorAllocatorPoolImpl::ReturnAllocator( DescriptorAllocatorHandle& handle, bool bIsFull ) -> void {
+    auto DescriptorAllocatorPoolImpl::ReturnAllocator( DescriptorAllocatorHandle &handle, bool bIsFull ) -> void {
         MKT_BEGIN_PROFILER();
         std::lock_guard<std::mutex> lk( mPoolMutex );
 
@@ -4105,7 +4143,7 @@ namespace mikoto::renderer::vulkan {
 
         mDebugName = name;
 
-        auto* device{ core::checked_cast<Device*>( mDevice ) };
+        auto *device{ core::checked_cast<Device *>( mDevice ) };
         device->SetDebugName( VK_OBJECT_TYPE_SEMAPHORE, core::rc_cast<core::u64>( mSemaphore ), mDebugName );
     }
 
@@ -4148,7 +4186,7 @@ namespace mikoto::renderer::vulkan {
 
     auto BinarySemaphore::Initialize() -> void {
         MKT_BEGIN_PROFILER();
-        auto* device{ core::checked_cast<Device*>( mDevice ) };
+        auto *device{ core::checked_cast<Device *>( mDevice ) };
 
         VkSemaphoreCreateInfo info{ initializers::SemaphoreCreateInfo() };
         MKT_VK_CHECK( vkCreateSemaphore( device->GetDevice(), MKT_ADDRESSOF( info ), nullptr, MKT_ADDRESSOF( mSemaphore ) ) );
@@ -4157,20 +4195,20 @@ namespace mikoto::renderer::vulkan {
 
     auto BinarySemaphore::Destroy() -> void {
         MKT_BEGIN_PROFILER();
-        auto* device{ core::checked_cast<Device*>( mDevice ) };
+        auto *device{ core::checked_cast<Device *>( mDevice ) };
         vkDestroySemaphore( device->GetDevice(), mSemaphore, nullptr );
         mIsAllocated = false;
     }
 
-    GpuUploadManager::GpuUploadManager( renderer::rhi::IGpuDevice* device )
+    GpuUploadManager::GpuUploadManager( renderer::rhi::IGpuDevice *device )
         : mDevice{ device } {
     }
 
-    auto GpuUploadManager::SubAllocate( core::usize byteSize, core::usize alignment ) -> GpuUploadAllocation* {
+    auto GpuUploadManager::SubAllocate( core::usize byteSize, core::usize alignment ) -> GpuUploadAllocation * {
         MKT_BEGIN_PROFILER();
         std::lock_guard lock{ mMutex };
 
-        StagingAllocation* stagingAlloc{};
+        StagingAllocation *stagingAlloc{};
         eastl::optional<memory::Allocation> subAllocProperties{};
 
         // Find the first allocation I can suballocate from and lock it
@@ -4184,7 +4222,7 @@ namespace mikoto::renderer::vulkan {
         }
         else {
             // Try to find any buffer that has ranges available
-            for ( auto& bufferInfo: mBuffers | std::views::values ) {
+            for ( auto &bufferInfo: mBuffers | std::views::values ) {
                 stagingAlloc = bufferInfo.get();
                 subAllocProperties = stagingAlloc->mMemoryArena->Allocate( byteSize, alignment );
 
@@ -4203,9 +4241,9 @@ namespace mikoto::renderer::vulkan {
         MKT_ASSERT( subAllocProperties.has_value() && subAllocProperties->mSize >= byteSize, "Failed to sub-allocate" );
 
         // Fill params
-        GpuUploadAllocation* result{ CreateSubAllocation( stagingAlloc->mBuffer.GetPtr() ) };
+        GpuUploadAllocation *result{ CreateSubAllocation( stagingAlloc->mBuffer.GetPtr() ) };
 
-        result->mMappedMemory = core::as<core::ubyte*>( core::checked_cast<Buffer*>( stagingAlloc->mBuffer.GetPtr() )->GetMappedAddress() ) + subAllocProperties->mOffset;
+        result->mMappedMemory = core::as<core::ubyte *>( core::checked_cast<Buffer *>( stagingAlloc->mBuffer.GetPtr() )->GetMappedAddress() ) + subAllocProperties->mOffset;
         result->mSize = subAllocProperties->mSize;
         result->mOffset = subAllocProperties->mOffset;
         result->mBuffer = stagingAlloc->mBuffer.GetPtr();
@@ -4222,7 +4260,7 @@ namespace mikoto::renderer::vulkan {
         auto it{ mSubAllocations.begin() };
 
         for ( ; it != mSubAllocations.end(); ) {
-            auto& [buffer, subAllocations]{ *it };
+            auto &[buffer, subAllocations]{ *it };
             // Is it safe to return them back here?
             for ( auto itSub{ subAllocations.begin() }; itSub != subAllocations.end(); ) {
                 if ( itSub->get() && !( *itSub )->mInUse.test() ) {
@@ -4251,7 +4289,7 @@ namespace mikoto::renderer::vulkan {
         mSubAllocations.clear();
     }
 
-    auto GpuUploadManager::CreateBuffer( core::usize minimumSize ) -> StagingAllocation* {
+    auto GpuUploadManager::CreateBuffer( core::usize minimumSize ) -> StagingAllocation * {
         MKT_BEGIN_PROFILER();
         auto bufferDes{ renderer::rhi::BufferCreateDescription{}
             .SetByteSize( minimumSize )
@@ -4263,7 +4301,7 @@ namespace mikoto::renderer::vulkan {
 
         result->SetDebugName( string::Format( "Device UploadBuffer Size: {}", minimumSize ) );
 
-        auto& newAllocation{ mBuffers[result.GetPtr()] };
+        auto &newAllocation{ mBuffers[result.GetPtr()] };
         newAllocation = eastl::make_unique<StagingAllocation>();
         newAllocation->mBuffer = result;
         newAllocation->mMemoryArena = eastl::make_unique<memory::MemoryArena<renderer::rhi::IBuffer, memory::FreeListFirstFitAllocator>>( result, minimumSize );
@@ -4271,15 +4309,15 @@ namespace mikoto::renderer::vulkan {
         return newAllocation.get();
     }
 
-    auto GpuUploadManager::CreateSubAllocation( renderer::rhi::IBuffer* buffer ) -> GpuUploadAllocation* {
+    auto GpuUploadManager::CreateSubAllocation( renderer::rhi::IBuffer *buffer ) -> GpuUploadAllocation * {
         MKT_BEGIN_PROFILER();
-        auto& result{ mSubAllocations[buffer].emplace_back( eastl::make_unique<GpuUploadAllocation>() ) };
+        auto &result{ mSubAllocations[buffer].emplace_back( eastl::make_unique<GpuUploadAllocation>() ) };
         return result.get();
     }
 
     auto Fence::GetCompletionValue() const -> core::u64 {
         MKT_BEGIN_PROFILER();
-        Device* device{ core::checked_cast<Device*>( mDevice ) };
+        Device *device{ core::checked_cast<Device *>( mDevice ) };
 
         MKT_VK_CHECK( vkGetSemaphoreCounterValue( device->GetDevice(), mSemaphore, MKT_ADDRESSOF( mTimeline ) ) );
 
@@ -4288,7 +4326,7 @@ namespace mikoto::renderer::vulkan {
 
     auto Fence::Signal( core::u64 fenceValue ) -> bool {
         MKT_BEGIN_PROFILER();
-        Device* device{ core::checked_cast<Device*>( mDevice ) };
+        Device *device{ core::checked_cast<Device *>( mDevice ) };
 
         VkSemaphoreSignalInfo signalInfo{
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO,
@@ -4301,7 +4339,7 @@ namespace mikoto::renderer::vulkan {
 
     auto Fence::Wait( core::u64 fenceValue, core::u64 timeoutMs ) -> bool {
         MKT_BEGIN_PROFILER();
-        Device* device{ core::checked_cast<Device*>( mDevice ) };
+        Device *device{ core::checked_cast<Device *>( mDevice ) };
 
         VkSemaphoreWaitInfo waitInfo{
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
@@ -4337,7 +4375,7 @@ namespace mikoto::renderer::vulkan {
 
         mDebugName = name;
 
-        auto* device{ core::checked_cast<Device*>( mDevice ) };
+        auto *device{ core::checked_cast<Device *>( mDevice ) };
         device->SetDebugName( VK_OBJECT_TYPE_SEMAPHORE, core::rc_cast<core::u64>( mSemaphore ), mDebugName );
     }
 
@@ -4380,7 +4418,7 @@ namespace mikoto::renderer::vulkan {
 
     auto Fence::Initialize() -> void {
         MKT_BEGIN_PROFILER();
-        auto* device{ core::checked_cast<Device*>( mDevice ) };
+        auto *device{ core::checked_cast<Device *>( mDevice ) };
 
         VkSemaphoreTypeCreateInfo typeCreateInfo{ initializers::SemaphoreTypeCreateInfo() };
         typeCreateInfo.initialValue = mTimeline;
@@ -4395,18 +4433,18 @@ namespace mikoto::renderer::vulkan {
 
     auto Fence::Destroy() -> void {
         MKT_BEGIN_PROFILER();
-        auto* device{ core::checked_cast<Device*>( mDevice ) };
+        auto *device{ core::checked_cast<Device *>( mDevice ) };
         vkDestroySemaphore( device->GetDevice(), mSemaphore, nullptr );
 
         mIsAllocated = false;
     }
 
-    auto DescriptorWriter::WriteAccelerationStructure( core::u32 binding, VkAccelerationStructureKHR structure, core::u32 arrayIndex ) -> DescriptorWriter& {
+    auto DescriptorWriter::WriteAccelerationStructure( core::u32 binding, VkAccelerationStructureKHR structure, core::u32 arrayIndex ) -> DescriptorWriter & {
         MKT_BEGIN_PROFILER();
 
         // The pNext payload and its handle must outlive this method, just like image and buffer infos.
-        auto& handle{ mAccelerationStructures.emplace_back( structure ) };
-        auto& info{ mAccelerationInfos.emplace_back( VkWriteDescriptorSetAccelerationStructureKHR{
+        auto &handle{ mAccelerationStructures.emplace_back( structure ) };
+        auto &info{ mAccelerationInfos.emplace_back( VkWriteDescriptorSetAccelerationStructureKHR{
             .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR,
             .accelerationStructureCount = 1,
             .pAccelerationStructures = MKT_ADDRESSOF( handle ) } ) };
@@ -4422,9 +4460,9 @@ namespace mikoto::renderer::vulkan {
         return *this;
     }
 
-    auto DescriptorWriter::WriteSampler( core::u32 binding, VkSampler sampler, core::u32 arrayIndex ) -> DescriptorWriter& {
+    auto DescriptorWriter::WriteSampler( core::u32 binding, VkSampler sampler, core::u32 arrayIndex ) -> DescriptorWriter & {
         MKT_BEGIN_PROFILER();
-        VkDescriptorImageInfo& info{ mImageInfos.emplace_back( VkDescriptorImageInfo{
+        VkDescriptorImageInfo &info{ mImageInfos.emplace_back( VkDescriptorImageInfo{
             .sampler = sampler,
             .imageView = VK_NULL_HANDLE,
             .imageLayout = VK_IMAGE_LAYOUT_UNDEFINED } ) };
@@ -4443,7 +4481,7 @@ namespace mikoto::renderer::vulkan {
         return *this;
     }
 
-    auto DescriptorWriter::WriteBuffer( core::u32 binding, VkBuffer buffer, core::usize size, core::usize offset, VkDescriptorType type, core::u32 arrayIndex ) -> DescriptorWriter& {
+    auto DescriptorWriter::WriteBuffer( core::u32 binding, VkBuffer buffer, core::usize size, core::usize offset, VkDescriptorType type, core::u32 arrayIndex ) -> DescriptorWriter & {
         MKT_BEGIN_PROFILER();
         // Descriptor types allowed for a buffer
         // VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
@@ -4454,7 +4492,7 @@ namespace mikoto::renderer::vulkan {
         // When we want to bind one or the other type into a shader, we set the correct type here.
         // Remember that it needs to match the usage when allocating the VkBuffer
 
-        VkDescriptorBufferInfo& info{ mBufferInfos.emplace_back( VkDescriptorBufferInfo{
+        VkDescriptorBufferInfo &info{ mBufferInfos.emplace_back( VkDescriptorBufferInfo{
             .buffer = buffer,
             .offset = offset,
             .range = size,
@@ -4474,13 +4512,13 @@ namespace mikoto::renderer::vulkan {
         return *this;
     }
 
-    auto DescriptorWriter::WriteImage( core::u32 binding, VkImageView image, VkDescriptorType type, VkImageLayout layout, core::u32 arrayIndex ) -> DescriptorWriter& {
+    auto DescriptorWriter::WriteImage( core::u32 binding, VkImageView image, VkDescriptorType type, VkImageLayout layout, core::u32 arrayIndex ) -> DescriptorWriter & {
         MKT_BEGIN_PROFILER();
         // The layout is going to be almost always either VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
         // the best layout to use for accessing textures in the shaders, or VK_IMAGE_LAYOUT_GENERAL
         // when we are using them from compute shaders and writing them.
 
-        VkDescriptorImageInfo& info{ mImageInfos.emplace_back( VkDescriptorImageInfo{
+        VkDescriptorImageInfo &info{ mImageInfos.emplace_back( VkDescriptorImageInfo{
             .imageView = image,
             .imageLayout = layout } ) };
 
@@ -4498,7 +4536,7 @@ namespace mikoto::renderer::vulkan {
         return *this;
     }
 
-    auto DescriptorWriter::SetVisibility( VkShaderStageFlags visibility ) -> DescriptorWriter& {
+    auto DescriptorWriter::SetVisibility( VkShaderStageFlags visibility ) -> DescriptorWriter & {
         MKT_BEGIN_PROFILER();
         mShaderStages |= visibility;
         return *this;
@@ -4516,18 +4554,18 @@ namespace mikoto::renderer::vulkan {
     auto DescriptorWriter::UpdateSet( VkDevice device, VkDescriptorSet set ) -> void {
         MKT_BEGIN_PROFILER();
 
-        for ( VkWriteDescriptorSet& write: mWrites ) {
+        for ( VkWriteDescriptorSet &write: mWrites ) {
             write.dstSet = set;
         }
 
         vkUpdateDescriptorSets( device, core::as<core::u32>( mWrites.size() ), mWrites.data(), 0, nullptr );
     }
 
-    BindingLayout::BindingLayout( const renderer::rhi::BindingLayoutDescription& desc )
+    BindingLayout::BindingLayout( const renderer::rhi::BindingLayoutDescription &desc )
         : mSetIndex{ desc.mRegisterSpace }, mIsBindless{ false }, mBindingLayoutDesc{ desc } {
     }
 
-    BindingLayout::BindingLayout( const renderer::rhi::DescriptorTableLayoutDescription& desc )
+    BindingLayout::BindingLayout( const renderer::rhi::DescriptorTableLayoutDescription &desc )
         : mSetIndex{ desc.mRegisterSpace }, mIsBindless{ true }, mBindlessLayoutDesc{ desc } {
     }
 
@@ -4541,7 +4579,7 @@ namespace mikoto::renderer::vulkan {
         return mIsBindless;
     }
 
-    auto BindingLayout::GetBindlessLayoutDesc() const -> const renderer::rhi::DescriptorTableLayoutDescription& {
+    auto BindingLayout::GetBindlessLayoutDesc() const -> const renderer::rhi::DescriptorTableLayoutDescription & {
         MKT_BEGIN_PROFILER();
         return mBindlessLayoutDesc;
     }
@@ -4555,7 +4593,7 @@ namespace mikoto::renderer::vulkan {
 
         mDebugName = name;
 
-        auto* device{ core::checked_cast<Device*>( mDevice ) };
+        auto *device{ core::checked_cast<Device *>( mDevice ) };
         device->SetDebugName( VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, core::rc_cast<core::u64>( mDescriptorSetLayout ), mDebugName );
     }
 
@@ -4606,9 +4644,9 @@ namespace mikoto::renderer::vulkan {
             bindings.reserve( mBindlessLayoutDesc.mSlots.size() );
             flags.reserve( mBindlessLayoutDesc.mSlots.size() );
 
-            for ( auto& item: mBindlessLayoutDesc.mSlots ) {
+            for ( auto &item: mBindlessLayoutDesc.mSlots ) {
                 if ( item.mResourceType == renderer::rhi::ResourceType::eRayTracingAccelStruct ) {
-                    auto* device{ core::checked_cast<Device*>( mDevice ) };
+                    auto *device{ core::checked_cast<Device *>( mDevice ) };
 
                     if ( !device->SupportsRayTracing() ) {
                         MKT_THROW_RUNTIME_ERROR( "Bindless TLAS descriptors are not supported by this device." );
@@ -4644,7 +4682,7 @@ namespace mikoto::renderer::vulkan {
 
             // I think Vulkan expects them in order even if you specify
             // bindings[0] for binding at binding 0, etc...
-            eastl::sort( bindings.begin(), bindings.end(), []( const auto& a, const auto& b ) {
+            eastl::sort( bindings.begin(), bindings.end(), []( const auto &a, const auto &b ) {
                 return a.binding < b.binding;
             } );
 
@@ -4663,15 +4701,15 @@ namespace mikoto::renderer::vulkan {
             };
 
             MKT_VK_CHECK( vkCreateDescriptorSetLayout(
-                core::checked_cast<Device*>( mDevice )->GetDevice(),
+                core::checked_cast<Device *>( mDevice )->GetDevice(),
                 &layoutInfo,
                 nullptr,
                 &mDescriptorSetLayout ) );
         }
         else {
             eastl::vector<VkDescriptorSetLayoutBinding> bindings{};
-    
-            for ( const auto& item: mBindingLayoutDesc.mBindings ) {
+
+            for ( const auto &item: mBindingLayoutDesc.mBindings ) {
                 VkDescriptorSetLayoutBinding binding{};
                 binding.binding = item.mSlot;
                 binding.descriptorType = GetDescriptorType( item.mType );
@@ -4692,7 +4730,7 @@ namespace mikoto::renderer::vulkan {
             };
 
             MKT_VK_CHECK( vkCreateDescriptorSetLayout(
-                core::checked_cast<Device*>( mDevice )->GetDevice(),
+                core::checked_cast<Device *>( mDevice )->GetDevice(),
                 MKT_ADDRESSOF( layoutInfo ),
                 nullptr,
                 MKT_ADDRESSOF( mDescriptorSetLayout ) ) );
@@ -4703,17 +4741,17 @@ namespace mikoto::renderer::vulkan {
 
     auto BindingLayout::Destroy() -> void {
         MKT_BEGIN_PROFILER();
-        vkDestroyDescriptorSetLayout( core::checked_cast<Device*>( mDevice )->GetDevice(), mDescriptorSetLayout, nullptr );
+        vkDestroyDescriptorSetLayout( core::checked_cast<Device *>( mDevice )->GetDevice(), mDescriptorSetLayout, nullptr );
         mIsAllocated = false;
     }
 
-    BindingTable::BindingTable( const renderer::rhi::BindingTableDescription& desc, renderer::rhi::BindingLayoutHandle layout )
+    BindingTable::BindingTable( const renderer::rhi::BindingTableDescription &desc, renderer::rhi::BindingLayoutHandle layout )
         : mBindingLayout{ layout }, mBindingDescription{ desc } {
         // Ordinary binding sets are immutable: their descriptor contents must
         // outlive every recording that retains the set.
-        for ( const auto& item: desc.mBindings ) {
+        for ( const auto &item: desc.mBindings ) {
             if ( item.mResource ) {
-                mResources.emplace_back( core::checked_cast<renderer::rhi::DeviceObject*>( item.mResource ) );
+                mResources.emplace_back( core::checked_cast<renderer::rhi::DeviceObject *>( item.mResource ) );
             }
         }
     }
@@ -4727,7 +4765,7 @@ namespace mikoto::renderer::vulkan {
 
         mDebugName = name;
 
-        auto* device{ core::checked_cast<Device*>( mDevice ) };
+        auto *device{ core::checked_cast<Device *>( mDevice ) };
         device->SetDebugName( VK_OBJECT_TYPE_DESCRIPTOR_SET, core::rc_cast<core::u64>( mDescriptorSet ), mDebugName );
     }
 
@@ -4761,27 +4799,27 @@ namespace mikoto::renderer::vulkan {
 
     auto BindingTable::Initialize() -> void {
         MKT_BEGIN_PROFILER();
-        auto* device{ core::checked_cast<Device*>( mDevice ) };
-        auto* layout{ core::checked_cast<BindingLayout*>( mBindingLayout.GetPtr() ) };
+        auto *device{ core::checked_cast<Device *>( mDevice ) };
+        auto *layout{ core::checked_cast<BindingLayout *>( mBindingLayout.GetPtr() ) };
 
         mDescriptorAllocatorHandle = device->GetDescriptorAllocator();
 
         if ( mDescriptorAllocatorHandle.Allocate( layout->GetNativeHandle( renderer::rhi::ObjectType::Vk_DescriptorSetLayout ), mDescriptorSet ) ) {
             DescriptorWriter writer{};
 
-            for ( const auto& item: mBindingDescription.mBindings ) {
+            for ( const auto &item: mBindingDescription.mBindings ) {
                 switch ( item.mResourceType ) {
                     case renderer::rhi::ResourceType::eTexture_SRV:
                         writer.WriteImage(
                             item.mBindingIndex,
-                            core::checked_cast<Texture*>( item.mResource )->GetNativeHandle( renderer::rhi::ObjectType::Vk_ImageView ),
+                            core::checked_cast<Texture *>( item.mResource )->GetNativeHandle( renderer::rhi::ObjectType::Vk_ImageView ),
                             GetDescriptorType( item.mResourceType ),
                             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
                         break;
                     case renderer::rhi::ResourceType::eTexture_UAV:
                         writer.WriteImage(
                             item.mBindingIndex,
-                            core::checked_cast<Texture*>( item.mResource )->GetRenderView( item.mSubResourceSet.mBaseMipLevel, item.mSubResourceSet.mBaseArraySlice ),
+                            core::checked_cast<Texture *>( item.mResource )->GetRenderView( item.mSubResourceSet.mBaseMipLevel, item.mSubResourceSet.mBaseArraySlice ),
                             VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
                             VK_IMAGE_LAYOUT_GENERAL );
                         break;
@@ -4794,15 +4832,15 @@ namespace mikoto::renderer::vulkan {
                     case renderer::rhi::ResourceType::eConstantBuffer:
                         writer.WriteBuffer(
                             item.mBindingIndex,
-                            core::checked_cast<Buffer*>( item.mResource )->GetNativeHandle( renderer::rhi::ObjectType::Vk_Buffer ),
-                            core::checked_cast<Buffer*>( item.mResource )->GetSizeBytes(),
+                            core::checked_cast<Buffer *>( item.mResource )->GetNativeHandle( renderer::rhi::ObjectType::Vk_Buffer ),
+                            core::checked_cast<Buffer *>( item.mResource )->GetSizeBytes(),
                             0,
                             GetDescriptorType( item.mResourceType ) );
                         break;
                     case renderer::rhi::ResourceType::eSampler:
                         writer.WriteSampler(
                             item.mBindingIndex,
-                            core::checked_cast<Sampler*>( item.mResource )->GetNativeHandle( renderer::rhi::ObjectType::Vk_Sampler ) );
+                            core::checked_cast<Sampler *>( item.mResource )->GetNativeHandle( renderer::rhi::ObjectType::Vk_Sampler ) );
                         break;
                     default:;
                 }
@@ -4816,7 +4854,7 @@ namespace mikoto::renderer::vulkan {
 
     auto BindingTable::Destroy() -> void {
         MKT_BEGIN_PROFILER();
-        auto* device{ core::checked_cast<Device*>( mDevice ) };
+        auto *device{ core::checked_cast<Device *>( mDevice ) };
         MKT_VK_CHECK( vkFreeDescriptorSets( device->GetDevice(), mDescriptorAllocatorHandle.mDescriptorPool, 1, MKT_ADDRESSOF( mDescriptorSet ) ) );
 
         mIsAllocated = false;
@@ -4835,7 +4873,7 @@ namespace mikoto::renderer::vulkan {
 
         mDebugName = name;
 
-        auto* device{ core::checked_cast<Device*>( mDevice ) };
+        auto *device{ core::checked_cast<Device *>( mDevice ) };
         device->SetDebugName( VK_OBJECT_TYPE_DESCRIPTOR_SET, core::rc_cast<core::u64>( mDescriptorSet ), mDebugName );
     }
 
@@ -4897,7 +4935,11 @@ namespace mikoto::renderer::vulkan {
         auto it{ mDescriptorTableItemIndices.find( slot ) };
 
         if ( it != mDescriptorTableItemIndices.end() ) {
-            MKT_ASSERT( !it->second.empty(), "Vulkan bindless descriptor slot capacity exhausted." );
+            // Exhaustion is a runtime condition in Release too. Dereferencing
+            // an empty free-index set corrupts its dense-map bookkeeping.
+            if ( it->second.empty() ) {
+                MKT_THROW_RUNTIME_ERROR( string::Format( "Vulkan bindless descriptor slot {} capacity exhausted.", slot ).c_str() );
+            }
 
             const renderer::rhi::DescriptorTableIndex result{ *it->second.begin() };
             it->second.erase( it->second.begin() );
@@ -4910,9 +4952,9 @@ namespace mikoto::renderer::vulkan {
 
     auto DescriptorTable::ReleaseIndex( renderer::rhi::DescriptorTableIndex index, renderer::rhi::ResourceType type, core::u32 slot ) -> void {
         std::lock_guard lock{ mDescriptorMutex };
-        const auto& layout{ static_cast<BindingLayout&>( *mBindingLayout ).GetBindlessLayoutDesc() };
+        const auto &layout{ static_cast<BindingLayout &>( *mBindingLayout ).GetBindlessLayoutDesc() };
 
-        for ( const auto& item: layout.mSlots ) {
+        for ( const auto &item: layout.mSlots ) {
             if ( item.mSlot == slot ) {
                 if ( item.mResourceType != type || index >= item.mMaxCapacity ) {
                     MKT_THROW_RUNTIME_ERROR( "Invalid bindless descriptor release." );
@@ -4932,13 +4974,13 @@ namespace mikoto::renderer::vulkan {
 
     auto DescriptorTable::Initialize() -> void {
         MKT_BEGIN_PROFILER();
-        auto* device{ core::checked_cast<Device*>( mDevice ) };
-        auto* layout{ core::checked_cast<BindingLayout*>( mBindingLayout.GetPtr() ) };
+        auto *device{ core::checked_cast<Device *>( mDevice ) };
+        auto *layout{ core::checked_cast<BindingLayout *>( mBindingLayout.GetPtr() ) };
 
         mDescriptorAllocatorHandle = device->GetDescriptorAllocator();
         ( void )mDescriptorAllocatorHandle.Allocate( layout->GetNativeHandle( renderer::rhi::ObjectType::Vk_DescriptorSetLayout ), mDescriptorSet );
 
-        for ( const auto& item: layout->GetBindlessLayoutDesc().mSlots ) {
+        for ( const auto &item: layout->GetBindlessLayoutDesc().mSlots ) {
             mSlotSize[item.mSlot] = item.mMaxCapacity;
 
             for ( renderer::rhi::DescriptorTableIndex index{}; index < item.mMaxCapacity; ++index ) {
@@ -4951,7 +4993,7 @@ namespace mikoto::renderer::vulkan {
 
     auto DescriptorTable::Destroy() -> void {
         MKT_BEGIN_PROFILER();
-        auto* device{ core::checked_cast<Device*>( mDevice ) };
+        auto *device{ core::checked_cast<Device *>( mDevice ) };
         MKT_VK_CHECK( vkFreeDescriptorSets(
             device->GetDevice(),
             mDescriptorAllocatorHandle.mDescriptorPool,
@@ -4961,11 +5003,11 @@ namespace mikoto::renderer::vulkan {
         mIsAllocated = false;
     }
 
-    InputLayout::InputLayout( const renderer::rhi::InputLayoutCreateDescription& desc )
+    InputLayout::InputLayout( const renderer::rhi::InputLayoutCreateDescription &desc )
         : mDesc{ desc } {
         MKT_BEGIN_PROFILER();
 
-        for ( const auto& bindingDesc: desc.mVertexBindingDescriptions ) {
+        for ( const auto &bindingDesc: desc.mVertexBindingDescriptions ) {
             VkVertexInputBindingDescription vkBinding{};
 
             vkBinding.binding = bindingDesc.mBinding;
@@ -4979,7 +5021,7 @@ namespace mikoto::renderer::vulkan {
             mVertexBindingDescriptions.emplace_back( vkBinding );
         }
 
-        for ( const auto& attr: desc.mVertexAttributeDescriptions ) {
+        for ( const auto &attr: desc.mVertexAttributeDescriptions ) {
             VkVertexInputAttributeDescription vkAttr{};
 
             vkAttr.location = attr.mLocation;
@@ -4991,12 +5033,12 @@ namespace mikoto::renderer::vulkan {
         }
     }
 
-    auto InputLayout::GetVertexBindingDesc() const -> const eastl::fixed_vector<VkVertexInputBindingDescription, renderer::rhi::kMaxVertexBindings>& {
+    auto InputLayout::GetVertexBindingDesc() const -> const eastl::fixed_vector<VkVertexInputBindingDescription, renderer::rhi::kMaxVertexBindings> & {
         MKT_BEGIN_PROFILER();
         return mVertexBindingDescriptions;
     }
 
-    auto InputLayout::GetVertexAttributesDesc() const -> const eastl::fixed_vector<VkVertexInputAttributeDescription, renderer::rhi::kMaxVertexAttributes>& {
+    auto InputLayout::GetVertexAttributesDesc() const -> const eastl::fixed_vector<VkVertexInputAttributeDescription, renderer::rhi::kMaxVertexAttributes> & {
         MKT_BEGIN_PROFILER();
         return mVertexAttributeDescriptions;
     }
@@ -5006,7 +5048,7 @@ namespace mikoto::renderer::vulkan {
         return mVertexAttributeDescriptions.size();
     }
 
-    auto InputLayout::GetAttributeDescription( core::u32 index ) const -> const renderer::rhi::VertexAttributeDescription& {
+    auto InputLayout::GetAttributeDescription( core::u32 index ) const -> const renderer::rhi::VertexAttributeDescription & {
         MKT_BEGIN_PROFILER();
         MKT_ASSERT( index < mDesc.mVertexAttributeDescriptions.size(), "Specified index out of bounds." );
         return mDesc.mVertexAttributeDescriptions.at( index );
@@ -5030,7 +5072,7 @@ namespace mikoto::renderer::vulkan {
         mIsAllocated = false;
     }
 
-    PipelineLayout::PipelineLayout( const renderer::rhi::PipelineLayoutCreateDescription& desc )
+    PipelineLayout::PipelineLayout( const renderer::rhi::PipelineLayoutCreateDescription &desc )
         : mDescription{ desc } {
     }
 
@@ -5043,7 +5085,7 @@ namespace mikoto::renderer::vulkan {
 
         mDebugName = name;
 
-        auto* device{ core::checked_cast<Device*>( mDevice ) };
+        auto *device{ core::checked_cast<Device *>( mDevice ) };
         device->SetDebugName( VK_OBJECT_TYPE_PIPELINE_LAYOUT, core::rc_cast<core::u64>( mPipelineLayout ), mDebugName );
     }
 
@@ -5086,7 +5128,7 @@ namespace mikoto::renderer::vulkan {
 
     auto PipelineLayout::Initialize() -> void {
         MKT_BEGIN_PROFILER();
-        auto* device{ core::checked_cast<Device*>( mDevice ) };
+        auto *device{ core::checked_cast<Device *>( mDevice ) };
 
         // IMPORTANT:
         // In Vulkan, VkPipelineLayoutCreateInfo::pSetLayouts is an array where each element
@@ -5109,7 +5151,7 @@ namespace mikoto::renderer::vulkan {
         // Find the highest set index
         core::u32 maxSet{ 0 };
 
-        for ( const auto& bindingLayout: mDescription.mBindingLayouts ) {
+        for ( const auto &bindingLayout: mDescription.mBindingLayouts ) {
             maxSet = eastl::max( maxSet, bindingLayout->GetRegisterSpace() );
         }
 
@@ -5118,8 +5160,8 @@ namespace mikoto::renderer::vulkan {
         eastl::vector<VkDescriptorSetLayout> setLayouts( maxSet + 1, emptySetLayout );
 
         // Place set layouts at correct set indices
-        for ( const auto& bindingLayout: mDescription.mBindingLayouts ) {
-            setLayouts[bindingLayout->GetRegisterSpace()] = *core::checked_cast<const BindingLayout*>( bindingLayout.GetPtr() );
+        for ( const auto &bindingLayout: mDescription.mBindingLayouts ) {
+            setLayouts[bindingLayout->GetRegisterSpace()] = *core::checked_cast<const BindingLayout *>( bindingLayout.GetPtr() );
         }
 
         VkPipelineLayoutCreateInfo plInfo{ initializers::PipelineLayoutCreateInfo() };
@@ -5158,27 +5200,27 @@ namespace mikoto::renderer::vulkan {
 
     auto PipelineLayout::Destroy() -> void {
         MKT_BEGIN_PROFILER();
-        auto* device{ core::checked_cast<Device*>( mDevice ) };
+        auto *device{ core::checked_cast<Device *>( mDevice ) };
 
         vkDestroyPipelineLayout( device->GetDevice(), mPipelineLayout, nullptr );
 
         mIsAllocated = false;
     }
 
-    ShaderTable::ShaderTable( const rhi::ShaderTableDescription& description )
+    ShaderTable::ShaderTable( const rhi::ShaderTableDescription &description )
         : mDescription{ description } {
-        mPipeline = rhi::RayTracingPipelineHandle{ core::checked_cast<rhi::RayTracingPipeline*>( description.mPipeline ) };
+        mPipeline = rhi::RayTracingPipelineHandle{ core::checked_cast<rhi::RayTracingPipeline *>( description.mPipeline ) };
     }
 
     ShaderTable::~ShaderTable() {
         Destroy();
     }
 
-    auto ShaderTable::GetDesc() const -> const rhi::ShaderTableDescription& {
+    auto ShaderTable::GetDesc() const -> const rhi::ShaderTableDescription & {
         return mDescription;
     }
 
-    auto ShaderTable::GetPipeline() const -> rhi::IPipeline* {
+    auto ShaderTable::GetPipeline() const -> rhi::IPipeline * {
         return mDescription.mPipeline;
     }
 
@@ -5186,7 +5228,7 @@ namespace mikoto::renderer::vulkan {
         return 1u + mDescription.mMissRecordCount + mDescription.mHitGroupRecordCount;
     }
 
-    auto ShaderTable::GetRegion( AddressRegion region ) const -> const VkStridedDeviceAddressRegionKHR& {
+    auto ShaderTable::GetRegion( AddressRegion region ) const -> const VkStridedDeviceAddressRegionKHR & {
         switch ( region ) {
             case AddressRegion::eRayGeneration:
                 return mRayGenRegion;
@@ -5201,7 +5243,7 @@ namespace mikoto::renderer::vulkan {
         MKT_THROW_RUNTIME_ERROR( "Unknown shader table region." );
     }
 
-    auto ShaderTable::GetBuffer() const -> const rhi::BufferHandle& {
+    auto ShaderTable::GetBuffer() const -> const rhi::BufferHandle & {
         return mSbtBuffer;
     }
 
@@ -5217,7 +5259,7 @@ namespace mikoto::renderer::vulkan {
     auto ShaderTable::Initialize() -> void {
         MKT_BEGIN_PROFILER();
 
-        Device* device{ core::checked_cast<Device*>( mDevice ) };
+        Device *device{ core::checked_cast<Device *>( mDevice ) };
 
         VkPhysicalDeviceRayTracingPipelinePropertiesKHR properties{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR };
 
@@ -5285,8 +5327,8 @@ namespace mikoto::renderer::vulkan {
         // commands, then we wait for that completion this blocks the caller
         // but client should ideally offload this task to worker threads
         const auto submitInfo{ renderer::rhi::SubmitInfo{}
-            .AddSignal( fence, fenceValue )
-            .AddCommandList( commands ) };
+                .AddSignal( fence, fenceValue )
+                .AddCommandList( commands ) };
         mDevice->GetQueue( renderer::rhi::QueueType::eTransfer )->ExecuteCommandLists( submitInfo );
         ( void )fence->Wait( fenceValue, eastl::numeric_limits<core::u64>::max() );
 

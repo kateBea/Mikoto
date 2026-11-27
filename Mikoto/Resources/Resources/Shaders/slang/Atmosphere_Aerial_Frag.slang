@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Integrate atmospheric scattering and transmittance to a finite camera distance. The atlas
+// stores depth slices that surfaces and volumes sample for aerial perspective.
+
 #pragma once
 
 #include "Atmosphere_Common.slang"
@@ -24,17 +27,18 @@ struct AtmosAerialOutput {
 [shader( "fragment" )]
 AtmosAerialOutput main( float2 uv : TEXCOORD0, float4 pixel : SV_Position ) {
     AtmosphereData a = Atmosphere();
-    uint slice = min( uint( pixel.y ) / 32, 31u );
-    float2 sliceUv = float2( pixel.x, pixel.y - slice * 32 ) / 32;
+    uint slice = min( uint( pixel.y ) / kAtmosAerialSliceSize, kAtmosAerialLastSlice );
+    float2 sliceUv = float2( pixel.x, pixel.y - slice * kAtmosAerialSliceSize ) / kAtmosAerialSliceSize;
 
     CameraInfo camera = ( ( BufferReference<CameraInfo> )parameters.mCamera )[0];
-    float3 origin, direction;
+    float3 origin;
+    float3 direction;
     AtmosCameraRay( camera, sliceUv, a, origin, direction );
 
     // Measure depth from where the ray enters the atmosphere. Keep the slice
     // budget for air, even when the camera is far outside the shell.
     float entry = max( 0, AtmosEntryDistance( a, origin, direction ) );
-    float depth = float( slice ) / 31;
+    float depth = float( slice ) / kAtmosAerialLastSlice;
     depth = depth * depth * a.mGround.w;
 
     AtmosIntegration result =

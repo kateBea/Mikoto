@@ -36,25 +36,28 @@ namespace mikoto::video {
 
     struct VideoPcmDataSource {
         ma_data_source_base mBase{};
-        VideoAudioStream* mStream{};
+        VideoAudioStream *mStream{};
     };
 
     class VideoAudioStream final : public core::INonCopyable {
     public:
-        VideoAudioStream( audio::AudioDevice& device, const AudioTrackInfo& track, const audio::SourceSettings& settings );
+        VideoAudioStream( audio::AudioDevice &device, const AudioTrackInfo &track, const audio::SourceSettings &settings );
         ~VideoAudioStream();
 
-        auto Push( const PcmBlock& block ) -> bool;
+        /** Updates gain/spatial processing without replacing PCM, playback state or its clock. */
+        auto SetSettings( const audio::SourceSettings &settings ) -> void;
+
+        auto Push( const PcmBlock &block ) -> bool;
         auto Finish() -> void;
-        auto GetPlaybackTime() const -> eastl::optional<core::f64>;
-        auto GetQueuedSeconds() -> core::f64;
-        auto GetSource() -> audio::AudioSource*;
+        MKT_NODISCARD auto GetPlaybackTime() const -> eastl::optional<core::f64>;
+        MKT_NODISCARD auto GetQueuedSeconds() -> core::f64;
+        MKT_NODISCARD auto GetSource() -> audio::AudioSource *;
 
         // Called by miniaudio; never decode, allocate or wait on the audio thread.
-        auto ReadFrames( void* output, core::u64 count, core::u64& read ) -> ma_result;
-        auto GetSampleRate() const -> core::u32;
-        auto GetChannels() const -> core::u32;
-        auto GetConsumedFrames() const -> core::u64;
+        auto ReadFrames( void *output, core::u64 count, core::u64 &read ) -> ma_result;
+        MKT_NODISCARD auto GetSampleRate() const -> core::u32;
+        MKT_NODISCARD auto GetChannels() const -> core::u32;
+        MKT_NODISCARD auto GetConsumedFrames() const -> core::u64;
 
     private:
         VideoPcmDataSource mDataSource{};
@@ -69,6 +72,6 @@ namespace mikoto::video {
         bool mBufferInitialized{};
         bool mDataSourceInitialized{};
     };
-}
+}// namespace mikoto::video
 
 #endif

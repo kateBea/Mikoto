@@ -18,6 +18,9 @@
 // For the sake of not having to handle this
 // geometry in CPU side I define it here
 
+// Unit-box vertex/index data for shader-generated box geometry. Callers provide the transform
+// that places this reference shape in their render space.
+
 #pragma once
 
 static const float3 boxPositions[36] =

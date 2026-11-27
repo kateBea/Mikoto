@@ -15,37 +15,37 @@
 #ifndef MIKOTO_RENDERER_CORE_COMMAND_CONTEXT_HH
 #define MIKOTO_RENDERER_CORE_COMMAND_CONTEXT_HH
 
-#include <EASTL/utility.h>
-#include <EASTL/span.h>
-#include <EASTL/vector.h>
-#include <EASTL/hash_map.h>
-#include <EASTL/string_view.h>
-#include <EASTL/fixed_vector.h>
-#include <EASTL/fixed_hash_map.h>
-#include <EASTL/fixed_hash_set.h>
-
 #include <ankerl/unordered_dense.h>
 
+#include <EASTL/fixed_hash_map.h>
+#include <EASTL/fixed_hash_set.h>
+#include <EASTL/fixed_vector.h>
+#include <EASTL/hash_map.h>
+#include <EASTL/span.h>
+#include <EASTL/string_view.h>
+#include <EASTL/utility.h>
+#include <EASTL/vector.h>
+
 #include <Core/Core.hh>
-#include <Core/Types.hh>
-#include <Core/Profiler.hh>
 #include <Core/Exception.hh>
+#include <Core/Profiler.hh>
 #include <Core/ReferenceCounted.hh>
+#include <Core/Types.hh>
 
 #include <Memory/Allocator.hh>
 #include <Memory/BufferSpan.hh>
 
-#include <Renderer/Rhi/Types.hh>
-#include <Renderer/Rhi/GpuDevice.hh>
-#include <Renderer/Rhi/CommandList.hh>
 #include <Renderer/Core/FrameGraph.hh>
+#include <Renderer/Rhi/CommandList.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
+#include <Renderer/Rhi/Types.hh>
 
 namespace mikoto::renderer {
 
     struct DrawIndirectCommand {
         core::u32 mVertexCount{};
         core::u32 mInstanceCount{};
-        core::u32 mFirstVertex{}; // Generally 0, start from very first vertex
+        core::u32 mFirstVertex{};// Generally 0, start from very first vertex
         core::u32 mFirstInstance{};
     };
 
@@ -54,9 +54,9 @@ namespace mikoto::renderer {
         core::u32 mFirstDraw{};
         FGBufferHandle mIndirectBuffer{};
 
-        auto SetBuffer( FGBufferHandle handle ) -> DrawIndirectState&;
-        auto SetDrawCount( core::u32 count ) -> DrawIndirectState&;
-        auto SetFirstDraw( core::u32 first ) -> DrawIndirectState&;
+        auto SetBuffer( FGBufferHandle handle ) -> DrawIndirectState &;
+        auto SetDrawCount( core::u32 count ) -> DrawIndirectState &;
+        auto SetFirstDraw( core::u32 first ) -> DrawIndirectState &;
     };
 
     struct RenderBeginDescription {
@@ -77,24 +77,51 @@ namespace mikoto::renderer {
 
         auto Clear() -> void;
 
-        auto SetRenderArea( const rhi::Rect& rec ) -> RenderBeginDescription&;
-        auto AddDepthTarget(FGTextureHandle target, rhi::LoadOp op = rhi::LoadOp::eClear ) -> RenderBeginDescription&;
-        auto AddRenderTarget(FGTextureHandle target, const rhi::Color& c, rhi::LoadOp op = rhi::LoadOp::eClear, core::u32 faceIndex = 0, core::u32 mipLevel = 0) -> RenderBeginDescription&;
+        auto SetRenderArea( const rhi::Rect &rec ) -> RenderBeginDescription &;
+        auto AddDepthTarget( FGTextureHandle target, rhi::LoadOp op = rhi::LoadOp::eClear ) -> RenderBeginDescription &;
+        auto AddRenderTarget( FGTextureHandle target, const rhi::Color &c, rhi::LoadOp op = rhi::LoadOp::eClear, core::u32 faceIndex = 0, core::u32 mipLevel = 0 ) -> RenderBeginDescription &;
+    };
+
+    // External SDK compute dispatches use fixed bindings instead of the shared bindless table.
+    // Internal textures enter/leave each dispatch in graph-declared UAV state. The context
+    // owns the short-lived SRV transitions; callers still declare every graph dependency.
+    struct ExternalComputeTexture {
+        FGTextureHandle mTexture{};
+        core::u32 mSlot{};
+        bool mStorage{};
+        bool mInternal{};
+    };
+
+    struct ExternalComputeDispatch {
+        rhi::IGpuDevice *mDevice{};
+        rhi::PipelineHandle mPipeline{};
+        rhi::BindingLayoutHandle mResourceLayout{};
+        rhi::BindingLayoutHandle mConstantLayout{};
+        FGBufferHandle mConstants{};
+        core::u32 mConstantSlot{};
+        eastl::span<const ExternalComputeTexture> mTextures{};
+        eastl::span<const rhi::SamplerHandle> mSamplers{};
+        core::u32 mSamplerSlot{};
+        core::uint3 mGroups{ 1, 1, 1 };
     };
 
     class CommandContext final {
     public:
-        CommandContext( FrameGraphPass* pass, FGResourceManager* resourceManager,
-            FrameGraphDescriptorAllocator* descriptorAllocator,
-            rhi::PipelineLayoutHandle pipelineLayout, FGStatisticsManager* statsManager );
+        CommandContext( FrameGraphPass *pass, FGResourceManager *resourceManager,
+            FrameGraphDescriptorAllocator *descriptorAllocator,
+            rhi::PipelineLayoutHandle pipelineLayout, FGStatisticsManager *statsManager );
 
-        auto SetVideoRecording( FGScheduler* scheduler ) -> void;
-        auto DecodeVideo( FGVideoHandle handle, const rhi::VideoDecodeDescription& description ) -> void;
+        auto SetVideoRecording( FGScheduler *scheduler ) -> void;
+        auto DecodeVideo( FGVideoHandle handle, const rhi::VideoDecodeDescription &description ) -> void;
 
-        auto BeginRender(const RenderBeginDescription & gs ) -> void;
+        auto BeginRender( const RenderBeginDescription &gs ) -> void;
         auto EndRender() -> void;
 
-        auto SetViewportState(const rhi::ViewportState & vs ) -> void;
+        auto SetViewportState( const rhi::ViewportState &vs ) -> void;
+
+        // Not all backends support this, and those who do which is basically vulkan
+        // support is limited to and dependent on the hardware
+        auto SetPolygonLineWidth( core::f32 width ) -> void;
 
         MKT_NODISCARD auto GetDeviceBufferAddress( FGBufferHandle handle ) -> core::u64;
 
@@ -120,19 +147,21 @@ namespace mikoto::renderer {
         MKT_NODISCARD auto ImportSampler( rhi::SamplerHandle handle ) -> FGSamplerHandle;
         MKT_NODISCARD auto ImportBuffer( rhi::BufferHandle handle ) -> FGBufferHandle;
 
-        // Not all backends support this, and those who do which is basically vulkan
-        // support is limited to and dependent on the hardware
-        auto SetPolygonLineWidth( core::f32 width ) -> void;
-
         auto BindPipeline( FGPipelineHandle handle ) -> void;
         auto BindShaderTable( rhi::ShaderTableHandle table ) -> void;
         auto BindShaderTable( FGShaderTableHandle table ) -> void;
 
         auto Draw( core::u32 vertexCount, core::u32 instanceCount = 1 ) -> void;
-        auto DrawIndirect( const DrawIndirectState& state ) -> void;
+        auto DrawIndirect( const DrawIndirectState &state ) -> void;
         auto Dispatch( core::u32 groupX, core::u32 groupY, core::u32 groupZ ) -> void;
 
         auto DispatchRays( core::u32 width, core::u32 height ) -> void;
+        auto DispatchExternalCompute( const ExternalComputeDispatch &dispatch ) -> void;
+
+        // SDK passes still declare every graph resource. Native recording must
+        // be followed by BindPipeline before returning to Mikoto dispatches.
+        MKT_NODISCARD auto GetCommandList() -> rhi::ICommandList *;
+        MKT_NODISCARD auto GetTexture( FGTextureHandle texture ) -> rhi::ITexture *;
 
         auto BuildAccelerationStructure( rhi::AccelStructureHandle structure ) -> void;
 
@@ -150,29 +179,29 @@ namespace mikoto::renderer {
         auto ReplaceBufferStorage( FGBufferHandle buffer, core::usize bytes ) -> void;
 
         auto CopyBuffer( FGBufferHandle dstBuffer, FGBufferHandle srcBuffer ) -> void;
-        auto CopyBuffer( FGBufferHandle dstBuffer, rhi::IBuffer* src, core::usize dstOffset ) -> void;
+        auto CopyBuffer( FGBufferHandle dstBuffer, rhi::IBuffer *src, core::usize dstOffset ) -> void;
 
         auto Copy( FGBufferHandle dstBuffer, FGTextureHandle srcImage ) -> void;
 
-        auto CopyTexture( FGTextureHandle destImage, const void* data, core::usize sizeBytes ) -> void;
+        auto CopyTexture( FGTextureHandle destImage, const void *data, core::usize sizeBytes ) -> void;
 
         // The pass declares source as copy/read and destination as copy/write.
         // This records an exact region copy; all barriers belong to the graph.
-        auto CopyTexture( FGTextureHandle source, const rhi::TextureSlice& sourceSlice, FGTextureHandle destination, const rhi::TextureSlice& destinationSlice ) -> void;
+        auto CopyTexture( FGTextureHandle source, const rhi::TextureSlice &sourceSlice, FGTextureHandle destination, const rhi::TextureSlice &destinationSlice ) -> void;
         auto ResolveTexture( FGTextureHandle source, FGTextureHandle destination ) -> void;
 
-        auto CopyBuffer( FGBufferHandle dstBuffer, const auto& data, core::usize offset ) -> void {
+        auto CopyBuffer( FGBufferHandle dstBuffer, const auto &data, core::usize offset ) -> void {
             MKT_BEGIN_PROFILER();
             CopyBuffer( dstBuffer, offset, MKT_ADDRESSOF( data ), MKT_SIZEOF( data ) );
         }
 
-        auto CopyBuffer( FGBufferHandle dstBuffer, core::usize offset, const void* ptr, core::usize sizeBytes ) -> void;
-        auto CopyBuffer( rhi::BufferHandle destination, core::usize offset, const void* data, core::usize sizeBytes ) -> void;
+        auto CopyBuffer( FGBufferHandle dstBuffer, core::usize offset, const void *ptr, core::usize sizeBytes ) -> void;
+        auto CopyBuffer( rhi::BufferHandle destination, core::usize offset, const void *data, core::usize sizeBytes ) -> void;
         auto CopyTexture( FGTextureHandle source, rhi::TextureHandle destination ) -> void;
 
-        auto PushConstants( const auto& data ) -> void {
+        auto PushConstants( const auto &data ) -> void {
             MKT_BEGIN_PROFILER();
-            const void* ptr{ MKT_ADDRESSOF( data ) };
+            const void *ptr{ MKT_ADDRESSOF( data ) };
             const core::usize size{ MKT_SIZEOF( data ) };
 
             if ( size > mPushConstantsData.size() ) {
@@ -182,6 +211,7 @@ namespace mikoto::renderer {
             mPushConstantsData.fill( 0 );
             std::memcpy( mPushConstantsData.data(), ptr, size );
         }
+
     private:
         struct CachedBottomLevel {
             core::u64 mRevision{};
@@ -193,8 +223,8 @@ namespace mikoto::renderer {
             rhi::BufferHandle mIndices{};
             rhi::AccelStructureHandle mStructure{};
 
-            MKT_NODISCARD auto CanReuse( const FGAccelerationGeometry& geometry,
-                const rhi::BufferHandle& vertices, const rhi::BufferHandle& indices ) const -> bool;
+            MKT_NODISCARD auto CanReuse( const FGAccelerationGeometry &geometry,
+                const rhi::BufferHandle &vertices, const rhi::BufferHandle &indices ) const -> bool;
         };
 
     private:
@@ -203,27 +233,27 @@ namespace mikoto::renderer {
         // Pass callbacks declare uses; only the graph records their barriers.
         auto SubmitBarriers(
             const ankerl::unordered_dense::map<FGResourceHandle,
-            eastl::pair<eastl::string, FGBarrier>>& barriers ) -> void;
+                eastl::pair<eastl::string, FGBarrier>> &barriers ) -> void;
 
-        auto SubmitBarriers( const eastl::vector<eastl::pair<FGResource*, FGBarrier>>& barriers ) -> void;
+        auto SubmitBarriers( const eastl::vector<eastl::pair<FGResource *, FGBarrier>> &barriers ) -> void;
 
         auto CacheGpuDeviceAddress( FGBufferHandle handle ) -> rhi::DeviceAddress;
 
         auto RefreshBufferCaches() -> void;
         core::u64 mBufferRevision{};
-        auto CacheResource( FGBufferHandle handle ) -> renderer::rhi::IBuffer*;
-        auto CacheResource( FGTextureHandle handle ) -> renderer::rhi::ITexture*;
+        auto CacheResource( FGBufferHandle handle ) -> renderer::rhi::IBuffer *;
+        auto CacheResource( FGTextureHandle handle ) -> renderer::rhi::ITexture *;
 
     private:
-        FrameGraphPass* mNode{};
-        FGResourceManager* mResourceManager{};
-        FrameGraphDescriptorAllocator* mDescriptorAllocator{};
+        FrameGraphPass *mNode{};
+        FGResourceManager *mResourceManager{};
+        FrameGraphDescriptorAllocator *mDescriptorAllocator{};
 
-        FGNodeStatistics* mNodeStatistics{};
+        FGNodeStatistics *mNodeStatistics{};
         rhi::CommandListStatistics mStatisticsBaseline{};
 
         rhi::CommandListHandle mCommands{};
-        FGScheduler* mScheduler{};
+        FGScheduler *mScheduler{};
         rhi::PipelineLayoutHandle mPipelineLayout{};
 
         // Contexts are pass-local; separate targets within the pass keep independent caches.
@@ -231,8 +261,8 @@ namespace mikoto::renderer {
 
         eastl::fixed_hash_map<FGResourceHandle, rhi::DeviceAddress, 20> mCachedBda{};
 
-        eastl::fixed_hash_map<FGResourceHandle, rhi::IBuffer*, 20> mCachedBuffers{};
-        eastl::fixed_hash_map<FGResourceHandle, rhi::ITexture*, 20> mCachedTextures{};
+        eastl::fixed_hash_map<FGResourceHandle, rhi::IBuffer *, 20> mCachedBuffers{};
+        eastl::fixed_hash_map<FGResourceHandle, rhi::ITexture *, 20> mCachedTextures{};
 
         eastl::array<core::ubyte, rhi::kMaxPushConstantSize> mPushConstantsData{};
     };
@@ -243,11 +273,11 @@ namespace mikoto::renderer {
     class BufferUploadBatch final {
     public:
         auto Clear() -> void;
-        auto CopyBuffer( FGBufferHandle buffer, core::usize offset, const void* data, core::usize sizeBytes ) -> void;
-        auto CopyBuffer( FGBufferHandle buffer, const auto& value, core::usize offset ) -> void {
+        auto CopyBuffer( FGBufferHandle buffer, core::usize offset, const void *data, core::usize sizeBytes ) -> void;
+        auto CopyBuffer( FGBufferHandle buffer, const auto &value, core::usize offset ) -> void {
             CopyBuffer( buffer, offset, MKT_ADDRESSOF( value ), sizeof( value ) );
         }
-        auto Submit( CommandContext& context ) -> void;
+        auto Submit( CommandContext &context ) -> void;
 
     private:
         struct Upload {

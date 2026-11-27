@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Project": "Particle Museum",
+  "Project": "Particle_Museum",
   "Assets": "Assets",
   "Cache": "Assets/.cache",
   "Scene": "Scene/Particle_Museum.mktscn",
@@ -14,13 +14,17 @@
     "RayTracedAmbientOcclusion": false,
     "SsaoEnabled": true,
     "ShadowDistance": 80,
-    "BloomEnabled": false
+    "BloomEnabled": true,
+    "BloomThreshold": 1.2,
+    "BloomIntensity": 0.22,
+    "BloomScatter": 0.65,
+    "BloomRadius": 1
   },
   "EditorCamera": {
     "NavigationMode": "Fly",
     "Position": [
       0,
-      12.5,
+      12.6,
       42
     ],
     "Direction": [

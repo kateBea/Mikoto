@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// CPU-mirrored camera matrices and shared world-to-clip projection. The explicit backend
+// correction keeps raster passes consistent with the viewport coordinate convention.
+
 #pragma once
 
 struct CameraInfo {
@@ -34,6 +37,7 @@ struct CameraInfo {
     uint64_t mAtmosphere;
     uint mAtmosphereTransmittance;
     uint mAtmosphereSampler;
+    uint64_t mClouds;
 };
 
 // Depth prepass and shaded passes must agree down to the last depth bit.

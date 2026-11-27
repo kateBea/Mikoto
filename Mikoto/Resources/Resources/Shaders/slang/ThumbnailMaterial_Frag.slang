@@ -85,9 +85,12 @@ PreviewOutput main( PreviewVertex input, bool front : SV_IsFrontFace ) {
     float3 coatNormal = normal;
     if ( model == SURFACE_CLEAR_COAT && draw.mClearCoatNormalIndex >= 0 ) {
         float2 uv = PreviewUv( draw, input, draw.mClearCoatNormalTextureSet );
-        float3 dp1 = ddx( input.mWorld ), dp2 = ddy( input.mWorld );
-        float2 duv1 = ddx( uv ), duv2 = ddy( uv );
-        float3 dp2perp = cross( dp2, coatNormal ), dp1perp = cross( coatNormal, dp1 );
+        float3 dp1 = ddx( input.mWorld );
+        float3 dp2 = ddy( input.mWorld );
+        float2 duv1 = ddx( uv );
+        float2 duv2 = ddy( uv );
+        float3 dp2perp = cross( dp2, coatNormal );
+        float3 dp1perp = cross( coatNormal, dp1 );
         float3 tangent = dp2perp * duv1.x + dp1perp * duv2.x;
         float3 bitangent = dp2perp * duv1.y + dp1perp * duv2.y;
         float lengthSquared = max( dot( tangent, tangent ), dot( bitangent, bitangent ) );
@@ -101,9 +104,12 @@ PreviewOutput main( PreviewVertex input, bool front : SV_IsFrontFace ) {
     }
     if ( model != SURFACE_FLAT && draw.mTextures0.y >= 0 ) {
         float2 uv = PreviewUv( draw, input, draw.mUv0.y );
-        float3 dp1 = ddx( input.mWorld ), dp2 = ddy( input.mWorld );
-        float2 duv1 = ddx( uv ), duv2 = ddy( uv );
-        float3 dp2perp = cross( dp2, normal ), dp1perp = cross( normal, dp1 );
+        float3 dp1 = ddx( input.mWorld );
+        float3 dp2 = ddy( input.mWorld );
+        float2 duv1 = ddx( uv );
+        float2 duv2 = ddy( uv );
+        float3 dp2perp = cross( dp2, normal );
+        float3 dp1perp = cross( normal, dp1 );
         float3 tangent = dp2perp * duv1.x + dp1perp * duv2.x;
         float3 bitangent = dp2perp * duv1.y + dp1perp * duv2.y;
         float lengthSquared = max( dot( tangent, tangent ), dot( bitangent, bitangent ) );
@@ -129,8 +135,10 @@ PreviewOutput main( PreviewVertex input, bool front : SV_IsFrontFace ) {
                      saturate( draw.mFactors.w ) );
     float3 light = scene.mLightDirection.xyz;
     float3 halfVector = normalize( view + light );
-    float nv = max( dot( normal, view ), 0.001 ), nl = saturate( dot( normal, light ) );
-    float nh = saturate( dot( normal, halfVector ) ), vh = saturate( dot( view, halfVector ) );
+    float nv = max( dot( normal, view ), 0.001 );
+    float nl = saturate( dot( normal, light ) );
+    float nh = saturate( dot( normal, halfVector ) );
+    float vh = saturate( dot( view, halfVector ) );
     float3 f0 = lerp( float3( 0.04 ), base.rgb, metallic );
     float transmission = 0;
     if ( model == SURFACE_DIELECTRIC ) {
@@ -141,7 +149,8 @@ PreviewOutput main( PreviewVertex input, bool front : SV_IsFrontFace ) {
         transmission = saturate( draw.mSurfaceShading.y );
     }
     float3 fresnel = f0 + ( 1.0 - f0 ) * pow( 1.0 - vh, 5.0 );
-    float alpha = roughness * roughness, alpha2 = alpha * alpha;
+    float alpha = roughness * roughness;
+    float alpha2 = alpha * alpha;
     float denominator = nh * nh * ( alpha2 - 1.0 ) + 1.0;
     float distribution = alpha2 / max( 3.14159265 * denominator * denominator, 1e-7 );
     float k = ( roughness + 1.0 ) * ( roughness + 1.0 ) / 8.0;
@@ -197,10 +206,8 @@ PreviewOutput main( PreviewVertex input, bool front : SV_IsFrontFace ) {
         float3 graded = max( ( saturated - 0.5 ) * draw.mFactors.z + 0.5, 0.0 ) * draw.mEmission.rgb;
         color = lerp( color, graded, draw.mEmission.a );
     }
-    if ( draw.mFlags.w > 0.5 && scene.mPreviewOptions.x > 0 ) {
-        float4 grid = PreviewGrid( input.mWorld, max( fwidth( input.mWorld.xz ), float2( 1e-6 ) ), scene.mCamera.xyz );
-        color = grid.rgb + color * ( 1 - grid.a );
-    }
+    // The environment pass draws the grid on Y=0. The raised preview ground
+    // occludes it; never paint grid lines onto the material's receiving surface.
     return PreviewResult( float4( color, draw.mFlags.x == 2.0 ? saturate( base.a ) : 1.0 ),
                           draw.mUv1.w != 0 ? emission : float3( 0 ) );
 }

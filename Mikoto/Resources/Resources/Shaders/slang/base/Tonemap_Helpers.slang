@@ -14,6 +14,9 @@
 
 // Matches renderer::ToneMappingType. ACES is the editor's default (0).
 
+// Display-range mapping operators selected by the renderer. Each operator receives exposed
+// linear HDR radiance and returns its mapped color response.
+
 #pragma once
 
 const static int c_ToneMapACES = 0;

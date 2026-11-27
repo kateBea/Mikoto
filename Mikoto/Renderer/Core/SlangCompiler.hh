@@ -15,11 +15,11 @@
 #ifndef MIKOTO_RENDERER_CORE_SLANG_COMPILER_HH
 #define MIKOTO_RENDERER_CORE_SLANG_COMPILER_HH
 
-#include <slang.h>
 #include <slang-com-ptr.h>
+#include <slang.h>
 
-#include <EASTL/vector.h>
 #include <EASTL/unique_ptr.h>
+#include <EASTL/vector.h>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
@@ -35,7 +35,7 @@ namespace mikoto::renderer {
         std::array<slang::TargetDesc, 1> mVertexTargets{};
         std::array<slang::CompilerOptionEntry, 4> mOptions{};
         std::array<slang::CompilerOptionEntry, 4> mRayOptions{};
-        std::array<slang::PreprocessorMacroDesc, 2> mMacros{};
+        std::array<slang::PreprocessorMacroDesc, 3> mMacros{};
         Slang::ComPtr<slang::IGlobalSession> mGlobal{};
         Slang::ComPtr<slang::ISession> mSession{};
         Slang::ComPtr<slang::ISession> mVertexSession{};
@@ -65,7 +65,7 @@ namespace mikoto::renderer {
         friend class RenderSystem;
 
     private:
-        SlangSessionLease( RenderSystem& owner, SlangCompilerContext &context );
+        SlangSessionLease( RenderSystem &owner, SlangCompilerContext &context );
 
     private:
         RenderSystem *mOwner{};

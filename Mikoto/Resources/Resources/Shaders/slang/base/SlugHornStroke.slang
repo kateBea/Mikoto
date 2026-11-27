@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Evaluate the analytic glyph stroke around its curve boundary. Stroke coverage augments the
+// fill coverage used by the analytic text fragment stage.
+
 #pragma once
 
 // A flat copy of SlugHorn's original curves retains horizontal edges omitted
@@ -24,7 +27,8 @@ float SlugHornStrokeCoverage( Texture2D curves, uint first, uint count,
     float reach = radius + max( length( abs( dx ) + abs( dy ) ), 1e-7 );
     float2 nearest = float2( reach, 0 );
 
-    uint width, height;
+    uint width;
+    uint height;
     curves.GetDimensions( width, height );
     for ( uint i = 0; i < count; ++i ) {
         uint address = first + 2 * i;

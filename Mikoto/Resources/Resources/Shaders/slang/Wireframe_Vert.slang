@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Project pulled scene geometry for the wireframe debug view. Instance and animation transforms
+// follow the geometry conventions of the shaded passes.
+
 #pragma once
 
 #include "base/Animation_Helpers.slang"
@@ -21,14 +24,14 @@
 #include "base/Memory_Helpers.slang"
 
 struct VSInput {
-    uint VertexID : SV_VertexID;
-    uint InstanceIndex : SV_InstanceID;
-    uint BaseInstanceIndex : SV_StartInstanceLocation;
+    uint mVertexID : SV_VertexID;
+    uint mInstanceIndex : SV_InstanceID;
+    uint mBaseInstanceIndex : SV_StartInstanceLocation;
 };
 
 struct VSOutput {
-    nointerpolation uint FaceFlags : TEXCOORD0;
-    float4 Position : SV_Position;
+    nointerpolation uint mFaceFlags : TEXCOORD0;
+    float4 mPosition : SV_Position;
 };
 
 struct DrawParams {
@@ -49,12 +52,12 @@ VSOutput main( VSInput input ) {
     VSOutput o;
 
     // Prepare vertex data
-    uint instanceIndex = input.BaseInstanceIndex + input.InstanceIndex;
+    uint instanceIndex = input.mBaseInstanceIndex + input.mInstanceIndex;
 
     // Apply skinning
     MeshGeometryInfo meshInfo = LoadMeshGeometry( parameters.mGeometryPtr, instanceIndex );
     GeometryAllocation allocation = GetGeometryAllocation( meshInfo, parameters.mGeometryDescPtr );
-    uint vertexIndex = PullVertexIndex( allocation, input.VertexID );
+    uint vertexIndex = PullVertexIndex( allocation, input.mVertexID );
     VertexDescription vertex = PullDepthVertex( meshInfo, allocation, vertexIndex );
 
     // Compute world position
@@ -63,8 +66,8 @@ VSOutput main( VSInput input ) {
     BufferReference<CameraInfo> camera = ( BufferReference<CameraInfo> )parameters.mCameraBda;
 
     // Final position
-    o.Position = mul( camera[0].mProjection, mul( camera[0].mViewMatrix, worldPos ) );
-    o.FaceFlags = meshInfo.FaceFlags;
+    o.mPosition = mul( camera[0].mProjection, mul( camera[0].mViewMatrix, worldPos ) );
+    o.mFaceFlags = meshInfo.mFaceFlags;
 
     return o;
 }

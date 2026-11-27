@@ -1,0 +1,42 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Maple bark",
+  "Material": {
+    "BaseColorFactor": [
+      1.0,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "MetallicFactor": 0,
+    "RoughnessFactor": 0.88,
+    "AlphaMask": 0,
+    "AlphaMaskCutoff": 0.4,
+    "DoubleSided": 0,
+    "ShadingModel": 0,
+    "Textures": [
+      {
+        "Map": 1,
+        "Present": true,
+        "Used": true,
+        "TexturePath": "../../Models/IslandVegetation/textures/forest_28.jpg"
+      },
+      {
+        "Map": 2,
+        "Present": true,
+        "Used": true,
+        "TexturePath": "../../Models/IslandVegetation/textures/forest_29.jpg"
+      }
+    ],
+    "FoliageWind": {
+      "Enabled": true,
+      "Height": 19.689829069189727,
+      "RootHeight": 0,
+      "TrunkBend": 0.025,
+      "BranchMotion": 0.1,
+      "LeafFlutter": 0,
+      "Frequency": 1
+    }
+  }
+}

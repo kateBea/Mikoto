@@ -38,6 +38,7 @@ namespace mikoto::renderer {
         ePostProcessAfterToneMapping,
         eSsao,
         eRayTracedAmbientOcclusion,
+        eDenoiserValidation,
         eCount,
     };
 

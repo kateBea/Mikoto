@@ -28,18 +28,18 @@ MKT_DECLARE_PUSH_CONSTANT( TextDrawParams, parameters );
 
 [shader( "fragment" )]
 float4 main( SlugTextOutput input ) : SV_Target0 {
-    float coverage = SlugRender( curveTextures[NonUniformResourceIndex( input.textures.x )],
-                                 bandTextures[NonUniformResourceIndex( input.textures.y )], input.texcoord,
-                                 input.banding, input.glyph );
+    float coverage = SlugRender( curveTextures[NonUniformResourceIndex( input.mTextures.x )],
+                                 bandTextures[NonUniformResourceIndex( input.mTextures.y )], input.mTexcoord,
+                                 input.mBanding, input.mGlyph );
 
-    if ( input.outline > 0 ) {
+    if ( input.mOutline > 0 ) {
         float outer = max( coverage, SlugStrokeCoverage(
-            curveTextures[NonUniformResourceIndex( input.textures.x )],
-            bandTextures[NonUniformResourceIndex( input.textures.y )],
-            input.texcoord, input.banding, input.glyph, input.outline ) );
-        return CompositeTextOutline( coverage, outer, input.color, input.outlineColor );
+            curveTextures[NonUniformResourceIndex( input.mTextures.x )],
+            bandTextures[NonUniformResourceIndex( input.mTextures.y )],
+            input.mTexcoord, input.mBanding, input.mGlyph, input.mOutline ) );
+        return CompositeTextOutline( coverage, outer, input.mColor, input.mOutlineColor );
     }
     // Mikoto's blend state expects straight alpha. The reference entry point
     // premultiplies RGB; retain the official coverage calculation, adapt output.
-    return float4( input.color.rgb, input.color.a * coverage );
+    return float4( input.mColor.rgb, input.mColor.a * coverage );
 }

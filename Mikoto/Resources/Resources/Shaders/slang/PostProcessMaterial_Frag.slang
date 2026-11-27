@@ -12,17 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Evaluate the configured fullscreen post-process material over scene color. Effect-specific
+// parameters select the color operations applied before the target is written.
+
 #include "base/Base.slang"
 #include "base/Memory_Helpers.slang"
 #include "base/ChromaticAberration_Helpers.slang"
 
 // Matches renderer::PostProcessMaterialData. Records compose in stable owner order.
 struct PostProcessMaterialData {
-    float4 TintColor;
-    float Contrast;
-    float Saturation;
-    uint Stage;
-    float FilmGrainAmount;
+    float4 mTintColor;
+    float mContrast;
+    float mSaturation;
+    uint mStage;
+    float mFilmGrainAmount;
 };
 
 struct DrawParams {
@@ -57,7 +60,8 @@ float4 main( float2 uv : TEXCOORD0, float4 position : SV_Position ) : SV_Target0
 
     float4 color;
     if ( any( parameters.mChromaticOffsetPixels != 0.0f ) ) {
-        uint width, height;
+        uint width;
+        uint height;
         source.GetDimensions( width, height );
         float2 pixelSize = 1.0f / float2( width, height );
         color = SampleChromaticAberration( source, sampler, uv, pixelSize, parameters.mChromaticOffsetPixels );
@@ -72,17 +76,19 @@ float4 main( float2 uv : TEXCOORD0, float4 position : SV_Position ) : SV_Target0
     for ( uint index = 0; index < parameters.mMaterialCount; ++index ) {
         PostProcessMaterialData material = materials[index];
 
-        if ( material.Stage != parameters.mStage ) { continue; }
+        if ( material.mStage != parameters.mStage ) {
+            continue;
+        }
 
         // Each material consumes the previous material's result, matching
         // PostProcessMaterial::Evaluate; identity properties preserve the input.
         float luminance = dot( color.rgb, float3( 0.2126f, 0.7152f, 0.0722f ) );
-        float3 saturated = lerp( luminance.xxx, color.rgb, material.Saturation );
-        float3 graded = max( ( saturated - 0.5f ) * material.Contrast + 0.5f, 0.0f ) * material.TintColor.rgb;
-        color.rgb = lerp( color.rgb, graded, material.TintColor.a );
+        float3 saturated = lerp( luminance.xxx, color.rgb, material.mSaturation );
+        float3 graded = max( ( saturated - 0.5f ) * material.mContrast + 0.5f, 0.0f ) * material.mTintColor.rgb;
+        color.rgb = lerp( color.rgb, graded, material.mTintColor.a );
 
-        if ( material.FilmGrainAmount > 0.0f ) {
-            color = ApplyFilmGrain( color, position.xy, parameters.mElapsedSeconds, material.FilmGrainAmount );
+        if ( material.mFilmGrainAmount > 0.0f ) {
+            color = ApplyFilmGrain( color, position.xy, parameters.mElapsedSeconds, material.mFilmGrainAmount );
         }
     }
 

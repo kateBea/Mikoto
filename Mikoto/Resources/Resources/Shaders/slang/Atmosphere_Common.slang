@@ -17,6 +17,9 @@
 // Copyright (c) 2023 Sungmin Woo (MIT).
 // https://github.com/SausageTaste/mirinae/blob/54293d427b1c107f0566a0db59935950546e1528/LICENSE
 
+// Shared atmospheric integration and LUT addressing. Distances inside the atmosphere model use
+// the units established by AtmosphereData; camera/world conversions happen at the boundary.
+
 #pragma once
 
 #include "base/Atmosphere_Helpers.slang"
@@ -34,14 +37,14 @@ static const float AtmosPi = 3.141592653589793;
 // Reuse the raster solver without importing its bindless push constants.
 AtmosphereData Atmosphere() {
     AtmosphereData a;
-    a.mRadii = asfloat( LoadBufferValue<uint4>( Parameters.ViewEffects, 0 ) );
-    a.mRayleigh = asfloat( LoadBufferValue<uint4>( Parameters.ViewEffects, 16 ) );
-    a.mMie = asfloat( LoadBufferValue<uint4>( Parameters.ViewEffects, 32 ) );
-    a.mOzone = asfloat( LoadBufferValue<uint4>( Parameters.ViewEffects, 48 ) );
-    a.mGround = asfloat( LoadBufferValue<uint4>( Parameters.ViewEffects, 64 ) );
-    a.mSunDirection = asfloat( LoadBufferValue<uint4>( Parameters.ViewEffects, 80 ) );
-    a.mSunIlluminance = asfloat( LoadBufferValue<uint4>( Parameters.ViewEffects, 96 ) );
-    a.mView = asfloat( LoadBufferValue<uint4>( Parameters.ViewEffects, 112 ) );
+    a.mRadii = asfloat( LoadBufferValue<uint4>( Parameters.mViewEffects, 0 ) );
+    a.mRayleigh = asfloat( LoadBufferValue<uint4>( Parameters.mViewEffects, 16 ) );
+    a.mMie = asfloat( LoadBufferValue<uint4>( Parameters.mViewEffects, 32 ) );
+    a.mOzone = asfloat( LoadBufferValue<uint4>( Parameters.mViewEffects, 48 ) );
+    a.mGround = asfloat( LoadBufferValue<uint4>( Parameters.mViewEffects, 64 ) );
+    a.mSunDirection = asfloat( LoadBufferValue<uint4>( Parameters.mViewEffects, 80 ) );
+    a.mSunIlluminance = asfloat( LoadBufferValue<uint4>( Parameters.mViewEffects, 96 ) );
+    a.mView = asfloat( LoadBufferValue<uint4>( Parameters.mViewEffects, 112 ) );
     return a;
 }
 
@@ -85,7 +88,8 @@ struct AtmosphereDrawParams {
 MKT_DECLARE_PUSH_CONSTANT( AtmosphereDrawParams, parameters );
 #endif
 
-MKT_DECLARE_TEXTURE_SRV( Texture2D ) textures;
+MKT_DECLARE_TEXTURE_SRV( Texture2D )
+textures;
 MKT_DECLARE_SAMPLERS samplers;
 
 AtmosphereData Atmosphere() {
@@ -128,6 +132,8 @@ struct AtmosMedium {
     float3 mExtinction;
 };
 
+// Evaluate altitude-dependent Rayleigh, Mie and ozone coefficients. Scattering adds directional
+// radiance while total extinction attenuates the ray.
 AtmosMedium AtmosSampleMedium( AtmosphereData a, float3 position ) {
     float height = max( 0, length( position ) - a.mRadii.x );
     float rayleighDensity = exp( -height / a.mRayleigh.w );
@@ -148,8 +154,8 @@ void AtmosTransmittanceRay( AtmosphereData a, float2 uv, out float3 origin, out 
     float height = sqrt( rho * rho + a.mRadii.x * a.mRadii.x );
     float distance = lerp( a.mRadii.y - height, rho + H, uv.x );
     float cosine = distance < 1e-5
-                           ? 1
-                           : clamp( ( H * H - rho * rho - distance * distance ) / ( 2 * height * distance ), -1, 1 );
+                       ? 1
+                       : clamp( ( H * H - rho * rho - distance * distance ) / ( 2 * height * distance ), -1, 1 );
     origin = float3( 0, height, 0 );
     direction = float3( sqrt( saturate( 1 - cosine * cosine ) ), cosine, 0 );
 }
@@ -157,18 +163,20 @@ void AtmosTransmittanceRay( AtmosphereData a, float2 uv, out float3 origin, out 
 float3 AtmosMultiple( AtmosphereData a, float3 position, float3 sun ) {
     float height = length( position );
     float2 uv =
-            float2( dot( position / height, sun ) * 0.5 + 0.5, ( height - a.mRadii.x ) / ( a.mRadii.y - a.mRadii.x ) );
+        float2( dot( position / height, sun ) * 0.5 + 0.5, ( height - a.mRadii.x ) / ( a.mRadii.y - a.mRadii.x ) );
     return AtmosReadMultiple( AtmosUnitToTexel( uv, float2( 32 ) ) );
 }
 
 // Integral of constant source over one segment. The limiting value is ds
 // when extinction approaches zero; that limit matters for vacuum settings.
+// Evaluate the homogeneous-segment scattering integral using its extinction. The small-
+// extinction limit avoids a numerically unstable division.
 float3 AtmosSegmentIntegral( float3 extinction, float distance ) {
     float3 tau = extinction * distance;
     float3 exact = ( 1 - exp( -tau ) ) / max( extinction, 1e-9 );
     float3 series = distance * ( 1 - 0.5 * tau );
     return float3( tau.x < 1e-3 ? series.x : exact.x, tau.y < 1e-3 ? series.y : exact.y,
-                   tau.z < 1e-3 ? series.z : exact.z );
+        tau.z < 1e-3 ? series.z : exact.z );
 }
 
 struct AtmosIntegration {
@@ -177,8 +185,10 @@ struct AtmosIntegration {
     float3 mScatteringFraction;
 };
 
+// March the atmosphere segment while tracking radiance and transmittance. Sun visibility, phase
+// functions and the multiple-scattering LUT determine the source term at each sample.
 AtmosIntegration AtmosIntegrate( AtmosphereData a, float3 origin, float3 direction, float3 sun, float maximumDistance,
-                                 uint samples, bool multiple, bool isotropic, bool groundBounce ) {
+    uint samples, bool multiple, bool isotropic, bool groundBounce ) {
     AtmosIntegration result;
     result.mRadiance = 0;
     result.mTransmittance = 1;
@@ -225,7 +235,7 @@ AtmosIntegration AtmosIntegrate( AtmosphereData a, float3 origin, float3 directi
         AtmosMedium medium = AtmosSampleMedium( a, position );
         float3 scattering = medium.mRayleigh + medium.mMie;
         float3 source =
-                AtmosSunTransmittance( a, position, sun ) * ( medium.mRayleigh * phaseR + medium.mMie * phaseM );
+            AtmosSunTransmittance( a, position, sun ) * ( medium.mRayleigh * phaseR + medium.mMie * phaseM );
         if ( multiple ) {
             source += AtmosMultiple( a, position, sun ) * scattering;
         }
@@ -246,6 +256,8 @@ AtmosIntegration AtmosIntegrate( AtmosphereData a, float3 origin, float3 directi
 }
 // Nonlinear sky-view coordinates split at the actual planetary horizon and
 // concentrate rows on either side. Azimuth is relative to the projected sun.
+// Map a sky direction into the sky-view LUT domain. The horizon-dependent mapping must be
+// inverted by AtmosSkyDirection when the LUT is generated.
 float2 AtmosSkyUv( AtmosphereData a, float3 origin, float3 direction ) {
     float height = length( origin );
     float3 up = origin / height;
@@ -281,21 +293,33 @@ float3 AtmosSkyDirection( AtmosphereData a, float3 origin, float2 uv ) {
 }
 
 #if !defined( MKT_ATMOSPHERE_RAY_TRACING ) && !defined( MKT_ATMOSPHERE_MULTIPLE_SCATTERING )
+// Reconstruct directions before adding the camera translation. Subtracting two
+// nearby world positions loses the small ray vector at kilometre coordinates,
+// which makes the sky's horizon and sun wobble as the camera moves.
+// Reconstruct an orientation-only world ray from the current inverse projection. This shares
+// the projection used by sky, sun and aerial-perspective composition.
 void AtmosCameraRay( CameraInfo camera, float2 uv, AtmosphereData a, out float3 origin, out float3 direction ) {
-    float2 ndc = uv * 2 - 1;
-    // FullQuad produces top-left UVs, while Mikoto's unflipped projection
-    // uses +Y at the top (the Vulkan viewport has negative height).
-    ndc.y = -ndc.y;
-    float4 nearPoint = mul( camera.mInverseViewProjection, float4( ndc, 0, 1 ) );
-    float4 farPoint = mul( camera.mInverseViewProjection, float4( ndc, 0.5, 1 ) );
-    nearPoint /= nearPoint.w;
-    farPoint /= farPoint.w;
-    direction = normalize( farPoint.xyz - nearPoint.xyz );
-    origin = AtmosPlanetPosition( a, camera.mViewPosition.xyz );
-    if ( a.mView.z > 0.5 ) {
-        origin += ( nearPoint.xyz - camera.mViewPosition.xyz ) * a.mRadii.z;
-    }
-    origin = AtmosClampGround( a, origin );
+    float2 ndc = float2( uv.x * 2 - 1, 1 - uv.y * 2 );
+    float4 first = mul( camera.mInverseProjection, float4( ndc, .25, 1 ) );
+    float4 second = mul( camera.mInverseProjection, float4( ndc, .75, 1 ) );
+    float3 pointA = first.xyz / first.w;
+    float3 pointB = second.xyz / second.w;
+    bool aIsNear = dot( pointA, pointA ) < dot( pointB, pointB );
+    float3 nearPoint = aIsNear ? pointA : pointB;
+    float3 farPoint = aIsNear ? pointB : pointA;
+    bool orthographic = camera.mProjection[3][3] != 0;
+    float3 viewDirection = normalize( orthographic ? farPoint - nearPoint : farPoint );
+    float3x3 cameraToWorld = transpose( ( float3x3 )camera.mViewMatrix );
+    direction = normalize( mul( cameraToWorld, viewDirection ) );
+    float3 viewOrigin = orthographic ? nearPoint - viewDirection * dot( nearPoint, viewDirection ) : float3( 0 );
+    float3 worldOffset = mul( cameraToWorld, viewOrigin );
+    origin = AtmosClampGround( a, AtmosPlanetPosition( a, camera.mViewPosition.xyz ) + worldOffset * a.mRadii.z );
+}
+
+float AtmosCameraDistance( CameraInfo camera, float2 uv, float depth ) {
+    float4 view = mul( camera.mInverseProjection, float4( uv.x * 2 - 1, 1 - uv.y * 2, depth, 1 ) );
+    float3 position = view.xyz / view.w;
+    return camera.mProjection[3][3] != 0 ? abs( position.z ) : length( position );
 }
 
 #endif

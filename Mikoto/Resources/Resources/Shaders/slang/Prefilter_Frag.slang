@@ -12,15 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Convolve the environment with GGX directions for the requested roughness. Each destination
+// mip represents a progressively broader specular reflection footprint.
+
 #pragma once
 
 #include "base/Base.slang"
 #include "base/Memory_Helpers.slang"
 
 struct DrawParams {
-    PushConstantMatrix4x4 MVP;
-    float Roughness;
-    uint NumSamples;
+    PushConstantMatrix4x4 mMVP;
+    float mRoughness;
+    uint mNumSamples;
 
     uint mCubeID;
     uint mSamplerID;
@@ -30,11 +33,11 @@ struct DrawParams {
 };
 
 struct FSInput {
-    float3 Pos : TEXCOORD0;
+    float3 mPos : TEXCOORD0;
 };
 
 struct FSOutput {
-    float4 Color : SV_Target0;
+    float4 mColor : SV_Target0;
 };
 
 MKT_DECLARE_PUSH_CONSTANT( DrawParams, parameters );
@@ -48,9 +51,9 @@ MKT_DECLARE_SAMPLERS samplers;
 FSOutput main( FSInput input ) {
     FSOutput o;
 
-    float3 N = normalize( input.Pos );
-    float3 result = PrefilterEnvMap( textures[parameters.mCubeID], samplers[parameters.mSamplerID], N, parameters.Roughness, parameters.NumSamples );
+    float3 N = normalize( input.mPos );
+    float3 result = PrefilterEnvMap( textures[parameters.mCubeID], samplers[parameters.mSamplerID], N, parameters.mRoughness, parameters.mNumSamples );
 
-    o.Color = float4( result, 1.0 );
+    o.mColor = float4( result, 1.0 );
     return o;
 }

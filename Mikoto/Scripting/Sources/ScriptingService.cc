@@ -20,6 +20,11 @@
 
 #include <Filesystem/FileSystem.hh>
 
+#if MIKOTO_MODULE_PHYSICS
+#include <Physics/PhysicSystem.hh>
+#include <Scene/Scene.hh>
+#endif
+
 #include <Scripting/ScriptingService.hh>
 #include <Scripting/Dotnet/DotnetScriptingService.hh>
 
@@ -104,6 +109,14 @@ namespace mikoto::scripting {
         if ( mNativeService ) {
             mNativeService->Update( timeStep );
         }
+
+#if MIKOTO_MODULE_PHYSICS
+        if ( auto *physics{ physics::PhysicSystem::GetPtr() } ) {
+            if ( auto *scene{ physics->GetSimulationTarget() } ) {
+                scene->DispatchPhysicsEvents();
+            }
+        }
+#endif
     }
 
     auto ScriptingService::CreateScript( ScriptLanguage language, const filesystem::Path& path ) -> bool {

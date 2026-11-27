@@ -1,0 +1,16 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Midnight_Wall",
+  "Material": {
+    "BaseColorFactor": [
+      0.045,
+      0.06,
+      0.085,
+      1
+    ],
+    "MetallicFactor": 0,
+    "RoughnessFactor": 0.8,
+    "AlphaMask": 0
+  }
+}

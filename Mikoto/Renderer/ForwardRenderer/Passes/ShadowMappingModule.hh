@@ -59,6 +59,9 @@ namespace mikoto::renderer {
 
     struct ShadowMapInfo {
         core::u32 mRecordCount{};
+        core::u32 mDirectionalSize{};
+        core::u32 mDirectionalCascadeCount{};
+        eastl::array<FGTextureHandle, kMaxShadowLightsPerType> mGrassReceiverData{};
         FGBufferHandle mRecordsBuffer{};
         FGBufferHandle mIndirectBuffer{};
         FGPipelineHandle mPipeline{};

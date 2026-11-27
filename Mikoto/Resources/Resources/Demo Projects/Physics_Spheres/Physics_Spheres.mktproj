@@ -5,7 +5,7 @@
 # EditorCamera configures editor navigation; the scene camera controls the Game view.
 
 Version: 1
-Project: "Physics Spheres"
+Project: "Physics_Spheres"
 Assets: "Assets"
 Cache: "Assets/.cache"
 Scene: "Scene/Physics_Spheres.mktscn"
@@ -14,7 +14,7 @@ AutoSave: false
 AutoSaveIntervalMs: 2000
 EditorCamera:
   NavigationMode: "Fly"
-  Position: [16,13,20]
+  Position: [16,13.1,20]
   Direction: [-0.5857034883065025,-0.3477614461819859,-0.7321293603831281]
   Projection: "Perspective"
   FieldOfView: 45

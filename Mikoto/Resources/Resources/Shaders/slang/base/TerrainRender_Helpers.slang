@@ -12,15 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Terrain draw parameters and debug-view classification. Vertex and fragment stages share the
+// same terrain/surface resource addresses.
+
 #pragma once
 
 #include "Memory_Helpers.slang"
 
 // Matches the 48-byte CPU elevation palette; RGB colors are padded to float4.
 struct TerrainElevationColors {
-    float4 low;
-    float4 middle;
-    float4 high;
+    float4 mLow;
+    float4 mMiddle;
+    float4 mHigh;
 };
 
 // Matches the CPU flag bits in TerrainGenerationModule.cc.
@@ -30,23 +33,23 @@ enum class TerrainDebugFlag : uint {
     eVertices = 1u << 1
 };
 
-// Matches TerrainParameters in TerrainGenerationModule.cc (112 bytes).
+// Matches TerrainParameters in TerrainGenerationModule.cc.
 // Sharing this layout keeps the vertex and fragment stages in agreement.
 struct TerrainParameters {
-    float4x4 world;
-    Pointer vertices;
-    Pointer indices;
-    Pointer camera;
-    uint firstVertex;
-    uint firstIndex;
-    uint columns;
-    uint debugFlags;
-    BufferReference<TerrainElevationColors> elevationColors;
+    float4x4 mWorld;
+    Pointer mVertices;
+    Pointer mIndices;
+    Pointer mCamera;
+    uint mFirstVertex;
+    uint mFirstIndex;
+    uint mColumns;
+    uint mDebugFlags;
+    BufferReference<TerrainElevationColors> mElevationColors;
+    Pointer mSurface;
 };
 
 MKT_DECLARE_PUSH_CONSTANT( TerrainParameters, parameters );
 
 bool IsDebugView( TerrainDebugFlag view ) {
-    return ( parameters.debugFlags & uint( view ) ) != 0u;
+    return ( parameters.mDebugFlags & uint( view ) ) != 0u;
 }
-

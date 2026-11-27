@@ -20,17 +20,17 @@
 
 #include <glm/gtx/compatibility.hpp>
 
-#include <Core/Profiler.hh>
-#include <Core/Exception.hh>
+#include <Assets/AssetRegistryService.hh>
+#include <Assets/ImageProcessing.hh>
 
-#include <Math/Math.hh>
+#include <Core/Exception.hh>
+#include <Core/Profiler.hh>
 
 #include <Filesystem/FileService.hh>
 
-#include <Assets/ImageProcessing.hh>
-#include <Assets/AssetRegistryService.hh>
-
 #include <Material/SurfaceMaterial.hh>
+
+#include <Math/Math.hh>
 
 namespace mikoto::material {
 
@@ -43,7 +43,7 @@ namespace mikoto::material {
         mUseTextures.fill( true );
     }
 
-    SurfaceMaterial::SurfaceMaterial( const SurfaceMaterial& other )
+    SurfaceMaterial::SurfaceMaterial( const SurfaceMaterial &other )
         : mName{ other.mName },
           mGraph{ other.mGraph },
           mShadingModel{ other.mShadingModel },
@@ -62,6 +62,7 @@ namespace mikoto::material {
           mRoughnessFactor{ other.mRoughnessFactor },
           mGlossinessFactor{ other.mGlossinessFactor },
           mCheckerboard{ other.mCheckerboard },
+          mFoliageWind{ other.mFoliageWind },
           mHeightMapping{ other.mHeightMapping },
           mUvTransform{ other.mUvTransform },
           mNormalScale{ other.mNormalScale },
@@ -84,7 +85,7 @@ namespace mikoto::material {
           mSamplers{ other.mSamplers } {
     }
 
-    SurfaceMaterial::SurfaceMaterial( const SurfaceMaterialDescription& props )
+    SurfaceMaterial::SurfaceMaterial( const SurfaceMaterialDescription &props )
         : SurfaceMaterial{ props.mName } {
         mAlphaMask = props.mAlphaMask;
         mWorkflow = props.mWorkflow;
@@ -105,6 +106,7 @@ namespace mikoto::material {
         mShadingModel = props.Unlit ? ShadingModel::eUnlit : props.mShadingModel;
         SetSurfaceShading( props.mSurfaceShading );
         SetCheckerboard( props.mCheckerboard );
+        SetFoliageWind( props.mFoliageWind );
         SetDielectric( props.mDielectric );
         SetConductor( props.mConductor );
 
@@ -121,7 +123,7 @@ namespace mikoto::material {
 
         mIsDoubleSided = props.mIsDoubleSided;
 
-        for ( const auto& [path, texture]: props.mTextureBindings ) {
+        for ( const auto &[path, texture]: props.mTextureBindings ) {
             if ( texture.mTexture ) {
                 if ( path.IsEmpty() ) {
                     SetTexture( texture.mMapType, texture.mTexture );
@@ -138,7 +140,7 @@ namespace mikoto::material {
         }
     }
 
-    auto SurfaceMaterial::SetTextureReference( MapType type, const filesystem::Path& path ) -> void {
+    auto SurfaceMaterial::SetTextureReference( MapType type, const filesystem::Path &path ) -> void {
         if ( type == MapType::eHeight ) {
             const std::lock_guard lock{ mHeightImageMutex };
             mHeightImage.Reset();
@@ -149,13 +151,22 @@ namespace mikoto::material {
         BumpRevision();
     }
 
-    auto SurfaceMaterial::SetCheckerboard( const CheckerboardSettings& settings ) -> void {
+    auto SurfaceMaterial::SetCheckerboard( const CheckerboardSettings &settings ) -> void {
         mCheckerboard = settings;
         BumpRevision();
     }
 
-    auto SurfaceMaterial::GetCheckerboard() const -> const CheckerboardSettings& {
+    auto SurfaceMaterial::GetCheckerboard() const -> const CheckerboardSettings & {
         return mCheckerboard;
+    }
+
+    auto SurfaceMaterial::SetFoliageWind( const FoliageWindSettings &settings ) -> void {
+        mFoliageWind = settings;
+        BumpRevision();
+    }
+
+    auto SurfaceMaterial::GetFoliageWind() const -> const FoliageWindSettings & {
+        return mFoliageWind;
     }
 
     auto SurfaceMaterial::SetHeightMapping( HeightMappingSettings settings ) -> void {
@@ -167,7 +178,7 @@ namespace mikoto::material {
         BumpRevision();
     }
 
-    auto SurfaceMaterial::GetHeightMapping() const -> const HeightMappingSettings& {
+    auto SurfaceMaterial::GetHeightMapping() const -> const HeightMappingSettings & {
         return mHeightMapping;
     }
 
@@ -199,7 +210,7 @@ namespace mikoto::material {
             mLastTextureUse = now;
         }
 
-        for ( auto& [type, binding]: mStreamedTextures ) {
+        for ( auto &[type, binding]: mStreamedTextures ) {
             if ( !wanted ) {
                 // Hysteresis prevents camera motion and multiple views from
                 // repeatedly loading and dropping the same shared material.
@@ -269,12 +280,12 @@ namespace mikoto::material {
         BumpRevision();
     }
 
-    auto SurfaceMaterial::GetBaseColorFactor() const -> const core::float4& {
+    auto SurfaceMaterial::GetBaseColorFactor() const -> const core::float4 & {
         MKT_BEGIN_PROFILER();
         return mBaseColorFactor;
     }
 
-    auto SurfaceMaterial::SetBaseColorFactor( const core::float4& value ) -> void {
+    auto SurfaceMaterial::SetBaseColorFactor( const core::float4 &value ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( mBaseColorFactor == value ) {
@@ -285,12 +296,12 @@ namespace mikoto::material {
         BumpRevision();
     }
 
-    auto SurfaceMaterial::GetDiffuseFactor() const -> const core::float4& {
+    auto SurfaceMaterial::GetDiffuseFactor() const -> const core::float4 & {
         MKT_BEGIN_PROFILER();
         return mDiffuseFactor;
     }
 
-    auto SurfaceMaterial::SetDiffuseFactor( const core::float4& value ) -> void {
+    auto SurfaceMaterial::SetDiffuseFactor( const core::float4 &value ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( mDiffuseFactor == value ) {
@@ -301,12 +312,12 @@ namespace mikoto::material {
         BumpRevision();
     }
 
-    auto SurfaceMaterial::GetSpecularFactor() const -> const core::float4& {
+    auto SurfaceMaterial::GetSpecularFactor() const -> const core::float4 & {
         MKT_BEGIN_PROFILER();
         return mSpecularFactor;
     }
 
-    auto SurfaceMaterial::SetSpecularFactor( const core::float4& value ) -> void {
+    auto SurfaceMaterial::SetSpecularFactor( const core::float4 &value ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( mSpecularFactor == value ) {
@@ -317,7 +328,7 @@ namespace mikoto::material {
         BumpRevision();
     }
 
-    auto SurfaceMaterial::GetEmissiveFactor() const -> const core::float3& {
+    auto SurfaceMaterial::GetEmissiveFactor() const -> const core::float3 & {
         MKT_BEGIN_PROFILER();
         return mEmissiveFactor;
     }
@@ -327,7 +338,7 @@ namespace mikoto::material {
         return mAoFactor;
     }
 
-    auto SurfaceMaterial::SetEmissiveFactor( const core::float3& value ) -> void {
+    auto SurfaceMaterial::SetEmissiveFactor( const core::float3 &value ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( mEmissiveFactor == value ) {
@@ -425,11 +436,11 @@ namespace mikoto::material {
         BumpRevision();
     }
 
-    auto SurfaceMaterial::GetUvTransform() const -> const core::float4& {
+    auto SurfaceMaterial::GetUvTransform() const -> const core::float4 & {
         return mUvTransform;
     }
 
-    auto SurfaceMaterial::SetUvTransform( const core::float4& value ) -> void {
+    auto SurfaceMaterial::SetUvTransform( const core::float4 &value ) -> void {
         if ( value == mUvTransform ) {
             return;
         }
@@ -630,7 +641,7 @@ namespace mikoto::material {
         BumpRevision();
     }
 
-    auto SurfaceMaterial::SetTexture( const MapType type, const renderer::rhi::TextureHandle& texture ) -> void {
+    auto SurfaceMaterial::SetTexture( const MapType type, const renderer::rhi::TextureHandle &texture ) -> void {
         MKT_BEGIN_PROFILER();
         const bool replacedReference{ mStreamedTextures.erase( type ) != 0 };
 
@@ -642,7 +653,7 @@ namespace mikoto::material {
         BumpRevision();
     }
 
-    auto SurfaceMaterial::SetTexture( MapType type, const asset::AssetHandle<asset::Texture>& texture ) -> void {
+    auto SurfaceMaterial::SetTexture( MapType type, const asset::AssetHandle<asset::Texture> &texture ) -> void {
         const auto resource{ texture.GetIfReady() };
         mStreamedTextures[type] = { texture.GetRef(), texture };
         mTextures[type] = resource ? resource->GetResource() : renderer::rhi::TextureHandle{};
@@ -691,7 +702,7 @@ namespace mikoto::material {
         return renderer::rhi::TextureHandle::CreateEmpty();
     }
 
-    auto SurfaceMaterial::SetDielectric( const DielectricSettings& settings ) -> void {
+    auto SurfaceMaterial::SetDielectric( const DielectricSettings &settings ) -> void {
         auto value{ settings };
         for ( u32 channel{}; channel < 3; ++channel ) {
             value.mScattering[channel] = glm::clamp( value.mScattering[channel], 0.f, 10000.f );
@@ -714,11 +725,11 @@ namespace mikoto::material {
         BumpRevision();
     }
 
-    auto SurfaceMaterial::GetDielectric() const -> const DielectricSettings& {
+    auto SurfaceMaterial::GetDielectric() const -> const DielectricSettings & {
         return mDielectric;
     }
 
-    auto SurfaceMaterial::SetConductor( const ConductorSettings& settings ) -> void {
+    auto SurfaceMaterial::SetConductor( const ConductorSettings &settings ) -> void {
         auto value{ settings };
         for ( u32 channel{}; channel < 3; ++channel ) {
             value.mEta[channel] = glm::clamp( value.mEta[channel], .0001f, 100.f );
@@ -731,7 +742,7 @@ namespace mikoto::material {
         BumpRevision();
     }
 
-    auto SurfaceMaterial::GetConductor() const -> const ConductorSettings& {
+    auto SurfaceMaterial::GetConductor() const -> const ConductorSettings & {
         return mConductor;
     }
 
@@ -812,7 +823,7 @@ namespace mikoto::material {
         return mShadingModel;
     }
 
-    auto SurfaceMaterial::SetSurfaceShading( const SurfaceShadingSettings& settings ) -> void {
+    auto SurfaceMaterial::SetSurfaceShading( const SurfaceShadingSettings &settings ) -> void {
         auto value{ settings };
         auto clampUnit{ []( core::f32 v, core::f32 minimum ) {
             return glm::clamp( v, minimum, 1.0f );
@@ -838,11 +849,11 @@ namespace mikoto::material {
         BumpRevision();
     }
 
-    auto SurfaceMaterial::GetSurfaceShading() const -> const SurfaceShadingSettings& {
+    auto SurfaceMaterial::GetSurfaceShading() const -> const SurfaceShadingSettings & {
         return mSurfaceShading;
     }
 
-    auto SurfaceMaterial::SetSubsurface( const SubsurfaceSettings& settings ) -> void {
+    auto SurfaceMaterial::SetSubsurface( const SubsurfaceSettings &settings ) -> void {
         SubsurfaceSettings value{ settings };
         for ( u32 channel{}; channel < 3; ++channel ) {
             value.mAbsorption[channel] = glm::clamp( value.mAbsorption[channel], 0.f, 10000.f );
@@ -886,11 +897,11 @@ namespace mikoto::material {
         BumpRevision();
     }
 
-    auto SurfaceMaterial::GetSubsurface() const -> const SubsurfaceSettings& {
+    auto SurfaceMaterial::GetSubsurface() const -> const SubsurfaceSettings & {
         return mSubsurface;
     }
 
-    auto SurfaceMaterial::Serialize( const filesystem::Path& filename ) const -> void {
+    auto SurfaceMaterial::Serialize( const filesystem::Path &filename ) const -> void {
         // File assets need persistent image paths; model-owned embedded images must be exported first.
         for ( core::i32 index{}; index <= core::as<core::i32>( MapType::eHeight ); ++index ) {
             const auto texture{ GetTexture( core::as<MapType>( index ) ) };
@@ -910,9 +921,9 @@ namespace mikoto::material {
 
         // Store texture paths relative to this material file, including graph references.
         const auto directory{ filename.ToAbsolute().GetPathTyped<std::filesystem::path>().parent_path() };
-        const auto relativize{ [&]( const auto& self, YAML::Node node ) -> void {
+        const auto relativize{ [&]( const auto &self, YAML::Node node ) -> void {
             if ( node.IsMap() ) {
-                for ( const auto& entry: node ) {
+                for ( const auto &entry: node ) {
                     if ( entry.first.as<std::string>() == "TexturePath" ) {
                         const auto texture{ std::filesystem::absolute( std::filesystem::path{ entry.second.as<std::string>() } ) };
                         const auto relative{ texture.lexically_relative( directory ) };
@@ -924,7 +935,7 @@ namespace mikoto::material {
                 }
             }
             else if ( node.IsSequence() ) {
-                for ( const auto& entry: node ) {
+                for ( const auto &entry: node ) {
                     self( self, entry );
                 }
             }
@@ -958,7 +969,7 @@ namespace mikoto::material {
         file->UpdateContentsFromDisk();
     }
 
-    auto SurfaceMaterial::Deserialize( const filesystem::Path& filename ) -> void {
+    auto SurfaceMaterial::Deserialize( const filesystem::Path &filename ) -> void {
         Deserialize( filesystem::FileHandle::New( filename ) );
     }
 
@@ -989,9 +1000,9 @@ namespace mikoto::material {
 
         // Version 1 paths were relative to the working directory; version 2 uses the file.
         const auto directory{ file->GetDirectory().GetPathTyped<std::filesystem::path>() };
-        const auto resolve{ [&]( const auto& self, YAML::Node node ) -> void {
+        const auto resolve{ [&]( const auto &self, YAML::Node node ) -> void {
             if ( node.IsMap() ) {
-                for ( const auto& entry: node ) {
+                for ( const auto &entry: node ) {
                     if ( entry.first.as<std::string>() == "TexturePath" ) {
                         std::filesystem::path path{ entry.second.as<std::string>() };
 
@@ -1007,7 +1018,7 @@ namespace mikoto::material {
                 }
             }
             else if ( node.IsSequence() ) {
-                for ( const auto& entry: node ) {
+                for ( const auto &entry: node ) {
                     self( self, entry );
                 }
             }
@@ -1044,6 +1055,7 @@ namespace mikoto::material {
         mGlossinessFactor = eastl::move( value->mGlossinessFactor );
         mUvTransform = value->mUvTransform;
         mCheckerboard = value->mCheckerboard;
+        mFoliageWind = value->mFoliageWind;
         mHeightMapping = value->mHeightMapping;
         mNormalScale = eastl::move( value->mNormalScale );
         mClearCoatNormalScale = value->mClearCoatNormalScale;
@@ -1068,15 +1080,15 @@ namespace mikoto::material {
         mSamplers = eastl::move( value->mSamplers );
     }
 
-    auto SurfaceMaterial::GetGraph() -> MaterialGraph* {
+    auto SurfaceMaterial::GetGraph() -> MaterialGraph * {
         return &mGraph;
     }
 
-    auto SurfaceMaterial::GetGraph() const -> const MaterialGraph* {
+    auto SurfaceMaterial::GetGraph() const -> const MaterialGraph * {
         return &mGraph;
     }
 
-    auto SurfaceMaterial::GetName() const -> const eastl::string& {
+    auto SurfaceMaterial::GetName() const -> const eastl::string & {
         MKT_BEGIN_PROFILER();
         return mName;
     }
@@ -1109,6 +1121,14 @@ namespace mikoto::material {
             node["Checkerboard"]["ColorB"].push_back( mCheckerboard.mColorB[axis] );
             node["Checkerboard"]["Offset"].push_back( mCheckerboard.mOffset[axis] );
         }
+
+        node["FoliageWind"]["Enabled"] = mFoliageWind.mEnabled;
+        node["FoliageWind"]["Height"] = mFoliageWind.mHeight;
+        node["FoliageWind"]["RootHeight"] = mFoliageWind.mRootHeight;
+        node["FoliageWind"]["TrunkBend"] = mFoliageWind.mTrunkBend;
+        node["FoliageWind"]["BranchMotion"] = mFoliageWind.mBranchMotion;
+        node["FoliageWind"]["LeafFlutter"] = mFoliageWind.mLeafFlutter;
+        node["FoliageWind"]["Frequency"] = mFoliageWind.mFrequency;
 
         node["HeightMapping"]["Mode"] = static_cast<core::u32>( mHeightMapping.mMode );
         node["HeightMapping"]["Scale"] = mHeightMapping.mScale;
@@ -1167,7 +1187,7 @@ namespace mikoto::material {
         }
 
         // Surface shading and subsurface diffusion settings.
-        const auto& shading{ GetSurfaceShading() };
+        const auto &shading{ GetSurfaceShading() };
         node["SurfaceShading"]["CoatWeight"] = shading.mCoatWeight;
         node["SurfaceShading"]["CoatRoughness"] = shading.mCoatRoughness;
         node["SurfaceShading"]["ToonThreshold"] = shading.mToonThreshold;
@@ -1183,7 +1203,7 @@ namespace mikoto::material {
         node["Subsurface"]["ModelVersion"] = 2;
         node["Subsurface"]["ScatterScale"] = GetSubsurface().mScatterScale;
         node["Subsurface"]["Strength"] = GetSubsurface().mStrength;
-        const auto& subsurface{ GetSubsurface() };
+        const auto &subsurface{ GetSubsurface() };
         for ( u32 channel{}; channel < 3; ++channel ) {
             node["Subsurface"]["Absorption"].push_back( subsurface.mAbsorption[channel] );
             node["Subsurface"]["Scattering"].push_back( subsurface.mScattering[channel] );
@@ -1233,7 +1253,7 @@ namespace mikoto::material {
         return node;
     }
 
-    auto SurfaceMaterial::RestoreProperties( const YAML::Node& node ) -> void {
+    auto SurfaceMaterial::RestoreProperties( const YAML::Node &node ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( node["Graph"] ) {
@@ -1283,7 +1303,7 @@ namespace mikoto::material {
             settings.mEnabled = checker["Enabled"].as<bool>( false );
             settings.mCellSize = checker["CellSize"].as<core::f32>( 1.0f );
 
-            const auto readColor{ [&]( core::cstr key, core::float3& value ) {
+            const auto readColor{ [&]( core::cstr key, core::float3 &value ) {
                 if ( const auto entry{ checker[key] }; entry && entry.IsSequence() && entry.size() == 3 ) {
                     value = { entry[0].as<core::f32>(), entry[1].as<core::f32>(), entry[2].as<core::f32>() };
                 }
@@ -1295,16 +1315,30 @@ namespace mikoto::material {
             SetCheckerboard( settings );
         }
 
-        if ( const auto height{node["HeightMapping"]} ) {
+        if ( const auto foliage{ node["FoliageWind"] } ) {
+            FoliageWindSettings settings{};
+            settings.mEnabled = foliage["Enabled"].as<bool>( false );
+            settings.mHeight = foliage["Height"].as<core::f32>( settings.mHeight );
+            settings.mRootHeight = foliage["RootHeight"].as<core::f32>( settings.mRootHeight );
+            settings.mTrunkBend = foliage["TrunkBend"].as<core::f32>( settings.mTrunkBend );
+            settings.mBranchMotion = foliage["BranchMotion"].as<core::f32>( settings.mBranchMotion );
+            settings.mLeafFlutter = foliage["LeafFlutter"].as<core::f32>( settings.mLeafFlutter );
+            settings.mFrequency = foliage["Frequency"].as<core::f32>( settings.mFrequency );
+            SetFoliageWind( settings );
+        }
+
+        if ( const auto height{ node["HeightMapping"] } ) {
             HeightMappingSettings settings{};
-            const auto mode{height["Mode"].as<core::u32>(0)};
-            if ( mode > 3 ) { MKT_THROW_RUNTIME_ERROR("Invalid height mapping mode."); }
-            settings.mMode = static_cast<HeightMappingMode>(mode);
-            settings.mScale = height["Scale"].as<float>(0.05f);
-            settings.mMidlevel = height["Midlevel"].as<float>(0.5f);
-            settings.mUVSet = height["UVSet"].as<core::u32>(0);
-            settings.mSteps = height["Steps"].as<core::u32>(32);
-            SetHeightMapping(settings);
+            const auto mode{ height["Mode"].as<core::u32>( 0 ) };
+            if ( mode > 3 ) {
+                MKT_THROW_RUNTIME_ERROR( "Invalid height mapping mode." );
+            }
+            settings.mMode = static_cast<HeightMappingMode>( mode );
+            settings.mScale = height["Scale"].as<float>( 0.05f );
+            settings.mMidlevel = height["Midlevel"].as<float>( 0.5f );
+            settings.mUVSet = height["UVSet"].as<core::u32>( 0 );
+            settings.mSteps = height["Steps"].as<core::u32>( 32 );
+            SetHeightMapping( settings );
         }
         if ( node["NormalScale"] ) {
             const auto value{ node["NormalScale"].as<core::f32>() };
@@ -1475,7 +1509,7 @@ namespace mikoto::material {
                     if ( !values.IsSequence() || values.size() != 3 ) {
                         MKT_THROW_RUNTIME_ERROR( "Conductor IOR needs three components." );
                     }
-                    auto& target{ eastl::string_view{ key } == "Eta" ? settings.mEta : settings.mK };
+                    auto &target{ eastl::string_view{ key } == "Eta" ? settings.mEta : settings.mK };
                     target = { values[0].as<f32>(), values[1].as<f32>(), values[2].as<f32>() };
                 }
             }
@@ -1526,7 +1560,7 @@ namespace mikoto::material {
                     if ( !values.IsSequence() || values.size() != 3 ) {
                         MKT_THROW_RUNTIME_ERROR( "Subsurface coefficients need three components." );
                     }
-                    auto& target{ eastl::string_view{ key } == "Absorption" ? settings.mAbsorption : settings.mScattering };
+                    auto &target{ eastl::string_view{ key } == "Absorption" ? settings.mAbsorption : settings.mScattering };
                     target = { values[0].as<f32>(), values[1].as<f32>(), values[2].as<f32>() };
                 }
             }
@@ -1557,7 +1591,7 @@ namespace mikoto::material {
 
             for ( const auto key: { "Near", "Far" } ) {
                 if ( const auto values{ subsurface[key] }; values && values.IsSequence() && values.size() == 3 ) {
-                    auto& target{ key[0] == 'N' ? settings.mNear : settings.mFar };
+                    auto &target{ key[0] == 'N' ? settings.mNear : settings.mFar };
                     target = { values[0].as<core::f32>(), values[1].as<core::f32>(), values[2].as<core::f32>() };
                 }
             }
@@ -1602,7 +1636,7 @@ namespace mikoto::material {
 
             bool seen[static_cast<core::i32>( material::MapType::eHeight ) + 1]{};
 
-            for ( const auto& entry: textures ) {
+            for ( const auto &entry: textures ) {
                 const auto index{ entry["Map"].as<core::i32>() };
 
                 if ( index < 0 || index > static_cast<core::i32>( material::MapType::eHeight ) ) {
@@ -1636,7 +1670,7 @@ namespace mikoto::material {
         }
     }
 
-    auto SurfaceMaterial::GetSourcePath() const -> const filesystem::Path& {
+    auto SurfaceMaterial::GetSourcePath() const -> const filesystem::Path & {
         return mSourcePath;
     }
-}
+}// namespace mikoto::material

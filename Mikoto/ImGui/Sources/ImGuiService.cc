@@ -273,17 +273,8 @@ namespace mikoto::imgui {
             io.Fonts->AddFontDefault();
         }
 
-        // Register the console face before it can be requested from a docked window.
-        const filesystem::Path consoleFontPath{ filesystem::PathBuilder()
-            .SetPath( mFontsRootDir.GetC_Str() )
-            .SetPath( "Google_Sans_Code" )
-            .SetPath( "static" )
-            .SetPath( "GoogleSansCode-Light.ttf" )
-            .Build() };
-
-        if ( consoleFontPath.IsFile() ) {
-            AddFont( consoleFontPath );
-        }
+        // Match the editor family without sharing its font instance or selection.
+        mConsoleFont = AddInterfaceFont( path, 0 );
 
         try {
             InitImplementation();
@@ -428,6 +419,14 @@ namespace mikoto::imgui {
         return mImplementation.get();
     }
 
+    auto ImGuiService::SetConsoleFontScale( core::f32 scale ) -> void {
+        mConsoleFontScale = scale >= 0.8f && scale <= 1.2f ? scale : 0.95f;
+    }
+
+    auto ImGuiService::PushConsoleFont() -> ImGuiScopedTextFont {
+        return ImGuiScopedTextFont{ mConsoleFont, kFontBaseSize * mConsoleFontScale };
+    }
+
     auto ImGuiService::PushFont( eastl::string_view str ) -> ImGuiScopedTextFont {
         MKT_BEGIN_PROFILER_NAMED();
 
@@ -519,6 +518,8 @@ namespace mikoto::imgui {
         mPendingInterfaceFont.reset();
         mSelectedInterfaceFont = nullptr;
         mImGuiFonts.clear();
+        mConsoleFont = nullptr;
+        mPendingConsoleFont.reset();
 
         ImPlot::DestroyContext();
         ImGui::DestroyContext();
@@ -538,6 +539,27 @@ namespace mikoto::imgui {
             .mPath = path,
             .mFaceIndex = faceIndex
         };
+    }
+
+    auto ImGuiService::QueueConsoleFont( const filesystem::Path &path, core::u32 faceIndex ) -> void {
+        mPendingConsoleFont = InterfaceFontRequest{ .mPath = path, .mFaceIndex = faceIndex };
+    }
+
+    auto ImGuiService::ApplyConsoleFont() -> void {
+        if ( !mPendingConsoleFont ) {
+            return;
+        }
+        const auto request{ *mPendingConsoleFont };
+        mPendingConsoleFont.reset();
+        auto *font{ AddInterfaceFont( request.mPath, request.mFaceIndex ) };
+        if ( !font ) {
+            MKT_CORE_LOGGER_WARN( "Could not load console font '{}'; keeping the current face.", request.mPath.GetC_Str() );
+            return;
+        }
+        if ( mConsoleFont ) {
+            ImGui::GetIO().Fonts->RemoveFont( mConsoleFont );
+        }
+        mConsoleFont = font;
     }
 
     auto ImGuiService::ApplyInterfaceFont() -> void {
@@ -563,6 +585,7 @@ namespace mikoto::imgui {
         MKT_BEGIN_PROFILER_NAMED();
 
         ApplyInterfaceFont();
+        ApplyConsoleFont();
 
         if ( !mPendingLayout.empty() ) {
             // Dock nodes may be referenced by active windows. Replace them only between frames.

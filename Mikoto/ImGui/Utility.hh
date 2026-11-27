@@ -134,6 +134,7 @@ namespace mikoto::imgui {
          * @param font Borrowed atlas font, or null to leave the stack unchanged.
          */
         explicit ImGuiScopedTextFont( ImFont* font );
+        ImGuiScopedTextFont( ImFont *font, float size );
 
         /** @brief Pops the font only when this scope owns a stack entry. */
         ~ImGuiScopedTextFont();

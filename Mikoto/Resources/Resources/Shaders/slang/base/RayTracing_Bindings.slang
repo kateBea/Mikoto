@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Bind the hardware acceleration structure and uploaded ray-scene data. The selected backend
+// maps these resources into its descriptor/register model.
+
 #pragma once
 
 #include "Memory_Helpers.slang"

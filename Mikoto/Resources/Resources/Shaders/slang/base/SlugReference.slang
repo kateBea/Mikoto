@@ -18,6 +18,9 @@
 // Integration change: extracted the reference functions from the fixed-register
 // entry points. The originals, license and NOTICE are in ../Vendor/Slug.
 
+// Reference analytic glyph coverage implementation and packed-curve access. Band lookup limits
+// winding tests to curves that can intersect the current pixel ray.
+
 #pragma once
 
 void SlugUnpack( float4 tex, float4 bnd, out float4 vbnd, out int4 vgly ) {

@@ -15,18 +15,21 @@
 #ifndef MIKOTO_VIDEO_SERVICE_HH
 #define MIKOTO_VIDEO_SERVICE_HH
 
-#include <mutex>
 #include <condition_variable>
+#include <mutex>
+
+#include <ankerl/unordered_dense.h>
 
 #include <EASTL/deque.h>
 #include <EASTL/shared_ptr.h>
-#include <ankerl/unordered_dense.h>
+
+#include <Assets/AssetVideo.hh>
 
 #include <Core/Service.hh>
 #include <Core/Singleton.hh>
-#include <Assets/AssetVideo.hh>
-#include <Video/H264Parser.hh>
+
 #include <Video/AacDecoder.hh>
+#include <Video/H264Parser.hh>
 #include <Video/VideoAudioStream.hh>
 
 namespace mikoto::video {
@@ -34,10 +37,10 @@ namespace mikoto::video {
     // A playback owns media cursors and audio. Consumers take parsed pictures in decode order.
     class VideoPlayback final : public core::ReferenceCounted<VideoPlayback> {
     public:
-        VideoPlayback( asset::AssetHandle<asset::VideoClip> clip, const PlaybackSettings& settings, bool preview );
+        VideoPlayback( asset::AssetHandle<asset::VideoClip> clip, const PlaybackSettings &settings, bool preview );
         ~VideoPlayback() override;
 
-        auto SetSettings( const PlaybackSettings& settings ) -> void;
+        auto SetSettings( const PlaybackSettings &settings ) -> void;
         auto SetPosition( core::float3 position ) -> void;
         auto SetFailure( eastl::string_view error ) -> void;
 
@@ -49,12 +52,15 @@ namespace mikoto::video {
 
         MKT_NODISCARD auto GetState() const -> PlaybackState;
         MKT_NODISCARD auto GetTimeSeconds() const -> core::f64;
-        MKT_NODISCARD auto GetError() const -> const eastl::string&;
+        MKT_NODISCARD auto GetError() const -> const eastl::string &;
         MKT_NODISCARD auto GetClip() const -> core::Ref<asset::VideoClip>;
         MKT_NODISCARD auto GetPicture() const -> core::Ref<H264Picture>;
         MKT_NODISCARD auto GetEpoch() const -> core::u64;
         MKT_NODISCARD auto GetPreviewSample() const -> core::u64;
+        /** Editor ownership stays stable while Inspector controls play or seek the clip. */
         MKT_NODISCARD auto IsPreview() const -> bool;
+        /** Whether decoding/presentation should stop after the initial displayable frame. */
+        MKT_NODISCARD auto IsPosterFrameOnly() const -> bool;
         MKT_NODISCARD auto IsRegistered() const -> bool;
 
     private:
@@ -78,6 +84,7 @@ namespace mikoto::video {
         core::u64 mNextAudioSample{};
         eastl::optional<core::f64> mSeekTime{};
         bool mPreview{};
+        bool mPosterFrameOnly{};
         bool mRegistered{};
         bool mJobPending{};
         bool mVideoEnded{};
@@ -96,9 +103,9 @@ namespace mikoto::video {
         auto Shutdown() -> void override;
 
         /** Registers an independent media cursor; the caller owns the returned playback. */
-        MKT_NODISCARD auto RegisterPlayback( const asset::AssetRef<asset::VideoClip>& clip,
-            const PlaybackSettings& settings, bool preview ) -> VideoPlaybackHandle;
-        auto UnregisterPlayback( VideoPlayback* playback ) -> void;
+        MKT_NODISCARD auto RegisterPlayback( const asset::AssetRef<asset::VideoClip> &clip,
+            const PlaybackSettings &settings, bool preview ) -> VideoPlaybackHandle;
+        auto UnregisterPlayback( VideoPlayback *playback ) -> void;
         auto Update() -> void;
         auto Update( VideoPlaybackHandle playback, core::f64 timeStep ) -> void;
 
@@ -117,17 +124,17 @@ namespace mikoto::video {
 
         auto CollectJobs() -> void;
         auto ScheduleDecode( VideoPlaybackHandle playback ) -> void;
-        auto ResetPlayback( VideoPlayback& playback, core::f64 seconds ) -> void;
+        auto ResetPlayback( VideoPlayback &playback, core::f64 seconds ) -> void;
 
-        audio::AudioDevice* mAudioDevice{};
+        audio::AudioDevice *mAudioDevice{};
         std::mutex mJobsMutex{};
         core::u32 mActiveJobs{};
         std::condition_variable mJobsFinished{};
         eastl::vector<CompletedJob> mCompletedJobs{};
-        ankerl::unordered_dense::set<VideoPlayback*> mPlaybacks{};
+        ankerl::unordered_dense::set<VideoPlayback *> mPlaybacks{};
         bool mAcceptingJobs{};
         bool mMediaFoundationStarted{};
     };
-}
+}// namespace mikoto::video
 
 #endif

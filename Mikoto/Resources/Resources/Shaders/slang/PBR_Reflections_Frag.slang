@@ -13,5 +13,9 @@
 // limitations under the License.
 
 // Only opaque shading captures reflection data; glass keeps its single-target pipeline.
+
+// Compile the metallic-roughness surface shader with its reflection configuration. The shared
+// implementation keeps material evaluation and shadow conventions identical.
+
 #define MKT_SSR_CAPTURE
 #include "PBR_MetallicRoughness_Frag.slang"

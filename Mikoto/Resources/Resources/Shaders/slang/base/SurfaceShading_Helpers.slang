@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Shared material-model selection, face orientation and direct-light BRDF evaluation. Stylized,
+// unlit and coated surfaces branch here before their lighting terms are combined.
+
 #pragma once
 
 // Matches material::ShadingModel. Shared by the scene and thumbnail shaders.

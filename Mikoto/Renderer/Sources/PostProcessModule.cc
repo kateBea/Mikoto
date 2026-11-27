@@ -212,6 +212,10 @@ namespace mikoto::renderer {
         mExposure = exposure;
     }
 
+    auto PostEffectsPass::SetInfiniteGridSettings( const InfiniteGridSettings &settings ) -> void {
+        mInfiniteGrid = settings;
+    }
+
     auto PostEffectsPass::RegisterInfiniteGrid( FrameGraph& graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
@@ -263,10 +267,19 @@ namespace mikoto::renderer {
                     core::float4 mMajorColor{ 0.55f, 0.55f, 0.55f, 0.55f };
                     core::float4 mXAxisColor{ 0.9f, 0.12f, 0.10f, 1.0f };
                     core::float4 mZAxisColor{ 0.12f, 0.35f, 0.95f, 1.0f };
-                    core::float4 mWidths{ 1.0f, 1.3f, 1.5f, 1.5f };
+                    core::float4 mWidths{};
+                    core::float4 mYAxisColor{ 0.12f, 0.8f, 0.22f, 1.0f };
+                    core::float4 mGrid{};// Cell size, opacity, vertical-axis draw, reserved.
                 } params{
                     .mCameraBufferID = ctx.PushBuffer_SRV( cameraData.mCameraData )
                 };
+
+                static_assert( sizeof( DrawParams ) == 128 );
+                params.mWidths = { mInfiniteGrid.mLineWidth, mInfiniteGrid.mLineWidth * 1.3f,
+                    mInfiniteGrid.mAxisWidth, mInfiniteGrid.mAxisWidth };
+                params.mGrid = { mInfiniteGrid.mCellSize, mInfiniteGrid.mOpacity, 0.0f, 0.0f };
+                params.mXAxisColor.a = mInfiniteGrid.mShowXAxis ? 1.0f : 0.0f;
+                params.mZAxisColor.a = mInfiniteGrid.mShowZAxis ? 1.0f : 0.0f;
 
                 ctx.PushConstants( params );
 
@@ -275,6 +288,14 @@ namespace mikoto::renderer {
 
                 ctx.BindPipeline( postProcessData.mInfiniteGridPipeline );
                 ctx.Draw( 3 );
+
+                // The vertical axis has its own depth. A second draw in the same
+                // pass lets scene geometry occlude it independently of the XZ plane.
+                if ( mInfiniteGrid.mShowYAxis ) {
+                    params.mGrid.z = 1.0f;
+                    ctx.PushConstants( params );
+                    ctx.Draw( 3 );
+                }
 
                 ctx.EndRender();
             } );
@@ -612,8 +633,11 @@ namespace mikoto::renderer {
                         core::f32 mThreshold;
                         core::u32 mPrefilter;
                     } params{
-                        ctx.PushSampler( post.mBloomSampler ), ctx.PushTexture_SRV( input ),
-                        post.mBloomSettings.mThreshold, mip == 0 ? 1u : 0u };
+                        .mSamplerID = ctx.PushSampler( post.mBloomSampler ),
+                        .mTargetImageID = ctx.PushTexture_SRV( input ),
+                        .mThreshold = post.mBloomSettings.mThreshold,
+                        .mPrefilter = mip == 0 ? 1u : 0u,
+                    };
 
                     ctx.BeginRender( RenderBeginDescription{}
                         .SetRenderArea( renderer::rhi::Rect{ core::as<core::i32>( target.mWidth ), core::as<core::i32>( target.mHeight ) } )
@@ -655,9 +679,11 @@ namespace mikoto::renderer {
                         core::f32 mScatter{};
                         core::f32 mRadius{};
                     } params{
-                        ctx.PushSampler( post.mBloomSampler ),
-                        ctx.PushTexture_SRV( post.mBloomChainImages[mip + 1].mReconstructed ),
-                        ctx.PushTexture_SRV( target.mImage ), post.mBloomSettings.mScatter, post.mBloomSettings.mRadius
+                        .mSamplerID = ctx.PushSampler( post.mBloomSampler ),
+                        .mLowerImageID = ctx.PushTexture_SRV( post.mBloomChainImages[mip + 1].mReconstructed ),
+                        .mDetailImageID = ctx.PushTexture_SRV( target.mImage ),
+                        .mScatter = post.mBloomSettings.mScatter,
+                        .mRadius = post.mBloomSettings.mRadius,
                     };
 
                     ctx.BeginRender( RenderBeginDescription{}

@@ -1532,7 +1532,9 @@ namespace mikoto::renderer::d3d12 {
             return;
         }
 
-        core::u64 frequency{}, gpuTimestamp{}, cpuTimestamp{};
+        core::u64 frequency{};
+        core::u64 gpuTimestamp{};
+        core::u64 cpuTimestamp{};
         if ( FAILED( mQueue->GetTimestampFrequency( &frequency ) ) || !frequency ||
              FAILED( mQueue->GetClockCalibration( &gpuTimestamp, &cpuTimestamp ) ) ) {
             return;
@@ -2352,14 +2354,13 @@ namespace mikoto::renderer::d3d12 {
         Texture* pTexture{ core::checked_cast<Texture*>( texture ) };
         ID3D12Resource* pDestResource{ *pTexture };
         const auto description{ pDestResource->GetDesc() };
-        const UINT layers{ description.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D ? 1u : description.DepthOrArraySize };
-        core::usize sourceOffset{};
-
-        for ( UINT layer{}; layer < layers; ++layer ) {
-            const UINT subresource{ layer * description.MipLevels };
+        for ( const auto &region: rhi::GetTextureUploadRegions( *texture, byteSize ) ) {
+            const UINT subresource{ region.mLayer * description.MipLevels + region.mMip };
+            const core::usize sourceOffset{ region.mOffset };
             D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint{};
             UINT rows{};
-            UINT64 rowSize{}, uploadSize{};
+            UINT64 rowSize{};
+            UINT64 uploadSize{};
             core::checked_cast<Device*>( mDevice )->GetDevice()->GetCopyableFootprints(
                 &description, subresource, 1, 0, &footprint, &rows, &rowSize, &uploadSize );
             const UINT64 packedSize{ rowSize * rows * footprint.Footprint.Depth };
@@ -2392,7 +2393,6 @@ namespace mikoto::renderer::d3d12 {
             // A full-subresource copy initializes the destination. Discard is invalid
             // in COPY_DEST and would also invalidate previously uploaded array slices.
             mCurrentRecordingContext->mCommandList->CopyTextureRegion( &destination, 0, 0, 0, &source, nullptr );
-            sourceOffset += packedSize;
         }
     }
 
@@ -2644,7 +2644,8 @@ namespace mikoto::renderer::d3d12 {
         description.DepthOrArraySize = 1;
         D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint{};
         UINT rows{};
-        UINT64 rowBytes{}, totalBytes{};
+        UINT64 rowBytes{};
+        UINT64 totalBytes{};
         core::checked_cast<Device*>( mDevice )->GetDevice()->GetCopyableFootprints(
             &description, 0, 1, 0, &footprint, &rows, &rowBytes, &totalBytes );
 

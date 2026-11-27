@@ -1,0 +1,38 @@
+{
+  "Version": 1,
+  "Type": "VolumeMaterial",
+  "Name": "Procedural cumulus - path traced",
+  "Material": {
+    "DensityModel": 2,
+    "Absorption": [
+      0,
+      0,
+      0
+    ],
+    "Scattering": [
+      0.0035,
+      0.0035,
+      0.0035
+    ],
+    "Anisotropy": 0.65,
+    "Density": 0.65,
+    "HeightFalloff": 0.1,
+    "NoiseScale": 0.003,
+    "ErosionScale": 0.009,
+    "Erosion": 0.28,
+    "Coverage": 0.68,
+    "Octaves": 5,
+    "CloudForm": 2,
+    "WeatherScale": 5e-05,
+    "CoverageVariation": 0.45,
+    "CloudTypeVariation": 0.12,
+    "CloudHeightVariation": 0.55,
+    "WindShear": 80,
+    "CloudDetailType": 0.9,
+    "CloudProfileDepth": 0.08,
+    "CloudSeed": 21,
+    "CloudFormationCount": 49,
+    "CloudFormationScale": 0.55,
+    "CloudFormationVariation": 0.9
+  }
+}

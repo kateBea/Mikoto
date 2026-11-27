@@ -29,50 +29,50 @@ StructuredBuffer<MeshParameters, ScalarDataLayout> Meshes;
 StructuredBuffer<BoneData, ScalarDataLayout> Bones;
 
 struct VSInput {
-    float3 Position : ATTRIBUTE0;
-    float3 Normal : ATTRIBUTE1;
-    float4 Color : ATTRIBUTE2;
-    float2 TexCoord0 : ATTRIBUTE3;
-    float2 TexCoord1 : ATTRIBUTE4;
+    float3 mPosition : ATTRIBUTE0;
+    float3 mNormal : ATTRIBUTE1;
+    float4 mColor : ATTRIBUTE2;
+    float2 mTexCoord0 : ATTRIBUTE3;
+    float2 mTexCoord1 : ATTRIBUTE4;
 
-    float4 Joint : ATTRIBUTE5;
-    float4 Weight : ATTRIBUTE6;
+    float4 mJoint : ATTRIBUTE5;
+    float4 mWeight : ATTRIBUTE6;
 
-    uint InstanceIndex : SV_InstanceID;
-    uint BaseInstanceIndex : SV_StartInstanceLocation;
+    uint mInstanceIndex : SV_InstanceID;
+    uint mBaseInstanceIndex : SV_StartInstanceLocation;
 };
 
 struct VSOutput {
-    float3 FragmentViewPos : TEXCOORD0;
-    float3 FragmentWorldPos : TEXCOORD1;
-    float3 Normal : TEXCOORD2;
-    float2 TexCoord0 : TEXCOORD3;
-    float4 Color : TEXCOORD4;
+    float3 mFragmentViewPos : TEXCOORD0;
+    float3 mFragmentWorldPos : TEXCOORD1;
+    float3 mNormal : TEXCOORD2;
+    float2 mTexCoord0 : TEXCOORD3;
+    float4 mColor : TEXCOORD4;
 
-    float2 TexCoord1 : TEXCOORD5;
+    float2 mTexCoord1 : TEXCOORD5;
 
-    int MaterialIndex : TEXCOORD6;
+    int mMaterialIndex : TEXCOORD6;
 
-    float4 PositionH : SV_Position;
+    float4 mPositionH : SV_Position;
 };
 
 [shader( "vertex" )]
 VSOutput main( VSInput input ) {
     VSOutput o;
 
-    MeshParameters meshInfo = Meshes[input.BaseInstanceIndex + input.InstanceIndex];
+    MeshParameters meshInfo = Meshes[input.mBaseInstanceIndex + input.mInstanceIndex];
 
-    float4x4 model = meshInfo.Transform;
+    float4x4 model = meshInfo.mTransform;
 
     float4 skinnedPos = float4( 0, 0, 0, 0 );
     float3 skinnedNormal = float3( 0, 0, 0 );
 
-    if ( meshInfo.AnimatorID != -1 ) {
-        uint baseIndex = meshInfo.AnimatorID;
+    if ( meshInfo.mAnimatorID != -1 ) {
+        uint baseIndex = meshInfo.mAnimatorID;
 
         for ( uint i = 0; i < MAX_BONE_INFLUENCE; i++ ) {
-            int joint = uint( input.Joint[i] );
-            float weight = input.Weight[i];
+            int joint = uint( input.mJoint[i] );
+            float weight = input.mWeight[i];
 
             if ( weight <= 0.0 || joint < 0 ) {
                 continue;
@@ -80,34 +80,34 @@ VSOutput main( VSInput input ) {
 
             if ( joint >= MAX_BONES ) {
                 // Fallback to rigid
-                skinnedPos = float4( input.Position, 1.0 );
-                skinnedNormal = input.Normal;
+                skinnedPos = float4( input.mPosition, 1.0 );
+                skinnedNormal = input.mNormal;
                 break;
             }
 
             float4x4 bone = Bones[baseIndex].BoneMatrices[joint];
 
-            skinnedPos += mul( bone, float4( input.Position, 1.0 ) ) * weight;
-            skinnedNormal += mul( ( float3x3 )bone, input.Normal ) * weight;
+            skinnedPos += mul( bone, float4( input.mPosition, 1.0 ) ) * weight;
+            skinnedNormal += mul( ( float3x3 )bone, input.mNormal ) * weight;
         }
     } else {
-        skinnedPos = float4( input.Position, 1.0 );
-        skinnedNormal = input.Normal;
+        skinnedPos = float4( input.mPosition, 1.0 );
+        skinnedNormal = input.mNormal;
     }
 
     float4 worldPos = mul( model, skinnedPos );
     float3 worldNormal = normalize( mul( ( float3x3 )model, skinnedNormal ) );
 
-    o.TexCoord0 = input.TexCoord0;
-    o.TexCoord1 = input.TexCoord1;
-    o.Color = input.Color;
+    o.mTexCoord0 = input.mTexCoord0;
+    o.mTexCoord1 = input.mTexCoord1;
+    o.mColor = input.mColor;
 
-    o.FragmentWorldPos = worldPos.xyz;
-    o.FragmentViewPos = mul( u_Camera.ViewMatrix, worldPos ).xyz;
-    o.Normal = worldNormal;
-    o.MaterialIndex = input.BaseInstanceIndex + input.InstanceIndex;
+    o.mFragmentWorldPos = worldPos.xyz;
+    o.mFragmentViewPos = mul( u_Camera.ViewMatrix, worldPos ).xyz;
+    o.mNormal = worldNormal;
+    o.mMaterialIndex = input.mBaseInstanceIndex + input.mInstanceIndex;
 
-    o.PositionH = mul( u_Camera.Projection, mul( u_Camera.ViewMatrix, worldPos ) );
+    o.mPositionH = mul( u_Camera.mProjection, mul( u_Camera.ViewMatrix, worldPos ) );
 
     return o;
 }

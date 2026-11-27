@@ -1,0 +1,805 @@
+# Restored two-wall gallery. Mesh-emissive videos light the room through path tracing.
+# Play: WASD walk, Shift run, Space jump, RMB orbit, wheel zoom, R reset.
+{
+  "Version": 5,
+  "RelativeAssetPaths": true,
+  "Scene": "Basic Video",
+  "EnvironmentLightingSource": 1,
+  "ToneMapping": 0,
+  "Objects": [
+    {
+      "Type": 5,
+      "ID": 1,
+      "TagComponent": {
+        "Name": "Large gallery floor",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          -0.1,
+          0
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          30,
+          0.2,
+          22
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 0
+      },
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          1,
+          1,
+          1
+        ],
+        "Offset": [
+          0,
+          0,
+          0
+        ],
+        "Trigger": false
+      },
+      "RigidBodyComponent": {
+        "BodyType": 0,
+        "Mass": 1,
+        "UseGravity": false,
+        "Friction": 0.8,
+        "Restitution": 0
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 2,
+      "TagComponent": {
+        "Name": "Dark rear wall",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          4.1,
+          -7
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          20,
+          4,
+          0.15
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 1
+      },
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          1,
+          1,
+          1
+        ],
+        "Offset": [
+          0,
+          0,
+          0
+        ],
+        "Trigger": false
+      },
+      "RigidBodyComponent": {
+        "BodyType": 0,
+        "Mass": 1,
+        "UseGravity": false,
+        "Friction": 0.8,
+        "Restitution": 0
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 3,
+      "TagComponent": {
+        "Name": "Dragon Ball screen frame",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -6,
+          3.1,
+          -6.15
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          4.16,
+          2.41,
+          0.12
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 1
+      },
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          1,
+          1,
+          1
+        ],
+        "Offset": [
+          0,
+          0,
+          0
+        ],
+        "Trigger": false
+      },
+      "RigidBodyComponent": {
+        "BodyType": 0,
+        "Mass": 1,
+        "UseGravity": false,
+        "Friction": 0.8,
+        "Restitution": 0
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 4,
+      "TagComponent": {
+        "Name": "Dragon Ball: Sparking! ZERO / video and spatial audio",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -6,
+          3.1,
+          -6
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          4,
+          2.25,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Screen.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 2
+      },
+      "VideoComponent": {
+        "ClipPath": "../Assets/Video/DragonBall_SparkingZero.mp4",
+        "PlayOnStart": true,
+        "Looping": true,
+        "AudioEnabled": true,
+        "OutputMap": 1,
+        "Audio": {
+          "Spatialized": true,
+          "Volume": 0.8,
+          "MinDistance": 2,
+          "MaxDistance": 30,
+          "Rolloff": 1,
+          "Attenuation": 1
+        }
+      },
+      "LightComponent": {
+        "Type": 3,
+        "Area": {
+          "Shape": 1,
+          "Color": [
+            1,
+            1,
+            1
+          ],
+          "Intensity": 12,
+          "Size": [
+            8,
+            4.5
+          ],
+          "TwoSided": false
+        }
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 5,
+      "TagComponent": {
+        "Name": "Stellar Blade screen frame",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          6,
+          3.1,
+          -6.15
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          4.16,
+          2.41,
+          0.12
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Box.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 1
+      },
+      "BoxColliderComponent": {
+        "HalfExtents": [
+          1,
+          1,
+          1
+        ],
+        "Offset": [
+          0,
+          0,
+          0
+        ],
+        "Trigger": false
+      },
+      "RigidBodyComponent": {
+        "BodyType": 0,
+        "Mass": 1,
+        "UseGravity": false,
+        "Friction": 0.8,
+        "Restitution": 0
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 6,
+      "TagComponent": {
+        "Name": "Stellar Blade rollercoaster / video and spatial audio",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          6,
+          3.1,
+          -6
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          4,
+          2.25,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Screen.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 2
+      },
+      "VideoComponent": {
+        "ClipPath": "../Assets/Video/StellarBlade_Rollercoaster.mp4",
+        "PlayOnStart": true,
+        "Looping": true,
+        "AudioEnabled": true,
+        "OutputMap": 1,
+        "Audio": {
+          "Spatialized": true,
+          "Volume": 0.8,
+          "MinDistance": 2,
+          "MaxDistance": 30,
+          "Rolloff": 1,
+          "Attenuation": 1
+        }
+      },
+      "LightComponent": {
+        "Type": 3,
+        "Area": {
+          "Shape": 1,
+          "Color": [
+            1,
+            1,
+            1
+          ],
+          "Intensity": 12,
+          "Size": [
+            8,
+            4.5
+          ],
+          "TwoSided": false
+        }
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 7,
+      "TagComponent": {
+        "Name": "Glass crystal ball",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -4.5,
+          1.1,
+          -0.8
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Sphere.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 3
+      },
+      "SphereColliderComponent": {
+        "Radius": 1,
+        "Offset": [
+          0,
+          0,
+          0
+        ],
+        "Trigger": false
+      },
+      "RigidBodyComponent": {
+        "BodyType": 0,
+        "Mass": 1,
+        "UseGravity": false,
+        "Friction": 0.8,
+        "Restitution": 0
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 8,
+      "TagComponent": {
+        "Name": "Quartz crystal ball",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -1.5,
+          1.1,
+          -0.8
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Sphere.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 4
+      },
+      "SphereColliderComponent": {
+        "Radius": 1,
+        "Offset": [
+          0,
+          0,
+          0
+        ],
+        "Trigger": false
+      },
+      "RigidBodyComponent": {
+        "BodyType": 0,
+        "Mass": 1,
+        "UseGravity": false,
+        "Friction": 0.8,
+        "Restitution": 0
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 9,
+      "TagComponent": {
+        "Name": "Diamond crystal ball",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          1.5,
+          1.1,
+          -0.8
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Sphere.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 5
+      },
+      "SphereColliderComponent": {
+        "Radius": 1,
+        "Offset": [
+          0,
+          0,
+          0
+        ],
+        "Trigger": false
+      },
+      "RigidBodyComponent": {
+        "BodyType": 0,
+        "Mass": 1,
+        "UseGravity": false,
+        "Friction": 0.8,
+        "Restitution": 0
+      }
+    },
+    {
+      "Type": 5,
+      "ID": 10,
+      "TagComponent": {
+        "Name": "Frosted_Glass crystal ball",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          4.5,
+          1.1,
+          -0.8
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "MeshIndex": 0,
+        "ModelPath": "../Assets/Models/Sphere.gltf"
+      },
+      "MaterialComponent": {
+        "Reference": 6
+      },
+      "SphereColliderComponent": {
+        "Radius": 1,
+        "Offset": [
+          0,
+          0,
+          0
+        ],
+        "Trigger": false
+      },
+      "RigidBodyComponent": {
+        "BodyType": 0,
+        "Mass": 1,
+        "UseGravity": false,
+        "Friction": 0.8,
+        "Restitution": 0
+      }
+    },
+    {
+      "Type": 6,
+      "ID": 16,
+      "TagComponent": {
+        "Name": "Orbit camera",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          4.1,
+          12
+        ],
+        "Rotation": [
+          -14.477512185929925,
+          0.0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "CameraComponent": {
+        "Projection": 1,
+        "Fov": 52,
+        "Near": 0.05,
+        "Far": 150,
+        "Main": true,
+        "FixedAspect": true,
+        "Viewport": [
+          1920,
+          1080,
+          0
+        ],
+        "ClearFlags": 0,
+        "ClearColor": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "Gamma": 2.2,
+        "Exposure": 1,
+        "SkyboxBlur": 0
+      },
+      "AudioListenerComponent": {
+        "Enabled": true
+      }
+    },
+    {
+      "ID": 17,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Player / WASD walk, Shift run, Space jump",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0.15,
+          5
+        ],
+        "Rotation": [
+          0,
+          180,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [
+        {
+          "ID": 18,
+          "Type": 0,
+          "TagComponent": {
+            "Name": "Player visual",
+            "Visibility": true
+          },
+          "TransformComponent": {
+            "Position": [
+              0,
+              0,
+              0
+            ],
+            "Rotation": [
+              0,
+              0,
+              0
+            ],
+            "Scale": [
+              1,
+              1,
+              1
+            ],
+            "Uniform Scale": true
+          },
+          "Children": [
+            {
+              "ID": 19,
+              "Type": 5,
+              "TagComponent": {
+                "Name": "Player / Object_6",
+                "Visibility": true
+              },
+              "TransformComponent": {
+                "Local Transform": [
+                  [
+                    0.009948707500316236,
+                    0,
+                    0,
+                    0
+                  ],
+                  [
+                    0,
+                    0.009948707500316236,
+                    2.2090568264224143e-18,
+                    0
+                  ],
+                  [
+                    0,
+                    -2.2090568264224143e-18,
+                    0.009948707500316236,
+                    0
+                  ],
+                  [
+                    -2.6655413112378242e-08,
+                    0.0032145593396110607,
+                    -0.016524171460887357,
+                    1
+                  ]
+                ],
+                "Uniform Scale": false
+              },
+              "Children": [],
+              "MeshComponent": {
+                "MeshIndex": 0,
+                "ModelPath": "../Assets/Models/Character/PlayerXbot.gltf"
+              },
+              "SkinnedMeshRenderer": {
+                "AnimatorID": 18
+              }
+            },
+            {
+              "ID": 20,
+              "Type": 5,
+              "TagComponent": {
+                "Name": "Player / Object_7",
+                "Visibility": true
+              },
+              "TransformComponent": {
+                "Local Transform": [
+                  [
+                    0.009948707500316236,
+                    0,
+                    0,
+                    0
+                  ],
+                  [
+                    0,
+                    0.009948707500316236,
+                    2.2090568264224143e-18,
+                    0
+                  ],
+                  [
+                    0,
+                    -2.2090568264224143e-18,
+                    0.009948707500316236,
+                    0
+                  ],
+                  [
+                    -2.6655413112378242e-08,
+                    0.0032145593396110607,
+                    -0.016524171460887357,
+                    1
+                  ]
+                ],
+                "Uniform Scale": false
+              },
+              "Children": [],
+              "MeshComponent": {
+                "MeshIndex": 1,
+                "ModelPath": "../Assets/Models/Character/PlayerXbot.gltf"
+              },
+              "SkinnedMeshRenderer": {
+                "AnimatorID": 18
+              }
+            }
+          ],
+          "AnimatorComponent": {
+            "ID": 18,
+            "ModelPath": "../Assets/Models/Character/PlayerXbot.gltf",
+            "Clip": "Idle",
+            "Playing": true,
+            "ControllerPlaying": false
+          }
+        }
+      ],
+      "CharacterControllerComponent": {
+        "ControllerType": 0,
+        "Radius": 0.26,
+        "HalfHeight": 0.62,
+        "MaxSlopeAngle": 0.85,
+        "MaxStepHeight": 0.3,
+        "MaxStrength": 120,
+        "GravityFactor": 1,
+        "StickToFloor": true,
+        "Enabled": true
+      },
+      "ScriptComponent": {
+        "Language": "CSharp",
+        "ScriptPath": "../Assets/Scripts/CSharp/VideoGallery.cs",
+        "ClassName": "VideoGalleryPlayer",
+        "Properties": "{}"
+      }
+    }
+  ],
+  "Materials": [
+    {
+      "MaterialPath": "../Assets/Materials/Floor.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Frame.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Video.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Glass.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Quartz.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Diamond.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Frosted_Glass.mktmtl"
+    }
+  ]
+}

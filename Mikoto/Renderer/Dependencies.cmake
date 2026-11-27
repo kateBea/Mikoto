@@ -299,3 +299,38 @@ target_link_libraries(Mikoto PUBLIC slang)
 target_sources(Mikoto PRIVATE "${MIKOTO_SOURCE_DIR}/Vendor/glad/src/gl.c")
 target_include_directories(Mikoto PUBLIC "${MIKOTO_SOURCE_DIR}/Vendor/glad/include")
 target_compile_definitions(Mikoto PUBLIC VK_NO_PROTOTYPES MKT_USE_VULKAN_DYNAMIC_RENDERING)
+
+# DCC volume interchange is a CPU authoring dependency, independent of graphics backends.
+if(MIKOTO_ENABLE_OPENVDB)
+    find_package(OpenVDB CONFIG QUIET)
+    if(NOT TARGET OpenVDB::openvdb)
+        find_package(OpenVDB REQUIRED)
+    endif()
+    target_link_libraries(Mikoto PUBLIC OpenVDB::openvdb)
+    # OpenVDB's vcpkg Find module discovers compression libraries but omits
+    # them from its static imported target. Carry their transitive targets
+    # through Mikoto so editor/runtime executables resolve compressed VDB I/O.
+    get_target_property(mikoto_openvdb_type OpenVDB::openvdb TYPE)
+    if(mikoto_openvdb_type STREQUAL "STATIC_LIBRARY")
+        if(OpenVDB_USES_BLOSC)
+            foreach(mikoto_blosc_target IN ITEMS blosc_static Blosc::blosc blosc)
+                if(TARGET ${mikoto_blosc_target})
+                    target_link_libraries(Mikoto PUBLIC ${mikoto_blosc_target})
+                    break()
+                endif()
+            endforeach()
+        endif()
+        if(OpenVDB_USES_ZLIB)
+            target_link_libraries(Mikoto PUBLIC ZLIB::ZLIB)
+        endif()
+    endif()
+    unset(mikoto_openvdb_type)
+    unset(mikoto_blosc_target)
+    target_compile_definitions(Mikoto PUBLIC MIKOTO_ENABLE_OPENVDB=1)
+else()
+    target_compile_definitions(Mikoto PUBLIC MIKOTO_ENABLE_OPENVDB=0)
+endif()
+
+include("${CMAKE_CURRENT_LIST_DIR}/../../CMake/NRD.cmake")
+
+include("${CMAKE_CURRENT_LIST_DIR}/../../CMake/OIDN.cmake")

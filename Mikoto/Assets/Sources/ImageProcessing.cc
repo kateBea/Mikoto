@@ -12,18 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <algorithm>
 #include <cmath>
-#include <mutex>
-#include <limits>
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
+#include <limits>
+#include <mutex>
 
-#include <EASTL/utility.h>
-#include <EASTL/atomic.h>
-#include <EASTL/vector.h>
 #include <EASTL/algorithm.h>
+#include <EASTL/atomic.h>
 #include <EASTL/unique_ptr.h>
+#include <EASTL/utility.h>
+#include <EASTL/vector.h>
 
 #include <cmp_core.h>
 
@@ -40,20 +41,20 @@
 #include <vulkan/vulkan_core.h>
 
 #include <Core/Core.hh>
-#include <Core/Types.hh>
-#include <Core/Profiler.hh>
 #include <Core/Exception.hh>
+#include <Core/Profiler.hh>
+#include <Core/Types.hh>
 
 #include <Logging/Assert.hh>
 #include <Logging/Logger.hh>
 
 #include <Filesystem/File.hh>
-#include <Filesystem/Path.hh>
 #include <Filesystem/FileService.hh>
+#include <Filesystem/Path.hh>
 
 #include <Assets/Asset.hh>
-#include <Assets/Utility.hh>
 #include <Assets/ImageProcessing.hh>
+#include <Assets/Utility.hh>
 
 #include <Renderer/Rhi/GpuDevice.hh>
 
@@ -89,6 +90,10 @@ namespace mikoto::asset {
         return core::usize{ ( width + 3 ) / 4 } * ( ( height + 3 ) / 4 ) * kBlockBytes;
     }
 
+    static auto ImageLevelBytes( ImageFormat format, core::u32 width, core::u32 height ) -> core::usize {
+        return IsBlockCompressed( format ) ? BlockBytes( width, height ) : core::usize( width ) * height * 4 * ( format == ImageFormat::eRGBA32_FLOAT ? sizeof( core::f32 ) : 1 );
+    }
+
     static auto ValidateImage( const ImageHandle& image ) -> void {
         if ( !image || !image->mBufferSpan || !image->mWidth || !image->mHeight ||
              image->mWidth > kMaximumImageSize || image->mHeight > kMaximumImageSize ) {
@@ -96,7 +101,19 @@ namespace mikoto::asset {
         }
 
         const bool compressed{ IsBlockCompressed( image->mFormat ) };
-        const core::usize expected{ compressed ? BlockBytes( image->mWidth, image->mHeight ) : core::usize{ image->mWidth } * image->mHeight * 4 * ( image->mFormat == ImageFormat::eRGBA32_FLOAT ? sizeof( core::f32 ) : 1 ) };
+        core::usize expected{};
+        core::u32 width{ image->mWidth }, height{ image->mHeight };
+        if ( !image->mMipCount || image->mMipCount > 32 ) {
+            MKT_THROW_RUNTIME_ERROR( "Invalid image mip count." );
+        }
+        for ( core::u32 mip{}; mip < image->mMipCount; ++mip ) {
+            expected += ImageLevelBytes( image->mFormat, width, height );
+            if ( width == 1 && height == 1 && mip + 1 < image->mMipCount ) {
+                MKT_THROW_RUNTIME_ERROR( "Image mip chain extends past one texel." );
+            }
+            width = eastl::max( 1u, width / 2 );
+            height = eastl::max( 1u, height / 2 );
+        }
 
         if ( image->mBufferSpan->GetSize() != expected || ( !compressed && image->mChannels != 4 ) ) {
             MKT_THROW_RUNTIME_ERROR( "Image pixel size does not match its dimensions and format." );
@@ -370,9 +387,47 @@ namespace mikoto::asset {
         }
     }
 
+    // Apply existing codecs to each level independently; storage stays mip-major.
+    static auto ConvertMipChain( const ImageHandle &image, ImageHandle ( *convert )( const ImageHandle & ) ) -> ImageHandle {
+        auto result{ ImageHandle::New() };
+        result->mFileHandle = image->mFileHandle;
+        result->mWidth = image->mWidth;
+        result->mHeight = image->mHeight;
+        result->mMipCount = image->mMipCount;
+        eastl::vector<core::ubyte> pixels{};
+        core::usize offset{};
+        core::u32 width{ image->mWidth }, height{ image->mHeight };
+        for ( core::u32 mip{}; mip < image->mMipCount; ++mip ) {
+            auto level{ ImageHandle::New() };
+            level->mWidth = width;
+            level->mHeight = height;
+            level->mChannels = image->mChannels;
+            level->mFormat = image->mFormat;
+            const auto bytes{ ImageLevelBytes( image->mFormat, width, height ) };
+            level->mBufferSpan = memory::BufferSpanHandle::New( static_cast<const core::ubyte *>( image->mBufferSpan->GetData() ) + offset, bytes );
+            level = convert( level );
+            if ( mip && result->mFormat != level->mFormat ) {
+                // HDR alpha/range fallback must be consistent across the chain.
+                return image;
+            }
+            result->mFormat = level->mFormat;
+            result->mChannels = level->mChannels;
+            const auto *data{ static_cast<const core::ubyte *>( level->mBufferSpan->GetData() ) };
+            pixels.insert( pixels.end(), data, data + level->mBufferSpan->GetSize() );
+            offset += bytes;
+            width = eastl::max( 1u, width / 2 );
+            height = eastl::max( 1u, height / 2 );
+        }
+        result->mBufferSpan = memory::BufferSpanHandle::New( pixels.data(), pixels.size() );
+        return result;
+    }
+
     auto CompressImage( const ImageHandle& image ) -> ImageHandle {
         MKT_BEGIN_PROFILER();
         ValidateImage( image );
+        if ( image->mMipCount > 1 ) {
+            return ConvertMipChain( image, CompressImage );
+        }
 
         if ( IsBlockCompressed( image->mFormat ) ) {
             return image;
@@ -473,6 +528,9 @@ namespace mikoto::asset {
     auto DecompressImage( const ImageHandle& image ) -> ImageHandle {
         MKT_BEGIN_PROFILER();
         ValidateImage( image );
+        if ( image->mMipCount > 1 ) {
+            return ConvertMipChain( image, DecompressImage );
+        }
 
         if ( !IsBlockCompressed( image->mFormat ) ) {
             return image;
@@ -551,7 +609,7 @@ namespace mikoto::asset {
         info.baseHeight = image->mHeight;
         info.baseDepth = 1;
         info.numDimensions = 2;
-        info.numLevels = 1;
+        info.numLevels = image->mMipCount;
         info.numLayers = 1;
         info.numFaces = 1;
 
@@ -559,8 +617,16 @@ namespace mikoto::asset {
         ktxTexture2* texture{};
         CheckKtx( ktxTexture2_Create( &info, KTX_TEXTURE_CREATE_ALLOC_STORAGE, &texture ) );
         KtxImagePtr owned{ texture };
-        CheckKtx( ktxTexture_SetImageFromMemory( ktxTexture( texture ), 0, 0, 0,
-            static_cast<const ktx_uint8_t*>( image->mBufferSpan->GetData() ), image->mBufferSpan->GetSize() ) );
+        core::usize offset{};
+        core::u32 width{ image->mWidth }, height{ image->mHeight };
+        for ( core::u32 mip{}; mip < image->mMipCount; ++mip ) {
+            const auto size{ ImageLevelBytes( image->mFormat, width, height ) };
+            CheckKtx( ktxTexture_SetImageFromMemory( ktxTexture( texture ), mip, 0, 0,
+                static_cast<const ktx_uint8_t *>( image->mBufferSpan->GetData() ) + offset, size ) );
+            offset += size;
+            width = eastl::max( 1u, width / 2 );
+            height = eastl::max( 1u, height / 2 );
+        }
 
         // Retain the encoded allocation until the complete cache write succeeds.
         ktx_uint8_t* bytes{};
@@ -598,11 +664,11 @@ namespace mikoto::asset {
             sizeBytes, KTX_TEXTURE_CREATE_NO_FLAGS, &texture ) );
         KtxImagePtr owned{ texture };
 
-        if ( texture->numDimensions != 2 || texture->numLevels != 1 || texture->numLayers != 1 ||
+        if ( texture->numDimensions != 2 || !texture->numLevels || texture->numLevels > 32 || texture->numLayers != 1 ||
              texture->numFaces != 1 || texture->isArray || !texture->baseWidth || !texture->baseHeight ||
              texture->baseWidth > kMaximumImageSize || texture->baseHeight > kMaximumImageSize ||
              texture->supercompressionScheme != KTX_SS_NONE ) {
-            MKT_THROW_RUNTIME_ERROR( "Unsupported KTX2 image layout (requires single-level 2D without supercompression)." );
+            MKT_THROW_RUNTIME_ERROR( "Unsupported KTX2 image layout (requires 2D without supercompression)." );
         }
 
         auto image{ ImageHandle::New() };
@@ -624,17 +690,26 @@ namespace mikoto::asset {
                 MKT_THROW_RUNTIME_ERROR( "Unsupported KTX2 image format." );
         }
 
-        const core::usize expected{ IsBlockCompressed( image->mFormat ) ? BlockBytes( texture->baseWidth, texture->baseHeight ) : core::usize{ texture->baseWidth } * texture->baseHeight * 4 * ( image->mFormat == ImageFormat::eRGBA32_FLOAT ? sizeof( core::f32 ) : 1 ) };
-
-        if ( ktxTexture_GetImageSize( ktxTexture( texture ), 0 ) != expected || texture->dataSize != expected ) {
-            MKT_THROW_RUNTIME_ERROR( "Invalid KTX2 image byte count." );
-        }
-
         CheckKtx( ktxTexture_LoadImageData( ktxTexture( texture ), nullptr, 0 ) );
         image->mWidth = texture->baseWidth;
         image->mHeight = texture->baseHeight;
+        image->mMipCount = texture->numLevels;
         image->mChannels = image->mFormat == ImageFormat::eCompressed_BC6 ? 3 : 4;
-        image->mBufferSpan = memory::BufferSpanHandle::New( texture->pData, expected );
+        eastl::vector<core::ubyte> pixels{};
+        core::u32 width{ image->mWidth }, height{ image->mHeight };
+        for ( core::u32 mip{}; mip < image->mMipCount; ++mip ) {
+            const auto size{ ImageLevelBytes( image->mFormat, width, height ) };
+            ktx_size_t offset{};
+            CheckKtx( ktxTexture_GetImageOffset( ktxTexture( texture ), mip, 0, 0, &offset ) );
+            if ( ktxTexture_GetImageSize( ktxTexture( texture ), mip ) != size || offset > texture->dataSize || size > texture->dataSize - offset ) {
+                MKT_THROW_RUNTIME_ERROR( "Invalid KTX2 mip byte count." );
+            }
+            pixels.insert( pixels.end(), texture->pData + offset, texture->pData + offset + size );
+            width = eastl::max( 1u, width / 2 );
+            height = eastl::max( 1u, height / 2 );
+        }
+        image->mBufferSpan = memory::BufferSpanHandle::New( pixels.data(), pixels.size() );
+        ValidateImage( image );
         return image;
     }
 
@@ -660,7 +735,7 @@ namespace mikoto::asset {
         const auto size{ std::filesystem::file_size( native ) };
         const filesystem::Path cached{ cacheDirectory.GetPathTyped<std::filesystem::path>() /
                                        string::Format( "{}", GetHashedAssetID( source ) ).c_str() /
-                                       string::Format( "texture-v1-{}-{}.ktx2", modified, size ).c_str() };
+                                       string::Format( "texture-v2-{}-{}.ktx2", modified, size ).c_str() };
 
         if ( cached.Exists() ) {
             try {
@@ -670,7 +745,7 @@ namespace mikoto::asset {
             }
         }
 
-        auto image{ CompressImage( ProcessImage2D( filesystem::FileHandle::New( source ) ) ) };
+        auto image{ CompressImage( GenerateImageMipChain( ProcessImage2D( filesystem::FileHandle::New( source ) ) ) ) };
 
         try {
             WriteImageCompressed( cached, image );
@@ -682,16 +757,107 @@ namespace mikoto::asset {
         return image;
     }
 
+    // Integrate the complete source footprint of each output texel. Fractional
+    // boundary weights keep the last source row/column in odd-sized reductions.
+    // memcpy also permits unaligned float buffers without type-punning their bytes.
+    auto FilterImageMipLevel( const void *source, core::u32 width, core::u32 height,
+        void *destination, core::u32 nextWidth, core::u32 nextHeight, bool floating ) -> void {
+        const auto *src{ static_cast<const core::ubyte *>( source ) };
+        auto *dst{ static_cast<core::ubyte *>( destination ) };
+        const core::usize pixelBytes{ 4 * ( floating ? sizeof( float ) : 1 ) };
+        for ( core::u32 y{}; y < nextHeight; ++y ) {
+            const double top{ double( y ) * height / nextHeight }, bottom{ double( y + 1 ) * height / nextHeight };
+            for ( core::u32 x{}; x < nextWidth; ++x ) {
+                const double left{ double( x ) * width / nextWidth }, right{ double( x + 1 ) * width / nextWidth };
+                double sum[4]{};
+                for ( core::u32 sy{ core::u32( top ) }; sy < core::u32( std::ceil( bottom ) ); ++sy ) {
+                    for ( core::u32 sx{ core::u32( left ) }; sx < core::u32( std::ceil( right ) ); ++sx ) {
+                        const double weight{ ( std::min( right, double( sx + 1 ) ) - std::max( left, double( sx ) ) ) *
+                                             ( std::min( bottom, double( sy + 1 ) ) - std::max( top, double( sy ) ) ) };
+                        const auto index{ ( core::usize( sy ) * width + sx ) * pixelBytes };
+                        for ( core::u32 c{}; c < 4; ++c ) {
+                            float value{};
+                            if ( floating ) {
+                                std::memcpy( &value, src + index + c * sizeof( float ), sizeof( float ) );
+                            }
+                            else {
+                                value = src[index + c];
+                            }
+                            sum[c] += value * weight;
+                        }
+                    }
+                }
+                const auto output{ ( core::usize( y ) * nextWidth + x ) * pixelBytes };
+                for ( core::u32 c{}; c < 4; ++c ) {
+                    const float value{ float( sum[c] / ( ( right - left ) * ( bottom - top ) ) ) };
+                    if ( floating ) {
+                        std::memcpy( dst + output + c * sizeof( float ), &value, sizeof( float ) );
+                    }
+                    else {
+                        dst[output + c] = core::ubyte( std::clamp( std::round( value ), 0.0f, 255.0f ) );
+                    }
+                }
+            }
+        }
+    }
+
+    auto GenerateImageMipChain( const ImageHandle &image ) -> ImageHandle {
+        ValidateImage( image );
+        if ( image->mMipCount > 1 || ( image->mWidth == 1 && image->mHeight == 1 ) ) {
+            return image;
+        }
+        if ( IsBlockCompressed( image->mFormat ) ) {
+            auto result{ CompressImage( GenerateImageMipChain( DecompressImage( image ) ) ) };
+            // Do not degrade a pre-compressed source's original pixels.
+            if ( result->mFormat == image->mFormat ) {
+                const auto *data{ static_cast<const core::ubyte *>( result->mBufferSpan->GetData() ) };
+                eastl::vector<core::ubyte> pixels{ data, data + result->mBufferSpan->GetSize() };
+                std::memcpy( pixels.data(), image->mBufferSpan->GetData(), image->mBufferSpan->GetSize() );
+                result->mBufferSpan = memory::BufferSpanHandle::New( pixels.data(), pixels.size() );
+            }
+            return result;
+        }
+
+        auto result{ ImageHandle::New() };
+        result->mFileHandle = image->mFileHandle;
+        result->mWidth = image->mWidth;
+        result->mHeight = image->mHeight;
+        result->mChannels = image->mChannels;
+        result->mFormat = image->mFormat;
+        const bool floating{ image->mFormat == ImageFormat::eRGBA32_FLOAT };
+        const core::usize pixelBytes{ 4 * ( floating ? sizeof( float ) : 1 ) };
+        const auto *base{ static_cast<const core::ubyte *>( image->mBufferSpan->GetData() ) };
+        eastl::vector<core::ubyte> pixels{ base, base + image->mBufferSpan->GetSize() };
+        core::usize previousOffset{};
+        core::u32 width{ image->mWidth }, height{ image->mHeight };
+        while ( width > 1 || height > 1 ) {
+            const core::u32 nextWidth{ eastl::max( 1u, width / 2 ) }, nextHeight{ eastl::max( 1u, height / 2 ) };
+            const auto offset{ pixels.size() };
+            pixels.resize( offset + core::usize( nextWidth ) * nextHeight * pixelBytes );
+            FilterImageMipLevel( pixels.data() + previousOffset, width, height,
+                pixels.data() + offset, nextWidth, nextHeight, floating );
+            previousOffset = offset;
+            width = nextWidth;
+            height = nextHeight;
+            ++result->mMipCount;
+        }
+        result->mBufferSpan = memory::BufferSpanHandle::New( pixels.data(), pixels.size() );
+        return result;
+    }
+
     auto PrepareImageForUpload( const ImageHandle& image, renderer::rhi::IGpuDevice& device ) -> ImageHandle {
-        if ( image && image->mFormat == ImageFormat::eCompressed_BC6 || image->mFormat == ImageFormat::eCompressed_BC7 ) {
+        if ( !image ) {
+            return image;
+        }
+        if ( image->mFormat == ImageFormat::eCompressed_BC6 || image->mFormat == ImageFormat::eCompressed_BC7 ) {
             const bool direct3D{ device.IsGraphicsApi( renderer::rhi::GraphicsAPI::eD3D12 ) };
 
             if ( !device.SupportsBCTextureCompression() || ( direct3D && ( image->mWidth % 4 || image->mHeight % 4 ) ) ) {
-                return DecompressImage( image );
+                return GenerateImageMipChain( DecompressImage( image ) );
             }
         }
 
-        return image;
+        return GenerateImageMipChain( image );
     }
 
 }// namespace mikoto::asset

@@ -169,7 +169,7 @@ namespace mikoto::scripting {
             const auto getModule{ reinterpret_cast<native::GetScriptModule>( SDL_LoadFunction( candidate->mLibrary, native::kModuleEntryPoint ) ) };
             candidate->mApi = getModule ? getModule( native::kApiVersion ) : nullptr;
             if ( !candidate->mApi || !candidate->mApi->mName || !candidate->mApi->mCreate || !candidate->mApi->mDestroy ||
-                 !candidate->mApi->mStart || !candidate->mApi->mUpdate || !candidate->mApi->mStop ||
+                 !candidate->mApi->mStart || !candidate->mApi->mUpdate || !candidate->mApi->mStop || !candidate->mApi->mPhysicsEvent ||
                  ( candidate->mApi->mFieldCount && !candidate->mApi->mFields ) || !candidate->ReadMetadata() ) {
                 MKT_THROW_RUNTIME_ERROR( "The module must export MKT_NATIVE_SCRIPT with a compatible SDK and valid fields." );
             }

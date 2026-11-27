@@ -12,40 +12,41 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <cmath>
 #include <cfloat>
-#include <fstream>
+#include <cmath>
 #include <filesystem>
+#include <fstream>
 
 #include <EASTL/algorithm.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include <Core/String.hh>
-#include <Core/Exception.hh>
-#include <Core/LocalizationService.hh>
-
-#include <Filesystem/FileSystem.hh>
+#include <Application/ParticleProperties.hh>
+#include <Application/PreviewEnvironment.hh>
 
 #include <Assets/AssetRegistryService.hh>
 
-#include <Material/SkyboxMaterial.hh>
+#include <Core/Exception.hh>
+#include <Core/LocalizationService.hh>
+#include <Core/String.hh>
 
-#include <Renderer/Core/RenderSystem.hh>
-#include <Renderer/Particle/ParticleEmitter.hh>
+#include <Filesystem/FileSystem.hh>
 
-#include <ImGui/Utility.hh>
-#include <ImGui/ImGuiWidget.hh>
-#include <ImGui/ImGuiService.hh>
 #include <ImGui/IconsMaterialDesign.h>
+#include <ImGui/ImGuiService.hh>
+#include <ImGui/ImGuiWidget.hh>
+#include <ImGui/Utility.hh>
 
-#include <Application/PreviewEnvironment.hh>
-#include <Application/ParticleProperties.hh>
+#include <Layers/EditorLayer.hh>
+
+#include <Material/SkyboxMaterial.hh>
 
 #include <Panels/ParticleSimulationPanel.hh>
 
-#include <Layers/EditorLayer.hh>
+#include <Renderer/Core/RenderSystem.hh>
+#include <Renderer/Particle/ParticleEmitter.hh>
+#include <Renderer/Passes/ThumbnailPasses.hh>
 
 namespace mikoto::editor {
     using namespace core;
@@ -54,7 +55,7 @@ namespace mikoto::editor {
     using namespace renderer::rhi;
     using namespace filesystem;
 
-    ParticleSimulationPanel::ParticleSimulationPanel( const ParticleSimulationPanelCreateInfo& info )
+    ParticleSimulationPanel::ParticleSimulationPanel( const ParticleSimulationPanelCreateInfo &info )
         : Panel{ "Particle Simulation", "Panel", info.mGroup, info.mIsToggleable },
           mEditorState{ info.mState } {
         mPanelHeaderName = imgui::widget::MakeIconTitle( ICON_MD_BLUR_ON, mPanelName );
@@ -72,9 +73,10 @@ namespace mikoto::editor {
     auto ParticleSimulationPanel::InitializePreview() -> void {
         // The preview runs its own clocks independently of scene playback.
         mScene = eastl::make_unique<scene::Scene>( "Particle Preview" );
-        auto* entity{ mScene->CreateEntity( "Preview simulator" ) };
+        auto *entity{ mScene->CreateEntity( "Preview simulator" ) };
         mSimulator = entity->Get();
         entity->AddComponent<scene::ParticleSimulatorComponent>();
+        entity->GetComponent<scene::TransformComponent>().SetTranslation( { 0, renderer::kPreviewStageElevation, 0 } );
         RefreshPreview();
 
         const auto cube{ mEditorState->GetPrefab( PrefabModelType::eCube ) };
@@ -83,11 +85,11 @@ namespace mikoto::editor {
             MKT_THROW_RUNTIME_ERROR( "Particle preview requires the cube prefab." );
         }
 
-        const auto& vertices{ cube->GetMeshNode( 0 ).GetCollisionVertices() };
+        const auto &vertices{ cube->GetMeshNode( 0 ).GetCollisionVertices() };
         core::float3 minimum{ vertices.front() };
         core::float3 maximum{ minimum };
 
-        for ( const auto& vertex: vertices ) {
+        for ( const auto &vertex: vertices ) {
             minimum = glm::min( minimum, vertex );
             maximum = glm::max( maximum, vertex );
         }
@@ -98,11 +100,11 @@ namespace mikoto::editor {
             MKT_THROW_RUNTIME_ERROR( "Particle preview ground has invalid bounds." );
         }
 
-        auto* ground{ mScene->CreateEntity( scene::EntityCreateInfo{ .mName = "Preview ground", .mModel = cube } ) };
+        auto *ground{ mScene->CreateEntity( scene::EntityCreateInfo{ .mName = "Preview ground", .mModel = cube } ) };
         mGround = ground->Get();
-        // Leave the top slightly below y=0 so the infinite grid remains visible.
+        // Raise the stage with its emitter; the infinite grid remains at Y=0.
         ground->GetComponent<scene::TransformComponent>().SetTransform(
-            glm::translate( core::float4x4{ 1 }, core::float3{ 0, -0.06f, 0 } ) *
+            glm::translate( core::float4x4{ 1 }, core::float3{ 0, renderer::kPreviewStageElevation - 0.06f, 0 } ) *
             glm::scale( core::float4x4{ 1 }, core::float3{ 12, 0.1f, 12 } / size ) *
             glm::translate( core::float4x4{ 1 }, -( minimum + maximum ) * 0.5f ) );
         auto surface{ core::Ref<material::SurfaceMaterial>::New( "Particle preview ground" ) };
@@ -113,10 +115,10 @@ namespace mikoto::editor {
         mScene->Update( 0.0f );
         mCamera.SetViewportSize( 1280, 720 );
         auto renderer{ ISceneRenderer::Create()
-            .SetName( "Particle Preview" )
-            .SetDevice( renderer::RenderSystem::Get()->GetGpuDevice() )
-            .SetRenderResolution( renderer::rhi::RenderResolution::e720P )
-            .Build() };
+                .SetName( "Particle Preview" )
+                .SetDevice( renderer::RenderSystem::Get()->GetGpuDevice() )
+                .SetRenderResolution( renderer::rhi::RenderResolution::e720P )
+                .Build() };
         renderer->SetEditorOverlaysEnabled( false );
         renderer->SetEnableSsao( false );
         renderer->SetEnableInfiniteGrid( true );
@@ -132,7 +134,7 @@ namespace mikoto::editor {
 
     auto ParticleSimulationPanel::RefreshPreview() -> void {
         if ( mScene && mSimulator != entt::null ) {
-            auto& simulator{ mScene->GetRegistry().get<scene::ParticleSimulatorComponent>( mSimulator ) };
+            auto &simulator{ mScene->GetRegistry().get<scene::ParticleSimulatorComponent>( mSimulator ) };
             simulator.SetEffect( asset::ParticleEffectHandle::New( mEmitters ) );
         }
 
@@ -148,11 +150,10 @@ namespace mikoto::editor {
         mGraphMessage.clear();
     }
 
-    auto ParticleSimulationPanel::ReplaceEmitter( const ParticleEmitterSettings& settings, const material::ParticleMaterialHandle& material ) -> void {
+    auto ParticleSimulationPanel::ReplaceEmitter( const ParticleEmitterSettings &settings, const material::ParticleMaterialHandle &material ) -> void {
         auto emitter{ ParticleEmitterHandle::New( ParticleEmitterCreateDescription{
             .mSettings = settings,
-            .mMaterial = material
-        } ) };
+            .mMaterial = material } ) };
 
         if ( mScene && mSimulator != entt::null ) {
             mScene->GetRegistry().get<scene::ParticleSimulatorComponent>( mSimulator ).SetEmitter( mSelectedEmitter, emitter );
@@ -176,7 +177,7 @@ namespace mikoto::editor {
         }
     }
 
-    auto ParticleSimulationPanel::EditEffect( const asset::ParticleEffectHandle& effect ) -> void {
+    auto ParticleSimulationPanel::EditEffect( const asset::ParticleEffectHandle &effect ) -> void {
         mEmitters.clear();
         if ( effect ) {
             mEmitters = effect->GetEmitters();
@@ -190,7 +191,7 @@ namespace mikoto::editor {
         SetVisible( true );
     }
 
-    auto ParticleSimulationPanel::OpenAsset( const filesystem::Path& path ) -> void {
+    auto ParticleSimulationPanel::OpenAsset( const filesystem::Path &path ) -> void {
         try {
             const auto effect{ asset::AssetRegistryService::Get()->LoadAsset<asset::ParticleEffect>( path ) };
             if ( !effect ) {
@@ -199,13 +200,13 @@ namespace mikoto::editor {
 
             EditEffect( effect );
             mPath = path;
-        } catch ( const std::exception& error ) {
+        } catch ( const std::exception &error ) {
             mError = error.what();
             SetVisible( true );
         }
     }
 
-    auto ParticleSimulationPanel::SaveAsset() -> void {
+    auto ParticleSimulationPanel::SaveAsset( bool saveAs ) -> void {
         if ( !mEmitters.empty() ) {
             const auto compiled{ ParticleGraphCompiler::Compile( mGraph ) };
             if ( !compiled.mSuccess ) {
@@ -214,7 +215,12 @@ namespace mikoto::editor {
             }
         }
 
-        const auto path{ SaveFileDialog( "Effect.mktpart", { { MKT_LOC( "particle_effect_asset" ).c_str(), "mktpart" } } ) };
+        // Save updates the opened asset; new effects and Save As choose a destination.
+        auto path{ mPath };
+        if ( saveAs || path.IsEmpty() ) {
+            const eastl::string defaultName{ mPath.IsEmpty() ? "Effect.mktpart" : mPath.GetFilename() };
+            path = SaveFileDialog( defaultName, { { MKT_LOC( "particle_effect_asset" ).c_str(), "mktpart" } } );
+        }
 
         if ( !path.IsEmpty() ) {
             const auto effect{ asset::ParticleEffectHandle::New( mEmitters ) };
@@ -287,7 +293,7 @@ namespace mikoto::editor {
         ImGui::BeginDisabled( mEmitters.empty() );
         if ( ImGui::BeginCombo( "##Preset", MKT_LOC( "particle_simulation_presets" ).c_str() ) ) {
             for ( core::i32 preset{}; preset < 4; ++preset ) {
-                const char* names[]{ MKT_LOC( "particle_simulation_default" ).c_str(), "Fountain", "Sparks", "Smoke" };
+                const char *names[]{ MKT_LOC( "particle_simulation_default" ).c_str(), "Fountain", "Sparks", "Smoke" };
 
                 if ( ImGui::Selectable( names[preset] ) ) {
                     renderer::ParticleEmitterSettings settings{};
@@ -336,12 +342,17 @@ namespace mikoto::editor {
         ImGui::EndDisabled();
         ImGui::SameLine();
 
+        if ( ImGui::Button( MKT_LOC( "editor_layer_save" ).c_str() ) ) {
+            SaveAsset( false );
+        }
+
+        ImGui::SameLine();
         if ( ImGui::Button( imgui::widget::LocalizedLabel( "particle_simulation_save_as", "Save as..." ).c_str() ) ) {
-            SaveAsset();
+            SaveAsset( true );
         }
 
         mEditorState->ValidateSelection();
-        auto* selected{ mEditorState->mSelectedEntity };
+        auto *selected{ mEditorState->mSelectedEntity };
         const bool hasSimulator{ selected && selected->HasComponent<scene::ParticleSimulatorComponent>() };
         ImGui::SameLine();
         ImGui::BeginDisabled( !hasSimulator );
@@ -352,7 +363,7 @@ namespace mikoto::editor {
 
         ImGui::SameLine();
         if ( ImGui::Button( imgui::widget::LocalizedLabel( "particle_simulation_apply_to_selected", "Apply to selected" ).c_str() ) ) {
-            auto& simulator{ selected->GetComponent<scene::ParticleSimulatorComponent>() };
+            auto &simulator{ selected->GetComponent<scene::ParticleSimulatorComponent>() };
             if ( simulator.GetInstances().size() == mEmitters.size() && simulator.GetEffect() ) {
                 for ( core::usize index{}; index < mEmitters.size(); ++index ) {
                     if ( simulator.GetEffect()->GetEmitters()[index] != mEmitters[index] ) {
@@ -370,13 +381,15 @@ namespace mikoto::editor {
     }
 
     auto ParticleSimulationPanel::DrawPreview( core::f32 timeStep ) -> void {
-        auto& simulator{ mScene->GetRegistry().get<scene::ParticleSimulatorComponent>( mSimulator ) };
+        auto &simulator{ mScene->GetRegistry().get<scene::ParticleSimulatorComponent>( mSimulator ) };
         const auto instances{ simulator.GetInstances() };
-        const auto isPlaying{ []( const auto& instance ) { return instance.GetPlayback() == ParticlePlayback::ePlaying; } };
+        const auto isPlaying{ []( const auto &instance ) {
+            return instance.GetPlayback() == ParticlePlayback::ePlaying;
+        } };
         const bool playing{ eastl::any_of( instances.begin(), instances.end(), isPlaying ) };
 
         if ( ImGui::Button( playing ? MKT_LOC( "particle_simulation_pause" ).c_str() : MKT_LOC( "particle_simulation_play" ).c_str() ) ) {
-            for ( auto& instance: instances ) {
+            for ( auto &instance: instances ) {
                 if ( playing ) {
                     if ( isPlaying( instance ) ) {
                         instance.Pause();
@@ -390,7 +403,7 @@ namespace mikoto::editor {
 
         ImGui::SameLine();
         if ( ImGui::Button( imgui::widget::LocalizedLabel( "particle_simulation_restart", "Restart" ).c_str() ) ) {
-            for ( auto& instance: instances ) {
+            for ( auto &instance: instances ) {
                 instance.Restart();
             }
             mElapsed = 0;
@@ -403,7 +416,7 @@ namespace mikoto::editor {
 
         ImGui::SameLine();
         if ( ImGui::Button( imgui::widget::LocalizedLabel( "particle_simulation_stop", "Stop" ).c_str() ) ) {
-            for ( auto& instance: instances ) {
+            for ( auto &instance: instances ) {
                 instance.Stop();
             }
             mElapsed = 0;
@@ -438,23 +451,24 @@ namespace mikoto::editor {
 
         const core::f32 yaw{ glm::radians( mYaw ) };
         const core::f32 pitch{ glm::radians( mPitch ) };
-        const core::float3 target{ 0, mTargetHeight, 0 };
+        const core::float3 target{ 0, renderer::kPreviewStageElevation + mTargetHeight, 0 };
         mCamera.LookAt( target + mDistance * core::float3{ glm::sin( yaw ) * glm::cos( pitch ), glm::sin( pitch ), glm::cos( yaw ) * glm::cos( pitch ) }, target );
         mRenderer->SetParticleSimulationMode( mMode );
         if ( mStep ) {
-            for ( auto& instance: instances ) {
+            for ( auto &instance: instances ) {
                 instance.Play();
             }
         }
 
         const auto step{ mStep ? 1.0f / 60.0f : glm::clamp( timeStep, 0.0f, 0.1f ) * mSpeed };
-        simulator.Update( step, core::float4x4{ 1.0f }, 1, mMode );
+        const auto emitterWorld{ glm::translate( core::float4x4{ 1.0f }, core::float3{ 0, renderer::kPreviewStageElevation, 0 } ) };
+        simulator.Update( step, emitterWorld, 1, mMode );
         if ( mStep || eastl::any_of( instances.begin(), instances.end(), isPlaying ) ) {
             mElapsed += step;
         }
 
         if ( mStep ) {
-            for ( auto& instance: instances ) {
+            for ( auto &instance: instances ) {
                 if ( isPlaying( instance ) ) {
                     instance.Pause();
                 }
@@ -479,7 +493,7 @@ namespace mikoto::editor {
         if ( ImGui::CollapsingHeader( imgui::widget::LocalizedLabel( "particle_simulation_info", "Info" ).c_str() ) ) {
             ImGui::TextUnformatted( mMode == renderer::ParticleSimulationMode::eGpu ? MKT_LOC( "particle_simulation_gpu_compute" ).c_str() : MKT_LOC( "particle_simulation_cpu_simulation" ).c_str() );
             ImGui::Text( MKT_LOC( "particle_simulation_preview_time_s" ).c_str(), mElapsed );
-            const auto& instance{ mScene->GetRegistry().get<scene::ParticleSimulatorComponent>( mSimulator ).GetInstances()[mSelectedEmitter] };
+            const auto &instance{ mScene->GetRegistry().get<scene::ParticleSimulatorComponent>( mSimulator ).GetInstances()[mSelectedEmitter] };
 
             if ( mMode == renderer::ParticleSimulationMode::eCpu ) {
                 ImGui::Text( MKT_LOC( "particle_simulation_live_dropped" ).c_str(), instance.GetParticles().size(), instance.GetDroppedParticles() );
@@ -595,7 +609,7 @@ namespace mikoto::editor {
         ImGui::SameLine();
 
         if ( ImGui::Button( imgui::widget::LocalizedLabel( "particle_simulation_auto_layout", "Auto layout" ).c_str() ) ) {
-            for ( auto& n: mGraph.mNodes ) {
+            for ( auto &n: mGraph.mNodes ) {
                 n.mPosition = { float( n.mID - 1 ) * 380, 0 };
             }
 
@@ -611,7 +625,7 @@ namespace mikoto::editor {
                 auto type{ static_cast<renderer::ParticleNodeType>( i ) };
                 bool exists{};
 
-                for ( const auto& n: mGraph.mNodes ) {
+                for ( const auto &n: mGraph.mNodes ) {
                     exists |= n.mType == type;
                 }
 
@@ -634,9 +648,9 @@ namespace mikoto::editor {
         const auto previous{ ed::GetStyle() };
         imgui::ApplyBlueprintStyle();
         ed::Begin( "ParticleGraph" );
-        auto& settings{ mGraph.mSettings };
+        auto &settings{ mGraph.mSettings };
 
-        for ( auto& node: mGraph.mNodes ) {
+        for ( auto &node: mGraph.mNodes ) {
             if ( mGraphRestore ) {
                 ed::SetNodePosition( node.mID * 16, { node.mPosition.x, node.mPosition.y } );
             }
@@ -651,7 +665,7 @@ namespace mikoto::editor {
                 ed::BeginPin( node.mID * 16 + ( input ? 1 : 2 ), kind );
                 bool connected{};
 
-                for ( const auto& link: mGraph.mLinks ) {
+                for ( const auto &link: mGraph.mLinks ) {
                     connected |= ( input ? link.mDestination : link.mSource ) == node.mID;
                 }
 
@@ -721,7 +735,7 @@ namespace mikoto::editor {
 
         mGraphRestore = false;
 
-        for ( const auto& link: mGraph.mLinks ) {
+        for ( const auto &link: mGraph.mLinks ) {
             ed::Link( link.mSource * 16 + 3, link.mSource * 16 + 2, link.mDestination * 16 + 1, { .7f, .85f, 1, 1 }, 2 );
         }
 
@@ -804,7 +818,7 @@ namespace mikoto::editor {
 
         try {
             if ( !mRenderer && mError.empty() ) {
-                const auto& prefab{ mEditorState->mPrefabs.at( PrefabModelType::eCube ) };
+                const auto &prefab{ mEditorState->mPrefabs.at( PrefabModelType::eCube ) };
 
                 if ( prefab.mRequest.GetState() == asset::AssetState::eFailed ) {
                     mError = prefab.mRequest.GetError();
@@ -819,7 +833,7 @@ namespace mikoto::editor {
 
             if ( mRenderer && mError.empty() ) {
                 if ( !mEnvironment.IsRequested() ) {
-                    mEnvironment.Request( PreviewEnvironment::StreetPath() );
+                    mEnvironment.Request( PreviewEnvironment::DaylightPath() );
                 }
 
                 if ( mEnvironment.Poll( mEnvironmentTexture ) ) {
@@ -839,7 +853,7 @@ namespace mikoto::editor {
                     ImGui::TextWrapped( "%s", mEnvironment.GetError().c_str() );
 
                     if ( ImGui::Button( imgui::widget::LocalizedLabel( "particle_simulation_retry_street_environment", "Retry street environment" ).c_str() ) ) {
-                        mEnvironment.Request( PreviewEnvironment::StreetPath() );
+                        mEnvironment.Request( PreviewEnvironment::DaylightPath() );
                     }
                 }
 
@@ -863,7 +877,7 @@ namespace mikoto::editor {
 
                             try {
                                 DrawPreview( timeStep );
-                            } catch ( const std::exception& error ) {
+                            } catch ( const std::exception &error ) {
                                 mError = error.what();
                             }
                         }
@@ -875,7 +889,7 @@ namespace mikoto::editor {
 
                             try {
                                 DrawSettings();
-                            } catch ( const std::exception& error ) {
+                            } catch ( const std::exception &error ) {
                                 mError = error.what();
                             }
 
@@ -896,7 +910,7 @@ namespace mikoto::editor {
                     ImGui::EndTable();
                 }
             }
-        } catch ( const std::exception& error ) {
+        } catch ( const std::exception &error ) {
             mError = error.what();
         }
 

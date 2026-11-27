@@ -19,20 +19,20 @@
 
 #include <yaml-cpp/yaml.h>
 
-#include <Core/Types.hh>
 #include <Core/Resource.hh>
+#include <Core/Types.hh>
 
 #include <Material/ParticleMaterial.hh>
 
 namespace mikoto::renderer {
 
     // https://alextardif.com/Particles.html
-    
+
     // https://gdcvault.com/play/1025132/
     // https://www.gdcvault.com/play/1020002/Advanced-Visual-Effects-with-DirectX
-    
+
     // https://wickedengine.net/category/devblog/2017/11/07/gpu-based-particle-simulation/index.html
-    
+
     // https://github.com/GPUOpen-LibrariesAndSDKs/GPUParticles11/
     // https://gpuopen.com/learn/gpuparticles11-directx-11-sdk-sample/
 
@@ -66,6 +66,7 @@ namespace mikoto::renderer {
         core::f32 mSoftness{};
         core::f32 mFadeIn{};
         core::f32 mFadeOut{};
+        core::f32 mBloomIntensity{};// Snapshot emission at birth, like tint and fade.
         core::f32 mStartSize{};
         core::f32 mEndSize{};
         core::float4 mStartColor{};
@@ -80,7 +81,7 @@ namespace mikoto::renderer {
         core::float4 mPositionSize{};
         core::float4 mColor{};
         core::float4 mRotationSoftness{};
-        glm::uvec4 mTexture{ kInvalidParticleTextureIndex, 0, 0, 0 };
+        glm::uvec4 mTexture{ kInvalidParticleTextureIndex, 0, 0, 0 };// SRV, bloom float bits, reserved.
     };
 
     struct ParticleEmitterSettings {
@@ -107,12 +108,12 @@ namespace mikoto::renderer {
         bool mLooping{ true };
 
         bool mFadeEnabled{ true };
-        core::f32 mFadeIn{ 0.05f }; // Fraction of particle lifetime.
+        core::f32 mFadeIn{ 0.05f };// Fraction of particle lifetime.
         core::f32 mFadeOut{ 0.25f };
 
         auto Sanitize() -> void;
-        auto Serialize( YAML::Emitter& out ) const -> void;
-        MKT_NODISCARD static auto Deserialize( const YAML::Node& node ) -> ParticleEmitterSettings;
+        auto Serialize( YAML::Emitter &out ) const -> void;
+        MKT_NODISCARD static auto Deserialize( const YAML::Node &node ) -> ParticleEmitterSettings;
     };
 
     struct ParticleEmitterCreateDescription {
@@ -122,10 +123,10 @@ namespace mikoto::renderer {
 
     class ParticleEmitter final : public core::Resource {
     public:
-        explicit ParticleEmitter( const ParticleEmitterCreateDescription& description = {} );
+        explicit ParticleEmitter( const ParticleEmitterCreateDescription &description = {} );
 
-        MKT_NODISCARD auto GetSettings() const -> const ParticleEmitterSettings&;
-        MKT_NODISCARD auto GetMaterial() const -> const material::ParticleMaterialHandle&;
+        MKT_NODISCARD auto GetSettings() const -> const ParticleEmitterSettings &;
+        MKT_NODISCARD auto GetMaterial() const -> const material::ParticleMaterialHandle &;
         MKT_NODISCARD auto GetTint() const -> core::float4;
         MKT_NODISCARD auto GetTexture() const -> rhi::TextureHandle;
 
@@ -146,11 +147,11 @@ namespace mikoto::renderer {
     public:
         explicit ParticleEmitterInstance( ParticleEmitterHandle emitter );
 
-        ParticleEmitterInstance( const ParticleEmitterInstance& other );
-        ParticleEmitterInstance( ParticleEmitterInstance&& ) noexcept = default;
+        ParticleEmitterInstance( const ParticleEmitterInstance &other );
+        ParticleEmitterInstance( ParticleEmitterInstance && ) noexcept = default;
 
-        auto operator=( const ParticleEmitterInstance& other ) -> ParticleEmitterInstance&;
-        auto operator=( ParticleEmitterInstance&& ) noexcept -> ParticleEmitterInstance& = default;
+        auto operator=( const ParticleEmitterInstance &other ) -> ParticleEmitterInstance &;
+        auto operator=( ParticleEmitterInstance && ) noexcept -> ParticleEmitterInstance & = default;
 
         auto Play() -> void;
         auto Pause() -> void;
@@ -159,7 +160,7 @@ namespace mikoto::renderer {
         // Only future spawns use the replacement recipe.
         auto SetEmitter( ParticleEmitterHandle emitter ) -> void;
         auto SetSimulationMode( ParticleSimulationMode mode ) -> void;
-        auto Update( core::f32 timeStep, const core::float4x4& world, core::u64 entitySeed ) -> void;
+        auto Update( core::f32 timeStep, const core::float4x4 &world, core::u64 entitySeed ) -> void;
 
         MKT_NODISCARD auto IsEmitting() const -> bool;
         MKT_NODISCARD auto GetID() const -> core::u64;
@@ -177,8 +178,8 @@ namespace mikoto::renderer {
         MKT_NODISCARD static auto AllocateID() -> core::u64;
         auto Random() -> core::f32;
         auto BindSpawnTexture() -> void;
-        auto Spawn( const core::float4x4& world ) -> void;
-        auto Step( core::f32 timeStep, const core::float4x4& world ) -> void;
+        auto Spawn( const core::float4x4 &world ) -> void;
+        auto Step( core::f32 timeStep, const core::float4x4 &world ) -> void;
 
     private:
         struct TextureSlot {

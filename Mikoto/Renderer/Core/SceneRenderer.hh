@@ -15,34 +15,37 @@
 #ifndef MIKOTO_RENDERER_CORE_SCENE_RENDERER_HH
 #define MIKOTO_RENDERER_CORE_SCENE_RENDERER_HH
 
-#include <EASTL/string.h>
-#include <EASTL/vector.h>
-#include <EASTL/optional.h>
-#include <EASTL/unique_ptr.h>
-#include <EASTL/string_view.h>
-
 #include <ankerl/unordered_dense.h>
+
+#include <EASTL/optional.h>
+#include <EASTL/string.h>
+#include <EASTL/string_view.h>
+#include <EASTL/unique_ptr.h>
+#include <EASTL/vector.h>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
 
-#include <Renderer/Rhi/Types.hh>
-#include <Renderer/Rhi/Texture.hh>
-#include <Renderer/Core/Renderer.hh>
+#include <Renderer/Clouds/Clouds.hh>
 #include <Renderer/Core/FrameGraph.hh>
-#include <Renderer/RayTracing/RayTracing.hh>
-#include <Renderer/ForwardRenderer/Passes/DebugModule.hh>
-#include <Renderer/ForwardRenderer/Passes/TonemapModule.hh>
+#include <Renderer/Core/InfiniteGrid.hh>
+#include <Renderer/Core/Renderer.hh>
 #include <Renderer/Core/SparseBufferUpload.hh>
-#include <Renderer/Particle/ParticleSystem.hh>
-#include <Renderer/ForwardRenderer/Passes/PostProcessModule.hh>
+#include <Renderer/Denoising/Denoiser.hh>
+#include <Renderer/ForwardRenderer/Passes/DebugModule.hh>
 #include <Renderer/ForwardRenderer/Passes/DebugOverlayModule.hh>
-#include <Renderer/ForwardRenderer/Passes/PresentationModule.hh>
-#include <Renderer/ForwardRenderer/Passes/MousePickingModule.hh>
-#include <Renderer/ForwardRenderer/Passes/ShadowMappingModule.hh>
 #include <Renderer/ForwardRenderer/Passes/DisplayEffectsModule.hh>
 #include <Renderer/ForwardRenderer/Passes/GeometryShadingModule.hh>
 #include <Renderer/ForwardRenderer/Passes/IndirectLightingModule.hh>
+#include <Renderer/ForwardRenderer/Passes/MousePickingModule.hh>
+#include <Renderer/ForwardRenderer/Passes/PostProcessModule.hh>
+#include <Renderer/ForwardRenderer/Passes/PresentationModule.hh>
+#include <Renderer/ForwardRenderer/Passes/ShadowMappingModule.hh>
+#include <Renderer/ForwardRenderer/Passes/TonemapModule.hh>
+#include <Renderer/Particle/ParticleSystem.hh>
+#include <Renderer/RayTracing/RayTracing.hh>
+#include <Renderer/Rhi/Texture.hh>
+#include <Renderer/Rhi/Types.hh>
 
 namespace mikoto::renderer {
 
@@ -54,7 +57,7 @@ namespace mikoto::renderer {
     };
 
     struct SceneRendererCreateInfo {
-        rhi::IGpuDevice* mDevice{};
+        rhi::IGpuDevice *mDevice{};
         eastl::string_view mName{};
         eastl::string_view mShaderBasePath{};
 
@@ -64,20 +67,23 @@ namespace mikoto::renderer {
         rhi::RenderResolution mResolution{ rhi::RenderResolution::e1080P };
         rhi::ViewportConvention mViewportConvention{ rhi::ViewportConvention::eRightHanded_OriginBottomLeft };
 
-        auto SetName( eastl::string_view name ) -> SceneRendererCreateInfo&;
-        auto SetDevice( rhi::IGpuDevice* device ) -> SceneRendererCreateInfo&;
-        auto SetRendererType( SceneRendererType type ) -> SceneRendererCreateInfo&;
+        auto SetName( eastl::string_view name ) -> SceneRendererCreateInfo &;
+        auto SetDevice( rhi::IGpuDevice *device ) -> SceneRendererCreateInfo &;
+        auto SetRendererType( SceneRendererType type ) -> SceneRendererCreateInfo &;
 
-        auto SetMultisampling( rhi::Multisampling multisampling ) -> SceneRendererCreateInfo&;
-        auto SetRenderResolution( rhi::RenderResolution resolution ) -> SceneRendererCreateInfo&;
-        auto SetViewportConvention( rhi::ViewportConvention convention ) -> SceneRendererCreateInfo&;
+        auto SetMultisampling( rhi::Multisampling multisampling ) -> SceneRendererCreateInfo &;
+        auto SetRenderResolution( rhi::RenderResolution resolution ) -> SceneRendererCreateInfo &;
+        auto SetViewportConvention( rhi::ViewportConvention convention ) -> SceneRendererCreateInfo &;
 
         MKT_NODISCARD auto Build() const -> eastl::unique_ptr<ISceneRenderer>;
     };
 
     struct SceneRenderSettings {
         RayTracingConfiguration mRayTracing{};
+        DenoiserSettings mDenoiser{};
         ScreenSpaceReflectionSettings mScreenSpaceReflections{};
+        CloudsSettings mClouds{};
+        InfiniteGridSettings mInfiniteGrid{};
         rhi::RenderResolution mResolution{ rhi::RenderResolution::e1080P };
         rhi::Multisampling mMultisampling{ rhi::Multisampling::eMsaaX1 };
         ShadowMapQuality mShadowQuality{ ShadowMapQuality::eMedium };
@@ -143,14 +149,14 @@ namespace mikoto::renderer {
          * @param scene Borrowed scene to render; keep it alive while used by this renderer.
          * Configure the main camera first; the caller remains responsible for Scene::Update().
          */
-        virtual auto Render( const scene::Scene* scene ) -> void = 0;
+        virtual auto Render( const scene::Scene *scene ) -> void = 0;
 
 
         /**
          * @brief Selects the camera used for scene rendering, picking and camera-dependent passes.
          * @param camera Borrowed camera that must remain valid while used; nullptr clears it.
          */
-        virtual auto SetMainCamera( const scene::SceneCamera* camera ) -> void = 0;
+        virtual auto SetMainCamera( const scene::SceneCamera *camera ) -> void = 0;
 
 
         /**
@@ -159,7 +165,7 @@ namespace mikoto::renderer {
          * ForwardRenderer uses it when SceneRenderSettings::mVisualizeFrustum is enabled;
          * it does not replace the main rendering camera.
          */
-        virtual auto SetCullingDebugCamera( const scene::Camera* camera ) -> void = 0;
+        virtual auto SetCullingDebugCamera( const scene::Camera *camera ) -> void = 0;
 
 
         /**
@@ -169,41 +175,16 @@ namespace mikoto::renderer {
         virtual auto SetEditorOverlaysEnabled( bool enabled ) -> void = 0;
         virtual auto SetInfoOverlayEnabled( bool enabled ) -> void = 0;
 
-        MKT_NODISCARD virtual auto GetStatistics() const -> FrameGraphStatistics = 0;
-
         /** Selects the image orientation used when sampling the output in an editor preview. */
-        virtual auto SetOutputForPreview( bool ) -> void {}
+        virtual auto SetOutputForPreview( bool ) -> void {
+        }
 
 
         /**
          * @brief Sets the color used when the scene background is a clear color.
          * @param color Background clear color.
          */
-        virtual auto SetClearColor( const rhi::Color& color ) -> void = 0;
-
-
-        /**
-         * @brief Replaces the stored scene-rendering configuration.
-         * @param settings Requested settings, copied into the renderer.
-         * ForwardRenderer sanitizes values, limits features to device support and defers
-         * required graph rebuilds until Render().
-         */
-        virtual auto ApplySettings( SceneRenderSettings settings ) -> void = 0;
-
-
-        /**
-         * @brief Returns a copy of the stored configuration, including pending changes.
-         * @return Settings snapshot; apply edits through ApplySettings().
-         */
-        MKT_NODISCARD virtual auto GetSettings() const -> SceneRenderSettings = 0;
-
-
-        /**
-         * @brief Reports the renderer's output-resolution preset.
-         * @return Current resolution; ForwardRenderer reports its active render state,
-         * so a requested resize becomes visible here after the graph is rebuilt.
-         */
-        MKT_NODISCARD virtual auto GetRenderResolution() const -> rhi::RenderResolution = 0;
+        virtual auto SetClearColor( const rhi::Color &color ) -> void = 0;
 
 
         /**
@@ -232,13 +213,6 @@ namespace mikoto::renderer {
          * @param enabled Whether SSAO contributes; material occlusion maps remain independent.
          */
         virtual auto SetEnableSsao( bool enabled ) -> void = 0;
-
-
-        /**
-         * @brief Provides editable bloom configuration.
-         * @return Borrowed renderer-owned settings; ForwardRenderer applies edits on Render().
-         */
-        MKT_NODISCARD virtual auto GetBloomSettings() -> BloomSettings& = 0;
 
 
         /**
@@ -302,9 +276,66 @@ namespace mikoto::renderer {
 
 
         /**
+         * @brief Highlights the entity currently targeted by a texture drag-and-drop operation.
+         * @param id Picking/entity ID to highlight; zero clears the hover highlight.
+         */
+        virtual auto SetTextureDropHover( core::u32 id ) -> void = 0;
+
+
+        /**
+         * @brief Selects skeleton visualization and whether ordinary meshes remain visible.
+         * @param mode Disabled, armature with mesh, or armature only.
+         * ForwardRenderer applies this mode only while editor overlays are enabled.
+         */
+        virtual auto SetArmatureDebugMode( ArmatureDebugMode mode ) -> void = 0;
+
+        MKT_NODISCARD virtual auto GetStatistics() const -> FrameGraphStatistics = 0;
+
+
+        /**
+         * @brief Replaces the stored scene-rendering configuration.
+         * @param settings Requested settings, copied into the renderer.
+         * ForwardRenderer sanitizes values, limits features to device support and defers
+         * required graph rebuilds until Render().
+         */
+        virtual auto ApplySettings( SceneRenderSettings settings ) -> void = 0;
+
+
+        /**
+         * @brief Returns a copy of the stored configuration, including pending changes.
+         * @return Settings snapshot; apply edits through ApplySettings().
+         */
+        MKT_NODISCARD virtual auto GetSettings() const -> SceneRenderSettings = 0;
+
+
+        /**
+         * @brief Reports the renderer's output-resolution preset.
+         * @return Current resolution; ForwardRenderer reports its active render state,
+         * so a requested resize becomes visible here after the graph is rebuilt.
+         */
+        MKT_NODISCARD virtual auto GetRenderResolution() const -> rhi::RenderResolution = 0;
+
+
+        /**
+         * @brief Provides editable bloom configuration.
+         * @return Borrowed renderer-owned settings; ForwardRenderer applies edits on Render().
+         */
+        MKT_NODISCARD virtual auto GetBloomSettings() -> BloomSettings & = 0;
+
+
+        /**
          * @brief Resets progressive path-tracing accumulation for subsequent rendering.
          */
         virtual auto ResetPathAccumulation() -> void = 0;
+
+        /** Hides the outgoing scene's image until a frame of the new scene is submitted.
+         * Keeps its GPU resources alive while background pipeline preparation completes.
+         */
+        virtual auto InvalidateSceneOutput() -> void {
+            mHasSceneOutput = false;
+            CancelPick();
+            ResetPathAccumulation();
+        }
 
 
         /**
@@ -313,13 +344,21 @@ namespace mikoto::renderer {
          * This counter does not imply that submitted GPU work has completed.
          */
         MKT_NODISCARD virtual auto GetPathSampleCount() const -> core::u32 = 0;
+        /** Reports pending renderer preparation; only a frame of the same scene may remain visible. */
+        MKT_NODISCARD virtual auto IsPreparing() const -> bool {
+            return false;
+        }
+
+        MKT_NODISCARD virtual auto IsDenoiserActive() const -> bool {
+            return false;
+        }
 
 
         /**
          * @brief Exposes the diagnostic from the selected ray-tracing module.
          * @return Borrowed error string, empty when no diagnostic is recorded.
          */
-        MKT_NODISCARD virtual auto GetRayTracingError() const -> const eastl::string& = 0;
+        MKT_NODISCARD virtual auto GetRayTracingError() const -> const eastl::string & = 0;
 
 
         /**
@@ -348,13 +387,6 @@ namespace mikoto::renderer {
 
 
         /**
-         * @brief Highlights the entity currently targeted by a texture drag-and-drop operation.
-         * @param id Picking/entity ID to highlight; zero clears the hover highlight.
-         */
-        virtual auto SetTextureDropHover( core::u32 id ) -> void = 0;
-
-
-        /**
          * @brief Queues an asynchronous entity-ID query against the selection image.
          * @param viewport Pointer position and displayed viewport rectangle in the same
          * coordinate space, with a top-left viewport origin.
@@ -362,7 +394,7 @@ namespace mikoto::renderer {
          * A new accepted request replaces the previous request and clears its result.
          * Rendering/readback processing must continue before GetPickResult() can return it.
          */
-        MKT_NODISCARD virtual auto RequestPick( const ReadPixelViewportInfo& viewport ) -> bool = 0;
+        MKT_NODISCARD virtual auto RequestPick( const ReadPixelViewportInfo &viewport ) -> bool = 0;
 
 
         /**
@@ -380,30 +412,22 @@ namespace mikoto::renderer {
          * @return Sorted unique nonzero IDs, or empty for invalid coordinates, unavailable
          * readback data or a rectangle containing no entities. Does not start a readback.
          */
-        MKT_NODISCARD virtual auto ReadSelectionRectangle( const ReadPixelViewportInfo& first,
-            const ReadPixelViewportInfo& last ) const -> eastl::vector<core::u32> = 0;
-
-
-        /**
-         * @brief Selects skeleton visualization and whether ordinary meshes remain visible.
-         * @param mode Disabled, armature with mesh, or armature only.
-         * ForwardRenderer applies this mode only while editor overlays are enabled.
-         */
-        virtual auto SetArmatureDebugMode( ArmatureDebugMode mode ) -> void = 0;
+        MKT_NODISCARD virtual auto ReadSelectionRectangle( const ReadPixelViewportInfo &first,
+            const ReadPixelViewportInfo &last ) const -> eastl::vector<core::u32> = 0;
 
 
         /**
          * @brief Provides editable physics-debug drawing controls.
          * @return Borrowed settings for the physics overlay; reacquire after state replacement.
          */
-        MKT_NODISCARD virtual auto GetPhysicsDebugSettings() -> physics::PhysicsDebugDrawSettings& = 0;
+        MKT_NODISCARD virtual auto GetPhysicsDebugSettings() -> physics::PhysicsDebugDrawSettings & = 0;
 
 
         /**
          * @brief Provides debug drawing controls for bounds, camera frustums and light ranges.
          * @return Borrowed overlay settings for diagnostic scene geometry.
          */
-        MKT_NODISCARD virtual auto GetSceneVolumeSettings() -> SceneVolumeSettings& = 0;
+        MKT_NODISCARD virtual auto GetSceneVolumeSettings() -> SceneVolumeSettings & = 0;
 
 
         /**
@@ -424,14 +448,14 @@ namespace mikoto::renderer {
          * @brief Exposes the latest staged instance-buffer upload statistics.
          * @return Borrowed byte, changed-record, copy-call and scatter-dispatch counters.
          */
-        MKT_NODISCARD virtual auto GetInstanceUploadStatistics() const -> const SceneUploadStatistics& = 0;
+        MKT_NODISCARD virtual auto GetInstanceUploadStatistics() const -> const SceneUploadStatistics & = 0;
 
 
         /**
          * @brief Exposes the latest staged material-buffer upload statistics.
          * @return Borrowed byte, changed-record, copy-call and scatter-dispatch counters.
          */
-        MKT_NODISCARD virtual auto GetMaterialUploadStatistics() const -> const SceneUploadStatistics& = 0;
+        MKT_NODISCARD virtual auto GetMaterialUploadStatistics() const -> const SceneUploadStatistics & = 0;
 
 
         /**
@@ -445,7 +469,7 @@ namespace mikoto::renderer {
          * @brief Exposes shadow-light, map-submission and caster-culling counters.
          * @return Borrowed diagnostics for the most recently updated shadow state.
          */
-        MKT_NODISCARD virtual auto GetShadowDiagnostics() const -> const ShadowDiagnostics& = 0;
+        MKT_NODISCARD virtual auto GetShadowDiagnostics() const -> const ShadowDiagnostics & = 0;
 
 
         /**
@@ -455,14 +479,16 @@ namespace mikoto::renderer {
         MKT_NODISCARD virtual auto HasFrameGraph() const -> bool = 0;
 
         /** @brief Returns whether the renderer is initialized and can produce a scene image. */
-        MKT_NODISCARD virtual auto IsRenderAvailable() const -> bool { return HasFrameGraph(); }
+        MKT_NODISCARD virtual auto IsRenderAvailable() const -> bool {
+            return HasFrameGraph();
+        }
 
 
         /**
          * @brief Exposes frame-graph node descriptions and execution-control state for inspection.
          * @return Borrowed node control, or an empty control when no graph is available.
          */
-        MKT_NODISCARD virtual auto GetNodeControl() const -> const FGNodeControl& = 0;
+        MKT_NODISCARD virtual auto GetNodeControl() const -> const FGNodeControl & = 0;
 
 
         /**
@@ -470,7 +496,7 @@ namespace mikoto::renderer {
          * @return Borrowed statistics map, empty when no graph is available.
          */
         MKT_NODISCARD virtual auto GetPassStatistics() const
-            -> const ankerl::unordered_dense::map<eastl::string, FGNodeStatistics>& = 0;
+            -> const ankerl::unordered_dense::map<eastl::string, FGNodeStatistics> & = 0;
 
 
         /**
@@ -478,7 +504,13 @@ namespace mikoto::renderer {
          * @return Borrowed profiler, or nullptr when unavailable; reacquire after graph replacement.
          * Query results may describe earlier submissions because GPU collection is asynchronous.
          */
-        MKT_NODISCARD virtual auto GetGpuProfiler() const -> GpuQueryProfiler* = 0;
+        MKT_NODISCARD virtual auto GetGpuProfiler() const -> GpuQueryProfiler * = 0;
+
+    protected:
+        // Presentation belongs to a scene as well as to a render target. A
+        // completed graph can still contain the outgoing project's last frame.
+        const scene::Scene *mRequestedScene{};
+        bool mHasSceneOutput{};
     };
 }// namespace mikoto::renderer
 

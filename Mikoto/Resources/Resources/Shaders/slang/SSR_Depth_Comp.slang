@@ -12,5 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Instantiate the shared SSR reduction kernel for the depth hierarchy. Depth bounds accelerate
+// screen-space ray traversal.
+
 #define MKT_SSR_DEPTH
 #include "base/SSR_Reduce.slang"

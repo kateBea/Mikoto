@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Generate a fullscreen triangle from SV_VertexID and pass its sampling coordinates onward. The
+// paired fragment stage performs the image operation using the pipeline viewport convention.
+
 #pragma once
 
 #include "base/Base.slang"

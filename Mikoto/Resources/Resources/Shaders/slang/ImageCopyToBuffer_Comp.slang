@@ -18,11 +18,11 @@
 #include "base/Memory_Helpers.slang"
 
 struct Parameters {
-    uint imageWidth;
-    uint imageHeight;
+    uint mImageWidth;
+    uint mImageHeight;
 
-    uint inputImageID;
-    uint outputBufferID;
+    uint mInputImageID;
+    uint mOutputBufferID;
 
     // format info
 }
@@ -42,14 +42,14 @@ void main( uint3 tid : SV_DispatchThreadID ) {
     uint width;
     uint height;
 
-    textures[parameters.inputImageID].GetDimensions( width, height );
+    textures[parameters.mInputImageID].GetDimensions( width, height );
 
     if ( pixel.x >= width || pixel.y >= height ) {
         return;
     }
 
     uint linearIndex = pixel.y * width + pixel.x;
-    float4 color = textures[parameters.outputBufferID].Load( int3( pixel, 0 ) );
+    float4 color = textures[parameters.mOutputBufferID].Load( int3( pixel, 0 ) );
 
-    buffers[parameters.outputBufferID].Store4( linearIndex * sizeof( float4 ), asuint( color ) );
+    buffers[parameters.mOutputBufferID].Store4( linearIndex * sizeof( float4 ), asuint( color ) );
 }

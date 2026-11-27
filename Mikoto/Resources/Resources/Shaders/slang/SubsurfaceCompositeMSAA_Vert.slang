@@ -12,35 +12,38 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Generate the fullscreen primitive for multisample subsurface composition. The fragment stage
+// selects and combines the corresponding scene samples.
+
 #include "base/Animation_Helpers.slang"
 #include "base/Camera_Helpers.slang"
 #include "base/SubsurfaceCompositeMSAA.slang"
 
 struct VSInput {
-    uint VertexID : SV_VertexID;
-    uint InstanceIndex : SV_InstanceID;
-    uint BaseInstanceIndex : SV_StartInstanceLocation;
+    uint mVertexID : SV_VertexID;
+    uint mInstanceIndex : SV_InstanceID;
+    uint mBaseInstanceIndex : SV_StartInstanceLocation;
 };
 
 [shader( "vertex" )]
 SubsurfaceCompositeVertex main( VSInput input ) {
-    uint instanceIndex = input.BaseInstanceIndex + input.InstanceIndex;
-    MeshGeometryInfo mesh = LoadMeshGeometry( parameters.Geometry, instanceIndex );
-    GeometryAllocation allocation = GetGeometryAllocation( mesh, parameters.Allocations );
-    VertexDescription vertex = PullShadingVertex( mesh, allocation, PullVertexIndex( allocation, input.VertexID ) );
+    uint instanceIndex = input.mBaseInstanceIndex + input.mInstanceIndex;
+    MeshGeometryInfo mesh = LoadMeshGeometry( parameters.mGeometry, instanceIndex );
+    GeometryAllocation allocation = GetGeometryAllocation( mesh, parameters.mAllocations );
+    VertexDescription vertex = PullShadingVertex( mesh, allocation, PullVertexIndex( allocation, input.mVertexID ) );
 
     // Match opaque PBR transforms, including cached skinning.
-    float4 worldPosition = ApplySkinning( vertex, mesh, parameters.Skinning ).mPosition;
-    CameraInfo camera = ( ( BufferReference<CameraInfo> )parameters.Camera )[0];
+    float4 worldPosition = ApplySkinning( vertex, mesh, parameters.mSkinning ).mPosition;
+    CameraInfo camera = ( ( BufferReference<CameraInfo> )parameters.mCamera )[0];
 
     SubsurfaceCompositeVertex output;
-    output.Position = CameraClipPosition( worldPosition, camera );
-    output.Uv0 = vertex.uv0;
-    output.Uv1 = vertex.uv1;
-    output.VertexAlpha = vertex.color.a;
-    output.MaterialIndex = mesh.MaterialIndex;
-    output.FaceFlags = mesh.FaceFlags;
-    output.DrawIdentity = instanceIndex + 1;
+    output.mPosition = CameraClipPosition( worldPosition, camera );
+    output.mUv0 = vertex.mUv0;
+    output.mUv1 = vertex.mUv1;
+    output.mVertexAlpha = vertex.mColor.a;
+    output.mMaterialIndex = mesh.mMaterialIndex;
+    output.mFaceFlags = mesh.mFaceFlags;
+    output.mDrawIdentity = instanceIndex + 1;
 
     return output;
 }

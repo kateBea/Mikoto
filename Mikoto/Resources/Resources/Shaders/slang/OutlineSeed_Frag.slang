@@ -12,19 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Mark silhouette boundary pixels as jump-flood seeds. Seed encoding preserves their pixel
+// coordinates for later nearest-boundary propagation.
+
 #pragma once
 
 #include "base/Memory_Helpers.slang"
 #include "base/Outline_Helpers.slang"
 
-struct DrawParams { uint Silhouette; };
+struct DrawParams {
+    uint mSilhouette;
+};
 MKT_DECLARE_PUSH_CONSTANT( DrawParams, parameters );
 MKT_DECLARE_TEXTURE_SRV( Texture2D ) silhouettes;
 
 [shader( "fragment" )]
 float2 main( float2 unusedUV : TEXCOORD0, float4 position : SV_Position ) : SV_Target0 {
-    uint width, height;
-    silhouettes[parameters.Silhouette].GetDimensions( width, height );
+    uint width;
+    uint height;
+    silhouettes[parameters.mSilhouette].GetDimensions( width, height );
     int2 dimensions = int2( width, height );
     int2 pixel = int2( position.xy );
 
@@ -36,7 +42,7 @@ float2 main( float2 unusedUV : TEXCOORD0, float4 position : SV_Position ) : SV_T
         [unroll]
         for ( int y = 0; y < 3; ++y ) {
             int2 neighbor = clamp( pixel + int2( x - 1, y - 1 ), int2( 0 ), dimensions - 1 );
-            coverage[x][y] = silhouettes[parameters.Silhouette].Load( int3( neighbor, 0 ) ).r;
+            coverage[x][y] = silhouettes[parameters.mSilhouette].Load( int3( neighbor, 0 ) ).r;
         }
     }
 

@@ -30,6 +30,7 @@ namespace mikoto::scripting {
         auto Start( scene::Scene &scene ) -> void override;
         auto Stop() -> void override;
         auto Update( float timeStep ) -> void override;
+        auto OnPhysicsEvent( const physics::ContactEvent &event, scene::Entity &other ) -> void override;
 
         /** @brief Queues replacement of this scene's managed assembly contexts.
          *

@@ -1,0 +1,115 @@
+{
+  "asset": {
+    "version": "2.0",
+    "generator": "Mikoto authored curved grass tuft"
+  },
+  "scene": 0,
+  "scenes": [
+    {
+      "nodes": [
+        0
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "name": "Curved meadow tuft / 5 blades",
+      "mesh": 0
+    }
+  ],
+  "meshes": [
+    {
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1,
+            "TEXCOORD_0": 2
+          },
+          "indices": 3,
+          "material": 0
+        }
+      ]
+    }
+  ],
+  "materials": [
+    {
+      "name": "Meadow tuft",
+      "doubleSided": true,
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "metallicFactor": 0,
+        "roughnessFactor": 0.8
+      }
+    }
+  ],
+  "buffers": [
+    {
+      "byteLength": 2520,
+      "uri": "data:application/octet-stream;base64,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"
+    }
+  ],
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteOffset": 0,
+      "byteLength": 720
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 720,
+      "byteLength": 720
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 1440,
+      "byteLength": 480
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 1920,
+      "byteLength": 600
+    }
+  ],
+  "accessors": [
+    {
+      "bufferView": 0,
+      "componentType": 5126,
+      "count": 60,
+      "type": "VEC3",
+      "min": [
+        -0.31333519474595123,
+        0.0,
+        -0.2795916415911521
+      ],
+      "max": [
+        0.29400530111221584,
+        1.0,
+        0.30454331524249156
+      ]
+    },
+    {
+      "bufferView": 1,
+      "componentType": 5126,
+      "count": 60,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "componentType": 5126,
+      "count": 60,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 3,
+      "componentType": 5125,
+      "count": 150,
+      "type": "SCALAR"
+    }
+  ]
+}

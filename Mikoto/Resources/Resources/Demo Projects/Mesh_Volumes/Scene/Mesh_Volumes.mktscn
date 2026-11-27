@@ -1,0 +1,2034 @@
+{
+  "Scene": "Mesh Volumes",
+  "Version": 5,
+  "RelativeAssetPaths": true,
+  "EnvironmentLightingSource": 2,
+  "ToneMapping": 0,
+  "Atmosphere": {
+    "PlanetRadius": 6360,
+    "AtmosphereHeight": 100,
+    "WorldUnitsPerKilometer": 1000,
+    "GroundHeight": 0.1,
+    "RayleighScale": 1,
+    "MieScale": 1,
+    "OzoneScale": 1,
+    "MieAnisotropy": 0.8,
+    "GroundAlbedo": 0.1,
+    "SunElevation": 40,
+    "SunAzimuth": 225,
+    "SunIlluminance": 3,
+    "SunAngularRadius": 0.6,
+    "AerialDistance": 128,
+    "UseDirectionalLight": true,
+    "AerialPerspective": false
+  },
+  "Materials": [
+    {
+      "MaterialPath": "../Assets/Materials/Gallery_Floor.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Midnight_Wall.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Pedestal_Stone.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Brushed_Bronze.mktmtl"
+    },
+    {
+      "MaterialPath": "../Assets/Materials/Plaque.mktmtl"
+    }
+  ],
+  "Objects": [
+    {
+      "ID": 1,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "Gallery foundation",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          -0.15,
+          0
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          16.0,
+          0.25,
+          14.0
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "ModelPath": "../Assets/Models/Box.gltf",
+        "MeshIndex": 0
+      },
+      "MaterialComponent": {
+        "Reference": 0
+      }
+    },
+    {
+      "ID": 2,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "Backdrop",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          4.6,
+          -11.5
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          16.0,
+          4.5,
+          0.2
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "ModelPath": "../Assets/Models/Box.gltf",
+        "MeshIndex": 0
+      },
+      "MaterialComponent": {
+        "Reference": 1
+      }
+    },
+    {
+      "ID": 3,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "Bronze horizon trim",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0.28,
+          -11.24
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          15.5,
+          0.045,
+          0.04
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "ModelPath": "../Assets/Models/Box.gltf",
+        "MeshIndex": 0
+      },
+      "MaterialComponent": {
+        "Reference": 3
+      }
+    },
+    {
+      "ID": 4,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "Left window sill",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -15.7,
+          0.8,
+          0
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.225,
+          0.7,
+          11.5
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "ModelPath": "../Assets/Models/Box.gltf",
+        "MeshIndex": 0
+      },
+      "MaterialComponent": {
+        "Reference": 1
+      }
+    },
+    {
+      "ID": 5,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "Left window lintel",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -15.7,
+          7.9,
+          0
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.225,
+          0.25,
+          11.5
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "ModelPath": "../Assets/Models/Box.gltf",
+        "MeshIndex": 0
+      },
+      "MaterialComponent": {
+        "Reference": 1
+      }
+    },
+    {
+      "ID": 6,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "Window mullion",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -15.7,
+          4.3,
+          -11
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.11,
+          3.4,
+          0.11
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "ModelPath": "../Assets/Models/Box.gltf",
+        "MeshIndex": 0
+      },
+      "MaterialComponent": {
+        "Reference": 3
+      }
+    },
+    {
+      "ID": 7,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "Window mullion",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -15.7,
+          4.3,
+          -5.5
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.11,
+          3.4,
+          0.11
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "ModelPath": "../Assets/Models/Box.gltf",
+        "MeshIndex": 0
+      },
+      "MaterialComponent": {
+        "Reference": 3
+      }
+    },
+    {
+      "ID": 8,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "Window mullion",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -15.7,
+          4.3,
+          0
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.11,
+          3.4,
+          0.11
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "ModelPath": "../Assets/Models/Box.gltf",
+        "MeshIndex": 0
+      },
+      "MaterialComponent": {
+        "Reference": 3
+      }
+    },
+    {
+      "ID": 9,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "Window mullion",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -15.7,
+          4.3,
+          5.5
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.11,
+          3.4,
+          0.11
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "ModelPath": "../Assets/Models/Box.gltf",
+        "MeshIndex": 0
+      },
+      "MaterialComponent": {
+        "Reference": 3
+      }
+    },
+    {
+      "ID": 10,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "Window mullion",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -15.7,
+          4.3,
+          11
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.11,
+          3.4,
+          0.11
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "ModelPath": "../Assets/Models/Box.gltf",
+        "MeshIndex": 0
+      },
+      "MaterialComponent": {
+        "Reference": 3
+      }
+    },
+    {
+      "ID": 11,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "Right low wall",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          15.7,
+          0.75,
+          -2
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          0.2,
+          0.65,
+          9.5
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "ModelPath": "../Assets/Models/Box.gltf",
+        "MeshIndex": 0
+      },
+      "MaterialComponent": {
+        "Reference": 1
+      }
+    },
+    {
+      "ID": 12,
+      "Type": 4,
+      "TagComponent": {
+        "Name": "MESH / MEDIUM",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          7.8,
+          -11.24
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "TextComponent": {
+        "Contents": "MESH / MEDIUM",
+        "Color": [
+          0.9,
+          0.94,
+          1,
+          1
+        ],
+        "OutlineColor": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "OutlineWidth": 0.018,
+        "Alignment": 1,
+        "Backend": 1,
+        "IsWorldText": true,
+        "Size": 0.68,
+        "WorldSize": 0.68,
+        "Spacing": 0,
+        "WorldSpacing": 0,
+        "LineSpacing": 1.3,
+        "FontPath": "../Assets/Fonts/Rajdhani-Regular.ttf"
+      }
+    },
+    {
+      "ID": 13,
+      "Type": 4,
+      "TagComponent": {
+        "Name": "Shape from geometry. Light through volume.",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          7.05,
+          -11.23
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "TextComponent": {
+        "Contents": "Shape from geometry. Light through volume.",
+        "Color": [
+          0.58,
+          0.67,
+          0.8,
+          1
+        ],
+        "OutlineColor": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "OutlineWidth": 0.018,
+        "Alignment": 1,
+        "Backend": 1,
+        "IsWorldText": true,
+        "Size": 0.29,
+        "WorldSize": 0.29,
+        "Spacing": 0,
+        "WorldSpacing": 0,
+        "LineSpacing": 1.3,
+        "FontPath": "../Assets/Fonts/Rajdhani-Regular.ttf"
+      }
+    },
+    {
+      "ID": 14,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "SOFT / ISOTROPIC pedestal",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -7,
+          0.49,
+          2
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          2.35,
+          0.39,
+          1.9300000000000002
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "ModelPath": "../Assets/Models/Box.gltf",
+        "MeshIndex": 0
+      },
+      "MaterialComponent": {
+        "Reference": 2
+      }
+    },
+    {
+      "ID": 15,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "SOFT / ISOTROPIC bronze rim",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -7,
+          0.89,
+          2
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          2.39,
+          0.02,
+          1.9700000000000002
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "ModelPath": "../Assets/Models/Box.gltf",
+        "MeshIndex": 0
+      },
+      "MaterialComponent": {
+        "Reference": 3
+      }
+    },
+    {
+      "ID": 16,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "SOFT / ISOTROPIC",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -7,
+          2.8100000000000004,
+          2
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "CloudComponent": {
+        "Shape": 1,
+        "Dimensions": [
+          4.2,
+          4.2,
+          4.2
+        ],
+        "HorizonRadius": 10000,
+        "MaterialPath": "../Assets/Materials/Bunny_Soft.mktmtl",
+        "DensityMultiplier": 1,
+        "CastShadows": true,
+        "ReceiveShadows": true,
+        "WindDirection": [
+          1,
+          0
+        ],
+        "WindSpeed": 0
+      }
+    },
+    {
+      "ID": 17,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "SOFT / ISOTROPIC caption plaque",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -7,
+          0.49000000000000007,
+          3.9450000000000003
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          2.1,
+          0.275,
+          0.0175
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "ModelPath": "../Assets/Models/Box.gltf",
+        "MeshIndex": 0
+      },
+      "MaterialComponent": {
+        "Reference": 4
+      }
+    },
+    {
+      "ID": 18,
+      "Type": 4,
+      "TagComponent": {
+        "Name": "SOFT / ISOTROPIC",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -7,
+          0.62,
+          3.97
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "TextComponent": {
+        "Contents": "SOFT / ISOTROPIC",
+        "Color": [
+          0.9,
+          0.94,
+          1,
+          1
+        ],
+        "OutlineColor": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "OutlineWidth": 0.018,
+        "Alignment": 1,
+        "Backend": 1,
+        "IsWorldText": true,
+        "Size": 0.25,
+        "WorldSize": 0.25,
+        "Spacing": 0,
+        "WorldSpacing": 0,
+        "LineSpacing": 1.3,
+        "FontPath": "../Assets/Fonts/Rajdhani-Regular.ttf"
+      }
+    },
+    {
+      "ID": 19,
+      "Type": 4,
+      "TagComponent": {
+        "Name": "density 0.65    g 0.00",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -7,
+          0.32000000000000008,
+          3.971
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "TextComponent": {
+        "Contents": "density 0.65    g 0.00",
+        "Color": [
+          0.66,
+          0.75,
+          0.87,
+          1
+        ],
+        "OutlineColor": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "OutlineWidth": 0.018,
+        "Alignment": 1,
+        "Backend": 1,
+        "IsWorldText": true,
+        "Size": 0.18,
+        "WorldSize": 0.18,
+        "Spacing": 0,
+        "WorldSpacing": 0,
+        "LineSpacing": 1.3,
+        "FontPath": "../Assets/Fonts/Rajdhani-Regular.ttf"
+      }
+    },
+    {
+      "ID": 20,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "SMOKE / ABSORPTION pedestal",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0.49,
+          2
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          2.35,
+          0.39,
+          1.9300000000000002
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "ModelPath": "../Assets/Models/Box.gltf",
+        "MeshIndex": 0
+      },
+      "MaterialComponent": {
+        "Reference": 2
+      }
+    },
+    {
+      "ID": 21,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "SMOKE / ABSORPTION bronze rim",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0.89,
+          2
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          2.39,
+          0.02,
+          1.9700000000000002
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "ModelPath": "../Assets/Models/Box.gltf",
+        "MeshIndex": 0
+      },
+      "MaterialComponent": {
+        "Reference": 3
+      }
+    },
+    {
+      "ID": 22,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "SMOKE / ABSORPTION",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          2.8100000000000004,
+          2
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "CloudComponent": {
+        "Shape": 1,
+        "Dimensions": [
+          4.2,
+          4.2,
+          4.2
+        ],
+        "HorizonRadius": 10000,
+        "MaterialPath": "../Assets/Materials/Bunny_Forward.mktmtl",
+        "DensityMultiplier": 1,
+        "CastShadows": true,
+        "ReceiveShadows": true,
+        "WindDirection": [
+          1,
+          0
+        ],
+        "WindSpeed": 0
+      }
+    },
+    {
+      "ID": 23,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "SMOKE / ABSORPTION caption plaque",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0.49000000000000007,
+          3.9450000000000003
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          2.1,
+          0.275,
+          0.0175
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "ModelPath": "../Assets/Models/Box.gltf",
+        "MeshIndex": 0
+      },
+      "MaterialComponent": {
+        "Reference": 4
+      }
+    },
+    {
+      "ID": 24,
+      "Type": 4,
+      "TagComponent": {
+        "Name": "SMOKE / ABSORPTION",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0.62,
+          3.97
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "TextComponent": {
+        "Contents": "SMOKE / ABSORPTION",
+        "Color": [
+          0.9,
+          0.94,
+          1,
+          1
+        ],
+        "OutlineColor": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "OutlineWidth": 0.018,
+        "Alignment": 1,
+        "Backend": 1,
+        "IsWorldText": true,
+        "Size": 0.25,
+        "WorldSize": 0.25,
+        "Spacing": 0,
+        "WorldSpacing": 0,
+        "LineSpacing": 1.3,
+        "FontPath": "../Assets/Fonts/Rajdhani-Regular.ttf"
+      }
+    },
+    {
+      "ID": 25,
+      "Type": 4,
+      "TagComponent": {
+        "Name": "density 1.50    g 0.65",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0.32000000000000008,
+          3.971
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "TextComponent": {
+        "Contents": "dark smoke / turbulent density",
+        "Color": [
+          0.66,
+          0.75,
+          0.87,
+          1
+        ],
+        "OutlineColor": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "OutlineWidth": 0.018,
+        "Alignment": 1,
+        "Backend": 1,
+        "IsWorldText": true,
+        "Size": 0.18,
+        "WorldSize": 0.18,
+        "Spacing": 0,
+        "WorldSpacing": 0,
+        "LineSpacing": 1.3,
+        "FontPath": "../Assets/Fonts/Rajdhani-Regular.ttf"
+      }
+    },
+    {
+      "ID": 26,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "AMBER / ABSORPTION pedestal",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          7,
+          0.49,
+          2
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          2.35,
+          0.39,
+          1.9300000000000002
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "ModelPath": "../Assets/Models/Box.gltf",
+        "MeshIndex": 0
+      },
+      "MaterialComponent": {
+        "Reference": 2
+      }
+    },
+    {
+      "ID": 27,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "AMBER / ABSORPTION bronze rim",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          7,
+          0.89,
+          2
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          2.39,
+          0.02,
+          1.9700000000000002
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "ModelPath": "../Assets/Models/Box.gltf",
+        "MeshIndex": 0
+      },
+      "MaterialComponent": {
+        "Reference": 3
+      }
+    },
+    {
+      "ID": 28,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "AMBER / ABSORPTION",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          7,
+          2.8100000000000004,
+          2
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "CloudComponent": {
+        "Shape": 1,
+        "Dimensions": [
+          4.2,
+          4.2,
+          4.2
+        ],
+        "HorizonRadius": 10000,
+        "MaterialPath": "../Assets/Materials/Bunny_Amber.mktmtl",
+        "DensityMultiplier": 1,
+        "CastShadows": true,
+        "ReceiveShadows": true,
+        "WindDirection": [
+          1,
+          0
+        ],
+        "WindSpeed": 0
+      }
+    },
+    {
+      "ID": 29,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "AMBER / ABSORPTION caption plaque",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          7,
+          0.49000000000000007,
+          3.9450000000000003
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          2.1,
+          0.275,
+          0.0175
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "ModelPath": "../Assets/Models/Box.gltf",
+        "MeshIndex": 0
+      },
+      "MaterialComponent": {
+        "Reference": 4
+      }
+    },
+    {
+      "ID": 30,
+      "Type": 4,
+      "TagComponent": {
+        "Name": "AMBER / ABSORPTION",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          7,
+          0.62,
+          3.97
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "TextComponent": {
+        "Contents": "AMBER / ABSORPTION",
+        "Color": [
+          0.9,
+          0.94,
+          1,
+          1
+        ],
+        "OutlineColor": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "OutlineWidth": 0.018,
+        "Alignment": 1,
+        "Backend": 1,
+        "IsWorldText": true,
+        "Size": 0.25,
+        "WorldSize": 0.25,
+        "Spacing": 0,
+        "WorldSpacing": 0,
+        "LineSpacing": 1.3,
+        "FontPath": "../Assets/Fonts/Rajdhani-Regular.ttf"
+      }
+    },
+    {
+      "ID": 31,
+      "Type": 4,
+      "TagComponent": {
+        "Name": "selective RGB absorption",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          7,
+          0.32000000000000008,
+          3.971
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "TextComponent": {
+        "Contents": "selective RGB absorption",
+        "Color": [
+          0.66,
+          0.75,
+          0.87,
+          1
+        ],
+        "OutlineColor": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "OutlineWidth": 0.018,
+        "Alignment": 1,
+        "Backend": 1,
+        "IsWorldText": true,
+        "Size": 0.18,
+        "WorldSize": 0.18,
+        "Spacing": 0,
+        "WorldSpacing": 0,
+        "LineSpacing": 1.3,
+        "FontPath": "../Assets/Fonts/Rajdhani-Regular.ttf"
+      }
+    },
+    {
+      "ID": 32,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "HOLLOW / TEAPOT pedestal",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -5,
+          0.915,
+          -6
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          3.25,
+          0.815,
+          2.6500000000000004
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "ModelPath": "../Assets/Models/Box.gltf",
+        "MeshIndex": 0
+      },
+      "MaterialComponent": {
+        "Reference": 2
+      }
+    },
+    {
+      "ID": 33,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "HOLLOW / TEAPOT bronze rim",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -5,
+          1.74,
+          -6
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          3.29,
+          0.02,
+          2.6900000000000004
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "ModelPath": "../Assets/Models/Box.gltf",
+        "MeshIndex": 0
+      },
+      "MaterialComponent": {
+        "Reference": 3
+      }
+    },
+    {
+      "ID": 34,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "HOLLOW / TEAPOT",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -5,
+          3.1535042010479123,
+          -6
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "CloudComponent": {
+        "Shape": 1,
+        "Dimensions": [
+          6.0,
+          6.0,
+          6.0
+        ],
+        "HorizonRadius": 10000,
+        "MaterialPath": "../Assets/Materials/Teapot_Mist.mktmtl",
+        "DensityMultiplier": 12,
+        "CastShadows": true,
+        "ReceiveShadows": true,
+        "WindDirection": [
+          1,
+          0
+        ],
+        "WindSpeed": 0
+      }
+    },
+    {
+      "ID": 35,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "HOLLOW / TEAPOT caption plaque",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -5,
+          1.34,
+          -3.3349999999999995
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          3.0,
+          0.275,
+          0.0175
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "ModelPath": "../Assets/Models/Box.gltf",
+        "MeshIndex": 0
+      },
+      "MaterialComponent": {
+        "Reference": 4
+      }
+    },
+    {
+      "ID": 36,
+      "Type": 4,
+      "TagComponent": {
+        "Name": "HOLLOW / TEAPOT",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -5,
+          1.4699999999999999,
+          -3.3099999999999996
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "TextComponent": {
+        "Contents": "HOLLOW / TEAPOT",
+        "Color": [
+          0.9,
+          0.94,
+          1,
+          1
+        ],
+        "OutlineColor": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "OutlineWidth": 0.018,
+        "Alignment": 1,
+        "Backend": 1,
+        "IsWorldText": true,
+        "Size": 0.25,
+        "WorldSize": 0.25,
+        "Spacing": 0,
+        "WorldSpacing": 0,
+        "LineSpacing": 1.3,
+        "FontPath": "../Assets/Fonts/Rajdhani-Regular.ttf"
+      }
+    },
+    {
+      "ID": 37,
+      "Type": 4,
+      "TagComponent": {
+        "Name": "dense mist inside the vessel walls",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          -5,
+          1.1699999999999998,
+          -3.3089999999999997
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "TextComponent": {
+        "Contents": "dense mist inside the vessel walls",
+        "Color": [
+          0.66,
+          0.75,
+          0.87,
+          1
+        ],
+        "OutlineColor": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "OutlineWidth": 0.018,
+        "Alignment": 1,
+        "Backend": 1,
+        "IsWorldText": true,
+        "Size": 0.18,
+        "WorldSize": 0.18,
+        "Spacing": 0,
+        "WorldSpacing": 0,
+        "LineSpacing": 1.3,
+        "FontPath": "../Assets/Fonts/Rajdhani-Regular.ttf"
+      }
+    },
+    {
+      "ID": 38,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "BLUE / KNOT pedestal",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          5,
+          0.915,
+          -6
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          2.65,
+          0.815,
+          2.17
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "ModelPath": "../Assets/Models/Box.gltf",
+        "MeshIndex": 0
+      },
+      "MaterialComponent": {
+        "Reference": 2
+      }
+    },
+    {
+      "ID": 39,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "BLUE / KNOT bronze rim",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          5,
+          1.74,
+          -6
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          2.69,
+          0.02,
+          2.21
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "ModelPath": "../Assets/Models/Box.gltf",
+        "MeshIndex": 0
+      },
+      "MaterialComponent": {
+        "Reference": 3
+      }
+    },
+    {
+      "ID": 40,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "BLUE / KNOT",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          5,
+          3.93,
+          -6
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "CloudComponent": {
+        "Shape": 1,
+        "Dimensions": [
+          4.8,
+          4.8,
+          4.8
+        ],
+        "HorizonRadius": 10000,
+        "MaterialPath": "../Assets/Materials/Knot_Blue.mktmtl",
+        "DensityMultiplier": 1,
+        "CastShadows": true,
+        "ReceiveShadows": true,
+        "WindDirection": [
+          1,
+          0
+        ],
+        "WindSpeed": 0
+      }
+    },
+    {
+      "ID": 41,
+      "Type": 5,
+      "TagComponent": {
+        "Name": "BLUE / KNOT caption plaque",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          5,
+          1.34,
+          -3.815
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          2.4,
+          0.275,
+          0.0175
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "MeshComponent": {
+        "ModelPath": "../Assets/Models/Box.gltf",
+        "MeshIndex": 0
+      },
+      "MaterialComponent": {
+        "Reference": 4
+      }
+    },
+    {
+      "ID": 42,
+      "Type": 4,
+      "TagComponent": {
+        "Name": "BLUE / KNOT",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          5,
+          1.4699999999999999,
+          -3.79
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "TextComponent": {
+        "Contents": "BLUE / KNOT",
+        "Color": [
+          0.9,
+          0.94,
+          1,
+          1
+        ],
+        "OutlineColor": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "OutlineWidth": 0.018,
+        "Alignment": 1,
+        "Backend": 1,
+        "IsWorldText": true,
+        "Size": 0.25,
+        "WorldSize": 0.25,
+        "Spacing": 0,
+        "WorldSpacing": 0,
+        "LineSpacing": 1.3,
+        "FontPath": "../Assets/Fonts/Rajdhani-Regular.ttf"
+      }
+    },
+    {
+      "ID": 43,
+      "Type": 4,
+      "TagComponent": {
+        "Name": "backward scattering    g -0.15",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          5,
+          1.1699999999999998,
+          -3.789
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "TextComponent": {
+        "Contents": "backward scattering    g -0.15",
+        "Color": [
+          0.66,
+          0.75,
+          0.87,
+          1
+        ],
+        "OutlineColor": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "OutlineWidth": 0.018,
+        "Alignment": 1,
+        "Backend": 1,
+        "IsWorldText": true,
+        "Size": 0.18,
+        "WorldSize": 0.18,
+        "Spacing": 0,
+        "WorldSpacing": 0,
+        "LineSpacing": 1.3,
+        "FontPath": "../Assets/Fonts/Rajdhani-Regular.ttf"
+      }
+    },
+    {
+      "ID": 44,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Sun through gallery windows",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          0.1,
+          0
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false
+      },
+      "Children": [],
+      "LightComponent": {
+        "Type": 0,
+        "Directional": {
+          "Color": [
+            1,
+            0.91,
+            0.77
+          ],
+          "Direction": [
+            0.5512693810472418,
+            -0.6515001776012856,
+            0.5212001420810285
+          ],
+          "Intensity": 3,
+          "CastShadows": true,
+          "AngularRadius": 0.6
+        }
+      }
+    },
+    {
+      "ID": 45,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Large soft key",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          9.1,
+          8
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            -1.0,
+            0.0,
+            -0.0,
+            0
+          ],
+          [
+            0.0,
+            0.7525766947068778,
+            -0.658504607868518,
+            0
+          ],
+          [
+            0.0,
+            -0.658504607868518,
+            -0.7525766947068778,
+            0
+          ],
+          [
+            0,
+            9.1,
+            8,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "LightComponent": {
+        "Type": 3,
+        "Area": {
+          "Shape": 0,
+          "Color": [
+            1,
+            0.92,
+            0.82
+          ],
+          "Intensity": 8,
+          "Size": [
+            12,
+            5
+          ],
+          "Range": 70,
+          "TwoSided": false
+        }
+      }
+    },
+    {
+      "ID": 46,
+      "Type": 0,
+      "TagComponent": {
+        "Name": "Cool rim behind exhibits",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          0,
+          7.1,
+          -10
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            1.0,
+            0.0,
+            -0.0,
+            0
+          ],
+          [
+            0.0,
+            0.9103664774626047,
+            0.413802944301184,
+            0
+          ],
+          [
+            0.0,
+            -0.413802944301184,
+            0.9103664774626047,
+            0
+          ],
+          [
+            0,
+            7.1,
+            -10,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "LightComponent": {
+        "Type": 3,
+        "Area": {
+          "Shape": 0,
+          "Color": [
+            0.55,
+            0.72,
+            1
+          ],
+          "Intensity": 5,
+          "Size": [
+            17,
+            3
+          ],
+          "Range": 70,
+          "TwoSided": false
+        }
+      }
+    },
+    {
+      "ID": 47,
+      "Type": 6,
+      "TagComponent": {
+        "Name": "Gallery camera",
+        "Visibility": true
+      },
+      "TransformComponent": {
+        "Position": [
+          8,
+          8.6,
+          21
+        ],
+        "Rotation": [
+          0,
+          0,
+          0
+        ],
+        "Scale": [
+          1,
+          1,
+          1
+        ],
+        "Uniform Scale": false,
+        "Local Transform": [
+          [
+            0.9435999821328808,
+            0.0,
+            -0.33108771302908097,
+            0
+          ],
+          [
+            -0.0734834843281827,
+            0.9750590338674135,
+            -0.20942793033532073,
+            0
+          ],
+          [
+            0.3228300655915072,
+            0.22194567009416116,
+            0.9200656869357954,
+            0
+          ],
+          [
+            8,
+            8.6,
+            21,
+            1
+          ]
+        ]
+      },
+      "Children": [],
+      "CameraComponent": {
+        "Projection": 1,
+        "Fov": 54,
+        "Near": 0.1,
+        "Far": 1000,
+        "Main": true,
+        "FixedAspect": false,
+        "Viewport": [
+          1280,
+          720,
+          0
+        ],
+        "Gamma": 2.2,
+        "Exposure": 1,
+        "SkyboxBlur": 0,
+        "ClearFlags": 2
+      }
+    }
+  ]
+}

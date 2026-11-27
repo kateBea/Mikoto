@@ -12,16 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Resolve small blur radii with a compact full-neighborhood gather. This handles the transition
+// between sharp pixels and the wider half-resolution bokeh layers.
+
 #include "base/DepthOfField_Helpers.slang"
+
+// Maximum full-resolution gather radius in pixels; wider blur is resolved by the half-
+// resolution bokeh layers.
+static const int kDoFSmallGatherRadius = 3;
 
 MKT_DECLARE_PUSH_CONSTANT( DepthOfFieldParameters, parameters );
 
 [shader( "compute" )]
-[numthreads( 8, 8, 1 )]
+[numthreads( kImageGroupWidth, kImageGroupHeight, 1 )]
 void main( uint3 thread : SV_DispatchThreadID ) {
     if ( any( thread.xy >= uint2( parameters.mTargetWidth, parameters.mTargetHeight ) ) ) { return; }
     float4 center = DoFLoad( parameters.mInputs[0], int2( thread.xy ) );
-    float4 bounds = DoFLoad( parameters.mInputs[1], int2( thread.xy / 8 ) );
+    float4 bounds = DoFLoad( parameters.mInputs[1], int2( thread.xy / kDoFTileSize ) );
     if ( bounds.x < -3.0 && bounds.y < -3.0 && bounds.w <= 0.0 ) {
         dofOutputs[parameters.mOutputs[0]][thread.xy] = float4( center.rgb, 0 );
         return;
@@ -32,8 +39,8 @@ void main( uint3 thread : SV_DispatchThreadID ) {
     float opacity = 0.0;
     // Deliberately brute force: this buffer bounds the more accurate full-resolution
     // gather instead of spatially upscaling a coarse blur into slightly defocused detail.
-    for ( int y = -3; y <= 3; ++y ) {
-        for ( int x = -3; x <= 3; ++x ) {
+    for ( int y = -kDoFSmallGatherRadius; y <= kDoFSmallGatherRadius; ++y ) {
+        for ( int x = -kDoFSmallGatherRadius; x <= kDoFSmallGatherRadius; ++x ) {
             float2 offset = float2( x, y );
             if ( dot( offset, offset ) > 9.0 ) { continue; }
             float4 shape = DoFSample( parameters.mInputs[2], parameters.mSampler, offset / 6.0 + 0.5 );

@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Ocean simulation layout, complex multiplication and FFT addressing. The spectrum, butterfly
+// and gradient stages share the same flattened field indexing.
+
 #pragma once
 
 // Keep the workgroup size and patch resolution in sync with WaterSimulationModule.cc.

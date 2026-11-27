@@ -16,16 +16,16 @@
 
 #include <Core/LocalizationService.hh>
 
-#include <Renderer/Gui/CanvasInput.hh>
-
-#include <Scripting/ScriptingService.hh>
-
-#include <ImGui/Utility.hh>
 #include <ImGui/ImGuiService.hh>
+#include <ImGui/Utility.hh>
+
+#include <Layers/EditorLayer.hh>
 
 #include <Panels/GamePreviewPanel.hh>
 
-#include <Layers/EditorLayer.hh>
+#include <Renderer/Gui/CanvasInput.hh>
+
+#include <Scripting/ScriptingService.hh>
 
 namespace mikoto::editor {
 
@@ -34,7 +34,7 @@ namespace mikoto::editor {
     using namespace renderer;
     using namespace renderer::rhi;
 
-    GamePreviewPanel::GamePreviewPanel( const GamePreviewPanelCreateInfo& description )
+    GamePreviewPanel::GamePreviewPanel( const GamePreviewPanelCreateInfo &description )
         : Panel{ "Game", "Game", description.mGroup, description.mIsToggleable },
           mState{ description.mState } {
         mPanelIsVisible = false;
@@ -58,7 +58,7 @@ namespace mikoto::editor {
         ImGuiWindowFlags windowFlags{ ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse };
 
         if ( maximized ) {
-            const auto& bounds{ mState->mMaximizedViewport };
+            const auto &bounds{ mState->mMaximizedViewport };
             ImGui::SetNextWindowPos( { bounds.mX, bounds.mY } );
             ImGui::SetNextWindowSize( { glm::max( 1.0f, bounds.mWidth ), glm::max( 1.0f, bounds.mHeight ) } );
             ImGui::SetNextWindowViewport( ImGui::GetMainViewport()->ID );
@@ -95,13 +95,6 @@ namespace mikoto::editor {
                     mState->mGamePreviewRequested = true;
                     mState->mGamePreviewSize = { available.x, available.y };
                     ImVec2 size{ available };
-
-                    if ( mState->mGameCameraFixedAspect ) {
-                        // An explicitly locked camera lens retains its framing.
-                        const float aspect{ glm::max( mState->mGameCamera->GetAspectRatio(), 0.001f ) };
-                        const float height{ glm::min( available.y, available.x / aspect ) };
-                        size = { height * aspect, height };
-                    }
 
                     const ImVec2 cursor{ ImGui::GetCursorPos() };
                     ImGui::SetCursorPos( { cursor.x + ( available.x - size.x ) * 0.5f, cursor.y + ( available.y - size.y ) * 0.5f } );

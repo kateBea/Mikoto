@@ -12,20 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Refine the nearest-to-focus bounds inside the dilated blur footprint. The result supplements
+// the outer bounds used for gather mip selection.
+
 #include "base/DepthOfField_Helpers.slang"
 
 MKT_DECLARE_PUSH_CONSTANT( DepthOfFieldParameters, parameters );
 
 [shader( "compute" )]
-[numthreads( 8, 8, 1 )]
+[numthreads( kImageGroupWidth, kImageGroupHeight, 1 )]
 void main( uint3 thread : SV_DispatchThreadID ) {
     if ( any( thread.xy >= uint2( parameters.mTargetWidth, parameters.mTargetHeight ) ) ) { return; }
     int2 tile = int2( thread.xy );
     float4 bounds = DoFLoad( parameters.mInputs[1], tile );
     float kernel = max( -bounds.x, bounds.w );
-    int radius = int( ceil( kernel / 8.0 ) ) + 1;
-    float foregroundMax = -65504.0;
-    float backgroundMin = 65504.0;
+    int radius = int( ceil( kernel / float( kDoFTileSize ) ) ) + 1;
+    float foregroundMax = -kDoFMaxHalfFloat;
+    float backgroundMin = kDoFMaxHalfFloat;
     for ( int y = -radius; y <= radius; ++y ) {
         for ( int x = -radius; x <= radius; ++x ) {
             int2 source = tile + int2( x, y );
@@ -37,7 +40,7 @@ void main( uint3 thread : SV_DispatchThreadID ) {
             if ( candidate.w > 0.0 ) { backgroundMin = min( backgroundMin, candidate.z ); }
         }
     }
-    bounds.y = foregroundMax == -65504.0 ? 0.0 : foregroundMax;
-    bounds.z = backgroundMin == 65504.0 ? 0.0 : backgroundMin;
+    bounds.y = foregroundMax == -kDoFMaxHalfFloat ? 0.0 : foregroundMax;
+    bounds.z = backgroundMin == kDoFMaxHalfFloat ? 0.0 : backgroundMin;
     dofOutputs[parameters.mOutputs[0]][thread.xy] = bounds;
 }

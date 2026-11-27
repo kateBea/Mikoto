@@ -12,11 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Mark a ray as having missed scene geometry. Environment radiance is evaluated by the calling
+// integrator using the miss result.
+
 #include "PathTracing_Common.slang"
 
 [shader( "miss" )]
 void main( inout Hit payload ) {
     // Li() handles escaped-ray emission and its MIS weight using the previous vertex.
     // https://pbr-book.org/4ed/Light_Transport_I_Surface_Reflection/A_Better_Path_Tracer
-    payload.Distance = RAY_MISS_DISTANCE;
+    payload.mDistance = RAY_MISS_DISTANCE;
 }

@@ -20,21 +20,21 @@
 #include <EASTL/vector.h>
 
 #include <Core/Core.hh>
-#include <Core/Types.hh>
 #include <Core/Platform.hh>
+#include <Core/Types.hh>
 
-#include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/Texture.hh>
+#include <Renderer/Rhi/Types.hh>
 
 #if defined( MIKOTO_PLATFORM_WINDOWS )
-
-#include <Platform/Windows/Windows.hh>
 
 #include <directx/d3d12.h>
 #include <directx/d3dx12.h>
 
-#include <Renderer/Rhi/D3D12/Direct3D12Helpers.hh>
+#include <Platform/Windows/Windows.hh>
+
 #include <Renderer/Rhi/D3D12/D3D12MemoryAllocator.hh>
+#include <Renderer/Rhi/D3D12/Direct3D12Helpers.hh>
 
 namespace mikoto::renderer::d3d12 {
 
@@ -42,12 +42,12 @@ namespace mikoto::renderer::d3d12 {
 
     class Sampler final : public rhi::ISampler {
     public:
-        auto GetMinFilter() const -> rhi::SamplerFilter override;
-        auto GetMagFilter() const -> rhi::SamplerFilter override;
-        auto GetWrapU() const -> rhi::SamplerWrapMode override;
-        auto GetWrapV() const -> rhi::SamplerWrapMode override;
-        auto GetWrapW() const -> rhi::SamplerWrapMode override;
-        auto GetMipLevels() const -> float override;
+        MKT_NODISCARD auto GetMinFilter() const -> rhi::SamplerFilter override;
+        MKT_NODISCARD auto GetMagFilter() const -> rhi::SamplerFilter override;
+        MKT_NODISCARD auto GetWrapU() const -> rhi::SamplerWrapMode override;
+        MKT_NODISCARD auto GetWrapV() const -> rhi::SamplerWrapMode override;
+        MKT_NODISCARD auto GetWrapW() const -> rhi::SamplerWrapMode override;
+        MKT_NODISCARD auto GetMipLevels() const -> float override;
 
     private:
         float mMipLevels{ 1.0f };
@@ -61,11 +61,11 @@ namespace mikoto::renderer::d3d12 {
         rhi::Color mBorderColor{};
 
     public:
-        explicit Sampler( const rhi::SamplerCreateDescription& desc, DeviceResources& resources );
+        explicit Sampler( const rhi::SamplerCreateDescription &desc, DeviceResources &resources );
 
         MKT_NODISCARD auto GetSamplerIndex() const -> DescriptorIndex;
 
-        auto AllocateSampler(D3D12_CPU_DESCRIPTOR_HANDLE handle) -> void;
+        auto AllocateSampler( D3D12_CPU_DESCRIPTOR_HANDLE handle ) -> void;
 
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) -> rhi::Object override;
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) const -> rhi::Object override;
@@ -100,8 +100,8 @@ namespace mikoto::renderer::d3d12 {
 
     class Texture : public rhi::ITexture {
     public:
-        explicit Texture( const ExternalTextureDescription& spec, DeviceResources& resources );
-        explicit Texture( const rhi::TextureCreateDescription& desc, DeviceResources& resources );
+        explicit Texture( const ExternalTextureDescription &spec, DeviceResources &resources );
+        explicit Texture( const rhi::TextureCreateDescription &desc, DeviceResources &resources );
 
         auto SetDebugName( eastl::string_view name ) -> void override;
 
@@ -110,30 +110,31 @@ namespace mikoto::renderer::d3d12 {
 
         MKT_NODISCARD auto GetResourceIndex() const -> DescriptorIndex;
 
-        auto GetStorageSizeBytes() const -> core::usize override;
+        MKT_NODISCARD auto GetStorageSizeBytes() const -> core::usize override;
 
-        auto GetFormat() const -> rhi::Format override;
+        MKT_NODISCARD auto GetFormat() const -> rhi::Format override;
 
-        auto GetWidth() const -> core::u32 override;
-        auto GetHeight() const -> core::u32 override;
+        MKT_NODISCARD auto GetWidth() const -> core::u32 override;
+        MKT_NODISCARD auto GetHeight() const -> core::u32 override;
+        MKT_NODISCARD auto GetDepth() const -> core::u32 override;
 
         // Maybe move to assets these are asset properties
-        auto GetImage() const -> asset::ImageHandle override;
-        auto GetTextureUsage() const -> rhi::TextureUsageFlags override;
+        MKT_NODISCARD auto GetImage() const -> asset::ImageHandle override;
+        MKT_NODISCARD auto GetTextureUsage() const -> rhi::TextureUsageFlags override;
 
-        auto GetSizeBytes() const -> core::usize override;
-        auto GetDimension() const -> rhi::TextureDimension override;
+        MKT_NODISCARD auto GetSizeBytes() const -> core::usize override;
+        MKT_NODISCARD auto GetDimension() const -> rhi::TextureDimension override;
 
-        auto GetSampleCount() const -> rhi::Multisampling override;
-        auto GetMipLevelCount() const -> core::u32 override;
+        MKT_NODISCARD auto GetSampleCount() const -> rhi::Multisampling override;
+        MKT_NODISCARD auto GetMipLevelCount() const -> core::u32 override;
 
-        auto CreateSrv(core::usize descriptor, rhi::TextureSubresourceSet subResources, rhi::Format format = rhi::Format::eUnknown, rhi::TextureDimension dimension = rhi::TextureDimension::eInvalid) const -> void;
-        auto CreateUav(core::usize descriptor, rhi::TextureSubresourceSet subResources, rhi::Format format = rhi::Format::eUnknown, rhi::TextureDimension dimension = rhi::TextureDimension::eInvalid) const -> void;
+        auto CreateSrv( core::usize descriptor, rhi::TextureSubresourceSet subResources, rhi::Format format = rhi::Format::eUnknown, rhi::TextureDimension dimension = rhi::TextureDimension::eInvalid ) const -> void;
+        auto CreateUav( core::usize descriptor, rhi::TextureSubresourceSet subResources, rhi::Format format = rhi::Format::eUnknown, rhi::TextureDimension dimension = rhi::TextureDimension::eInvalid ) const -> void;
 
-        auto CreateRtv(core::usize descriptor, rhi::TextureSubresourceSet subResources, rhi::Format format = rhi::Format::eUnknown ) const -> void;
-        auto CreateDsv(core::usize descriptor, rhi::TextureSubresourceSet subResources, bool isReadOnly = false) const -> void;
+        auto CreateRtv( core::usize descriptor, rhi::TextureSubresourceSet subResources, rhi::Format format = rhi::Format::eUnknown ) const -> void;
+        auto CreateDsv( core::usize descriptor, rhi::TextureSubresourceSet subResources, bool isReadOnly = false ) const -> void;
 
-        MKT_NODISCARD operator ID3D12Resource*() const;
+        MKT_NODISCARD operator ID3D12Resource *() const;
 
         MKT_NODISCARD auto GetRtvDescriptorIndex() const -> DescriptorIndex;
         MKT_NODISCARD auto GetDsvDescriptorIndex() const -> DescriptorIndex;
@@ -162,6 +163,7 @@ namespace mikoto::renderer::d3d12 {
     private:
         core::u32 mWidth{};
         core::u32 mHeight{};
+        core::u32 mDepth{ 1 };
         core::u32 mMipCount{ 1 };
 
         asset::ImageHandle mImageData{};
@@ -183,7 +185,7 @@ namespace mikoto::renderer::d3d12 {
         ImageAllocation mImageAllocation{};
         bool mKeepInitializerResources{ false };
 
-        DeviceResources* mResources{};
+        DeviceResources *mResources{};
 
         bool mIsExternalImage{};
         core::u32 mPlaneSlice{};
@@ -206,4 +208,3 @@ namespace mikoto::renderer::d3d12 {
 #endif
 
 #endif// MIKOTO_RENDERER_RHI_D3D12_D3D12_TEXTURE_HH
-

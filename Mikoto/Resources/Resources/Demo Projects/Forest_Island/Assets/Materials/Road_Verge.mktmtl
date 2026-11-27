@@ -1,0 +1,16 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Road Verge",
+  "Material": {
+    "BaseColorFactor": [
+      0.13,
+      0.105,
+      0.075,
+      1
+    ],
+    "MetallicFactor": 0,
+    "RoughnessFactor": 0.96,
+    "ShadingModel": 0
+  }
+}

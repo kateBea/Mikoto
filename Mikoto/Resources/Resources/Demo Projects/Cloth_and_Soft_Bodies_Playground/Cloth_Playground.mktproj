@@ -1,0 +1,61 @@
+{
+  "Version": 1,
+  "Project": "Cloth_and_Soft_Bodies_Playground",
+  "Assets": "Assets",
+  "Cache": "Assets/.cache",
+  "Scene": "Scene/Cloth_Playground.mktscn",
+  "CompressTextures": false,
+  "AutoSave": false,
+  "AutoSaveIntervalMs": 2000,
+  "EditorCamera": {
+    "NavigationMode": "Fly",
+    "Position": [
+      32,
+      20.1,
+      43
+    ],
+    "Direction": [
+      -0.5749224552645885,
+      -0.2694949009052759,
+      -0.7725520492617909
+    ],
+    "Projection": "Perspective",
+    "FieldOfView": 50,
+    "NearPlane": 0.1,
+    "FarPlane": 60000,
+    "MovementSpeed": 16,
+    "RotationSpeed": 10,
+    "SmoothTime": 0.1,
+    "AllowPitch": true,
+    "AllowYaw": true
+  },
+  "Renderer": {
+    "Version": 1,
+    "Resolution": 1,
+    "Samples": 1,
+    "PathTracing": false,
+    "RayTracedShadows": false,
+    "RayTracedReflections": false,
+    "RayTracedGlobalIllumination": false,
+    "RayTracedAmbientOcclusion": false,
+    "SsaoEnabled": true,
+    "ShadowDistance": 130,
+    "BloomEnabled": false,
+    "Clouds": {
+      "Enabled": true,
+      "HalfResolution": true,
+      "FieldResolution": 256,
+      "MaxSteps": 256,
+      "SunSteps": 24,
+      "StepLength": 12,
+      "MaxDistance": 60000,
+      "CastSurfaceShadows": true,
+      "DistanceFieldEnabled": true,
+      "EdgeDarkening": 0.25,
+      "InnerGlow": 0.5,
+      "AmbientIntensity": 0.3,
+      "AnimatedJitterDistance": 250,
+      "DetailMipBias": 0
+    }
+  }
+}

@@ -17,7 +17,7 @@ Objects:
       Name: "Physics Spheres"
       Visibility: true
     TransformComponent:
-      Position: [0,0,0]
+      Position: [0,0.1,0]
       Rotation: [0,0,0]
       Scale: [1,1,1]
       Uniform Scale: false
@@ -29070,7 +29070,7 @@ Objects:
       Name: "Camera"
       Visibility: true
     TransformComponent:
-      Position: [0,0,0]
+      Position: [0,0.1,0]
       Rotation: [0,0,0]
       Scale: [1,1,1]
       Uniform Scale: false
@@ -29078,7 +29078,7 @@ Objects:
         - [0.7808688094430303,0.0,-0.6246950475544243,0]
         - [-0.21724485316025105,0.9375830504810834,-0.27155606645031377,0]
         - [0.5857034883065025,0.3477614461819859,0.7321293603831281,0]
-        - [16,13,20,1]
+        - [16,13.1,20,1]
     Children: []
     CameraComponent:
       Projection: 1
@@ -29098,7 +29098,7 @@ Objects:
       Name: "Sun"
       Visibility: true
     TransformComponent:
-      Position: [0,0,0]
+      Position: [0,0.1,0]
       Rotation: [0,0,0]
       Scale: [1,1,1]
       Uniform Scale: false

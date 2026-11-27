@@ -35,9 +35,13 @@
 // CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
+
+// Track active media, sample scattering events and evaluate shadow transmittance. Surface
+// boundary crossings update the medium state used for the next ray segment.
+
 #pragma once
 
-#include "Volume_Helpers.slang"
+#include "VolumeTracking_Helpers.slang"
 
 // Homogeneous-medium distance sampling and its RGB channel-mixture density follow PBRT.
 // https://pbr-book.org/3ed-2018/Volume_Scattering/Media
@@ -46,37 +50,43 @@
 // https://pbr-book.org/4ed/Volume_Scattering/Phase_Functions
 // https://github.com/mmp/pbrt-v4/blob/master/src/pbrt/util/sampling.cpp
 
+// Resolve the optical coefficients of the selected nested medium. An empty stack represents the
+// exterior with unit refractive index.
 MediumState ReadMedium( MediumStack media, uint depth ) {
     // An empty stack represents the exterior, which has an index of refraction of one.
     MediumState result = ( MediumState )0;
-    result.IOR = 1.0;
+    result.mIOR = 1.0;
     if ( depth > 0 ) {
-        MaterialRecord material = LoadMaterialRecord( media.Materials[depth - 1] );
-        result.Absorption = material.Absorption.xyz;
-        result.Scattering = material.Scattering.xyz;
-        result.Anisotropy = material.Absorption.w;
-        result.IOR = material.Optical.x;
+        MaterialRecord material = LoadMaterialRecord( media.mMaterials[depth - 1] );
+        result.mAbsorption = material.mAbsorption.xyz;
+        result.mScattering = material.mScattering.xyz;
+        result.mAnisotropy = material.mAbsorption.w;
+        result.mIOR = material.mOptical.x;
     }
     return result;
 }
 
+// Push the entered material or pop the exited medium. This stack is path-local and changes only
+// when a boundary is actually crossed.
 bool CrossMediumBoundary( inout MediumStack media, Surface boundary ) {
-    if ( boundary.FrontFace ) {
-        if ( media.Count == 8 ) {
+    if ( boundary.mFrontFace ) {
+        if ( media.mCount == kPathMediumStackCapacity ) {
             return false;
         }
-        media.Materials[media.Count++] = boundary.Material;
+        media.mMaterials[media.mCount++] = boundary.mMaterial;
     }
-    else if ( media.Count > 0 ) {
-        --media.Count;
+    else if ( media.mCount > 0 ) {
+        --media.mCount;
     }
     return true;
 }
 
+// Recognize an interface that changes medium bookkeeping without a refractive event. Such
+// crossings do not consume the surface-scattering bounce budget.
 bool NullMediumBoundary( Surface surface, MediumStack media ) {
-    uint outside = surface.FrontFace ? media.Count : ( media.Count > 1 ? media.Count - 1 : 0 );
-    return surface.Model == MATERIAL_DIELECTRIC && !surface.ThinWalled &&
-           surface.IOR == ReadMedium( media, outside ).IOR && surface.Transmission == 1.0;
+    uint outside = surface.mFrontFace ? media.mCount : ( media.mCount > 1 ? media.mCount - 1 : 0 );
+    return surface.mModel == MATERIAL_DIELECTRIC && !surface.mThinWalled &&
+           surface.mIOR == ReadMedium( media, outside ).mIOR && surface.mTransmission == 1.0;
 }
 
 float PhaseHG( float cosine, float g ) {
@@ -89,18 +99,21 @@ float3 SamplePhaseHG( float3 view, float g, float2 sample ) {
     float k = 1.0 - 2.0 * sample.x;
     float denominator = 1.0 + g * k;
     float cosine = -( k + 0.5 * g * ( 3.0 + k * k ) + g * g * k +
-                      0.5 * g * g * g * ( k * k - 1.0 ) ) / ( denominator * denominator );
+                       0.5 * g * g * g * ( k * k - 1.0 ) ) /
+                   ( denominator * denominator );
     return Hemisphere( view, clamp( cosine, -1.0, 1.0 ), 2.0 * PI * sample.y );
 }
 
+// Sample free flight from one RGB extinction channel and weight with the channel-mixture PDF.
+// Both collision and no-collision outcomes retain their probability correction.
 bool SampleMedium( MediumState medium, float maximum, float2 sample, out float distance, out float3 weight ) {
     distance = maximum;
-    if ( !any( medium.Scattering > 0.0 ) ) {
+    if ( !any( medium.mScattering > 0.0 ) ) {
         // Pure absorption has an exact deterministic solution and needs no random walk.
-        weight = exp( -medium.Absorption * maximum );
+        weight = exp( -medium.mAbsorption * maximum );
         return false;
     }
-    float3 extinction = medium.Absorption + medium.Scattering;
+    float3 extinction = medium.mAbsorption + medium.mScattering;
     uint channel = min( uint( sample.x * 3.0 ), 2u );
     float freeFlight = extinction[channel] > 0.0 ? -log( 1.0 - sample.y ) / extinction[channel] : RAY_MAX_DISTANCE;
     bool scatter = freeFlight < maximum;
@@ -108,173 +121,119 @@ bool SampleMedium( MediumState medium, float maximum, float2 sample, out float d
     float3 transmittance = exp( -extinction * distance );
     float3 density = scatter ? extinction * transmittance : transmittance;
     float pdf = ( density.x + density.y + density.z ) / 3.0;
-    weight = pdf > 0.0 ? transmittance * ( scatter ? medium.Scattering : float3( 1 ) ) / pdf : float3( 0 );
+    weight = pdf > 0.0 ? transmittance * ( scatter ? medium.mScattering : float3( 1 ) ) / pdf : float3( 0 );
     return scatter;
 }
 
-// Sample each overlapping constituent independently and keep the closest free flight.
-// This is the component-composition rule from section 4 of Kutz et al. (2017), not
-// an implementation of their spectral/weighted tracking estimator.
-// https://jannovak.info/publications/SDTracking/SDTracking.pdf
-// PBRT supplies the absorption/scattering events and heterogeneous delta tracking;
-// Mikoto retains one compensated RGB channel per path instead of spectral wavelengths.
-// https://pbr-book.org/4ed/Light_Transport_II_Volume_Rendering/Volume_Scattering_Integrators
+// Weighted null-collision transport retains all RGB channels. Scatter,
+// absorption and null events use their average RGB probabilities; the chosen
+// event contributes its RGB probability divided by that scalar probability.
+// Empty density therefore has a unit weight, even inside a chromatic grid box.
+// https://jannovak.info/publications/SDTracking/index.html
+// Find the earliest candidate among overlapping scene volumes, then classify it as scattering,
+// absorption or a null event. Majorants bound density while null events preserve unbiased
+// continuation.
 bool SampleSceneFog( float3 origin, float3 direction, float maximum, inout uint random,
-    inout int channel, out float distance, out float3 weight, out uint mediumIndex ) {
+    out float distance, out float3 weight, out uint mediumIndex ) {
     distance = maximum;
     weight = 1.0;
     mediumIndex = 0xffffffffu;
-    uint count = VolumeCount( Parameters.Volumes );
+    uint count = VolumeCount( Parameters.mVolumes );
+    float cursor = 0;
 
-    for ( uint index = 0; index < count; ++index ) {
-        VolumeRecord medium = LoadVolume( Parameters.Volumes, index );
-        float entry, exit;
-
-        if ( !any( medium.ExtinctionMajorant.xyz > 0.0 ) ||
-             !VolumeRayInterval( medium, origin, direction, entry, exit ) ) {
-            continue;
-        }
-
-        entry = max( entry, 0.0 );
-        exit = min( exit, distance );
-
-        if ( exit <= entry ) {
-            continue;
-        }
-
-        if ( channel < 0 ) {
-            channel = min( int( Random( random ) * 3.0 ), 2 );
-            weight = 0.0;
-            weight[channel] = 3.0;
-        }
-
-        float extinction = medium.ExtinctionMajorant[channel];
-
-        if ( extinction <= 0.0 ) {
-            continue;
-        }
-
-        if ( medium.Flags.y <= 1 ) {
-            VolumeAnalyticProfile profile = MakeVolumeAnalyticProfile( medium, origin, direction, entry, exit );
-            float integral = -log( max( 1.0 - Random( random ), 1e-7 ) ) / extinction;
-            float sampleDistance;
-
-            if ( SampleVolumeAnalytic( profile, integral, sampleDistance ) ) {
-                distance = entry + sampleDistance;
-                mediumIndex = index;
+    while ( cursor < maximum ) {
+        float nearest = maximum;
+        float majorant = 0;
+        uint candidateIndex = 0xffffffffu;
+        for ( uint index = 0; index < count; ++index ) {
+            VolumeRecord medium = LoadVolume( Parameters.mVolumes, index );
+            float entry;
+            float exit;
+            if ( !any( medium.mExtinctionMajorant.xyz > 0 ) ||
+                 !VolumeRayInterval( medium, origin, direction, entry, exit ) ) {
+                continue;
+            }
+            entry = max( entry, cursor );
+            exit = min( exit, nearest );
+            if ( exit <= entry ) {
+                continue;
             }
 
-            continue;
-        }
-
-        // Ray bounds and record are cached for this medium, including every null event.
-        float majorant = extinction * 1.00001;
-        float coefficient = medium.AbsorptionDensity[channel] + medium.ScatteringPhase[channel];
-        float t = entry;
-
-        while ( true ) {
-            t += -log( max( 1.0 - Random( random ), 1e-7 ) ) / majorant;
-
-            if ( t >= exit ) {
-                break;
-            }
-
-            float density = VolumeDensity( Parameters.Volumes, medium, origin + direction * t, false );
-
-            if ( Random( random ) * majorant < coefficient * density ) {
-                distance = t;
-                mediumIndex = index;
-                break;
+            float candidate;
+            float bound;
+            if ( SampleVolumeCandidate( Parameters.mVolumes, medium, origin, direction, entry, exit,
+                     random, candidate, bound ) ) {
+                nearest = candidate;
+                majorant = bound;
+                candidateIndex = index;
             }
         }
+        if ( candidateIndex == 0xffffffffu ) {
+            return false;
+        }
+
+        VolumeRecord medium = LoadVolume( Parameters.mVolumes, candidateIndex );
+        float3 position = origin + direction * nearest;
+        float density = VolumeDensity( Parameters.mVolumes, medium, position, false );
+        if ( medium.mFlags.y <= 1 ) {
+            // Analytic height sampling/transmittance use the same unclipped
+            // exponential profile; its local majorant already includes density.
+            float3 coefficient = medium.mAbsorptionDensity.xyz + medium.mScatteringPhase.xyz;
+            density = majorant / max( coefficient.x, max( coefficient.y, coefficient.z ) );
+        }
+        float3 scattering = medium.mScatteringPhase.xyz * density / majorant;
+        float3 absorption = medium.mAbsorptionDensity.xyz * density / majorant;
+        float scatterProbability = ( scattering.x + scattering.y + scattering.z ) / 3.0;
+        float absorbProbability = ( absorption.x + absorption.y + absorption.z ) / 3.0;
+        float choice = Random( random );
+        if ( choice < scatterProbability ) {
+            weight *= scattering / scatterProbability;
+            distance = nearest;
+            mediumIndex = candidateIndex;
+            return true;
+        }
+        if ( choice < scatterProbability + absorbProbability ) {
+            weight = 0;
+            distance = nearest;
+            return false;
+        }
+        float nullProbability = 1.0 - scatterProbability - absorbProbability;
+        weight *= max( 0.0, 1.0 - scattering - absorption ) / nullProbability;
+        if ( !any( weight > 0 ) ) {
+            return false;
+        }
+        // Only the globally nearest candidate may change the weight. Advancing
+        // all constituents together avoids weighting beyond another's event.
+        cursor = asfloat( asuint( nearest ) + 1u );
     }
-
-    if ( mediumIndex == 0xffffffffu ) {
-        return false;
-    }
-
-    VolumeRecord winner = LoadVolume( Parameters.Volumes, mediumIndex );
-    float extinction = winner.AbsorptionDensity[channel] + winner.ScatteringPhase[channel];
-
-    // Density multiplies absorption and scattering equally, so it cancels in this choice.
-    if ( Random( random ) * extinction < winner.AbsorptionDensity[channel] ) {
-        weight = 0.0;
-        return false;
-    }
-
-    return true;
+    return false;
 }
 
 // Beer transmittance is exact for analytic fog; ratio tracking is only necessary
 // for procedural/grid density. Independent media multiply their transmittances.
 // https://pbr-book.org/4ed/Volume_Scattering/Transmittance
 // https://pbr-book.org/4ed/Light_Transport_II_Volume_Rendering/Volume_Scattering_Integrators#VolPathIntegrator::SampleLd
+// Multiply each intersected volume transmittance estimate along the finite segment. Volumes
+// disabled for shadow transport are skipped.
 float3 SceneFogTransmittance( float3 origin, float3 direction, float maximum, inout uint random ) {
     float3 transmittance = 1.0;
-    uint count = VolumeCount( Parameters.Volumes );
-    bool heterogeneous = false;
-
+    uint count = VolumeCount( Parameters.mVolumes );
     for ( uint index = 0; index < count; ++index ) {
-        VolumeRecord medium = LoadVolume( Parameters.Volumes, index );
-        float entry, exit;
-
-        if ( medium.Flags.z == 0 || !any( medium.ExtinctionMajorant.xyz > 0.0 ) ||
+        VolumeRecord medium = LoadVolume( Parameters.mVolumes, index );
+        float entry;
+        float exit;
+        if ( medium.mFlags.z == 0 || !any( medium.mExtinctionMajorant.xyz > 0 ) ||
              !VolumeRayInterval( medium, origin, direction, entry, exit ) ) {
             continue;
         }
-
         entry = max( entry, 0.0 );
         exit = min( exit, maximum );
-
         if ( exit <= entry ) {
             continue;
         }
-
-        if ( medium.Flags.y > 1 ) {
-            heterogeneous = true;
-            continue;
-        }
-
-        float integral = VolumeAnalyticIntegral( MakeVolumeAnalyticProfile( medium, origin, direction, entry, exit ) );
-        transmittance *= exp( -medium.ExtinctionMajorant.xyz * integral );
-    }
-
-    if ( !heterogeneous || !any( transmittance > 0.0 ) ) {
-        return transmittance;
-    }
-
-    for ( uint index = 0; index < count; ++index ) {
-        VolumeRecord medium = LoadVolume( Parameters.Volumes, index );
-        float entry, exit;
-
-        if ( medium.Flags.z == 0 || medium.Flags.y <= 1 || !any( medium.ExtinctionMajorant.xyz > 0.0 ) ||
-             !VolumeRayInterval( medium, origin, direction, entry, exit ) ) {
-            continue;
-        }
-
-        float majorant = MaxComponent( medium.ExtinctionMajorant.xyz ) * 1.00001;
-        float3 coefficient = medium.AbsorptionDensity.xyz + medium.ScatteringPhase.xyz;
-        float t = max( entry, 0.0 );
-        exit = min( exit, maximum );
-
-        while ( t < exit ) {
-            t += -log( max( 1.0 - Random( random ), 1e-7 ) ) / majorant;
-
-            if ( t >= exit ) {
-                break;
-            }
-
-            float density = VolumeDensity( Parameters.Volumes, medium, origin + direction * t, false );
-            transmittance *= max( 0.0, 1.0 - coefficient * density / majorant );
-            float survive = MaxComponent( transmittance );
-
-            if ( survive < 0.1 ) {
-                if ( survive <= 0.0 || Random( random ) >= survive ) {
-                    return 0.0;
-                }
-
-                transmittance /= survive;
-            }
+        transmittance *= TrackVolumeTransmittance( Parameters.mVolumes, medium, origin, direction, entry, exit, random );
+        if ( !any( transmittance > 0 ) ) {
+            return 0;
         }
     }
 
@@ -282,13 +241,15 @@ float3 SceneFogTransmittance( float3 origin, float3 direction, float maximum, in
 }
 
 float ScatteringCosine( Surface surface, float3 direction ) {
-    return surface.Model == MATERIAL_MEDIUM ? 1.0 : abs( dot( surface.Normal, direction ) );
+    return surface.mModel == MATERIAL_MEDIUM ? 1.0 : abs( dot( surface.mNormal, direction ) );
 }
 
 // Connection rays cross only null interfaces. Refractive glass is a true specular
 // boundary and blocks this straight connection, just as in a unidirectional path tracer.
+// Follow a shadow segment through transparent null boundaries and active media. Opaque/non-null
+// boundaries block the connection; medium extinction attenuates each traversed interval.
 float3 ShadowTransmittance( Surface surface, float3 direction, float maximum, MediumStack media, inout uint random ) {
-    if ( surface.Model == MATERIAL_DIELECTRIC && !surface.ThinWalled && dot( surface.GeometricNormal, direction ) < 0.0 ) {
+    if ( surface.mModel == MATERIAL_DIELECTRIC && !surface.mThinWalled && dot( surface.mGeometricNormal, direction ) < 0.0 ) {
         if ( !CrossMediumBoundary( media, surface ) ) {
             return float3( 0 );
         }
@@ -296,7 +257,7 @@ float3 ShadowTransmittance( Surface surface, float3 direction, float maximum, Me
     float3 origin = Offset( surface, direction );
     float3 transmittance = float3( 1 );
 
-    for ( uint crossing = 0; crossing < 256; ++crossing ) {
+    for ( uint crossing = 0; crossing < kPathBoundaryCrossingLimit; ++crossing ) {
         Surface boundary;
         Hit hit;
         bool found = Intersect( origin, direction, maximum, random, boundary, hit, false, true );
@@ -306,10 +267,10 @@ float3 ShadowTransmittance( Surface surface, float3 direction, float maximum, Me
             return float3( 0 );
         }
 
-        float distance = found ? hit.Distance : maximum;
-        MediumState medium = ReadMedium( media, media.Count );
-        transmittance *= exp( -( medium.Absorption + medium.Scattering ) * distance );
-        if ( media.Count == 0 && VolumeCount( Parameters.Volumes ) != 0 ) {
+        float distance = found ? hit.mDistance : maximum;
+        MediumState medium = ReadMedium( media, media.mCount );
+        transmittance *= exp( -( medium.mAbsorption + medium.mScattering ) * distance );
+        if ( media.mCount == 0 && VolumeCount( Parameters.mVolumes ) != 0 ) {
             transmittance *= SceneFogTransmittance( origin, direction, distance, random );
         }
         if ( !found ) {
@@ -326,7 +287,7 @@ float3 ShadowTransmittance( Surface surface, float3 direction, float maximum, Me
 }
 
 float3 ShadowTransmittanceTo( Surface surface, float3 target, MediumStack media, inout uint random ) {
-    float3 origin = Offset( surface, target - surface.Position );
+    float3 origin = Offset( surface, target - surface.mPosition );
     float3 delta = target - origin;
     float distance = length( delta );
     return distance > 0.0 ? ShadowTransmittance( surface, delta / distance, NextFloat( distance, false ), media, random ) : float3( 0 );

@@ -1,0 +1,16 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Woodland Track",
+  "Material": {
+    "BaseColorFactor": [
+      0.21,
+      0.16,
+      0.1,
+      1
+    ],
+    "MetallicFactor": 0,
+    "RoughnessFactor": 0.96,
+    "ShadingModel": 0
+  }
+}

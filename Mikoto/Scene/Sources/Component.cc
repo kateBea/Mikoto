@@ -12,39 +12,39 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <cmath>
 #include <atomic>
+#include <cmath>
 
-#include <EASTL/utility.h>
 #include <EASTL/memory.h>
+#include <EASTL/utility.h>
 
 #include <glm/glm.hpp>
 
+#include <Assets/AssetRegistryService.hh>
+#include <Assets/ImageProcessing.hh>
+#include <Assets/Utility.hh>
+
+#include <Audio/Utility.hh>
+
 #include <Core/Core.hh>
-#include <Core/Types.hh>
-#include <Core/Profiler.hh>
 #include <Core/Exception.hh>
+#include <Core/Profiler.hh>
+#include <Core/Types.hh>
 
 #include <Logging/Assert.hh>
 #include <Logging/Logger.hh>
 
-#include <Math/Math.hh>
-
-#include <Assets/Utility.hh>
-#include <Assets/ImageProcessing.hh>
-#include <Assets/AssetRegistryService.hh>
-
 #include <Material/PostProcessMaterial.hh>
 
-#include <Audio/Utility.hh>
+#include <Math/Math.hh>
 
-#include <Renderer/Rhi/Utility.hh>
 #include <Renderer/Core/RenderSystem.hh>
 #include <Renderer/Core/SceneRenderer.hh>
+#include <Renderer/Rhi/Utility.hh>
 
-#include <Scene/Scene.hh>
-#include <Scene/Entity.hh>
 #include <Scene/Component.hh>
+#include <Scene/Entity.hh>
+#include <Scene/Scene.hh>
 
 #include <Scripting/ScriptingService.hh>
 
@@ -56,7 +56,7 @@ namespace mikoto::scene {
     using namespace mikoto::renderer::rhi;
 
     struct TextureCaptureGuard {
-        bool& mCapturing;
+        bool &mCapturing;
 
         ~TextureCaptureGuard() {
             mCapturing = false;
@@ -96,7 +96,7 @@ namespace mikoto::scene {
 
     // Preserve constness when reading a property's editor or runtime value.
     template<typename Component>
-    static auto VisitLight( Component& component, renderer::LightType type, auto&& visitor ) -> void {
+    static auto VisitLight( Component &component, renderer::LightType type, auto &&visitor ) -> void {
         switch ( type ) {
             case renderer::LightType::eDirectional:
                 visitor( component.template Get<renderer::DirectionalLight>() );
@@ -112,12 +112,160 @@ namespace mikoto::scene {
         }
     }
 
+    auto CloudInteractionComponent::SetShape( renderer::CloudInteractionShape shape ) -> void {
+        if ( as<u32>( shape ) > 2 ) {
+            MKT_THROW_INVALID_ARGUMENT( "Unknown cloud interaction shape." );
+        }
+        mShape = shape;
+    }
+
+    auto CloudInteractionComponent::SetDimensions( const float3 &dimensions ) -> void {
+        if ( glm::any( glm::isnan( dimensions ) ) || glm::any( glm::isinf( dimensions ) ) || glm::any( glm::lessThanEqual( dimensions, float3{} ) ) ) {
+            MKT_THROW_INVALID_ARGUMENT( "Cloud interaction dimensions must be finite and positive." );
+        }
+        mDimensions = glm::clamp( dimensions, float3{ .001f }, float3{ 100000 } );
+    }
+
+    auto CloudInteractionComponent::SetStrength( f32 strength ) -> void {
+        if ( !std::isfinite( strength ) ) {
+            MKT_THROW_INVALID_ARGUMENT( "Cloud interaction strength must be finite." );
+        }
+        mStrength = glm::clamp( strength, 0.0f, 1.0f );
+    }
+
+    auto CloudInteractionComponent::SetFeather( f32 feather ) -> void {
+        if ( !std::isfinite( feather ) ) {
+            MKT_THROW_INVALID_ARGUMENT( "Cloud interaction feather must be finite." );
+        }
+        mFeather = glm::clamp( feather, 0.0f, 1.0f );
+    }
+
+    auto CloudInteractionComponent::SetEnabled( bool enabled ) -> void {
+        mEnabled = enabled;
+    }
+    auto CloudInteractionComponent::GetShape() const -> renderer::CloudInteractionShape {
+        return mShape;
+    }
+    auto CloudInteractionComponent::GetDimensions() const -> const float3 & {
+        return mDimensions;
+    }
+    auto CloudInteractionComponent::GetStrength() const -> f32 {
+        return mStrength;
+    }
+    auto CloudInteractionComponent::GetFeather() const -> f32 {
+        return mFeather;
+    }
+    auto CloudInteractionComponent::IsEnabled() const -> bool {
+        return mEnabled;
+    }
+
     CloudComponent::CloudComponent() : mMaterial{ material::VolumeMaterialHandle::New( "Cloud" ) } {
         material::VolumeSettings settings{};
         settings.mDensityModel = material::VolumeDensityModel::eProceduralCloud;
         settings.mScattering = float3{ 0.02f };
         settings.mAnisotropy = 0.65f;
         mMaterial->SetSettings( settings );
+    }
+
+    auto CloudComponent::SetLightning( const renderer::CloudLightningSettings &settings ) -> void {
+        const float3 values[]{ settings.mPosition, settings.mColor,
+            { settings.mIntensity, settings.mRadius, settings.mInterval }, { settings.mDuration, settings.mBoltLength, settings.mBoltWidth } };
+        for ( const auto &value: values ) {
+            if ( glm::any( glm::isnan( value ) ) || glm::any( glm::isinf( value ) ) ) {
+                MKT_THROW_INVALID_ARGUMENT( "Cloud lightning settings must be finite." );
+            }
+        }
+        mLightning = settings;
+        mLightning.mBoltLength = glm::clamp( settings.mBoltLength, 1.0f, 10000.0f );
+        mLightning.mBoltWidth = glm::clamp( settings.mBoltWidth, .01f, 20.0f );
+        mLightning.mBoltBranches = glm::min( settings.mBoltBranches, 8u );
+        mLightning.mPosition = glm::clamp( settings.mPosition, float3{ -.5f }, float3{ .5f } );
+        mLightning.mColor = glm::clamp( settings.mColor, float3{}, float3{ 100 } );
+        mLightning.mIntensity = glm::clamp( settings.mIntensity, 0.0f, 100000.0f );
+        mLightning.mRadius = glm::clamp( settings.mRadius, 1.0f, 100000.0f );
+        mLightning.mDuration = glm::clamp( settings.mDuration, .05f, 2.0f );
+        mLightning.mInterval = glm::clamp( settings.mInterval, mLightning.mDuration * 2, 300.0f );
+    }
+
+    auto CloudComponent::TriggerLightning( f64 time ) -> void {
+        if ( std::isfinite( time ) ) {
+            mLightningTriggerTime = time;
+        }
+    }
+
+    auto CloudComponent::GetLightning() const -> const renderer::CloudLightningSettings & {
+        return mLightning;
+    }
+
+    auto CloudComponent::GetLightningState( f64 time, const float4x4 &transform ) const -> renderer::CloudLightningState {
+        renderer::CloudLightningState result{};
+        if ( !mLightning.mEnabled || !std::isfinite( time ) || time < 0 ) {
+            return result;
+        }
+        const auto hash{ []( u32 value ) -> u32 {
+            value ^= value >> 16;
+            value *= 0x7feb352du;
+            value ^= value >> 15;
+            value *= 0x846ca68bu;
+            return value ^ ( value >> 16 );
+        } };
+        const auto random{ [&]( u32 seed ) {
+            return static_cast<f32>( hash( seed ) >> 8 ) / 16777216.0f;
+        } };
+        const auto envelope{ [&]( f64 age ) -> f32 {
+            if ( age < 0 || age > mLightning.mDuration ) {
+                return 0;
+            }
+            const f32 t{ static_cast<f32>( age / mLightning.mDuration ) };
+            const auto pulse{ [t]( f32 center, f32 width ) {
+                return glm::max( 1 - glm::abs( t - center ) / width, 0.0f );
+            } };
+            return glm::max( pulse( .08f, .12f ), glm::max( .55f * pulse( .42f, .10f ), .3f * pulse( .72f, .08f ) ) );
+        } };
+        f32 strength{ mLightningTriggerTime >= 0 ? envelope( time - mLightningTriggerTime ) : 0 };
+        result.mBoltSeed = hash( mLightning.mSeed ^ static_cast<u32>( std::fmod( glm::max( mLightningTriggerTime, 0.0 ) * 1000, 4294967296.0 ) ) );
+        float3 position{ mLightning.mPosition };
+        if ( strength == 0 && mLightning.mAutomatic ) {
+            const f64 cycle{ std::floor( time / mLightning.mInterval ) };
+            const u32 seed{ mLightning.mSeed ^ static_cast<u32>( std::fmod( cycle, 4294967296.0 ) ) };
+            const f64 strike{ cycle * mLightning.mInterval + mLightning.mInterval * ( .15 + random( seed ) * .6 ) };
+            strength = envelope( time - strike );
+            result.mBoltSeed = hash( seed );
+            position += float3{ ( random( seed + 1 ) - .5f ) * .4f, ( random( seed + 2 ) - .5f ) * .2f,
+                ( random( seed + 3 ) - .5f ) * .4f };
+            if ( strength > 0 && mMaterial && !mMaterial->GetCloudGrid().empty() ) {
+                // Pick an occupied authored formation so a random strike cannot
+                // disappear into an empty part of a composed sky.
+                const auto &voxels{ mMaterial->GetCloudGrid() };
+                const auto size{ mMaterial->GetGridDimensions() };
+                f32 best{};
+                for ( u32 sample{}; sample < 64; ++sample ) {
+                    const usize i{ hash( seed + sample * 71u ) % voxels.size() };
+                    const f32 score{ voxels[i].mProfile * voxels[i].mDensityScale };
+                    if ( score <= best ) {
+                        continue;
+                    }
+                    best = score;
+                    const uint3 cell{ i % size.x, ( i / size.x ) % size.y, i / ( size.x * size.y ) };
+                    position = mLightning.mPosition + ( float3{ cell } + .5f ) / float3{ size } - .5f;
+                }
+            }
+        }
+        if ( strength <= 0 ) {
+            return result;
+        }
+        auto world{ transform };
+        auto dimensions{ mDimensions };
+        if ( mShape == CloudShape::eSkyLayer ) {
+            world = glm::translate( float4x4{ 1 }, float3{ transform[3].x, mBottomAltitude + mLayerThickness * .5f, transform[3].z } );
+            dimensions = { mHorizonRadius * 2, mLayerThickness, mHorizonRadius * 2 };
+        }
+        const auto direction{ glm::length( mWindDirection ) > 0 ? glm::normalize( mWindDirection ) : float2{} };
+        const float3 wind{ direction.x * mWindSpeed, 0, direction.y * mWindSpeed };
+        const float3 point{ world * float4{ glm::clamp( position, float3{ -.45f }, float3{ .45f } ) * dimensions, 1 } };
+        result.mPositionRadius = { point + wind * static_cast<f32>( time ), mLightning.mRadius };
+        result.mColorIntensity = { mLightning.mColor, mLightning.mIntensity * strength };
+        return result;
     }
 
     auto CloudComponent::GetShape() const -> CloudShape {
@@ -132,7 +280,7 @@ namespace mikoto::scene {
         return mLayerThickness;
     }
 
-    auto CloudComponent::GetDimensions() const -> const float3& {
+    auto CloudComponent::GetDimensions() const -> const float3 & {
         return mDimensions;
     }
 
@@ -148,7 +296,7 @@ namespace mikoto::scene {
         return mDensityMultiplier;
     }
 
-    auto CloudComponent::GetWindDirection() const -> const float2& {
+    auto CloudComponent::GetWindDirection() const -> const float2 & {
         return mWindDirection;
     }
 
@@ -176,7 +324,7 @@ namespace mikoto::scene {
         mLayerThickness = thickness;
     }
 
-    auto CloudComponent::SetDimensions( const float3& dimensions ) -> void {
+    auto CloudComponent::SetDimensions( const float3 &dimensions ) -> void {
         mDimensions = dimensions;
     }
 
@@ -192,7 +340,7 @@ namespace mikoto::scene {
         mDensityMultiplier = multiplier;
     }
 
-    auto CloudComponent::SetWindDirection( const float2& direction ) -> void {
+    auto CloudComponent::SetWindDirection( const float2 &direction ) -> void {
         mWindDirection = direction;
     }
 
@@ -219,7 +367,7 @@ namespace mikoto::scene {
         return mShape;
     }
 
-    auto FogComponent::GetDimensions() const -> const float3& {
+    auto FogComponent::GetDimensions() const -> const float3 & {
         return mDimensions;
     }
 
@@ -247,7 +395,7 @@ namespace mikoto::scene {
         mShape = shape;
     }
 
-    auto FogComponent::SetDimensions( const float3& dimensions ) -> void {
+    auto FogComponent::SetDimensions( const float3 &dimensions ) -> void {
         mDimensions = dimensions;
     }
 
@@ -271,14 +419,14 @@ namespace mikoto::scene {
         mReceiveShadows = value;
     }
 
-    auto AudioListenerComponent::operator=( const AudioListenerComponent& other ) -> AudioListenerComponent& {
+    auto AudioListenerComponent::operator=( const AudioListenerComponent &other ) -> AudioListenerComponent & {
         MKT_BEGIN_PROFILER();
         // Keep the destination entity's allocated listener slot.
         SetEnabled( other.mEnabled );
         return *this;
     }
 
-    auto RigidBodyComponent::operator=( const RigidBodyComponent& other ) -> RigidBodyComponent& {
+    auto RigidBodyComponent::operator=( const RigidBodyComponent &other ) -> RigidBodyComponent & {
         MKT_BEGIN_PROFILER();
 
         if ( this != &other ) {
@@ -322,11 +470,11 @@ namespace mikoto::scene {
         return mOutlineWidth;
     }
 
-    auto TextComponent::SetOutlineColor( const core::float4& color ) -> void {
+    auto TextComponent::SetOutlineColor( const core::float4 &color ) -> void {
         mOutlineColor = glm::clamp( color, core::float4{ 0 }, core::float4{ 1 } );
     }
 
-    auto TextComponent::GetOutlineColor() const -> const core::float4& {
+    auto TextComponent::GetOutlineColor() const -> const core::float4 & {
         return mOutlineColor;
     }
 
@@ -340,12 +488,12 @@ namespace mikoto::scene {
         return mVehicleType;
     }
 
-    auto VehicleComponent::SetWheelDescriptions( const eastl::vector<VehicleWheelDescription>& wheels ) -> void {
+    auto VehicleComponent::SetWheelDescriptions( const eastl::vector<VehicleWheelDescription> &wheels ) -> void {
         MKT_BEGIN_PROFILER();
         mWheelDescriptions = wheels;
     }
 
-    auto VehicleComponent::GetWheelDescriptions() const -> const eastl::vector<VehicleWheelDescription>& {
+    auto VehicleComponent::GetWheelDescriptions() const -> const eastl::vector<VehicleWheelDescription> & {
         MKT_BEGIN_PROFILER();
         return mWheelDescriptions;
     }
@@ -354,7 +502,7 @@ namespace mikoto::scene {
     auto VehicleComponent::IsValid() const -> bool {
         bool left{}, right{}, driven{};
 
-        for ( const auto& wheel: mWheelDescriptions ) {
+        for ( const auto &wheel: mWheelDescriptions ) {
             if ( wheel.mRadius <= 0 || wheel.mWidth <= 0 || wheel.mSuspensionMin < 0 ||
                  wheel.mSuspensionMax < wheel.mSuspensionMin || wheel.mSuspensionFrequency <= 0 ||
                  glm::length2( wheel.mSuspensionDirection ) < 0.0001f || wheel.mSuspensionDamping < 0 ||
@@ -394,7 +542,7 @@ namespace mikoto::scene {
                mMaxPitchRollDegrees <= 180.0f && mSuspensionDamping >= 0.0f;
     }
 
-    auto VehicleComponent::HasSameSettings( const VehicleComponent& other ) const -> bool {
+    auto VehicleComponent::HasSameSettings( const VehicleComponent &other ) const -> bool {
         return mVehicleType == other.mVehicleType && mWheelDescriptions == other.mWheelDescriptions &&
                mHalfTrack == other.mHalfTrack && mHalfWheelbase == other.mHalfWheelbase &&
                mWheelRadius == other.mWheelRadius && mWheelWidth == other.mWheelWidth &&
@@ -426,11 +574,11 @@ namespace mikoto::scene {
         }
     }
 
-    auto MeshComponent::GetStreamingCenter() const -> const core::float3& {
+    auto MeshComponent::GetStreamingCenter() const -> const core::float3 & {
         return mStreamingCenter;
     }
 
-    auto MeshComponent::GetStreamingExtent() const -> const core::float3& {
+    auto MeshComponent::GetStreamingExtent() const -> const core::float3 & {
         return mStreamingExtent;
     }
 
@@ -446,7 +594,7 @@ namespace mikoto::scene {
 
             if ( !mModel ) {
                 if ( mResidencyRequest.GetState() == asset::AssetState::eUnloaded ) {
-                    auto& assets{ asset::AssetRegistryService::Get() };
+                    auto &assets{ asset::AssetRegistryService::Get() };
                     mResidencyRequest = assets->Request<asset::Model>( asset::AssetRef<asset::Model>{ mPath } );
                 }
 
@@ -474,7 +622,7 @@ namespace mikoto::scene {
 
         if ( effect ) {
             instances.reserve( effect->GetEmitters().size() );
-            for ( const auto& emitter: effect->GetEmitters() ) {
+            for ( const auto &emitter: effect->GetEmitters() ) {
                 instances.emplace_back( emitter );
             }
         }
@@ -490,15 +638,15 @@ namespace mikoto::scene {
         mInstances[index].SetEmitter( eastl::move( emitter ) );
     }
 
-    auto ParticleSimulatorComponent::Update( core::f32 timeStep, const core::float4x4& world,
+    auto ParticleSimulatorComponent::Update( core::f32 timeStep, const core::float4x4 &world,
         core::u64 seed, renderer::ParticleSimulationMode mode ) -> void {
-        for ( auto& instance: mInstances ) {
+        for ( auto &instance: mInstances ) {
             instance.SetSimulationMode( mode );
             instance.Update( timeStep, world, seed++ );
         }
     }
 
-    auto ParticleSimulatorComponent::GetEffect() const -> const asset::ParticleEffectHandle& {
+    auto ParticleSimulatorComponent::GetEffect() const -> const asset::ParticleEffectHandle & {
         return mEffect;
     }
 
@@ -510,15 +658,15 @@ namespace mikoto::scene {
         return { mInstances.data(), mInstances.size() };
     }
 
-    CanvasComponent::CanvasComponent( const scene::Camera* camera ) {
+    CanvasComponent::CanvasComponent( const scene::Camera *camera ) {
         mCanvas.SetCamera( camera );
     }
 
-    auto CanvasComponent::GetCanvas() -> renderer::Canvas& {
+    auto CanvasComponent::GetCanvas() -> renderer::Canvas & {
         return mCanvas;
     }
 
-    auto CanvasComponent::GetCanvas() const -> const renderer::Canvas& {
+    auto CanvasComponent::GetCanvas() const -> const renderer::Canvas & {
         return mCanvas;
     }
 
@@ -549,6 +697,15 @@ namespace mikoto::scene {
         SetPlaneResolution( glm::max( mResolution, core::float2{ 256.0f } ) );
     }
 
+    auto WaterRenderComponent::SetAppearance( const WaterAppearanceSettings &settings ) -> void {
+        mAppearance = settings;
+        BumpRevision();
+    }
+
+    auto WaterRenderComponent::GetAppearance() const -> const WaterAppearanceSettings & {
+        return mAppearance;
+    }
+
     auto WaterRenderComponent::SetFoamAmount( float amount ) -> void {
         mFoamAmount = glm::clamp( amount, 0.0f, 1.0f );
     }
@@ -570,7 +727,7 @@ namespace mikoto::scene {
 
     auto WaterRenderComponent::SetMaterial( material::MaterialHandle waterMaterial ) -> void {
         // Water shares the surface material's dielectric model with glass.
-        if ( auto* surface{ dynamic_cast<material::SurfaceMaterial*>( waterMaterial.GetPtr() ) };
+        if ( auto *surface{ dynamic_cast<material::SurfaceMaterial *>( waterMaterial.GetPtr() ) };
             !surface || surface->GetShadingModel() != material::ShadingModel::eDielectric ) {
             return;
         }
@@ -669,14 +826,14 @@ namespace mikoto::scene {
             waves.resize( kMaxWaves );
         }
 
-        for ( auto& wave: waves ) {
+        for ( auto &wave: waves ) {
             wave = SanitizeWaterWave( wave );
         }
 
         mWaves = eastl::move( waves );
     }
 
-    auto WaterSimulationComponent::AddWave( const WaterWave& wave ) -> void {
+    auto WaterSimulationComponent::AddWave( const WaterWave &wave ) -> void {
         if ( mWaves.size() < kMaxWaves ) {
             mWaves.push_back( SanitizeWaterWave( wave ) );
         }
@@ -703,7 +860,7 @@ namespace mikoto::scene {
         mSteepness = glm::clamp( steepness, 0.0f, 0.95f );
     }
 
-    auto WaterSimulationComponent::SetFftSettings( const FftSettings& settings ) -> void {
+    auto WaterSimulationComponent::SetFftSettings( const FftSettings &settings ) -> void {
         constexpr FftSettings defaults{};
         const auto clamp{ []( core::f32 value, core::f32 minimum, core::f32 maximum, core::f32 fallback ) {
             return std::isfinite( value ) ? glm::clamp( value, minimum, maximum ) : fallback;
@@ -719,7 +876,7 @@ namespace mikoto::scene {
         };
     }
 
-    auto WaterSimulationComponent::GetFftSettings() const -> const FftSettings& {
+    auto WaterSimulationComponent::GetFftSettings() const -> const FftSettings & {
         return mFftSettings;
     }
 
@@ -745,7 +902,7 @@ namespace mikoto::scene {
         return mType;
     }
 
-    auto WaterSimulationComponent::GetWaves() const -> const eastl::vector<WaterWave>& {
+    auto WaterSimulationComponent::GetWaves() const -> const eastl::vector<WaterWave> & {
         return mWaves;
     }
 
@@ -765,7 +922,7 @@ namespace mikoto::scene {
         return mGuid;
     }
 
-    auto TagComponent::GetGuidObject() -> math::random::Guid& {
+    auto TagComponent::GetGuidObject() -> math::random::Guid & {
         return mGuid;
     }
 
@@ -773,7 +930,7 @@ namespace mikoto::scene {
         return mIsActive;
     }
 
-    auto TagComponent::GetTag() const -> const eastl::string& {
+    auto TagComponent::GetTag() const -> const eastl::string & {
         MKT_BEGIN_PROFILER();
         return mTag;
     }
@@ -792,16 +949,16 @@ namespace mikoto::scene {
         }
     }
 
-    TagComponent::TagComponent( const TagComponent& other )
+    TagComponent::TagComponent( const TagComponent &other )
         : mGuid{ other.mGuid }, mTag{ other.mTag }, mIsActive{ other.mIsActive } {
     }
 
-    TagComponent::TagComponent( TagComponent&& other ) noexcept
+    TagComponent::TagComponent( TagComponent &&other ) noexcept
         : mScene{ other.mScene }, mGuid{ other.mGuid }, mTag{ eastl::move( other.mTag ) }, mIsActive{ other.mIsActive } {
         other.mScene = nullptr;
     }
 
-    auto TagComponent::operator=( const TagComponent& other ) -> TagComponent& {
+    auto TagComponent::operator=( const TagComponent &other ) -> TagComponent & {
         if ( this != &other ) {
             // Assignment edits the destination entity; it must not subscribe to
             // the source scene or replace the GUID used by the owning scene map.
@@ -812,7 +969,7 @@ namespace mikoto::scene {
         return *this;
     }
 
-    auto TagComponent::operator=( TagComponent&& other ) noexcept -> TagComponent& {
+    auto TagComponent::operator=( TagComponent &&other ) noexcept -> TagComponent & {
         if ( this != &other ) {
             // EnTT may move components when compacting storage. Transfer their
             // ownership and identity along with the data in that case.
@@ -826,11 +983,11 @@ namespace mikoto::scene {
         return *this;
     }
 
-    RelationComponent::RelationComponent( const RelationComponent& other )
+    RelationComponent::RelationComponent( const RelationComponent &other )
         : mParent{ other.mParent }, mChildrenIDs{ other.mChildrenIDs } {
     }
 
-    auto RelationComponent::operator=( const RelationComponent& other ) -> RelationComponent& {
+    auto RelationComponent::operator=( const RelationComponent &other ) -> RelationComponent & {
         if ( this != &other ) {
             if ( mScene ) {
                 // An attached relation owns its children. Copying another
@@ -892,7 +1049,7 @@ namespace mikoto::scene {
         return !mChildren.empty();
     }
 
-    auto GroupComponent::GetChildren() const -> const ankerl::unordered_dense::set<core::u64>& {
+    auto GroupComponent::GetChildren() const -> const ankerl::unordered_dense::set<core::u64> & {
         return mChildren;
     }
 
@@ -917,20 +1074,20 @@ namespace mikoto::scene {
     }
 
     TransformComponent::TransformComponent(
-        const core::float3& position,
-        const core::float3& size,
-        const core::float3& angles,
-        const core::float4x4& worldTransform )
+        const core::float3 &position,
+        const core::float3 &size,
+        const core::float3 &angles,
+        const core::float4x4 &worldTransform )
         : mWorldTransform{ worldTransform } {
         MKT_BEGIN_PROFILER();
         ComputeTransform( position, size, angles );
     }
 
-    TransformComponent::TransformComponent( const TransformComponent& other ) {
+    TransformComponent::TransformComponent( const TransformComponent &other ) {
         *this = other;
     }
 
-    TransformComponent::TransformComponent( TransformComponent&& other ) noexcept {
+    TransformComponent::TransformComponent( TransformComponent &&other ) noexcept {
         *this = other;
     }
 
@@ -939,7 +1096,7 @@ namespace mikoto::scene {
         return revision.fetch_add( 1, std::memory_order_relaxed );
     }
 
-    auto TransformComponent::operator=( const TransformComponent& other ) -> TransformComponent& {
+    auto TransformComponent::operator=( const TransformComponent &other ) -> TransformComponent & {
         if ( this != &other ) {
             mTranslation = other.mTranslation;
             mRotation = other.mRotation;
@@ -955,26 +1112,26 @@ namespace mikoto::scene {
         return *this;
     }
 
-    auto TransformComponent::operator=( TransformComponent&& other ) noexcept -> TransformComponent& {
-        return *this = static_cast<const TransformComponent&>( other );
+    auto TransformComponent::operator=( TransformComponent &&other ) noexcept -> TransformComponent & {
+        return *this = static_cast<const TransformComponent &>( other );
     }
 
-    auto TransformComponent::GetTranslation() const -> const core::float3& {
+    auto TransformComponent::GetTranslation() const -> const core::float3 & {
         MKT_BEGIN_PROFILER();
         return mTranslation;
     }
 
-    auto TransformComponent::GetRotation() const -> const core::float3& {
+    auto TransformComponent::GetRotation() const -> const core::float3 & {
         MKT_BEGIN_PROFILER();
         return mRotation;
     }
 
-    auto TransformComponent::GetScale() const -> const core::float3& {
+    auto TransformComponent::GetScale() const -> const core::float3 & {
         MKT_BEGIN_PROFILER();
         return mScale;
     }
 
-    auto TransformComponent::GetTransform() const -> const core::float4x4& {
+    auto TransformComponent::GetTransform() const -> const core::float4x4 & {
         MKT_BEGIN_PROFILER();
         return mTransform;
     }
@@ -989,11 +1146,11 @@ namespace mikoto::scene {
         return glm::quat_cast( math::EntityRotationMatrix( mRotation ) );
     }
 
-    auto TransformComponent::GetWorldTransform() const -> const core::float4x4& {
+    auto TransformComponent::GetWorldTransform() const -> const core::float4x4 & {
         return mWorldTransform;
     }
 
-    auto TransformComponent::SetWorldTransform( const core::float4x4& worldTransform ) -> void {
+    auto TransformComponent::SetWorldTransform( const core::float4x4 &worldTransform ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( mWorldTransform != worldTransform ) {
@@ -1004,7 +1161,7 @@ namespace mikoto::scene {
         mTransformDirty = true;
     }
 
-    auto TransformComponent::ComputeTransform( const core::float3& position, const core::float3& size, const core::float3& angles ) -> void {
+    auto TransformComponent::ComputeTransform( const core::float3 &position, const core::float3 &size, const core::float3 &angles ) -> void {
         MKT_BEGIN_PROFILER();
         mTranslation = position;
         mRotation = angles;
@@ -1040,7 +1197,7 @@ namespace mikoto::scene {
         return mMaterial;
     }
 
-    auto MaterialComponent::GetMaterialReference() const -> const material::MaterialHandle& {
+    auto MaterialComponent::GetMaterialReference() const -> const material::MaterialHandle & {
         return mMaterial;
     }
 
@@ -1057,7 +1214,7 @@ namespace mikoto::scene {
     auto MaterialComponent::SetMaterial( material::MaterialHandle mat ) -> void {
         MKT_BEGIN_PROFILER();
         // Needs to be a surface material and not null
-        material::SurfaceMaterial* pMaterial{ dynamic_cast<material::SurfaceMaterial*>( mat.GetPtr() ) };
+        material::SurfaceMaterial *pMaterial{ dynamic_cast<material::SurfaceMaterial *>( mat.GetPtr() ) };
 
         if ( !pMaterial ) {
             return;
@@ -1069,7 +1226,7 @@ namespace mikoto::scene {
     TextureRenderComponent::TextureRenderComponent() = default;
 
     // Entity copies retain authored settings and create independent GPU state on first use.
-    TextureRenderComponent::TextureRenderComponent( const TextureRenderComponent& other )
+    TextureRenderComponent::TextureRenderComponent( const TextureRenderComponent &other )
         : mCamera{ other.mCamera },
           mCameraEntityID{ other.mCameraEntityID },
           mResolution{ other.mResolution },
@@ -1078,11 +1235,11 @@ namespace mikoto::scene {
           mRenderOutput{ other.mRenderOutput } {
     }
 
-    TextureRenderComponent::TextureRenderComponent( TextureRenderComponent&& other ) noexcept = default;
+    TextureRenderComponent::TextureRenderComponent( TextureRenderComponent &&other ) noexcept = default;
 
-    auto TextureRenderComponent::operator=( TextureRenderComponent&& other ) noexcept -> TextureRenderComponent& = default;
+    auto TextureRenderComponent::operator=( TextureRenderComponent &&other ) noexcept -> TextureRenderComponent & = default;
 
-    auto TextureRenderComponent::operator=( const TextureRenderComponent& other ) -> TextureRenderComponent& {
+    auto TextureRenderComponent::operator=( const TextureRenderComponent &other ) -> TextureRenderComponent & {
         if ( this != &other ) {
             *this = TextureRenderComponent{ other };
         }
@@ -1107,7 +1264,7 @@ namespace mikoto::scene {
         mRenderOutput = output;
     }
 
-    auto TextureRenderComponent::SetCamera( const Camera* camera, core::u64 entityID ) -> void {
+    auto TextureRenderComponent::SetCamera( const Camera *camera, core::u64 entityID ) -> void {
         mCaptureDirty |= mCamera != camera || mCameraEntityID != entityID;
         mCamera = camera;
         mCameraEntityID = entityID;
@@ -1118,24 +1275,21 @@ namespace mikoto::scene {
         mResolution = resolution;
     }
 
-    auto TextureRenderComponent::GetRenderer() -> renderer::ISceneRenderer* {
+    auto TextureRenderComponent::GetRenderer() -> renderer::ISceneRenderer * {
         return mRuntime ? mRuntime->mRenderer.get() : nullptr;
     }
 
-    auto TextureRenderComponent::Update( 
-        Scene& scene, const 
-        CameraComponent& camera, 
-        const core::float4x4& cameraWorld, 
-        const material::MaterialHandle& source, 
-        core::f32 timeStep ) -> void 
-    {
+    auto TextureRenderComponent::Update(
+        Scene &scene, const CameraComponent &camera,
+        const core::float4x4 &cameraWorld,
+        const material::MaterialHandle &source,
+        core::f32 timeStep ) -> void {
         MKT_BEGIN_PROFILER();
 
-        auto* rendering{ RenderSystem::GetPtr() };
-        auto* device{ rendering ? rendering->GetGpuDevice() : nullptr };
+        auto *rendering{ RenderSystem::GetPtr() };
+        auto *device{ rendering ? rendering->GetGpuDevice() : nullptr };
 
-        if ( !mCamera || !device || ( !device->IsGraphicsApi( rhi::GraphicsAPI::eVulkan ) &&
-            !device->IsGraphicsApi( rhi::GraphicsAPI::eD3D12 ) ) ) {
+        if ( !mCamera || !device || ( !device->IsGraphicsApi( rhi::GraphicsAPI::eVulkan ) && !device->IsGraphicsApi( rhi::GraphicsAPI::eD3D12 ) ) ) {
             return;
         }
 
@@ -1143,9 +1297,9 @@ namespace mikoto::scene {
             mRuntime = eastl::make_unique<Runtime>();
         }
 
-        auto& runtime{ *mRuntime };
-        const core::f64 interval{ 1.0 / ( mRenderRate == TextureRenderRate::e120FPS ? 120.0 :
-            mRenderRate == TextureRenderRate::e60FPS ? 60.0 : 30.0 ) };
+        auto &runtime{ *mRuntime };
+        const core::f64 interval{ 1.0 / ( mRenderRate == TextureRenderRate::e120FPS ? 120.0 : mRenderRate == TextureRenderRate::e60FPS ? 60.0
+                                                                                                                                       : 30.0 ) };
         runtime.mElapsed += std::isfinite( timeStep ) ? glm::max( core::f64{ timeStep }, 0.0 ) : 0.0;
 
         // Like a SubViewport, a capture renders an additional view without ticking its world again.
@@ -1156,14 +1310,14 @@ namespace mikoto::scene {
 
         if ( !runtime.mRenderer ) {
             runtime.mRenderer = ISceneRenderer::Create()
-                .SetName( "TextureRenderer" )
-                .SetDevice( device )
-                .SetRenderResolution( mResolution )
-                .Build();
+                                    .SetName( "TextureRenderer" )
+                                    .SetDevice( device )
+                                    .SetRenderResolution( mResolution )
+                                    .Build();
             runtime.mRenderer->SetEditorOverlaysEnabled( false );
         }
 
-        auto& renderer{ *runtime.mRenderer };
+        auto &renderer{ *runtime.mRenderer };
         auto settings{ renderer.GetSettings() };
         settings.mResolution = mResolution;
         settings.mRayTracing.mPathTracingEnabled = mRenderPath == TextureRenderPath::ePathTracing;
@@ -1175,7 +1329,7 @@ namespace mikoto::scene {
 
         // Copy the lens through Camera, preserving SceneCamera's intrusive reference counter.
         // This follows EditorLayer::UpdateGameCamera; the receiver's transform is unrelated.
-        static_cast<Camera&>( runtime.mCamera ) = camera.GetCamera();
+        static_cast<Camera &>( runtime.mCamera ) = camera.GetCamera();
         runtime.mCamera.SetVignetteSettings( camera.GetCamera().GetVignetteSettings() );
         runtime.mCamera.SetFilmGrainSettings( camera.GetCamera().GetFilmGrainSettings() );
 
@@ -1192,8 +1346,8 @@ namespace mikoto::scene {
         renderer.SetGamma( 1.0f );
 
         const auto flags{ camera.GetClearFlags() };
-        renderer.SetRenderBackground( flags == CameraClearFlags::eSkybox ? SceneBackgroundType::eSkybox :
-            flags == CameraClearFlags::eBlurredSkybox ? SceneBackgroundType::ePrefilterMap : SceneBackgroundType::eClearColor );
+        renderer.SetRenderBackground( flags == CameraClearFlags::eSkybox ? SceneBackgroundType::eSkybox : flags == CameraClearFlags::eBlurredSkybox ? SceneBackgroundType::ePrefilterMap
+                                                                                                                                                    : SceneBackgroundType::eClearColor );
         scene.Update( &renderer );
 
         // The receiving surface uses its authored material in its own capture. Sampling this
@@ -1213,7 +1367,7 @@ namespace mikoto::scene {
 
         // Use a rendering-only material clone: authored assets remain shared.
         // Viewport-texture reference: https://docs.godotengine.org/en/stable/tutorials/shaders/using_viewport_as_texture.html
-        const auto* physical{ dynamic_cast<const material::SurfaceMaterial*>( source.GetPtr() ) };
+        const auto *physical{ dynamic_cast<const material::SurfaceMaterial *>( source.GetPtr() ) };
 
         if ( !physical ) {
             runtime.mSource.Reset();
@@ -1222,7 +1376,7 @@ namespace mikoto::scene {
         }
 
         if ( !runtime.mMaterial || runtime.mSource.GetPtr() != physical || runtime.mSourceRevision != physical->GetRevision() ||
-            runtime.mOutput != mRenderOutput ) {
+             runtime.mOutput != mRenderOutput ) {
             runtime.mSource = source;
             runtime.mSourceRevision = physical->GetRevision();
             runtime.mOutput = mRenderOutput;
@@ -1234,8 +1388,8 @@ namespace mikoto::scene {
             }
         }
 
-        const auto map{ mRenderOutput == TextureRenderOutput::eEmissive ? material::MapType::eEmissive :
-            physical->GetWorkflow() == material::Workflow::eSpecularGlossiness ? material::MapType::eDiffuse : material::MapType::eBaseColor };
+        const auto map{ mRenderOutput == TextureRenderOutput::eEmissive ? material::MapType::eEmissive : physical->GetWorkflow() == material::Workflow::eSpecularGlossiness ? material::MapType::eDiffuse
+                                                                                                                                                                            : material::MapType::eBaseColor };
         runtime.mMaterial->SetTexture( map, runtime.mTexture );
         runtime.mMaterial->UseTexture( map );
     }
@@ -1248,7 +1402,7 @@ namespace mikoto::scene {
         return mRenderPath;
     }
 
-    auto TextureRenderComponent::GetCamera() const -> const Camera* {
+    auto TextureRenderComponent::GetCamera() const -> const Camera * {
         return mCamera;
     }
 
@@ -1290,12 +1444,12 @@ namespace mikoto::scene {
         return mClearFlags;
     }
 
-    auto CameraComponent::SetClearColor( const renderer::rhi::Color& color ) -> void {
+    auto CameraComponent::SetClearColor( const renderer::rhi::Color &color ) -> void {
         MKT_BEGIN_PROFILER();
         mColor = color;
     }
 
-    auto CameraComponent::GetClearColor() const -> const renderer::rhi::Color& {
+    auto CameraComponent::GetClearColor() const -> const renderer::rhi::Color & {
         MKT_BEGIN_PROFILER();
         return mColor;
     }
@@ -1310,7 +1464,7 @@ namespace mikoto::scene {
         return mMainCam;
     }
 
-    CameraComponent::CameraComponent( platform::IWindow* window ) {
+    CameraComponent::CameraComponent( platform::IWindow *window ) {
         MKT_BEGIN_PROFILER();
         SceneCameraDescription cameraDescription{
             .mFov = 45.0f,
@@ -1335,12 +1489,12 @@ namespace mikoto::scene {
         return mCamera != nullptr;
     }
 
-    auto CameraComponent::GetCamera() -> SceneCamera& {
+    auto CameraComponent::GetCamera() -> SceneCamera & {
         MKT_BEGIN_PROFILER();
         return *mCamera;
     }
 
-    auto CameraComponent::GetCamera() const -> const SceneCamera& {
+    auto CameraComponent::GetCamera() const -> const SceneCamera & {
         MKT_BEGIN_PROFILER();
         return *mCamera;
     }
@@ -1393,7 +1547,7 @@ namespace mikoto::scene {
         }
     }
 
-    ScriptComponent::ScriptComponent( const filesystem::Path& filePath, scripting::ScriptLanguage language, eastl::string_view className )
+    ScriptComponent::ScriptComponent( const filesystem::Path &filePath, scripting::ScriptLanguage language, eastl::string_view className )
         : mFilePath{ filePath }, mLanguage{ language }, mClassName{ className } {
     }
 
@@ -1413,7 +1567,7 @@ namespace mikoto::scene {
         mLanguage = language;
     }
 
-    auto ScriptComponent::SetManagedScript( const filesystem::Path& assembly, eastl::string_view className ) -> void {
+    auto ScriptComponent::SetManagedScript( const filesystem::Path &assembly, eastl::string_view className ) -> void {
         if ( mFilePath.GetAbsolute() != assembly.GetAbsolute() || mClassName != className || mLanguage != scripting::ScriptLanguage::eCSharp ) {
             mProperties = "{}";
         }
@@ -1432,7 +1586,7 @@ namespace mikoto::scene {
         mProperties = properties;
     }
 
-    auto ScriptComponent::GetProperties() const -> const eastl::string& {
+    auto ScriptComponent::GetProperties() const -> const eastl::string & {
         return mProperties;
     }
 
@@ -1440,7 +1594,7 @@ namespace mikoto::scene {
         return mLanguage;
     }
 
-    auto ScriptComponent::GetClassName() const -> const eastl::string& {
+    auto ScriptComponent::GetClassName() const -> const eastl::string & {
         return mClassName;
     }
 
@@ -1480,13 +1634,13 @@ namespace mikoto::scene {
         return mScript;
     }
 
-    auto ScriptComponent::GetFilePath() const -> const filesystem::Path& {
+    auto ScriptComponent::GetFilePath() const -> const filesystem::Path & {
         MKT_BEGIN_PROFILER();
         return mFilePath;
     }
 
 
-    auto TransformComponent::SetTransform( const core::float4x4& transform ) -> void {
+    auto TransformComponent::SetTransform( const core::float4x4 &transform ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( mTransform == transform ) {
@@ -1498,7 +1652,7 @@ namespace mikoto::scene {
         mTransformDirty = true;
     }
 
-    auto TransformComponent::SetTranslation( const core::float3& value ) -> void {
+    auto TransformComponent::SetTranslation( const core::float3 &value ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( mTranslation == value ) {
@@ -1512,7 +1666,7 @@ namespace mikoto::scene {
         mTransformDirty = true;
     }
 
-    auto TransformComponent::SetRotation( const core::float3& value ) -> void {
+    auto TransformComponent::SetRotation( const core::float3 &value ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( mRotation == value ) {
@@ -1530,12 +1684,12 @@ namespace mikoto::scene {
         mTransformDirty = true;
     }
 
-    auto TransformComponent::SetRotation( const core::quat& quaternion ) -> void {
+    auto TransformComponent::SetRotation( const core::quat &quaternion ) -> void {
         MKT_BEGIN_PROFILER();
         SetRotation( math::EntityRotationDegrees( glm::mat4_cast( glm::normalize( quaternion ) ) ) );
     }
 
-    auto TransformComponent::SetScale( const core::float3& value ) -> void {
+    auto TransformComponent::SetScale( const core::float3 &value ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( !mHasUniformScale ) {
@@ -1597,7 +1751,7 @@ namespace mikoto::scene {
     }
 
 
-    auto RelationComponent::GetParent() const -> const eastl::optional<core::u64>& {
+    auto RelationComponent::GetParent() const -> const eastl::optional<core::u64> & {
         MKT_BEGIN_PROFILER();
         return mParent;
     }
@@ -1609,7 +1763,7 @@ namespace mikoto::scene {
     }
 
 
-    auto RelationComponent::GetChildren() const -> const ankerl::unordered_dense::set<core::u64>& {
+    auto RelationComponent::GetChildren() const -> const ankerl::unordered_dense::set<core::u64> & {
         MKT_BEGIN_PROFILER();
         return ( mChildrenIDs );
     }
@@ -1620,7 +1774,7 @@ namespace mikoto::scene {
     }
 
 
-    auto MeshComponent::GetModelPath() const -> const filesystem::Path& {
+    auto MeshComponent::GetModelPath() const -> const filesystem::Path & {
         MKT_BEGIN_PROFILER();
         return mModel.IsEmpty() ? mPath : mModel->GetPath();
     }
@@ -1631,7 +1785,7 @@ namespace mikoto::scene {
     }
 
 
-    auto MeshComponent::GetMesh() const -> const asset::MeshNode* {
+    auto MeshComponent::GetMesh() const -> const asset::MeshNode * {
         if ( !HasMesh() ) {
             return nullptr;
         }
@@ -1640,7 +1794,7 @@ namespace mikoto::scene {
     }
 
 
-    auto MeshComponent::GetMesh() -> asset::MeshNode* {
+    auto MeshComponent::GetMesh() -> asset::MeshNode * {
         if ( !HasMesh() ) {
             return nullptr;
         }
@@ -1711,11 +1865,11 @@ namespace mikoto::scene {
         mType = type;
     }
 
-    AudioMixerComponent::AudioMixerComponent( const AudioMixerComponent& other )
+    AudioMixerComponent::AudioMixerComponent( const AudioMixerComponent &other )
         : mVolume{ other.mVolume }, mIsMuted{ other.mIsMuted } {
     }
 
-    auto AudioMixerComponent::operator=( const AudioMixerComponent& other ) -> AudioMixerComponent& {
+    auto AudioMixerComponent::operator=( const AudioMixerComponent &other ) -> AudioMixerComponent & {
         if ( this != &other ) {
             mRuntime.reset();
             mVolume = other.mVolume;
@@ -1742,7 +1896,7 @@ namespace mikoto::scene {
     }
 
 
-    auto AudioMixerComponent::GetMixer( audio::AudioDevice* device ) -> audio::AudioMixer* {
+    auto AudioMixerComponent::GetMixer( audio::AudioDevice *device ) -> audio::AudioMixer * {
         if ( device && device->IsInitialized() && ( !mRuntime || !mRuntime->IsInitialized() ) ) {
             // Publish the runtime only after its native buses are ready.
             auto mixer{ eastl::make_shared<audio::AudioMixer>( device ) };
@@ -1753,7 +1907,7 @@ namespace mikoto::scene {
         return mRuntime && mRuntime->IsInitialized() ? mRuntime.get() : nullptr;
     }
 
-    AudioSourceComponent::AudioSourceComponent( const filesystem::Path& path ) {
+    AudioSourceComponent::AudioSourceComponent( const filesystem::Path &path ) {
         MKT_BEGIN_PROFILER();
 
         if ( path.IsEmpty() ) {
@@ -1778,7 +1932,7 @@ namespace mikoto::scene {
         }
     }
 
-    AudioSourceComponent::AudioSourceComponent( const AudioSourceComponent& other ) {
+    AudioSourceComponent::AudioSourceComponent( const AudioSourceComponent &other ) {
         MKT_BEGIN_PROFILER();
         *this = other;
     }
@@ -1796,7 +1950,7 @@ namespace mikoto::scene {
         return mAudioSource;
     }
 
-    auto AudioSourceComponent::SetClip( const audio::AudioHandle& clip ) -> void {
+    auto AudioSourceComponent::SetClip( const audio::AudioHandle &clip ) -> void {
         MKT_BEGIN_PROFILER();
         auto replacement = clip ? clip->CreateSource() : audio::AudioSourceHandle{};
 
@@ -1824,7 +1978,7 @@ namespace mikoto::scene {
         return mClip;
     }
 
-    auto AudioSourceComponent::GetSettings() const -> const audio::SourceSettings& {
+    auto AudioSourceComponent::GetSettings() const -> const audio::SourceSettings & {
         return mAudioSource ? mAudioSource->GetSettings() : mSettings;
     }
 
@@ -1837,12 +1991,12 @@ namespace mikoto::scene {
     }
 
 
-    AudioListenerComponent::AudioListenerComponent( const AudioListenerComponent& other )
+    AudioListenerComponent::AudioListenerComponent( const AudioListenerComponent &other )
         : mEnabled{ other.mEnabled } {
     }
 
 
-    auto AudioListenerComponent::SetListener( audio::AudioListener* listener ) -> void {
+    auto AudioListenerComponent::SetListener( audio::AudioListener *listener ) -> void {
         MKT_BEGIN_PROFILER();
         mListener = listener;
     }
@@ -1854,7 +2008,7 @@ namespace mikoto::scene {
     }
 
 
-    auto AudioListenerComponent::GetListenerPtr() const -> audio::AudioListener* {
+    auto AudioListenerComponent::GetListenerPtr() const -> audio::AudioListener * {
         MKT_BEGIN_PROFILER();
         return mListener;
     }
@@ -1882,13 +2036,13 @@ namespace mikoto::scene {
     }
 
 
-    auto AudioListenerComponent::GetListener() -> audio::AudioListener& {
+    auto AudioListenerComponent::GetListener() -> audio::AudioListener & {
         MKT_BEGIN_PROFILER();
         return *mListener;
     }
 
 
-    auto AudioListenerComponent::GetListener() const -> const audio::AudioListener& {
+    auto AudioListenerComponent::GetListener() const -> const audio::AudioListener & {
         MKT_BEGIN_PROFILER();
         return *mListener;
     }
@@ -1899,7 +2053,7 @@ namespace mikoto::scene {
     }
 
 
-    RigidBodyComponent::RigidBodyComponent( const RigidBodyComponent& other ) {
+    RigidBodyComponent::RigidBodyComponent( const RigidBodyComponent &other ) {
         MKT_BEGIN_PROFILER();
         *this = other;
     }
@@ -1989,7 +2143,7 @@ namespace mikoto::scene {
     }
 
 
-    auto RigidBodyComponent::SetLinearVelocity( const core::float3& velocity ) -> void {
+    auto RigidBodyComponent::SetLinearVelocity( const core::float3 &velocity ) -> void {
         MKT_BEGIN_PROFILER();
         mLinearVelocity = velocity;
     }
@@ -2001,7 +2155,7 @@ namespace mikoto::scene {
     }
 
 
-    auto RigidBodyComponent::SetAngularVelocity( const core::float3& velocity ) -> void {
+    auto RigidBodyComponent::SetAngularVelocity( const core::float3 &velocity ) -> void {
         MKT_BEGIN_PROFILER();
         mAngularVelocity = velocity;
     }
@@ -2057,13 +2211,13 @@ namespace mikoto::scene {
     }
 
 
-    auto MeshColliderComponent::GetOffset() const -> const core::float3& {
+    auto MeshColliderComponent::GetOffset() const -> const core::float3 & {
         MKT_BEGIN_PROFILER();
         return mOffset;
     }
 
 
-    auto MeshColliderComponent::SetOffset( const core::float3& offset ) -> void {
+    auto MeshColliderComponent::SetOffset( const core::float3 &offset ) -> void {
         MKT_BEGIN_PROFILER();
         mOffset = offset;
     }
@@ -2105,13 +2259,13 @@ namespace mikoto::scene {
     }
 
 
-    auto CapsuleColliderComponent::GetOffset() const -> const core::float3& {
+    auto CapsuleColliderComponent::GetOffset() const -> const core::float3 & {
         MKT_BEGIN_PROFILER();
         return mOffset;
     }
 
 
-    auto CapsuleColliderComponent::SetOffset( const core::float3& offset ) -> void {
+    auto CapsuleColliderComponent::SetOffset( const core::float3 &offset ) -> void {
         MKT_BEGIN_PROFILER();
         mOffset = offset;
     }
@@ -2141,13 +2295,13 @@ namespace mikoto::scene {
     }
 
 
-    auto SphereColliderComponent::GetOffset() const -> const core::float3& {
+    auto SphereColliderComponent::GetOffset() const -> const core::float3 & {
         MKT_BEGIN_PROFILER();
         return mOffset;
     }
 
 
-    auto SphereColliderComponent::SetOffset( const core::float3& offset ) -> void {
+    auto SphereColliderComponent::SetOffset( const core::float3 &offset ) -> void {
         MKT_BEGIN_PROFILER();
         mOffset = offset;
     }
@@ -2165,25 +2319,25 @@ namespace mikoto::scene {
     }
 
 
-    auto BoxColliderComponent::GetHalfExtents() const -> const core::float3& {
+    auto BoxColliderComponent::GetHalfExtents() const -> const core::float3 & {
         MKT_BEGIN_PROFILER();
         return mHalfExtents;
     }
 
 
-    auto BoxColliderComponent::SetHalfExtents( const core::float3& extents ) -> void {
+    auto BoxColliderComponent::SetHalfExtents( const core::float3 &extents ) -> void {
         MKT_BEGIN_PROFILER();
         mHalfExtents = glm::max( extents, core::float3{ 0.001f } );
     }
 
 
-    auto BoxColliderComponent::GetOffset() const -> const core::float3& {
+    auto BoxColliderComponent::GetOffset() const -> const core::float3 & {
         MKT_BEGIN_PROFILER();
         return mOffset;
     }
 
 
-    auto BoxColliderComponent::SetOffset( const core::float3& offset ) -> void {
+    auto BoxColliderComponent::SetOffset( const core::float3 &offset ) -> void {
         MKT_BEGIN_PROFILER();
         mOffset = offset;
     }
@@ -2224,7 +2378,7 @@ namespace mikoto::scene {
     }
 
 
-    auto TextComponent::SetCamera( const Camera* camera ) -> void {
+    auto TextComponent::SetCamera( const Camera *camera ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( camera != nullptr ) {
@@ -2245,13 +2399,13 @@ namespace mikoto::scene {
     }
 
 
-    auto TextComponent::GetCamera() const -> const Camera* {
+    auto TextComponent::GetCamera() const -> const Camera * {
         MKT_BEGIN_PROFILER();
         return mCamera;
     }
 
 
-    auto TextComponent::GetFont() const -> const renderer::Font* {
+    auto TextComponent::GetFont() const -> const renderer::Font * {
         MKT_BEGIN_PROFILER();
         return mFont.GetPtr();
     }
@@ -2263,7 +2417,7 @@ namespace mikoto::scene {
     }
 
 
-    auto TextComponent::GetColor() const -> const core::float4& {
+    auto TextComponent::GetColor() const -> const core::float4 & {
         MKT_BEGIN_PROFILER();
         return mColor;
     }
@@ -2308,13 +2462,13 @@ namespace mikoto::scene {
     }
 
 
-    auto TextComponent::GetScreenPlacement() -> text::ScreenPlacement& {
+    auto TextComponent::GetScreenPlacement() -> text::ScreenPlacement & {
         MKT_BEGIN_PROFILER();
         return mScreenPlacement;
     }
 
 
-    auto TextComponent::GetScreenPlacement() const -> const text::ScreenPlacement& {
+    auto TextComponent::GetScreenPlacement() const -> const text::ScreenPlacement & {
         MKT_BEGIN_PROFILER();
         return mScreenPlacement;
     }
@@ -2359,13 +2513,13 @@ namespace mikoto::scene {
     }
 
 
-    auto TextComponent::GetContents() const -> const eastl::string& {
+    auto TextComponent::GetContents() const -> const eastl::string & {
         MKT_BEGIN_PROFILER();
         return mTextContent;
     }
 
 
-    auto TextComponent::GetUnicodeContents() const -> const text::UnicodeString& {
+    auto TextComponent::GetUnicodeContents() const -> const text::UnicodeString & {
         MKT_BEGIN_PROFILER();
         return mStringContent;
     }
@@ -2434,11 +2588,11 @@ namespace mikoto::scene {
     }
 
 
-    KeyframeAnimationComponent::KeyframeAnimationComponent( const KeyframeAnimationComponent& other )
+    KeyframeAnimationComponent::KeyframeAnimationComponent( const KeyframeAnimationComponent &other )
         : mClip{ other.mClip } {
     }
 
-    auto KeyframeAnimationComponent::operator=( const KeyframeAnimationComponent& other ) -> KeyframeAnimationComponent& {
+    auto KeyframeAnimationComponent::operator=( const KeyframeAnimationComponent &other ) -> KeyframeAnimationComponent & {
         if ( this != &other ) {
             *this = KeyframeAnimationComponent{ other };
         }
@@ -2446,8 +2600,8 @@ namespace mikoto::scene {
         return *this;
     }
 
-    auto KeyframeAnimationComponent::ReadProperty( const Entity& entity, animation::KeyframeChannel channel ) -> core::float3 {
-        const auto& transform{ entity.GetComponent<TransformComponent>() };
+    auto KeyframeAnimationComponent::ReadProperty( const Entity &entity, animation::KeyframeChannel channel ) -> core::float3 {
+        const auto &transform{ entity.GetComponent<TransformComponent>() };
 
         switch ( channel ) {
             case animation::KeyframeChannel::ePosition:
@@ -2463,8 +2617,8 @@ namespace mikoto::scene {
         core::float3 result{};
 
         if ( entity.HasComponent<LightComponent>() ) {
-            const auto& light{ entity.GetComponent<LightComponent>() };
-            VisitLight( light, light.GetActiveType(), [&]( const auto& value ) {
+            const auto &light{ entity.GetComponent<LightComponent>() };
+            VisitLight( light, light.GetActiveType(), [&]( const auto &value ) {
                 result = channel == animation::KeyframeChannel::eLightColor ? value.GetColor() : core::float3{ value.GetIntensity(), 0.0f, 0.0f };
             } );
         }
@@ -2472,7 +2626,7 @@ namespace mikoto::scene {
         return result;
     }
 
-    auto KeyframeAnimationComponent::CaptureRest( const Entity& entity ) -> void {
+    auto KeyframeAnimationComponent::CaptureRest( const Entity &entity ) -> void {
         if ( mHasSnapshot ) {
             return;
         }
@@ -2481,10 +2635,10 @@ namespace mikoto::scene {
         mHadLight = entity.HasComponent<LightComponent>();
 
         if ( mHadLight ) {
-            const auto& light{ entity.GetComponent<LightComponent>() };
+            const auto &light{ entity.GetComponent<LightComponent>() };
 
             for ( core::usize index{}; index < mRestLightColors.size(); ++index ) {
-                VisitLight( light, static_cast<renderer::LightType>( index ), [&]( const auto& value ) {
+                VisitLight( light, static_cast<renderer::LightType>( index ), [&]( const auto &value ) {
                     mRestLightColors[index] = value.GetColor();
                     mRestLightIntensities[index] = value.GetIntensity();
                 } );
@@ -2494,7 +2648,7 @@ namespace mikoto::scene {
         mHasSnapshot = true;
     }
 
-    auto KeyframeAnimationComponent::Play( Entity& entity, bool preview ) -> void {
+    auto KeyframeAnimationComponent::Play( Entity &entity, bool preview ) -> void {
         mClip.Sanitize();
         CaptureRest( entity );
         mPreviewing = preview;
@@ -2511,10 +2665,10 @@ namespace mikoto::scene {
         mPlaying = false;
     }
 
-    auto KeyframeAnimationComponent::RestoreLightProperties( LightComponent& light ) const -> void {
+    auto KeyframeAnimationComponent::RestoreLightProperties( LightComponent &light ) const -> void {
         if ( mHasSnapshot && mHadLight ) {
             for ( core::usize index{}; index < mRestLightColors.size(); ++index ) {
-                VisitLight( light, static_cast<renderer::LightType>( index ), [&]( auto& value ) {
+                VisitLight( light, static_cast<renderer::LightType>( index ), [&]( auto &value ) {
                     value.SetColor( mRestLightColors[index] );
                     value.SetIntensity( mRestLightIntensities[index] );
                 } );
@@ -2522,7 +2676,7 @@ namespace mikoto::scene {
         }
     }
 
-    auto KeyframeAnimationComponent::Stop( Entity& entity ) -> void {
+    auto KeyframeAnimationComponent::Stop( Entity &entity ) -> void {
         if ( mHasSnapshot ) {
             entity.GetComponent<TransformComponent>().SetTransform( mRestTransform );
 
@@ -2537,7 +2691,7 @@ namespace mikoto::scene {
         mFrame = 0.0;
     }
 
-    auto KeyframeAnimationComponent::Seek( Entity& entity, core::f64 frame ) -> void {
+    auto KeyframeAnimationComponent::Seek( Entity &entity, core::f64 frame ) -> void {
         mClip.Sanitize();
         CaptureRest( entity );
         mPreviewing = true;
@@ -2545,7 +2699,7 @@ namespace mikoto::scene {
         Apply( entity );
     }
 
-    auto KeyframeAnimationComponent::Update( Entity& entity, core::f64 seconds ) -> void {
+    auto KeyframeAnimationComponent::Update( Entity &entity, core::f64 seconds ) -> void {
         if ( !mPlaying ) {
             return;
         }
@@ -2558,12 +2712,12 @@ namespace mikoto::scene {
         }
     }
 
-    auto KeyframeAnimationComponent::Apply( Entity& entity ) const -> void {
+    auto KeyframeAnimationComponent::Apply( Entity &entity ) const -> void {
         MKT_BEGIN_PROFILER();
-        auto& transform{ entity.GetComponent<TransformComponent>() };
+        auto &transform{ entity.GetComponent<TransformComponent>() };
 
         for ( core::usize index{}; index < mClip.mTracks.size(); ++index ) {
-            const auto& track{ mClip.mTracks[index] };
+            const auto &track{ mClip.mTracks[index] };
 
             if ( track.GetKeys().empty() ) {
                 continue;
@@ -2591,8 +2745,8 @@ namespace mikoto::scene {
 
                 default: {
                     if ( entity.HasComponent<LightComponent>() ) {
-                        auto& light{ entity.GetComponent<LightComponent>() };
-                        VisitLight( light, light.GetActiveType(), [&]( auto& target ) {
+                        auto &light{ entity.GetComponent<LightComponent>() };
+                        VisitLight( light, light.GetActiveType(), [&]( auto &target ) {
                             if ( channel == animation::KeyframeChannel::eLightColor ) {
                                 target.SetColor( glm::max( value, core::float3{ 0.0f } ) );
                             }
@@ -2620,7 +2774,7 @@ namespace mikoto::scene {
         return mPreviewing;
     }
 
-    auto KeyframeAnimationComponent::GetRestTransform() const -> const core::float4x4& {
+    auto KeyframeAnimationComponent::GetRestTransform() const -> const core::float4x4 & {
         return mRestTransform;
     }
 
@@ -2663,7 +2817,7 @@ namespace mikoto::scene {
     }
 
     auto PostProcessMaterialComponent::SetMaterial( material::MaterialHandle material ) -> void {
-        if ( !dynamic_cast<material::PostProcessMaterial*>( material.GetPtr() ) ) {
+        if ( !dynamic_cast<material::PostProcessMaterial *>( material.GetPtr() ) ) {
             return;
         }
 
@@ -2683,13 +2837,73 @@ namespace mikoto::scene {
     }
 
 
+    auto SkyLightComponent::SetEnabled( bool enabled ) -> void {
+        mEnabled = enabled;
+    }
+
+    auto SkyLightComponent::IsEnabled() const -> bool {
+        return mEnabled;
+    }
+
+    auto SkyLightComponent::SetSource( SkyLightSource source ) -> void {
+        mSource = source == SkyLightSource::eEnvironmentMap ? source : SkyLightSource::eAtmosphere;
+    }
+
+    auto SkyLightComponent::GetSource() const -> SkyLightSource {
+        return mSource;
+    }
+
+    auto SkyLightComponent::SetIntensity( core::f32 intensity ) -> void {
+        mIntensity = glm::clamp( intensity, 0.0f, 100.0f );
+    }
+
+    auto SkyLightComponent::GetIntensity() const -> core::f32 {
+        return mIntensity;
+    }
+
+    auto SkyLightComponent::SetOcclusionEnabled( bool enabled ) -> void {
+        mOcclusionEnabled = enabled;
+    }
+
+    auto SkyLightComponent::IsOcclusionEnabled() const -> bool {
+        return mOcclusionEnabled;
+    }
+
+    auto SkyLightComponent::SetOcclusionDistance( core::f32 distance ) -> void {
+        mOcclusionDistance = glm::clamp( distance, .1f, 1000.0f );
+    }
+
+    auto SkyLightComponent::GetOcclusionDistance() const -> core::f32 {
+        return mOcclusionDistance;
+    }
+
+    auto SkyLightComponent::SetOcclusionSamplesPerFrame( core::u32 samples ) -> void {
+        mOcclusionSamplesPerFrame = glm::clamp( samples, 1u, 64u );
+    }
+
+    auto SkyLightComponent::GetOcclusionSamplesPerFrame() const -> core::u32 {
+        return mOcclusionSamplesPerFrame;
+    }
+
+    auto SkyLightComponent::SetEnvironmentMaterial( material::MaterialHandle material ) -> void {
+        if ( material && !dynamic_cast<material::SkyboxMaterial *>( material.GetPtr() ) ) {
+            MKT_THROW_RUNTIME_ERROR( "A skylight requires a skybox material." );
+        }
+
+        mEnvironmentMaterial = eastl::move( material );
+    }
+
+    auto SkyLightComponent::GetEnvironmentMaterial() const -> material::MaterialHandle {
+        return mEnvironmentMaterial;
+    }
+
     auto SkyboxMaterialComponent::GetMaterial() const -> material::MaterialHandle {
         return mMaterial;
     }
 
 
     auto SkyboxMaterialComponent::SetMaterial( material::MaterialHandle material ) -> void {
-        if ( !dynamic_cast<material::SkyboxMaterial*>( material.GetPtr() ) ) {
+        if ( !dynamic_cast<material::SkyboxMaterial *>( material.GetPtr() ) ) {
             return;
         }
 
@@ -2697,7 +2911,7 @@ namespace mikoto::scene {
     }
 
 
-    auto AudioSourceComponent::operator=( const AudioSourceComponent& other ) -> AudioSourceComponent& {
+    auto AudioSourceComponent::operator=( const AudioSourceComponent &other ) -> AudioSourceComponent & {
         if ( this != &other ) {
             auto copy = other.mAudioSource ? other.mAudioSource->Clone() : audio::AudioSourceHandle{};
 
@@ -2714,7 +2928,7 @@ namespace mikoto::scene {
         return *this;
     }
 
-    auto AudioSourceComponent::operator=( AudioSourceComponent&& other ) noexcept -> AudioSourceComponent& {
+    auto AudioSourceComponent::operator=( AudioSourceComponent &&other ) noexcept -> AudioSourceComponent & {
         MKT_BEGIN_PROFILER();
 
         if ( this != &other ) {
@@ -2731,6 +2945,35 @@ namespace mikoto::scene {
         return *this;
     }
 
+    auto LandscapeComponent::SetSurfaceSettings( const renderer::TerrainSurfaceSettings &settings ) -> void {
+        mSurface = settings;
+        BumpRevision();
+    }
+
+    auto LandscapeComponent::SetSculptedHeightmap( eastl::shared_ptr<const renderer::TerrainHeightmap> heightmap ) -> void {
+        mSculptedHeightmap = eastl::move( heightmap );
+        BumpRevision();
+    }
+
+    auto LandscapeComponent::SetPaintMap( eastl::shared_ptr<const renderer::TerrainPaintMap> paintmap ) -> void {
+        if ( paintmap && ( paintmap->mWidth < 2 || paintmap->mHeight < 2 || paintmap->mWidth > 2049 || paintmap->mHeight > 2049 ||
+                             paintmap->mWeights.size() != core::usize{ paintmap->mWidth } * paintmap->mHeight ) ) {
+            MKT_THROW_RUNTIME_ERROR( "Invalid terrain paint map dimensions." );
+        }
+        mPaintMap = eastl::move( paintmap );
+        BumpRevision();
+    }
+
+    auto LandscapeComponent::GetSurfaceSettings() const -> const renderer::TerrainSurfaceSettings & {
+        return mSurface;
+    }
+    auto LandscapeComponent::GetSculptedHeightmap() const -> eastl::shared_ptr<const renderer::TerrainHeightmap> {
+        return mSculptedHeightmap;
+    }
+    auto LandscapeComponent::GetPaintMap() const -> eastl::shared_ptr<const renderer::TerrainPaintMap> {
+        return mPaintMap;
+    }
+
     auto LandscapeComponent::GetBrushType() const -> LandscapeBrushType {
         return mBrushType;
     }
@@ -2739,12 +2982,12 @@ namespace mikoto::scene {
         return mWorldDescription;
     }
 
-    auto LandscapeComponent::ApplyDescription( const renderer::WorldDescription& description ) -> void {
+    auto LandscapeComponent::ApplyDescription( const renderer::WorldDescription &description ) -> void {
         if ( !renderer::IsTerrainDescriptionValid( description ) ) {
             return;
         }
 
-        const auto& current{ mWorldDescription };
+        const auto &current{ mWorldDescription };
 
         if ( current.mOrigin == description.mOrigin &&
              current.mQuadsPerSection == description.mQuadsPerSection &&
@@ -2827,7 +3070,8 @@ namespace mikoto::scene {
         ApplyDescription( description );
     }
 
-    auto LandscapeComponent::SetHeightmap( const asset::AssetRef<asset::Texture>& reference ) -> void {
+    auto LandscapeComponent::SetHeightmap( const asset::AssetRef<asset::Texture> &reference ) -> void {
+        mSculptedHeightmap.reset();
         mNoiseGeneration.reset();
         mHeightMapRef = reference;
         mHeightMap.reset();
@@ -2842,13 +3086,13 @@ namespace mikoto::scene {
             // Use the shared image pipeline, preserving HDR and 16-bit height data.
             auto image{ asset::ProcessImage2D( reference.GetPath(), true ) };
             mHeightMap = eastl::make_shared<renderer::TerrainHeightmap>( eastl::move( image ) );
-        } catch ( const std::exception& error ) {
+        } catch ( const std::exception &error ) {
             mHeightMapError = error.what();
         }
     }
 
     auto LandscapeComponent::ClearHeightmap() -> void {
-        if ( !mHeightMapRef.GetPath().IsEmpty() || mHeightMap || mNoiseGeneration ) {
+        if ( !mHeightMapRef.GetPath().IsEmpty() || mHeightMap || mNoiseGeneration || mSculptedHeightmap ) {
             SetHeightmap( {} );
         }
     }
@@ -2858,23 +3102,27 @@ namespace mikoto::scene {
     }
 
     auto LandscapeComponent::GetHeightmap() const -> eastl::shared_ptr<const renderer::TerrainHeightmap> {
+        if ( mSculptedHeightmap ) {
+            return mSculptedHeightmap;
+        }
         return mNoiseGeneration && mNoiseGeneration->GetHeightmap() ? mNoiseGeneration->GetHeightmap() : mHeightMap;
     }
 
-    auto LandscapeComponent::GetHeightmapError() const -> const eastl::string& {
+    auto LandscapeComponent::GetHeightmapError() const -> const eastl::string & {
         return mNoiseGeneration ? mNoiseGeneration->GetError() : mHeightMapError;
     }
 
-    auto LandscapeComponent::SetGeneratedNoise( const renderer::TerrainNoiseSettings& settings ) -> void {
+    auto LandscapeComponent::SetGeneratedNoise( const renderer::TerrainNoiseSettings &settings ) -> void {
         if ( !settings.IsValid() ) {
             return;
         }
 
-        if ( mNoiseGeneration && mNoiseSettings == settings && mNoiseGeneration->GetError().empty() ) {
+        if ( !mSculptedHeightmap && mNoiseGeneration && mNoiseSettings == settings && mNoiseGeneration->GetError().empty() ) {
             return;
         }
         // Keep the last complete image visible while a newer request is in flight.
         mHeightMap = GetHeightmap();
+        mSculptedHeightmap.reset();
         mNoiseSettings = settings;
         mNoiseGeneration = eastl::make_shared<renderer::TerrainNoiseGeneration>( settings );
         mHeightMapRef = {};
@@ -2927,18 +3175,18 @@ namespace mikoto::scene {
         return mLandscapeEntityID;
     }
 
-    auto HeightFieldColliderComponent::SetHeightmap( const asset::AssetRef<asset::Texture>& value ) -> void {
+    auto HeightFieldColliderComponent::SetHeightmap( const asset::AssetRef<asset::Texture> &value ) -> void {
         MKT_BEGIN_PROFILER();
         mHeightmap = value;
         BumpRevision();
     }
 
-    auto HeightFieldColliderComponent::GetHeightmap() const -> const asset::AssetRef<asset::Texture>& {
+    auto HeightFieldColliderComponent::GetHeightmap() const -> const asset::AssetRef<asset::Texture> & {
         MKT_BEGIN_PROFILER();
         return mHeightmap;
     }
 
-    auto HeightFieldColliderComponent::SetSampleSpacing( const core::float2& value ) -> void {
+    auto HeightFieldColliderComponent::SetSampleSpacing( const core::float2 &value ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( mSampleSpacing != value ) {
@@ -2947,7 +3195,7 @@ namespace mikoto::scene {
         }
     }
 
-    auto HeightFieldColliderComponent::GetSampleSpacing() const -> const core::float2& {
+    auto HeightFieldColliderComponent::GetSampleSpacing() const -> const core::float2 & {
         MKT_BEGIN_PROFILER();
         return mSampleSpacing;
     }
@@ -2980,7 +3228,7 @@ namespace mikoto::scene {
         return mBaseElevation;
     }
 
-    auto HeightFieldColliderComponent::SetOffset( const core::float3& value ) -> void {
+    auto HeightFieldColliderComponent::SetOffset( const core::float3 &value ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( mOffset != value ) {
@@ -2989,7 +3237,7 @@ namespace mikoto::scene {
         }
     }
 
-    auto HeightFieldColliderComponent::GetOffset() const -> const core::float3& {
+    auto HeightFieldColliderComponent::GetOffset() const -> const core::float3 & {
         MKT_BEGIN_PROFILER();
         return mOffset;
     }
@@ -3012,13 +3260,13 @@ namespace mikoto::scene {
         return physics::ColliderType::eHeightField;
     }
 
-    auto CompoundColliderComponent::SetColliderEntities( const eastl::vector<core::u64>& value ) -> void {
+    auto CompoundColliderComponent::SetColliderEntities( const eastl::vector<core::u64> &value ) -> void {
         MKT_BEGIN_PROFILER();
         mColliderEntities = value;
         BumpRevision();
     }
 
-    auto CompoundColliderComponent::GetColliderEntities() const -> const eastl::vector<core::u64>& {
+    auto CompoundColliderComponent::GetColliderEntities() const -> const eastl::vector<core::u64> & {
         MKT_BEGIN_PROFILER();
         return mColliderEntities;
     }
@@ -3037,7 +3285,7 @@ namespace mikoto::scene {
         return mMode;
     }
 
-    auto CompoundColliderComponent::SetOffset( const core::float3& value ) -> void {
+    auto CompoundColliderComponent::SetOffset( const core::float3 &value ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( mOffset != value ) {
@@ -3046,7 +3294,7 @@ namespace mikoto::scene {
         }
     }
 
-    auto CompoundColliderComponent::GetOffset() const -> const core::float3& {
+    auto CompoundColliderComponent::GetOffset() const -> const core::float3 & {
         MKT_BEGIN_PROFILER();
         return mOffset;
     }
@@ -3097,7 +3345,7 @@ namespace mikoto::scene {
         return mHalfHeight;
     }
 
-    auto CylinderColliderComponent::SetOffset( const core::float3& value ) -> void {
+    auto CylinderColliderComponent::SetOffset( const core::float3 &value ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( mOffset != value ) {
@@ -3106,7 +3354,7 @@ namespace mikoto::scene {
         }
     }
 
-    auto CylinderColliderComponent::GetOffset() const -> const core::float3& {
+    auto CylinderColliderComponent::GetOffset() const -> const core::float3 & {
         MKT_BEGIN_PROFILER();
         return mOffset;
     }
@@ -3171,7 +3419,7 @@ namespace mikoto::scene {
         return mHalfHeight;
     }
 
-    auto TaperedCapsuleColliderComponent::SetOffset( const core::float3& value ) -> void {
+    auto TaperedCapsuleColliderComponent::SetOffset( const core::float3 &value ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( mOffset != value ) {
@@ -3180,7 +3428,7 @@ namespace mikoto::scene {
         }
     }
 
-    auto TaperedCapsuleColliderComponent::GetOffset() const -> const core::float3& {
+    auto TaperedCapsuleColliderComponent::GetOffset() const -> const core::float3 & {
         MKT_BEGIN_PROFILER();
         return mOffset;
     }
@@ -3245,7 +3493,7 @@ namespace mikoto::scene {
         return mHalfHeight;
     }
 
-    auto TaperedCylinderColliderComponent::SetOffset( const core::float3& value ) -> void {
+    auto TaperedCylinderColliderComponent::SetOffset( const core::float3 &value ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( mOffset != value ) {
@@ -3254,7 +3502,7 @@ namespace mikoto::scene {
         }
     }
 
-    auto TaperedCylinderColliderComponent::GetOffset() const -> const core::float3& {
+    auto TaperedCylinderColliderComponent::GetOffset() const -> const core::float3 & {
         MKT_BEGIN_PROFILER();
         return mOffset;
     }
@@ -3277,7 +3525,7 @@ namespace mikoto::scene {
         return physics::ColliderType::eTaperedCylinder;
     }
 
-    auto PlaneColliderComponent::SetNormal( const core::float3& value ) -> void {
+    auto PlaneColliderComponent::SetNormal( const core::float3 &value ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( mNormal != value ) {
@@ -3286,7 +3534,7 @@ namespace mikoto::scene {
         }
     }
 
-    auto PlaneColliderComponent::GetNormal() const -> const core::float3& {
+    auto PlaneColliderComponent::GetNormal() const -> const core::float3 & {
         MKT_BEGIN_PROFILER();
         return mNormal;
     }
@@ -3305,7 +3553,7 @@ namespace mikoto::scene {
         return mDistance;
     }
 
-    auto PlaneColliderComponent::SetOffset( const core::float3& value ) -> void {
+    auto PlaneColliderComponent::SetOffset( const core::float3 &value ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( mOffset != value ) {
@@ -3314,7 +3562,7 @@ namespace mikoto::scene {
         }
     }
 
-    auto PlaneColliderComponent::GetOffset() const -> const core::float3& {
+    auto PlaneColliderComponent::GetOffset() const -> const core::float3 & {
         MKT_BEGIN_PROFILER();
         return mOffset;
     }
@@ -3365,7 +3613,7 @@ namespace mikoto::scene {
         return mBodyBEntityID;
     }
 
-    auto JointComponent::SetAnchorA( const core::float3& value ) -> void {
+    auto JointComponent::SetAnchorA( const core::float3 &value ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( mAnchorA != value ) {
@@ -3374,12 +3622,12 @@ namespace mikoto::scene {
         }
     }
 
-    auto JointComponent::GetAnchorA() const -> const core::float3& {
+    auto JointComponent::GetAnchorA() const -> const core::float3 & {
         MKT_BEGIN_PROFILER();
         return mAnchorA;
     }
 
-    auto JointComponent::SetAnchorB( const core::float3& value ) -> void {
+    auto JointComponent::SetAnchorB( const core::float3 &value ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( mAnchorB != value ) {
@@ -3388,12 +3636,12 @@ namespace mikoto::scene {
         }
     }
 
-    auto JointComponent::GetAnchorB() const -> const core::float3& {
+    auto JointComponent::GetAnchorB() const -> const core::float3 & {
         MKT_BEGIN_PROFILER();
         return mAnchorB;
     }
 
-    auto JointComponent::SetRotationA( const core::quat& value ) -> void {
+    auto JointComponent::SetRotationA( const core::quat &value ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( mRotationA != value ) {
@@ -3402,12 +3650,12 @@ namespace mikoto::scene {
         }
     }
 
-    auto JointComponent::GetRotationA() const -> const core::quat& {
+    auto JointComponent::GetRotationA() const -> const core::quat & {
         MKT_BEGIN_PROFILER();
         return mRotationA;
     }
 
-    auto JointComponent::SetRotationB( const core::quat& value ) -> void {
+    auto JointComponent::SetRotationB( const core::quat &value ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( mRotationB != value ) {
@@ -3416,7 +3664,7 @@ namespace mikoto::scene {
         }
     }
 
-    auto JointComponent::GetRotationB() const -> const core::quat& {
+    auto JointComponent::GetRotationB() const -> const core::quat & {
         MKT_BEGIN_PROFILER();
         return mRotationB;
     }
@@ -3477,13 +3725,13 @@ namespace mikoto::scene {
         return mMaxDistance;
     }
 
-    auto DistanceJointComponent::SetSpring( const JointSpringSettings& value ) -> void {
+    auto DistanceJointComponent::SetSpring( const JointSpringSettings &value ) -> void {
         MKT_BEGIN_PROFILER();
         mSpring = value;
         BumpRevision();
     }
 
-    auto DistanceJointComponent::GetSpring() const -> const JointSpringSettings& {
+    auto DistanceJointComponent::GetSpring() const -> const JointSpringSettings & {
         MKT_BEGIN_PROFILER();
         return mSpring;
     }
@@ -3516,24 +3764,24 @@ namespace mikoto::scene {
         return mMaxAngle;
     }
 
-    auto HingeJointComponent::SetLimitSpring( const JointSpringSettings& value ) -> void {
+    auto HingeJointComponent::SetLimitSpring( const JointSpringSettings &value ) -> void {
         MKT_BEGIN_PROFILER();
         mLimitSpring = value;
         BumpRevision();
     }
 
-    auto HingeJointComponent::GetLimitSpring() const -> const JointSpringSettings& {
+    auto HingeJointComponent::GetLimitSpring() const -> const JointSpringSettings & {
         MKT_BEGIN_PROFILER();
         return mLimitSpring;
     }
 
-    auto HingeJointComponent::SetMotor( const JointMotorSettings& value ) -> void {
+    auto HingeJointComponent::SetMotor( const JointMotorSettings &value ) -> void {
         MKT_BEGIN_PROFILER();
         mMotor = value;
         BumpRevision();
     }
 
-    auto HingeJointComponent::GetMotor() const -> const JointMotorSettings& {
+    auto HingeJointComponent::GetMotor() const -> const JointMotorSettings & {
         MKT_BEGIN_PROFILER();
         return mMotor;
     }
@@ -3566,24 +3814,24 @@ namespace mikoto::scene {
         return mMaxDistance;
     }
 
-    auto SliderJointComponent::SetLimitSpring( const JointSpringSettings& value ) -> void {
+    auto SliderJointComponent::SetLimitSpring( const JointSpringSettings &value ) -> void {
         MKT_BEGIN_PROFILER();
         mLimitSpring = value;
         BumpRevision();
     }
 
-    auto SliderJointComponent::GetLimitSpring() const -> const JointSpringSettings& {
+    auto SliderJointComponent::GetLimitSpring() const -> const JointSpringSettings & {
         MKT_BEGIN_PROFILER();
         return mLimitSpring;
     }
 
-    auto SliderJointComponent::SetMotor( const JointMotorSettings& value ) -> void {
+    auto SliderJointComponent::SetMotor( const JointMotorSettings &value ) -> void {
         MKT_BEGIN_PROFILER();
         mMotor = value;
         BumpRevision();
     }
 
-    auto SliderJointComponent::GetMotor() const -> const JointMotorSettings& {
+    auto SliderJointComponent::GetMotor() const -> const JointMotorSettings & {
         MKT_BEGIN_PROFILER();
         return mMotor;
     }
@@ -3658,40 +3906,40 @@ namespace mikoto::scene {
         return mMaxTwistAngle;
     }
 
-    auto SwingTwistJointComponent::SetMotors( const eastl::array<JointMotorSettings, 3>& value ) -> void {
+    auto SwingTwistJointComponent::SetMotors( const eastl::array<JointMotorSettings, 3> &value ) -> void {
         MKT_BEGIN_PROFILER();
         mMotors = value;
         BumpRevision();
     }
 
-    auto SwingTwistJointComponent::GetMotors() const -> const eastl::array<JointMotorSettings, 3>& {
+    auto SwingTwistJointComponent::GetMotors() const -> const eastl::array<JointMotorSettings, 3> & {
         MKT_BEGIN_PROFILER();
         return mMotors;
     }
 
-    auto SixDofJointComponent::SetTranslationMotion( const eastl::array<JointAxisMotion, 3>& value ) -> void {
+    auto SixDofJointComponent::SetTranslationMotion( const eastl::array<JointAxisMotion, 3> &value ) -> void {
         MKT_BEGIN_PROFILER();
         mTranslationMotion = value;
         BumpRevision();
     }
 
-    auto SixDofJointComponent::GetTranslationMotion() const -> const eastl::array<JointAxisMotion, 3>& {
+    auto SixDofJointComponent::GetTranslationMotion() const -> const eastl::array<JointAxisMotion, 3> & {
         MKT_BEGIN_PROFILER();
         return mTranslationMotion;
     }
 
-    auto SixDofJointComponent::SetRotationMotion( const eastl::array<JointAxisMotion, 3>& value ) -> void {
+    auto SixDofJointComponent::SetRotationMotion( const eastl::array<JointAxisMotion, 3> &value ) -> void {
         MKT_BEGIN_PROFILER();
         mRotationMotion = value;
         BumpRevision();
     }
 
-    auto SixDofJointComponent::GetRotationMotion() const -> const eastl::array<JointAxisMotion, 3>& {
+    auto SixDofJointComponent::GetRotationMotion() const -> const eastl::array<JointAxisMotion, 3> & {
         MKT_BEGIN_PROFILER();
         return mRotationMotion;
     }
 
-    auto SixDofJointComponent::SetMinTranslation( const core::float3& value ) -> void {
+    auto SixDofJointComponent::SetMinTranslation( const core::float3 &value ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( mMinTranslation != value ) {
@@ -3700,12 +3948,12 @@ namespace mikoto::scene {
         }
     }
 
-    auto SixDofJointComponent::GetMinTranslation() const -> const core::float3& {
+    auto SixDofJointComponent::GetMinTranslation() const -> const core::float3 & {
         MKT_BEGIN_PROFILER();
         return mMinTranslation;
     }
 
-    auto SixDofJointComponent::SetMaxTranslation( const core::float3& value ) -> void {
+    auto SixDofJointComponent::SetMaxTranslation( const core::float3 &value ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( mMaxTranslation != value ) {
@@ -3714,12 +3962,12 @@ namespace mikoto::scene {
         }
     }
 
-    auto SixDofJointComponent::GetMaxTranslation() const -> const core::float3& {
+    auto SixDofJointComponent::GetMaxTranslation() const -> const core::float3 & {
         MKT_BEGIN_PROFILER();
         return mMaxTranslation;
     }
 
-    auto SixDofJointComponent::SetMinRotation( const core::float3& value ) -> void {
+    auto SixDofJointComponent::SetMinRotation( const core::float3 &value ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( mMinRotation != value ) {
@@ -3728,12 +3976,12 @@ namespace mikoto::scene {
         }
     }
 
-    auto SixDofJointComponent::GetMinRotation() const -> const core::float3& {
+    auto SixDofJointComponent::GetMinRotation() const -> const core::float3 & {
         MKT_BEGIN_PROFILER();
         return mMinRotation;
     }
 
-    auto SixDofJointComponent::SetMaxRotation( const core::float3& value ) -> void {
+    auto SixDofJointComponent::SetMaxRotation( const core::float3 &value ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( mMaxRotation != value ) {
@@ -3742,29 +3990,29 @@ namespace mikoto::scene {
         }
     }
 
-    auto SixDofJointComponent::GetMaxRotation() const -> const core::float3& {
+    auto SixDofJointComponent::GetMaxRotation() const -> const core::float3 & {
         MKT_BEGIN_PROFILER();
         return mMaxRotation;
     }
 
-    auto SixDofJointComponent::SetMotors( const eastl::array<JointMotorSettings, 6>& value ) -> void {
+    auto SixDofJointComponent::SetMotors( const eastl::array<JointMotorSettings, 6> &value ) -> void {
         MKT_BEGIN_PROFILER();
         mMotors = value;
         BumpRevision();
     }
 
-    auto SixDofJointComponent::GetMotors() const -> const eastl::array<JointMotorSettings, 6>& {
+    auto SixDofJointComponent::GetMotors() const -> const eastl::array<JointMotorSettings, 6> & {
         MKT_BEGIN_PROFILER();
         return mMotors;
     }
 
-    auto PathJointComponent::SetControlPoints( const eastl::vector<JointPathPoint>& value ) -> void {
+    auto PathJointComponent::SetControlPoints( const eastl::vector<JointPathPoint> &value ) -> void {
         MKT_BEGIN_PROFILER();
         mControlPoints = value;
         BumpRevision();
     }
 
-    auto PathJointComponent::GetControlPoints() const -> const eastl::vector<JointPathPoint>& {
+    auto PathJointComponent::GetControlPoints() const -> const eastl::vector<JointPathPoint> & {
         MKT_BEGIN_PROFILER();
         return mControlPoints;
     }
@@ -3811,13 +4059,13 @@ namespace mikoto::scene {
         return mMaxFrictionForce;
     }
 
-    auto PathJointComponent::SetMotor( const JointMotorSettings& value ) -> void {
+    auto PathJointComponent::SetMotor( const JointMotorSettings &value ) -> void {
         MKT_BEGIN_PROFILER();
         mMotor = value;
         BumpRevision();
     }
 
-    auto PathJointComponent::GetMotor() const -> const JointMotorSettings& {
+    auto PathJointComponent::GetMotor() const -> const JointMotorSettings & {
         MKT_BEGIN_PROFILER();
         return mMotor;
     }
@@ -3906,7 +4154,7 @@ namespace mikoto::scene {
         return mRatio;
     }
 
-    auto PulleyJointComponent::SetFixedPointA( const core::float3& value ) -> void {
+    auto PulleyJointComponent::SetFixedPointA( const core::float3 &value ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( mFixedPointA != value ) {
@@ -3915,12 +4163,12 @@ namespace mikoto::scene {
         }
     }
 
-    auto PulleyJointComponent::GetFixedPointA() const -> const core::float3& {
+    auto PulleyJointComponent::GetFixedPointA() const -> const core::float3 & {
         MKT_BEGIN_PROFILER();
         return mFixedPointA;
     }
 
-    auto PulleyJointComponent::SetFixedPointB( const core::float3& value ) -> void {
+    auto PulleyJointComponent::SetFixedPointB( const core::float3 &value ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( mFixedPointB != value ) {
@@ -3929,7 +4177,7 @@ namespace mikoto::scene {
         }
     }
 
-    auto PulleyJointComponent::GetFixedPointB() const -> const core::float3& {
+    auto PulleyJointComponent::GetFixedPointB() const -> const core::float3 & {
         MKT_BEGIN_PROFILER();
         return mFixedPointB;
     }
@@ -4102,24 +4350,24 @@ namespace mikoto::scene {
         return mEnabled;
     }
 
-    auto RagdollComponent::SetSkeleton( const asset::AssetRef<asset::Skeleton>& value ) -> void {
+    auto RagdollComponent::SetSkeleton( const asset::AssetRef<asset::Skeleton> &value ) -> void {
         MKT_BEGIN_PROFILER();
         mSkeleton = value;
         BumpRevision();
     }
 
-    auto RagdollComponent::GetSkeleton() const -> const asset::AssetRef<asset::Skeleton>& {
+    auto RagdollComponent::GetSkeleton() const -> const asset::AssetRef<asset::Skeleton> & {
         MKT_BEGIN_PROFILER();
         return mSkeleton;
     }
 
-    auto RagdollComponent::SetBoneMappings( const eastl::vector<RagdollBoneDescription>& value ) -> void {
+    auto RagdollComponent::SetBoneMappings( const eastl::vector<RagdollBoneDescription> &value ) -> void {
         MKT_BEGIN_PROFILER();
         mBoneMappings = value;
         BumpRevision();
     }
 
-    auto RagdollComponent::GetBoneMappings() const -> const eastl::vector<RagdollBoneDescription>& {
+    auto RagdollComponent::GetBoneMappings() const -> const eastl::vector<RagdollBoneDescription> & {
         MKT_BEGIN_PROFILER();
         return mBoneMappings;
     }
@@ -4152,13 +4400,13 @@ namespace mikoto::scene {
         return mEnabled;
     }
 
-    auto SoftBodyComponent::SetModel( const asset::AssetRef<asset::Model>& value ) -> void {
+    auto SoftBodyComponent::SetModel( const asset::AssetRef<asset::Model> &value ) -> void {
         MKT_BEGIN_PROFILER();
         mModel = value;
         BumpRevision();
     }
 
-    auto SoftBodyComponent::GetModel() const -> const asset::AssetRef<asset::Model>& {
+    auto SoftBodyComponent::GetModel() const -> const asset::AssetRef<asset::Model> & {
         MKT_BEGIN_PROFILER();
         return mModel;
     }
@@ -4247,13 +4495,13 @@ namespace mikoto::scene {
         return mEdgeCompliance;
     }
 
-    auto SoftBodyComponent::SetPinnedVertices( const eastl::vector<core::u32>& value ) -> void {
+    auto SoftBodyComponent::SetPinnedVertices( const eastl::vector<core::u32> &value ) -> void {
         MKT_BEGIN_PROFILER();
         mPinnedVertices = value;
         BumpRevision();
     }
 
-    auto SoftBodyComponent::GetPinnedVertices() const -> const eastl::vector<core::u32>& {
+    auto SoftBodyComponent::GetPinnedVertices() const -> const eastl::vector<core::u32> & {
         MKT_BEGIN_PROFILER();
         return mPinnedVertices;
     }
@@ -4291,7 +4539,6 @@ namespace mikoto::scene {
 
         if ( mDrag != value ) {
             mDrag = value;
-            BumpRevision();
         }
     }
 
@@ -4305,13 +4552,28 @@ namespace mikoto::scene {
 
         if ( mLift != value ) {
             mLift = value;
-            BumpRevision();
         }
     }
 
     auto ClothComponent::GetLift() const -> core::f32 {
         MKT_BEGIN_PROFILER();
         return mLift;
+    }
+
+    auto ClothComponent::SetWindVelocity( const core::float3 &velocity ) -> void {
+        mWindVelocity = velocity;
+    }
+
+    auto ClothComponent::SetWindGustStrength( core::f32 strength ) -> void {
+        mWindGustStrength = strength;
+    }
+
+    auto ClothComponent::GetWindVelocity() const -> const core::float3 & {
+        return mWindVelocity;
+    }
+
+    auto ClothComponent::GetWindGustStrength() const -> core::f32 {
+        return mWindGustStrength;
     }
 
     auto BuoyancyComponent::SetWaterVolumeEntityID( core::u64 value ) -> void {
@@ -4384,7 +4646,7 @@ namespace mikoto::scene {
         return mEnabled;
     }
 
-    auto WaterVolumeComponent::SetHalfExtents( const core::float3& value ) -> void {
+    auto WaterVolumeComponent::SetHalfExtents( const core::float3 &value ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( mHalfExtents != value ) {
@@ -4393,7 +4655,7 @@ namespace mikoto::scene {
         }
     }
 
-    auto WaterVolumeComponent::GetHalfExtents() const -> const core::float3& {
+    auto WaterVolumeComponent::GetHalfExtents() const -> const core::float3 & {
         MKT_BEGIN_PROFILER();
         return mHalfExtents;
     }
@@ -4426,7 +4688,7 @@ namespace mikoto::scene {
         return mDensity;
     }
 
-    auto WaterVolumeComponent::SetFlowVelocity( const core::float3& value ) -> void {
+    auto WaterVolumeComponent::SetFlowVelocity( const core::float3 &value ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( mFlowVelocity != value ) {
@@ -4435,7 +4697,7 @@ namespace mikoto::scene {
         }
     }
 
-    auto WaterVolumeComponent::GetFlowVelocity() const -> const core::float3& {
+    auto WaterVolumeComponent::GetFlowVelocity() const -> const core::float3 & {
         MKT_BEGIN_PROFILER();
         return mFlowVelocity;
     }
@@ -4468,12 +4730,11 @@ namespace mikoto::scene {
         return mEnabled;
     }
 
-    VideoComponent::VideoComponent( const VideoComponent& other )
-        : core::RevisionTracked{ other }, mPlaybackSettings{ other.mPlaybackSettings },
-          mOutputMap{ other.mOutputMap }, mClip{ other.mClip } {
+    VideoComponent::VideoComponent( const VideoComponent &other )
+        : core::RevisionTracked{ other }, mPlaybackSettings{ other.mPlaybackSettings }, mOutputMap{ other.mOutputMap }, mClip{ other.mClip } {
     }
 
-    auto VideoComponent::operator=( const VideoComponent& other ) -> VideoComponent& {
+    auto VideoComponent::operator=( const VideoComponent &other ) -> VideoComponent & {
         if ( this != &other ) {
             ReleasePlayback();
             core::RevisionTracked::operator=( other );
@@ -4485,7 +4746,7 @@ namespace mikoto::scene {
         return *this;
     }
 
-    auto VideoComponent::operator=( VideoComponent&& other ) noexcept -> VideoComponent& {
+    auto VideoComponent::operator=( VideoComponent &&other ) noexcept -> VideoComponent & {
         if ( this != &other ) {
             ReleasePlayback();
             core::RevisionTracked::operator=( other );
@@ -4503,7 +4764,7 @@ namespace mikoto::scene {
         ReleasePlayback();
     }
 
-    auto VideoComponent::SetClip( const asset::AssetRef<asset::VideoClip>& clip ) -> void {
+    auto VideoComponent::SetClip( const asset::AssetRef<asset::VideoClip> &clip ) -> void {
         if ( mClip.GetID() != clip.GetID() ) {
             ReleasePlayback();
             mClip = clip;
@@ -4511,7 +4772,7 @@ namespace mikoto::scene {
         }
     }
 
-    auto VideoComponent::SetPlaybackSettings( const video::PlaybackSettings& settings ) -> void {
+    auto VideoComponent::SetPlaybackSettings( const video::PlaybackSettings &settings ) -> void {
         mPlaybackSettings = settings;
 
         if ( mPlayback ) {
@@ -4534,7 +4795,7 @@ namespace mikoto::scene {
             return;
         }
 
-        auto* service{ video::VideoService::GetPtr() };
+        auto *service{ video::VideoService::GetPtr() };
 
         if ( !service || !service->IsInitialized() ) {
             return;
@@ -4551,7 +4812,7 @@ namespace mikoto::scene {
     }
 
     auto VideoComponent::ReleasePlayback() -> void {
-        if ( auto* service{ video::VideoService::GetPtr() }; service && mPlayback ) {
+        if ( auto *service{ video::VideoService::GetPtr() }; service && mPlayback ) {
             service->UnregisterPlayback( mPlayback.GetPtr() );
         }
 
@@ -4559,11 +4820,11 @@ namespace mikoto::scene {
         mPlayback.Reset();
     }
 
-    auto VideoComponent::GetClip() const -> const asset::AssetRef<asset::VideoClip>& {
+    auto VideoComponent::GetClip() const -> const asset::AssetRef<asset::VideoClip> & {
         return mClip;
     }
 
-    auto VideoComponent::GetPlaybackSettings() const -> const video::PlaybackSettings& {
+    auto VideoComponent::GetPlaybackSettings() const -> const video::PlaybackSettings & {
         return mPlaybackSettings;
     }
 

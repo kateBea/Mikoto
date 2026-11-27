@@ -17,9 +17,9 @@
 
 #include <EASTL/shared_ptr.h>
 
-#include <Filesystem/Path.hh>
-
 #include <Assets/AssetTexture.hh>
+
+#include <Filesystem/Path.hh>
 
 #include <Renderer/RHI/Texture.hh>
 
@@ -28,12 +28,13 @@ namespace mikoto::editor {
     class PreviewEnvironment final {
     public:
         static auto StreetPath() -> filesystem::Path;
-        auto Request( const filesystem::Path& path ) -> void;
+        MKT_NODISCARD static auto DaylightPath() -> filesystem::Path;
+        auto Request( const filesystem::Path &path ) -> void;
         /** Returns a completed texture once. A new request replaces only the mailbox. */
-        auto Poll( renderer::rhi::TextureHandle& texture ) -> bool;
-        auto Poll( asset::AssetHandle<asset::Texture>& texture ) -> bool;
-        auto IsRequested() const -> bool;
-        auto GetError() const -> const eastl::string&;
+        auto Poll( renderer::rhi::TextureHandle &texture ) -> bool;
+        auto Poll( asset::AssetHandle<asset::Texture> &texture ) -> bool;
+        MKT_NODISCARD auto IsRequested() const -> bool;
+        MKT_NODISCARD auto GetError() const -> const eastl::string &;
 
     private:
         struct Load;
@@ -43,4 +44,3 @@ namespace mikoto::editor {
     };
 }// namespace mikoto::editor
 #endif
-

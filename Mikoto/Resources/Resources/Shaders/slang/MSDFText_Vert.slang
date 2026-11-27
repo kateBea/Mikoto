@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Expand uploaded glyph records into quads in world or screen space. Atlas coordinates and text
+// styling data are passed to the MSDF fragment stage.
+
 #pragma once
 
 #include "base/Base.slang"
@@ -26,20 +29,20 @@ TextVertexOutput main( uint vertexID : SV_VertexID, uint instanceID : SV_Instanc
     TextVertexOutput o;
     uint vertex = kTextIndices[vertexID];
 
-    FontRenderParams p = buffers[parameters.TextParametersID]
-        .Read<FontRenderParams>( 0, parameters.GlyphOffset + instanceID );
+    FontRenderParams p = buffers[parameters.mTextParametersID]
+        .Read<FontRenderParams>( 0, parameters.mGlyphOffset + instanceID );
 
-    o.TexCoord = p.TextureCoords[vertex];
-    o.Color = p.Color;
-    o.TextureIndex = p.TextureIndex;
-    o.DistanceRange = p.DistanceRange;
-    o.ImageType = p.ImageType;
-    o.OutlineWidth = p.OutlineWidth;
-    o.OutlineColor = p.OutlineColor;
+    o.mTexCoord = p.mTextureCoords[vertex];
+    o.mColor = p.mColor;
+    o.mTextureIndex = p.mTextureIndex;
+    o.mDistanceRange = p.mDistanceRange;
+    o.mImageType = p.mImageType;
+    o.mOutlineWidth = p.mOutlineWidth;
+    o.mOutlineColor = p.mOutlineColor;
 
-    float3 local = float3( kTextVertices[vertex] * p.Size.xy + p.Position.xy, p.Position.z );
+    float3 local = float3( kTextVertices[vertex] * p.mSize.xy + p.mPosition.xy, p.mPosition.z );
 
-    o.PositionH = mul( p.Projection, mul( p.View, mul( p.Model, float4( local, 1 ) ) ) );
+    o.mPositionH = mul( p.mProjection, mul( p.mView, mul( p.mModel, float4( local, 1 ) ) ) );
 
     return o;
 }

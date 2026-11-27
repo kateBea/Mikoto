@@ -1,0 +1,66 @@
+{
+  "Version": 1,
+  "Project": "Volumetric_Clouds",
+  "Assets": "Assets",
+  "Cache": "Assets/.cache",
+  "Scene": "Scene/Clouds.mktscn",
+  "CompressTextures": false,
+  "AutoSave": false,
+  "Renderer": {
+    "Version": 1,
+    "Resolution": 1,
+    "Samples": 1,
+    "PathTracing": false,
+    "PathSamplesPerFrame": 2,
+    "PathMaxBounces": 16,
+    "PathMaxSamples": 4096,
+    "RayTracedAmbientOcclusion": false,
+    "AoSamplesPerFrame": 2,
+    "AoCosineSampling": true,
+    "AoMaxDistance": 0.12,
+    "BloomEnabled": false,
+    "BloomThreshold": 2,
+    "BloomIntensity": 0.1,
+    "SsaoEnabled": true,
+    "ShadowDistance": 650,
+    "Clouds": {
+      "Enabled": true,
+      "HalfResolution": true,
+      "FieldResolution": 256,
+      "MaxSteps": 256,
+      "SunSteps": 24,
+      "StepLength": 12,
+      "MaxDistance": 60000,
+      "CastSurfaceShadows": true,
+      "DistanceFieldEnabled": true,
+      "EdgeDarkening": 0.45,
+      "InnerGlow": 0.5,
+      "DetailMipBias": 0,
+      "AnimatedJitterDistance": 250,
+      "AmbientIntensity": 0.3,
+      "MultipleScattering": 0.6
+    }
+  },
+  "EditorCamera": {
+    "NavigationMode": "Fly",
+    "Position": [
+      0,
+      320.1,
+      2200
+    ],
+    "Direction": [
+      0,
+      0.15,
+      -0.988686
+    ],
+    "Projection": "Perspective",
+    "FieldOfView": 60,
+    "NearPlane": 0.1,
+    "FarPlane": 60000,
+    "MovementSpeed": 120,
+    "RotationSpeed": 10,
+    "SmoothTime": 0.1,
+    "AllowPitch": true,
+    "AllowYaw": true
+  }
+}

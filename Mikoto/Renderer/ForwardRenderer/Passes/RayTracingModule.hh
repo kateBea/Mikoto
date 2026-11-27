@@ -15,8 +15,8 @@
 #ifndef MIKOTO_RENDERER_FORWARD_RENDERER_RAY_TRACING_MODULE_HH
 #define MIKOTO_RENDERER_FORWARD_RENDERER_RAY_TRACING_MODULE_HH
 
-#include <EASTL/span.h>
 #include <EASTL/array.h>
+#include <EASTL/span.h>
 #include <EASTL/string.h>
 #include <EASTL/vector.h>
 
@@ -25,18 +25,20 @@
 
 #include <Material/SurfaceMaterial.hh>
 
-#include <Scene/Scene.hh>
-#include <Scene/Camera.hh>
-
-#include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Core/CommandContext.hh>
-#include <Renderer/RayTracing/RayTracing.hh>
-#include <Renderer/ForwardRenderer/Passes/GeometryShadingModule.hh>
+#include <Renderer/Core/FrameGraph.hh>
+#include <Renderer/Denoising/Denoiser.hh>
 #include <Renderer/ForwardRenderer/Passes/AtmosphericScatteringModule.hh>
+#include <Renderer/ForwardRenderer/Passes/GeometryShadingModule.hh>
+#include <Renderer/RayTracing/RayTracing.hh>
+
+#include <Scene/Camera.hh>
+#include <Scene/Scene.hh>
 
 namespace mikoto::renderer {
 
     struct RayTracingInfo {
+        DenoiserInputs mDenoiser{};
         FGTextureHandle mDirect{};
         FGTextureHandle mIndirect{};
         FGTextureHandle mAmbientOcclusion{};
@@ -54,33 +56,43 @@ namespace mikoto::renderer {
         explicit RayTracingModule( rhi::RenderResolution resolution = rhi::RenderResolution::e1080P );
 
         // Register in this order so trace consumers see uploaded scene data and a built TLAS.
-        auto RegisterUploadPass( FrameGraph& graph ) -> void;
-        auto RegisterBuildPass( FrameGraph& graph ) -> void;
-        auto RegisterFramePass( FrameGraph& graph ) -> void;
-        auto RegisterTracePass( FrameGraph& graph, bool pathTracing = false, bool atmosphere = true ) -> void;
-        auto RegisterHistoryPass( FrameGraph& graph ) -> void;
+        auto RegisterUploadPass( FrameGraph &graph ) -> void;
+        auto RegisterBuildPass( FrameGraph &graph ) -> void;
+        auto RegisterFramePass( FrameGraph &graph ) -> void;
+        auto RegisterTracePass( FrameGraph &graph, bool pathTracing = false, bool atmosphere = true ) -> void;
+        auto RegisterHistoryPass( FrameGraph &graph ) -> void;
 
         // Refresh view constants and invalidate the packed scene only when its inputs change.
-        auto Prepare( FrameGraph& graph, const scene::Scene* scene, const scene::Camera* camera, const RayTracingConfiguration& settings,
+        auto Prepare( FrameGraph &graph, const scene::Scene *scene, const scene::Camera *camera, const RayTracingConfiguration &settings,
             rhi::TextureHandle environment, float environmentScale, float exposure, float gamma ) -> void;
 
         auto SetMeshesVisible( bool visible ) -> void;
         auto SetAmbientOcclusionDebug( bool enabled ) -> void;
         auto SetBackground( SceneBackgroundType type, core::f32 blur ) -> void;
-        auto SetEnvironmentFaces( const eastl::array<rhi::TextureHandle, 6>& textures ) -> void;
-        auto SetAtmosphere( const AtmosphereData* data, const eastl::array<rhi::TextureHandle, 3>& textures ) -> void;
+        auto SetEnvironmentFaces( const eastl::array<rhi::TextureHandle, 6> &textures ) -> void;
+        auto SetAtmosphere( const AtmosphereData *data, const eastl::array<rhi::TextureHandle, 3> &textures ) -> void;
 
         auto ResetAccumulation() -> void;
+        auto SetDenoiserSettings( const DenoiserSettings &settings ) -> void;
+        MKT_NODISCARD auto GetLightingRevision() const -> core::u64 {
+            return mLightingRevision;
+        }
+        MKT_NODISCARD auto GetTraceFrameIndex() const -> core::u32 {
+            return mTraceFrameIndex;
+        }
+        MKT_NODISCARD auto GetTopologyRevision() const -> core::u64 {
+            return mTopologyRevision;
+        }
+
 
         // True after frame preparation, until a ray tracing pass reports a failure.
         MKT_NODISCARD auto IsReady() const -> bool;
         MKT_NODISCARD auto GetSampleCount() const -> core::u32;
 
         // Latest ray tracing exception message, cleared by successful frame preparation.
-        MKT_NODISCARD auto GetError() const -> const eastl::string&;
+        MKT_NODISCARD auto GetError() const -> const eastl::string &;
 
     private:
-
         // GPU records mirror the declarations in PathTracing_Common.slang.
         struct FrameConstants {
             core::float4x4 mInverseViewProjection{ 1.0f };
@@ -103,15 +115,16 @@ namespace mikoto::renderer {
             core::u64 mBuildPositions{};
             core::u32 mOcclusionOutput{};
             core::u32 mOcclusionHistory{};
-            glm::uvec4 mOcclusion{}; // Enabled, samples, accumulated samples, cosine sampling.
+            glm::uvec4 mOcclusion{};// Enabled, samples, accumulated samples, cosine sampling.
             core::f32 mOcclusionMaxDistance{};
             core::u32 mVolumePadding{};
             core::u64 mVolumes{};
+            core::u64 mDenoiser{};
         };
 
         struct Vertex {
             core::float4 mPosition{};
-            core::float4 mNormal{}; // unit normal, conservative position error
+            core::float4 mNormal{};// unit normal, conservative position error
             core::float4 mUV{};
             core::float4 mColor{};
         };
@@ -136,10 +149,10 @@ namespace mikoto::renderer {
 
         struct ViewEffects {
             AtmosphereData mAtmosphere{};
-            core::float4 mControl{}; // atmosphere, reserved, near plane, far plane
-            core::float4 mBackground{}; // blur level, prefiltered mode, hidden, environment scale
+            core::float4 mControl{};   // atmosphere, reserved, near plane, far plane
+            core::float4 mBackground{};// blur level, prefiltered mode, hidden, environment scale
             core::float4 mLensRight{}; // camera right, aperture radius in meters
-            core::float4 mLensUp{}; // camera up, focus distance in meters
+            core::float4 mLensUp{};    // camera up, focus distance in meters
             core::float4 mLensForward{};
         };
 
@@ -161,64 +174,72 @@ namespace mikoto::renderer {
             core::u32 mLightDistribution{};
         };
 
-        static auto HashBytes( core::u64& hash, const void* data, core::usize bytes ) -> void;
+        static auto HashBytes( core::u64 &hash, const void *data, core::usize bytes ) -> void;
 
-        static auto PackMeshVertices( GeometryData& next, const MeshInstance& instance,
+        static auto PackMeshVertices( GeometryData &next, const MeshInstance &instance,
             core::u32 base, core::u32 materialIndex ) -> void;
-        static auto AppendRectangleEmitters( GeometryData& next, const SceneInputs& inputs,
-            eastl::vector<Material>& materials ) -> void;
+        static auto AppendRectangleEmitters( GeometryData &next, const SceneInputs &inputs,
+            eastl::vector<Material> &materials ) -> void;
 
-        static auto CollectTriangleEmitters( const GeometryData& next,
+        static auto CollectTriangleEmitters( const GeometryData &next,
             eastl::span<const Material> materials,
             core::u32 triangleCount ) -> eastl::vector<Emitter>;
 
-        static auto PackSceneData( GeometryData& next,
-            const SceneInputs& inputs,
+        static auto PackSceneData( GeometryData &next,
+            const SceneInputs &inputs,
             eastl::span<Material> materials,
             eastl::span<const Emitter> emitters ) -> void;
 
-        auto AppendLightDistribution( GeometryData& next,
+        auto AppendLightDistribution( GeometryData &next,
             eastl::span<const Light> lights,
             eastl::span<const Material> materials,
             eastl::span<const Emitter> emitters ) const -> void;
 
         template<typename T>
-        static auto Hash( core::u64& hash, const T& value ) -> void;
+        static auto Hash( core::u64 &hash, const T &value ) -> void;
 
-        auto CollectMeshes( const scene::Scene& scene, SceneInputs& inputs ) const -> void;
-        auto CollectLights( const scene::Scene& scene, SceneInputs& inputs ) const -> void;
-        auto PrepareScene( const scene::Scene* scene, const rhi::TextureHandle& environment ) -> void;
-        auto CollectEnvironment( const rhi::TextureHandle& environment, SceneInputs& inputs ) const -> void;
-        auto PrepareView( const scene::Camera& camera, core::f32 environmentScale, core::f32 exposure, core::f32 gamma ) -> void;
+        auto CollectMeshes( const scene::Scene &scene, SceneInputs &inputs ) const -> void;
+        auto CollectLights( const scene::Scene &scene, SceneInputs &inputs ) const -> void;
+        auto PrepareScene( const scene::Scene *scene, const rhi::TextureHandle &environment ) -> void;
+        auto CollectEnvironment( const rhi::TextureHandle &environment, SceneInputs &inputs ) const -> void;
+        auto PrepareView( const scene::Camera &camera, core::f32 environmentScale, core::f32 exposure, core::f32 gamma ) -> void;
 
-        auto CreateTracePipeline( FrameGraph& graph ) -> void;
-        auto CreateTraceResources( FrameGraph& graph ) -> void;
-        auto RegisterFramePreparePass( FrameGraph& graph ) -> void;
-        auto RegisterFrameTransferPass( FrameGraph& graph ) -> void;
-        auto RegisterGeometryPreparePass( FrameGraph& graph ) -> void;
-        auto RegisterGeometryTransferPass( FrameGraph& graph ) -> void;
+        auto CreateTracePipeline( FrameGraph &graph ) -> void;
+        auto CreateTraceResources( FrameGraph &graph ) -> void;
+        auto RegisterFramePreparePass( FrameGraph &graph ) -> void;
+        auto RegisterFrameTransferPass( FrameGraph &graph ) -> void;
+        auto RegisterGeometryPreparePass( FrameGraph &graph ) -> void;
+        auto RegisterGeometryTransferPass( FrameGraph &graph ) -> void;
 
-        auto PrepareFrameUpload( CommandContext& context ) -> void;
-        auto PrepareGeometryUpload( CommandContext& context ) -> void;
+        auto PrepareFrameUpload( CommandContext &context ) -> void;
+        auto PrepareGeometryUpload( CommandContext &context ) -> void;
 
-        auto Trace( CommandContext& context ) -> void;
-        auto UpdateHistory( CommandContext& context ) -> void;
-        auto BindFrameResources( CommandContext& context ) -> void;
+        auto Trace( CommandContext &context ) -> void;
+        auto UpdateHistory( CommandContext &context ) -> void;
+        auto BindFrameResources( CommandContext &context ) -> void;
 
-        auto RecordTraceError( const char* message ) -> void;
+        auto RecordTraceError( const char *message ) -> void;
 
-        auto PackSceneMeshes( GeometryData& next, eastl::span<const MeshInstance> instances,
-            eastl::vector<Material>& materials ) -> void;
+        auto PackSceneMeshes( GeometryData &next, eastl::span<const MeshInstance> instances,
+            eastl::vector<Material> &materials ) -> void;
 
         MKT_NODISCARD auto IsOcclusionActive() const -> bool;
-        MKT_NODISCARD auto PackScene( SceneInputs& inputs ) -> GeometryData;
-        MKT_NODISCARD auto ResolveSceneTextures( CommandContext& context ) const -> eastl::vector<core::ubyte>;
-        MKT_NODISCARD auto PackMaterial( material::SurfaceMaterial& source,
-            SceneInputs& inputs ) const -> Material;
+        MKT_NODISCARD auto PackScene( SceneInputs &inputs ) -> GeometryData;
+        MKT_NODISCARD auto ResolveSceneTextures( CommandContext &context ) const -> eastl::vector<core::ubyte>;
+        MKT_NODISCARD auto PackMaterial( material::SurfaceMaterial &source,
+            SceneInputs &inputs ) const -> Material;
 
     private:
-
         // Frame graph resources for mesh data, frame constants, dispatch and history.
+        DenoiserSettings mDenoiserSettings{};
+        DenoiserInputs mDenoiserInputs{};
+        DenoiserRayData mDenoiserData{};
+        FGBufferHandle mDenoiserDataBuffer{};
+        FGBufferHandle mPreviousPositionsBuffer{};
+        eastl::vector<core::float4> mPreviousPositions{};
+        core::u64 mTopologyHash{};
+        core::u64 mTopologyRevision{};
+        const scene::Scene *mDenoiserScene{};
         FGBufferHandle mShadingVertexBuffer{};
         FGBufferHandle mAccelerationBuildPositionBuffer{};
         FGBufferHandle mIndexBuffer{};
@@ -258,6 +279,8 @@ namespace mikoto::renderer {
         core::u64 mPackedSceneHash{};
         core::u64 mAccumulationViewHash{};
         core::u32 mAccumulatedRadianceSamples{};
+        core::u32 mActivePathSamples{ 1 };
+        core::u64 mLightingRevision{};
         core::u32 mAccumulatedOcclusionSamples{};
         bool mAmbientOcclusionDebugEnabled{};
         core::u32 mTraceFrameIndex{};
@@ -270,5 +293,5 @@ namespace mikoto::renderer {
         bool mCanTraceFrame{};
         eastl::string mLastTraceError{};
     };
-}
+}// namespace mikoto::renderer
 #endif// MIKOTO_RENDERER_FORWARD_RENDERER_RAY_TRACING_MODULE_HH

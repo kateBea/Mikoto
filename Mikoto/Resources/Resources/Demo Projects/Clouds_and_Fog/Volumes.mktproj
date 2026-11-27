@@ -1,0 +1,49 @@
+# Path-traced clouds and fog: seeded procedural cumulus, analytic height fog, stationary wind by default.
+{
+  "Version": 1,
+  "Project": "Clouds_and_Fog",
+  "Assets": "Assets",
+  "Cache": "Assets/.cache",
+  "Scene": "Scene/Volumes.mktscn",
+  "CompressTextures": false,
+  "AutoSave": false,
+  "Renderer": {
+    "Version": 1,
+    "Resolution": 0,
+    "Samples": 1,
+    "PathTracing": true,
+    "PathSamplesPerFrame": 2,
+    "PathMaxBounces": 16,
+    "PathMaxSamples": 4096,
+    "RayTracedAmbientOcclusion": false,
+    "AoSamplesPerFrame": 2,
+    "AoCosineSampling": true,
+    "AoMaxDistance": 0.12,
+    "BloomEnabled": true,
+    "BloomThreshold": 2,
+    "BloomIntensity": 0.1,
+    "SsaoEnabled": false
+  },
+  "EditorCamera": {
+    "NavigationMode": "Fly",
+    "Position": [
+      0,
+      9.1,
+      45
+    ],
+    "Direction": [
+      0,
+      0.18,
+      -0.983666610188635
+    ],
+    "Projection": "Perspective",
+    "FieldOfView": 60,
+    "NearPlane": 0.1,
+    "FarPlane": 100000,
+    "MovementSpeed": 15,
+    "RotationSpeed": 10,
+    "SmoothTime": 0.1,
+    "AllowPitch": true,
+    "AllowYaw": true
+  }
+}

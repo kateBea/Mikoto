@@ -13,16 +13,16 @@
 // limitations under the License.
 
 #include <Core/Core.hh>
-#include <Core/Types.hh>
 #include <Core/Platform.hh>
 #include <Core/Profiler.hh>
+#include <Core/Types.hh>
 
 #include <Logging/Assert.hh>
 
 #include <Memory/Allocator.hh>
 
-#include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Core/CommandContext.hh>
+#include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Core/FrameGraphTypes.hh>
 
 namespace mikoto::renderer {
@@ -30,12 +30,12 @@ namespace mikoto::renderer {
     using namespace mikoto::core;
     using namespace mikoto::renderer::rhi;
 
-    auto CommandContext::CachedBottomLevel::CanReuse( const FGAccelerationGeometry& geometry,
-        const rhi::BufferHandle& vertices, const rhi::BufferHandle& indices ) const -> bool {
+    auto CommandContext::CachedBottomLevel::CanReuse( const FGAccelerationGeometry &geometry,
+        const rhi::BufferHandle &vertices, const rhi::BufferHandle &indices ) const -> bool {
         return geometry.mRevision && mRevision == geometry.mRevision && mStructure &&
-            mFirstIndex == geometry.mFirstIndex && mIndexCount == geometry.mIndexCount &&
-            mVertexCount == geometry.mVertexCount && mVertexStride == geometry.mVertexStride &&
-            mVertices.GetPtr() == vertices.GetPtr() && mIndices.GetPtr() == indices.GetPtr();
+               mFirstIndex == geometry.mFirstIndex && mIndexCount == geometry.mIndexCount &&
+               mVertexCount == geometry.mVertexCount && mVertexStride == geometry.mVertexStride &&
+               mVertices.GetPtr() == vertices.GetPtr() && mIndices.GetPtr() == indices.GetPtr();
     }
 
     /**
@@ -351,13 +351,13 @@ namespace mikoto::renderer {
     }
 
 
-    auto DrawIndirectState::SetBuffer( FGBufferHandle handle ) -> DrawIndirectState& {
+    auto DrawIndirectState::SetBuffer( FGBufferHandle handle ) -> DrawIndirectState & {
         MKT_BEGIN_PROFILER();
         mIndirectBuffer = handle;
         return *this;
     }
 
-    auto DrawIndirectState::SetDrawCount( core::u32 count ) -> DrawIndirectState& {
+    auto DrawIndirectState::SetDrawCount( core::u32 count ) -> DrawIndirectState & {
         MKT_BEGIN_PROFILER();
         mInstanceCount = count;
         return *this;
@@ -370,13 +370,13 @@ namespace mikoto::renderer {
         mRenderArea = {};
     }
 
-    auto RenderBeginDescription::SetRenderArea( const renderer::rhi::Rect& rec ) -> RenderBeginDescription& {
+    auto RenderBeginDescription::SetRenderArea( const renderer::rhi::Rect &rec ) -> RenderBeginDescription & {
         MKT_BEGIN_PROFILER();
         mRenderArea = rec;
         return *this;
     }
 
-    auto RenderBeginDescription::AddDepthTarget( FGTextureHandle target, renderer::rhi::LoadOp op ) -> RenderBeginDescription& {
+    auto RenderBeginDescription::AddDepthTarget( FGTextureHandle target, renderer::rhi::LoadOp op ) -> RenderBeginDescription & {
         MKT_BEGIN_PROFILER();
         mDepthTarget = RenderTargetState{
             .mClearColor = renderer::rhi::kColorWhite,
@@ -387,7 +387,7 @@ namespace mikoto::renderer {
         return *this;
     }
 
-    auto RenderBeginDescription::AddRenderTarget( FGTextureHandle target, const renderer::rhi::Color& c, renderer::rhi::LoadOp op, core::u32 faceIndex, core::u32 mipLevel ) -> RenderBeginDescription& {
+    auto RenderBeginDescription::AddRenderTarget( FGTextureHandle target, const renderer::rhi::Color &c, renderer::rhi::LoadOp op, core::u32 faceIndex, core::u32 mipLevel ) -> RenderBeginDescription & {
         MKT_BEGIN_PROFILER();
         mCurrentRenderTargets.emplace_back( RenderTargetState{
             .mClearColor = c,
@@ -400,11 +400,11 @@ namespace mikoto::renderer {
         return *this;
     }
 
-    auto CommandContext::SetVideoRecording( FGScheduler* scheduler ) -> void {
+    auto CommandContext::SetVideoRecording( FGScheduler *scheduler ) -> void {
         mScheduler = scheduler;
     }
 
-    auto CommandContext::DecodeVideo( FGVideoHandle handle, const rhi::VideoDecodeDescription& description ) -> void {
+    auto CommandContext::DecodeVideo( FGVideoHandle handle, const rhi::VideoDecodeDescription &description ) -> void {
         if ( !mCommands || mCommands->GetQueueType() != rhi::QueueType::eVideoDecode || !mScheduler || mResourceManager->Get( handle.mHandle ).mType != FGResourceType::eVideo ) {
             MKT_THROW_RUNTIME_ERROR( "DecodeVideo must be recorded by a video graph pass." );
         }
@@ -419,7 +419,7 @@ namespace mikoto::renderer {
             mScheduler->UseVideoResource( mCommands.GetPtr(), description.mReconstruction.mSurface->GetImage(), true, coincident );
         }
 
-        for ( const auto& reference: description.mReferences ) {
+        for ( const auto &reference: description.mReferences ) {
             // Coincident DPB images may be displayed later in presentation order.
             // Return reference reads to graphics too, not only this batch's outputs.
             mScheduler->UseVideoResource( mCommands.GetPtr(), reference.mSurface->GetImage(), true, coincident );
@@ -428,11 +428,10 @@ namespace mikoto::renderer {
         mCommands->DecodeVideo( description );
     }
 
-    CommandContext::CommandContext( FrameGraphPass* pass, FGResourceManager* resourceManager,
-        FrameGraphDescriptorAllocator* descriptorAllocator,
-        rhi::PipelineLayoutHandle pipelineLayout, FGStatisticsManager* statsManager )
-        : mNode{ pass }, mResourceManager{ resourceManager }, mDescriptorAllocator{ descriptorAllocator },
-          mPipelineLayout{ eastl::move( pipelineLayout ) } {
+    CommandContext::CommandContext( FrameGraphPass *pass, FGResourceManager *resourceManager,
+        FrameGraphDescriptorAllocator *descriptorAllocator,
+        rhi::PipelineLayoutHandle pipelineLayout, FGStatisticsManager *statsManager )
+        : mNode{ pass }, mResourceManager{ resourceManager }, mDescriptorAllocator{ descriptorAllocator }, mPipelineLayout{ eastl::move( pipelineLayout ) } {
         MKT_BEGIN_PROFILER();
         MKT_ASSERT( mNode, "Frame graph node cannot be null" );
         MKT_ASSERT( mResourceManager, "Resource manager cannot be null" );
@@ -445,22 +444,22 @@ namespace mikoto::renderer {
         mCommands = pass->mCommandList;
     }
 
-    auto CommandContext::BeginRender( const RenderBeginDescription& gs ) -> void {
+    auto CommandContext::BeginRender( const RenderBeginDescription &gs ) -> void {
         MKT_BEGIN_PROFILER();
         auto graphicsState{ renderer::rhi::RenderPassDescription{}
-            .SetRenderArea( gs.mRenderArea ) };
+                .SetRenderArea( gs.mRenderArea ) };
 
         if ( gs.mDepthTarget.mRenderTarget.mHandle != FGResourceManager::kInvalidResourceHandle ) {
             graphicsState.AddDepthTarget( mResourceManager->Get( gs.mDepthTarget.mRenderTarget.mHandle ).mResource, gs.mDepthTarget.mLoadOp );
         }
 
-        for ( const auto& colorImage: gs.mCurrentRenderTargets ) {
+        for ( const auto &colorImage: gs.mCurrentRenderTargets ) {
             renderer::rhi::TextureHandle texture{ mResourceManager->Get( colorImage.mRenderTarget.mHandle ).mResource };
 
             if ( !texture.IsEmpty() ) {
-                graphicsState.AddRenderTarget( texture, 
-                    colorImage.mClearColor, 
-                    colorImage.mLoadOp, 
+                graphicsState.AddRenderTarget( texture,
+                    colorImage.mClearColor,
+                    colorImage.mLoadOp,
                     renderer::rhi::TextureSubresourceSet{
                         colorImage.mMipLevel, // mBaseMipLevel
                         1,                    // mNumMipLevels
@@ -478,7 +477,7 @@ namespace mikoto::renderer {
         mCommands->EndRenderPass();
     }
 
-    auto CommandContext::SetViewportState( const renderer::rhi::ViewportState& vs ) -> void {
+    auto CommandContext::SetViewportState( const renderer::rhi::ViewportState &vs ) -> void {
         MKT_BEGIN_PROFILER();
         mCommands->SetViewportState( vs );
     }
@@ -491,39 +490,38 @@ namespace mikoto::renderer {
 
     auto CommandContext::PushTexture_SRV( FGTextureHandle handle ) -> core::u32 {
         MKT_BEGIN_PROFILER();
-        auto& resource{ mResourceManager->Get( handle.mHandle ) };
-        auto* texture{ core::checked_cast<rhi::ITexture*>( resource.mResource.GetPtr() ) };
+        auto &resource{ mResourceManager->Get( handle.mHandle ) };
+        auto *texture{ core::checked_cast<rhi::ITexture *>( resource.mResource.GetPtr() ) };
 
         return mDescriptorAllocator->AllocateTextureIndex_SRV( texture );
     }
 
     auto CommandContext::PushTexture_UAV( FGTextureHandle handle ) -> core::u32 {
         MKT_BEGIN_PROFILER();
-        auto& resource{ mResourceManager->Get( handle.mHandle ) };
-        auto* texture{ core::checked_cast<rhi::ITexture*>( resource.mResource.GetPtr() ) };
+        auto &resource{ mResourceManager->Get( handle.mHandle ) };
+        auto *texture{ core::checked_cast<rhi::ITexture *>( resource.mResource.GetPtr() ) };
 
         return mDescriptorAllocator->AllocateTextureIndex_UAV( texture );
     }
 
     auto CommandContext::PushAccelerationStructure( FGAccelerationStructureHandle handle ) -> core::u32 {
         MKT_BEGIN_PROFILER();
-        auto& resource{ mResourceManager->Get( handle.mHandle ) };
-        auto* structure{ core::checked_cast<rhi::IAccelerationStructure*>( resource.mResource.GetPtr() ) };
+        auto &resource{ mResourceManager->Get( handle.mHandle ) };
+        auto *structure{ core::checked_cast<rhi::IAccelerationStructure *>( resource.mResource.GetPtr() ) };
 
         return mDescriptorAllocator->AllocateAccelerationStructureIndex( structure );
     }
 
-    auto CommandContext::BuildAccelerationStructures( 
-        FGAccelerationStructureHandle handle, 
+    auto CommandContext::BuildAccelerationStructures(
+        FGAccelerationStructureHandle handle,
         FGBufferHandle vertices, FGBufferHandle indices,
-        eastl::span<const FGAccelerationGeometry> geometries ) -> void 
-    {
+        eastl::span<const FGAccelerationGeometry> geometries ) -> void {
         MKT_BEGIN_PROFILER();
 
         MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
         MKT_ASSERT( mCommands, "Acceleration structure builds require a command list" );
 
-        auto* device{ mCommands->GetOwningDevice() };
+        auto *device{ mCommands->GetOwningDevice() };
         rhi::BufferHandle vertexBuffer{};
         rhi::BufferHandle indexBuffer{};
 
@@ -532,7 +530,7 @@ namespace mikoto::renderer {
             indexBuffer = mResourceManager->Get( indices.mHandle ).mResource;
         }
 
-        auto& cached{ mBottomLevelCache[handle.mHandle] };
+        auto &cached{ mBottomLevelCache[handle.mHandle] };
         cached.resize( geometries.size() );
 
         rhi::AccelStructureCreateDescription top{
@@ -543,8 +541,8 @@ namespace mikoto::renderer {
 
         // Rebuild changed local shapes; instance transforms belong to the TLAS.
         // https://docs.vulkan.org/guide/latest/extensions/ray_tracing.html
-        for ( const auto& geometry: geometries ) {
-            auto& entry{ cached[slot++] };
+        for ( const auto &geometry: geometries ) {
+            auto &entry{ cached[slot++] };
 
             if ( !entry.CanReuse( geometry, vertexBuffer, indexBuffer ) ) {
                 const rhi::AccelStructureCreateDescription bottom{
@@ -576,8 +574,7 @@ namespace mikoto::renderer {
                 .mBottomLevel = entry.mStructure,
                 .mTransform = geometry.mTransform,
                 .mInstanceID = geometry.mInstanceID,
-                .mMask = geometry.mMask
-            } );
+                .mMask = geometry.mMask } );
         }
 
         auto structure{ device->CreateAccelStructure( top ) };
@@ -589,40 +586,40 @@ namespace mikoto::renderer {
 
     auto CommandContext::PushSampler( FGSamplerHandle handle ) -> core::u32 {
         MKT_BEGIN_PROFILER();
-        auto& resource{ mResourceManager->Get( handle.mHandle ) };
-        auto* sampler{ core::checked_cast<rhi::ISampler*>( resource.mResource.GetPtr() ) };
+        auto &resource{ mResourceManager->Get( handle.mHandle ) };
+        auto *sampler{ core::checked_cast<rhi::ISampler *>( resource.mResource.GetPtr() ) };
 
         return mDescriptorAllocator->AllocateSamplerIndex( sampler );
     }
 
     auto CommandContext::PushBuffer_SRV( FGBufferHandle handle ) -> core::u32 {
         MKT_BEGIN_PROFILER();
-        auto& resource{ mResourceManager->Get( handle.mHandle ) };
-        auto* buffer{ core::checked_cast<rhi::IBuffer*>( resource.mResource.GetPtr() ) };
+        auto &resource{ mResourceManager->Get( handle.mHandle ) };
+        auto *buffer{ core::checked_cast<rhi::IBuffer *>( resource.mResource.GetPtr() ) };
 
         return mDescriptorAllocator->AllocateBufferIndex_SRV( buffer );
     }
 
     auto CommandContext::PushBuffer_UAV( FGBufferHandle handle ) -> core::u32 {
         MKT_BEGIN_PROFILER();
-        auto& resource{ mResourceManager->Get( handle.mHandle ) };
-        auto* buffer{ core::checked_cast<rhi::IBuffer*>( resource.mResource.GetPtr() ) };
+        auto &resource{ mResourceManager->Get( handle.mHandle ) };
+        auto *buffer{ core::checked_cast<rhi::IBuffer *>( resource.mResource.GetPtr() ) };
 
         return mDescriptorAllocator->AllocateBufferIndex_UAV( buffer );
     }
 
-    auto CommandContext::SubmitBarriers( const ankerl::unordered_dense::map<FGResourceHandle, eastl::pair<eastl::string, FGBarrier>>& barriers ) -> void {
-        eastl::vector<eastl::pair<FGResource*, FGBarrier>> resolved{};
+    auto CommandContext::SubmitBarriers( const ankerl::unordered_dense::map<FGResourceHandle, eastl::pair<eastl::string, FGBarrier>> &barriers ) -> void {
+        eastl::vector<eastl::pair<FGResource *, FGBarrier>> resolved{};
         resolved.reserve( barriers.size() );
 
-        for ( const auto& [resourceID, namedBarrier]: barriers ) {
+        for ( const auto &[resourceID, namedBarrier]: barriers ) {
             resolved.emplace_back( &mResourceManager->Get( resourceID ), namedBarrier.second );
         }
 
         SubmitBarriers( resolved );
     }
 
-    auto CommandContext::SubmitBarriers( const eastl::vector<eastl::pair<FGResource*, FGBarrier>>& barriers ) -> void {
+    auto CommandContext::SubmitBarriers( const eastl::vector<eastl::pair<FGResource *, FGBarrier>> &barriers ) -> void {
         MKT_BEGIN_PROFILER();
         RefreshBufferCaches();
 
@@ -631,8 +628,8 @@ namespace mikoto::renderer {
         }
 
         struct PendingState {
-            FGResource* mResource{};
-            renderer::rhi::DeviceObject* mDeviceResource{};
+            FGResource *mResource{};
+            renderer::rhi::DeviceObject *mDeviceResource{};
             FGBarrierHistory mHistory{};
         };
 
@@ -640,8 +637,8 @@ namespace mikoto::renderer {
         eastl::fixed_vector<PendingState, 20> pendingStates{};
         pendingStates.reserve( barriers.size() );
 
-        for ( const auto& [entry, required]: barriers ) {
-            FGResource& resource{ *entry };
+        for ( const auto &[entry, required]: barriers ) {
+            FGResource &resource{ *entry };
 
             if ( resource.mType == FGResourceType::eAccelerationStructure || resource.mType == FGResourceType::eVideo ) {
                 // Graph edges order build and trace passes. Native Build records the
@@ -649,16 +646,15 @@ namespace mikoto::renderer {
                 continue;
             }
 
-            auto* deviceResource{ core::checked_cast<renderer::rhi::DeviceObject*>( resource.mResource.GetPtr() ) };
+            auto *deviceResource{ core::checked_cast<renderer::rhi::DeviceObject *>( resource.mResource.GetPtr() ) };
             const renderer::rhi::ResourceStates stateBefore{ deviceResource->GetResourceState() };
             const renderer::rhi::ResourceStates stateAfter{ GetResourceState( required.mNewStages.front(), required.mNewAccess ) };
-            const auto& history{ resource.mBarrierHistory };
+            const auto &history{ resource.mBarrierHistory };
 
             const bool historyIsCurrent{ history.IsCurrent( stateBefore ) };
 
-            const renderer::rhi::PipelineStageFlags stageBefore{ historyIsCurrent ? 
-                history.mStages : stateBefore == renderer::rhi::ResourceStates::eUnknown ? 
-                renderer::rhi::PipelineStageFlagsBits::None : renderer::rhi::PipelineStageFlagsBits::AllCommands };
+            const renderer::rhi::PipelineStageFlags stageBefore{ historyIsCurrent ? history.mStages : stateBefore == renderer::rhi::ResourceStates::eUnknown ? renderer::rhi::PipelineStageFlagsBits::None
+                                                                                                                                                             : renderer::rhi::PipelineStageFlagsBits::AllCommands };
 
             const renderer::rhi::BarrierAccessFlags accessBefore{ historyIsCurrent ? history.mAccess : GetAccessForState( stateBefore, resource.mType ) };
 
@@ -675,23 +671,23 @@ namespace mikoto::renderer {
             switch ( resource.mType ) {
                 case FGResourceType::eTexture: {
                     description.AddTexture( renderer::rhi::TextureBarrierDescription{}
-                        .SetTexture( core::checked_cast<renderer::rhi::ITexture*>( resource.mResource.GetPtr() ) )
-                        .SetBeforeLayout( GetTextureLayout( stateBefore ) )
-                        .SetBeforeStage( stageBefore )
-                        .SetBeforeAccess( accessBefore )
-                        .SetAfterLayout( GetTextureLayout( required.mNewStages.front(), required.mNewAccess ) )
-                        .SetAfterStage( stageAfter )
-                        .SetAfterAccess( accessAfter ) );
+                            .SetTexture( core::checked_cast<renderer::rhi::ITexture *>( resource.mResource.GetPtr() ) )
+                            .SetBeforeLayout( GetTextureLayout( stateBefore ) )
+                            .SetBeforeStage( stageBefore )
+                            .SetBeforeAccess( accessBefore )
+                            .SetAfterLayout( GetTextureLayout( required.mNewStages.front(), required.mNewAccess ) )
+                            .SetAfterStage( stageAfter )
+                            .SetAfterAccess( accessAfter ) );
                     break;
                 }
 
                 case FGResourceType::eBuffer: {
                     description.AddBuffer( renderer::rhi::BufferBarrierDescription{}
-                        .SetBuffer( core::checked_cast<renderer::rhi::IBuffer*>( resource.mResource.GetPtr() ) )
-                        .SetBeforeStage( stageBefore )
-                        .SetBeforeAccess( accessBefore )
-                        .SetAfterStage( stageAfter )
-                        .SetAfterAccess( accessAfter ) );
+                            .SetBuffer( core::checked_cast<renderer::rhi::IBuffer *>( resource.mResource.GetPtr() ) )
+                            .SetBeforeStage( stageBefore )
+                            .SetBeforeAccess( accessBefore )
+                            .SetAfterStage( stageAfter )
+                            .SetAfterAccess( accessAfter ) );
                     break;
                 }
 
@@ -711,7 +707,7 @@ namespace mikoto::renderer {
 
         // Publish only after recording. Compilation and skipped passes must not
         // advance either the layout or its access history.
-        for ( auto& pending: pendingStates ) {
+        for ( auto &pending: pendingStates ) {
             pending.mDeviceResource->SetResourceState( pending.mHistory.mState );
             pending.mResource->mBarrierHistory = pending.mHistory;
         }
@@ -753,14 +749,14 @@ namespace mikoto::renderer {
         MKT_BEGIN_PROFILER();
         MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
         FGResource pipeline{ mResourceManager->Get( handle.mHandle ) };
-        auto* resource{ core::checked_cast<renderer::rhi::IPipeline*>( pipeline.mResource.GetPtr() ) };
+        auto *resource{ core::checked_cast<renderer::rhi::IPipeline *>( pipeline.mResource.GetPtr() ) };
         // Graphics, compute and ray tracing use separate binding state. Select
         // the graph's shared layout/table for the pipeline being recorded.
         auto table{ mDescriptorAllocator->GetDescriptorTable() };
         mCommands->BindPipelineResources( renderer::rhi::BindResourcesDescription{}
-            .AddResourceSet( 0, table.GetPtr() )
-            .SetPipelineLayout( mPipelineLayout.GetPtr() )
-            .SetBindPoint( resource->GetPipelineType() ) );
+                .AddResourceSet( 0, table.GetPtr() )
+                .SetPipelineLayout( mPipelineLayout.GetPtr() )
+                .SetBindPoint( resource->GetPipelineType() ) );
         mCommands->BindPipeline( resource );
     }
 
@@ -775,14 +771,14 @@ namespace mikoto::renderer {
 
     auto CommandContext::Draw( core::u32 vertexCount, core::u32 instanceCount ) -> void {
         MKT_BEGIN_PROFILER();
-        renderer::rhi::IPipelineLayout* layout{ mPipelineLayout.GetPtr() };
+        renderer::rhi::IPipelineLayout *layout{ mPipelineLayout.GetPtr() };
         mCommands->SetPushConstants( layout, mPushConstantsData.data(), kMaxPushConstantSize, renderer::rhi::ShaderFlagsBits::All );
         mCommands->Draw( renderer::rhi::DrawArguments{}
-            .SetVertexCount( vertexCount )
-            .SetInstanceCount( instanceCount ) );
+                .SetVertexCount( vertexCount )
+                .SetInstanceCount( instanceCount ) );
     }
 
-    auto CommandContext::DrawIndirect( const DrawIndirectState& state ) -> void {
+    auto CommandContext::DrawIndirect( const DrawIndirectState &state ) -> void {
         MKT_BEGIN_PROFILER();
 
         if ( state.mInstanceCount == 0 ) {
@@ -793,17 +789,76 @@ namespace mikoto::renderer {
         MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
         FGResource resource{ mResourceManager->Get( state.mIndirectBuffer.mHandle ) };
 
-        renderer::rhi::IPipelineLayout* layout{ mPipelineLayout.GetPtr() };
+        renderer::rhi::IPipelineLayout *layout{ mPipelineLayout.GetPtr() };
         mCommands->SetPushConstants( layout, mPushConstantsData.data(), kMaxPushConstantSize, renderer::rhi::ShaderFlagsBits::All );
-        mCommands->BindIndirectBuffer( core::checked_cast<renderer::rhi::IBuffer*>( resource.mResource.GetPtr() ) );
+        mCommands->BindIndirectBuffer( core::checked_cast<renderer::rhi::IBuffer *>( resource.mResource.GetPtr() ) );
         mCommands->DrawIndirect( state.mFirstDraw * sizeof( DrawIndirectCommand ), state.mInstanceCount );
     }
 
     auto CommandContext::Dispatch( core::u32 groupX, core::u32 groupY, core::u32 groupZ ) -> void {
         MKT_BEGIN_PROFILER();
-        renderer::rhi::IPipelineLayout* layout{ mPipelineLayout.GetPtr() };
+        renderer::rhi::IPipelineLayout *layout{ mPipelineLayout.GetPtr() };
         mCommands->SetPushConstants( layout, mPushConstantsData.data(), kMaxPushConstantSize, renderer::rhi::ShaderFlagsBits::All );
         mCommands->Dispatch( groupX, groupY, groupZ );
+    }
+
+    auto CommandContext::GetCommandList() -> rhi::ICommandList * {
+        return mCommands.GetPtr();
+    }
+
+    auto CommandContext::GetTexture( FGTextureHandle texture ) -> rhi::ITexture * {
+        return CacheResource( texture );
+    }
+
+    auto CommandContext::DispatchExternalCompute( const ExternalComputeDispatch &dispatch ) -> void {
+        using namespace rhi;
+        MKT_ASSERT( dispatch.mDevice && dispatch.mPipeline, "External compute requires a device and pipeline." );
+        BindingTableDescription resources{};
+        BindingTableDescription constants{};
+        BarrierDescription before{};
+        BarrierDescription after{};
+        eastl::fixed_hash_set<FGResourceHandle, 64> transitioned{};
+        const auto barrier{ []( ITexture *texture, bool restore, bool storage ) {
+            TextureBarrierDescription b{};
+            b.mTexture = texture;
+            b.mStageBefore = b.mStageAfter = PipelineStageFlagsBits::ComputeShader;
+            b.mLayoutBefore = restore ? TextureLayoutBits::ShaderResource : TextureLayoutBits::General;
+            b.mLayoutAfter = restore || storage ? TextureLayoutBits::General : TextureLayoutBits::ShaderResource;
+            b.mAccessBefore = restore ? BarrierAccessFlagsBits::ShaderSampledRead : BarrierAccessFlagsBits::ShaderStorageRead | BarrierAccessFlagsBits::ShaderStorageWrite;
+            b.mAccessAfter = restore || storage ? BarrierAccessFlagsBits::ShaderStorageRead | BarrierAccessFlagsBits::ShaderStorageWrite : BarrierAccessFlagsBits::ShaderSampledRead;
+            return b;
+        } };
+        for ( const auto &input: dispatch.mTextures ) {
+            auto *texture{ CacheResource( input.mTexture ) };
+            resources.AddItem( input.mStorage ? BindingTableItem::TextureUAV( input.mSlot, texture ) : BindingTableItem::TextureSRV( input.mSlot, texture ) );
+            if ( input.mInternal && transitioned.insert( input.mTexture.mHandle ).second ) {
+                before.mTextures.push_back( barrier( texture, false, input.mStorage ) );
+                if ( !input.mStorage ) {
+                    after.mTextures.push_back( barrier( texture, true, false ) );
+                }
+            }
+        }
+        if ( !before.mTextures.empty() ) {
+            mCommands->SetBarrier( before );
+        }
+        auto resourceTable{ dispatch.mDevice->CreateBindingTable( resources, dispatch.mResourceLayout ) };
+        constants.AddItem( BindingTableItem::ConstantBuffer( dispatch.mConstantSlot, CacheResource( dispatch.mConstants ) ) );
+        for ( core::u32 i{}; i < dispatch.mSamplers.size(); ++i ) {
+            auto sampler{ dispatch.mSamplers[i] };
+            constants.AddItem( BindingTableItem::Sampler( dispatch.mSamplerSlot + i, sampler.GetPtr() ) );
+        }
+        auto constantTable{ dispatch.mDevice->CreateBindingTable( constants, dispatch.mConstantLayout ) };
+        auto pipeline{ dispatch.mPipeline };
+        mCommands->BindPipeline( pipeline.GetPtr() );
+        mCommands->BindPipelineResources( BindResourcesDescription{}
+                .SetPipelineLayout( dispatch.mPipeline->GetPipelineLayout().GetPtr() )
+                .SetBindPoint( PipelineType::eCompute )
+                .AddResourceSet( 0, resourceTable.GetPtr() )
+                .AddResourceSet( 1, constantTable.GetPtr() ) );
+        mCommands->Dispatch( dispatch.mGroups.x, dispatch.mGroups.y, dispatch.mGroups.z );
+        if ( !after.mTextures.empty() ) {
+            mCommands->SetBarrier( after );
+        }
     }
 
     auto CommandContext::DispatchRays( core::u32 width, core::u32 height ) -> void {
@@ -840,28 +895,28 @@ namespace mikoto::renderer {
 
         MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
 
-        renderer::rhi::IBuffer* srcResource{ CacheResource( srcBuffer ) };
-        renderer::rhi::IBuffer* dstResource{ CacheResource( dstBuffer ) };
+        renderer::rhi::IBuffer *srcResource{ CacheResource( srcBuffer ) };
+        renderer::rhi::IBuffer *dstResource{ CacheResource( dstBuffer ) };
 
         mCommands->Copy( srcResource, dstResource );
     }
 
-    auto CommandContext::CopyBuffer( FGBufferHandle dstBuffer, renderer::rhi::IBuffer* src, core::usize dstOffset ) -> void {
+    auto CommandContext::CopyBuffer( FGBufferHandle dstBuffer, renderer::rhi::IBuffer *src, core::usize dstOffset ) -> void {
         MKT_BEGIN_PROFILER();
 
         MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
 
-        renderer::rhi::IBuffer* resource{ CacheResource( dstBuffer ) };
+        renderer::rhi::IBuffer *resource{ CacheResource( dstBuffer ) };
 
         mCommands->Copy( src, resource, dstOffset );
     }
 
-    auto CommandContext::CopyBuffer( FGBufferHandle dstBuffer, core::usize offset, const void* ptr, core::usize sizeBytes ) -> void {
+    auto CommandContext::CopyBuffer( FGBufferHandle dstBuffer, core::usize offset, const void *ptr, core::usize sizeBytes ) -> void {
         MKT_BEGIN_PROFILER();
 
         MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
 
-        renderer::rhi::IBuffer* buffer{ CacheResource( dstBuffer ) };
+        renderer::rhi::IBuffer *buffer{ CacheResource( dstBuffer ) };
         mCommands->Write( buffer, offset, ptr, sizeBytes );
     }
 
@@ -870,20 +925,20 @@ namespace mikoto::renderer {
 
         MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
 
-        renderer::rhi::IBuffer* buffer{ CacheResource( dstBuffer ) };
-        renderer::rhi::ITexture* image{ CacheResource( srcImage ) };
+        renderer::rhi::IBuffer *buffer{ CacheResource( dstBuffer ) };
+        renderer::rhi::ITexture *image{ CacheResource( srcImage ) };
 
         mCommands->Copy( buffer, image );
     }
 
-    auto CommandContext::CopyTexture( FGTextureHandle destImage, const void* data, core::usize size ) -> void {
+    auto CommandContext::CopyTexture( FGTextureHandle destImage, const void *data, core::usize size ) -> void {
         MKT_BEGIN_PROFILER();
         MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
-        renderer::rhi::ITexture* image{ CacheResource( destImage ) };
+        renderer::rhi::ITexture *image{ CacheResource( destImage ) };
         mCommands->Write( image, data, size );
     }
 
-    auto CommandContext::CopyTexture( FGTextureHandle source, const renderer::rhi::TextureSlice& sourceSlice, FGTextureHandle destination, const renderer::rhi::TextureSlice& destinationSlice ) -> void {
+    auto CommandContext::CopyTexture( FGTextureHandle source, const renderer::rhi::TextureSlice &sourceSlice, FGTextureHandle destination, const renderer::rhi::TextureSlice &destinationSlice ) -> void {
         MKT_BEGIN_PROFILER();
         MKT_ASSERT( source.mHandle != destination.mHandle, "Whole-resource copy barriers require distinct textures" );
         MKT_ASSERT( sourceSlice.mWidth == destinationSlice.mWidth && sourceSlice.mHeight == destinationSlice.mHeight && sourceSlice.mDepth == destinationSlice.mDepth,
@@ -895,7 +950,7 @@ namespace mikoto::renderer {
         mCommands->Build( structure.GetPtr() );
     }
 
-    auto CommandContext::CopyBuffer( rhi::BufferHandle destination, core::usize offset, const void* data, core::usize sizeBytes ) -> void {
+    auto CommandContext::CopyBuffer( rhi::BufferHandle destination, core::usize offset, const void *data, core::usize sizeBytes ) -> void {
         MKT_BEGIN_PROFILER();
         mCommands->Write( destination.GetPtr(), offset, data, sizeBytes );
     }
@@ -903,23 +958,23 @@ namespace mikoto::renderer {
     auto CommandContext::CopyTexture( FGTextureHandle source, rhi::TextureHandle destination ) -> void {
         MKT_BEGIN_PROFILER();
 
-        auto* texture{ CacheResource( source ) };
+        auto *texture{ CacheResource( source ) };
 
         MKT_ASSERT( texture != destination.GetPtr(), "Texture copies require distinct resources." );
-        MKT_ASSERT( texture->GetWidth() == destination->GetWidth() && texture->GetHeight() == destination->GetHeight(), "Texture copy extents must match." );
+        MKT_ASSERT( texture->GetWidth() == destination->GetWidth() && texture->GetHeight() == destination->GetHeight() && texture->GetDepth() == destination->GetDepth(), "Texture copy extents must match." );
 
         // A private history copy is part of this pass. Restore its declared state
         // afterwards, but discard old shader-only scopes because a copy also ran.
         const auto state{ texture->GetResourceState() };
         mResourceManager->Get( source.mHandle ).mBarrierHistory = {};
 
-        const rhi::TextureSlice slice{ .mWidth = texture->GetWidth(), .mHeight = texture->GetHeight() };
+        const rhi::TextureSlice slice{ .mWidth = texture->GetWidth(), .mHeight = texture->GetHeight(), .mDepth = texture->GetDepth() };
         mCommands->Copy( texture, slice, destination.GetPtr(), slice );
     }
 
     auto CommandContext::ResolveTexture( FGTextureHandle source, FGTextureHandle destination ) -> void {
-        auto* src{ CacheResource( source ) };
-        auto* dst{ CacheResource( destination ) };
+        auto *src{ CacheResource( source ) };
+        auto *dst{ CacheResource( destination ) };
 
         MKT_ASSERT( src->GetWidth() == dst->GetWidth() && src->GetHeight() == dst->GetHeight(), "Resolve extents must match" );
 
@@ -936,14 +991,14 @@ namespace mikoto::renderer {
 
         if ( itFind == mCachedBda.end() ) {
             FGResource resource{ mResourceManager->Get( handle.mHandle ) };
-            renderer::rhi::IBuffer* buffer{ core::checked_cast<renderer::rhi::IBuffer*>( resource.mResource.GetPtr() ) };
+            renderer::rhi::IBuffer *buffer{ core::checked_cast<renderer::rhi::IBuffer *>( resource.mResource.GetPtr() ) };
             itFind = mCachedBda.try_emplace( itFind, handle.mHandle, buffer->GetShaderDeviceAddress() );
         }
 
         return itFind->second;
     }
 
-    auto CommandContext::CacheResource( FGBufferHandle handle ) -> renderer::rhi::IBuffer* {
+    auto CommandContext::CacheResource( FGBufferHandle handle ) -> renderer::rhi::IBuffer * {
         MKT_BEGIN_PROFILER();
 
         MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
@@ -952,14 +1007,14 @@ namespace mikoto::renderer {
 
         if ( itFind == mCachedBuffers.end() ) {
             FGResource resource{ mResourceManager->Get( handle.mHandle ) };
-            renderer::rhi::IBuffer* buffer{ core::checked_cast<renderer::rhi::IBuffer*>( resource.mResource.GetPtr() ) };
+            renderer::rhi::IBuffer *buffer{ core::checked_cast<renderer::rhi::IBuffer *>( resource.mResource.GetPtr() ) };
             itFind = mCachedBuffers.try_emplace( itFind, handle.mHandle, buffer );
         }
 
         return itFind->second;
     }
 
-    auto CommandContext::CacheResource( FGTextureHandle handle ) -> renderer::rhi::ITexture* {
+    auto CommandContext::CacheResource( FGTextureHandle handle ) -> renderer::rhi::ITexture * {
         MKT_BEGIN_PROFILER();
 
         MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
@@ -968,14 +1023,14 @@ namespace mikoto::renderer {
 
         if ( itFind == mCachedTextures.end() ) {
             FGResource resource{ mResourceManager->Get( handle.mHandle ) };
-            renderer::rhi::ITexture* texture{ core::checked_cast<renderer::rhi::ITexture*>( resource.mResource.GetPtr() ) };
+            renderer::rhi::ITexture *texture{ core::checked_cast<renderer::rhi::ITexture *>( resource.mResource.GetPtr() ) };
             itFind = mCachedTextures.try_emplace( itFind, handle.mHandle, texture );
         }
 
         return itFind->second;
     }
 
-    auto DrawIndirectState::SetFirstDraw( core::u32 first ) -> DrawIndirectState& {
+    auto DrawIndirectState::SetFirstDraw( core::u32 first ) -> DrawIndirectState & {
         MKT_BEGIN_PROFILER();
         mFirstDraw = first;
         return *this;
@@ -1005,23 +1060,23 @@ namespace mikoto::renderer {
         mUploads.clear();
     }
 
-    auto BufferUploadBatch::CopyBuffer( FGBufferHandle buffer, core::usize offset, const void* data, core::usize sizeBytes ) -> void {
+    auto BufferUploadBatch::CopyBuffer( FGBufferHandle buffer, core::usize offset, const void *data, core::usize sizeBytes ) -> void {
         if ( sizeBytes == 0 ) {
             return;
         }
 
         MKT_ASSERT( data, "A nonempty upload requires CPU data" );
         Upload upload{ .mBuffer = buffer, .mOffset = offset };
-        const auto* bytes{ static_cast<const core::ubyte*>( data ) };
+        const auto *bytes{ static_cast<const core::ubyte *>( data ) };
         upload.mBytes.assign( bytes, bytes + sizeBytes );
         mUploads.push_back( eastl::move( upload ) );
     }
 
-    auto BufferUploadBatch::Submit( CommandContext& context ) -> void {
-        for ( const auto& upload: mUploads ) {
+    auto BufferUploadBatch::Submit( CommandContext &context ) -> void {
+        for ( const auto &upload: mUploads ) {
             context.CopyBuffer( upload.mBuffer, upload.mOffset, upload.mBytes.data(), upload.mBytes.size() );
         }
 
         Clear();
     }
-}
+}// namespace mikoto::renderer

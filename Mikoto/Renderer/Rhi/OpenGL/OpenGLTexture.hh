@@ -15,8 +15,8 @@
 #ifndef MIKOTO_RENDERER_RHI_OPENGL_OPENGL_TEXTURE_HH
 #define MIKOTO_RENDERER_RHI_OPENGL_OPENGL_TEXTURE_HH
 
-#include <Renderer/Rhi/Texture.hh>
 #include <Renderer/Rhi/OpenGL/OpenGLDevice.hh>
+#include <Renderer/Rhi/Texture.hh>
 
 namespace mikoto::renderer::opengl {
 
@@ -25,16 +25,16 @@ namespace mikoto::renderer::opengl {
     public:
         Sampler( const renderer::rhi::SamplerCreateDescription &desc, eastl::shared_ptr<DeviceState> state );
 
-        auto GetMinFilter() const -> rhi::SamplerFilter override;
-        auto GetMagFilter() const -> rhi::SamplerFilter override;
+        MKT_NODISCARD auto GetMinFilter() const -> rhi::SamplerFilter override;
+        MKT_NODISCARD auto GetMagFilter() const -> rhi::SamplerFilter override;
 
-        auto GetWrapU() const -> rhi::SamplerWrapMode override;
-        auto GetWrapV() const -> rhi::SamplerWrapMode override;
-        auto GetWrapW() const -> rhi::SamplerWrapMode override;
+        MKT_NODISCARD auto GetWrapU() const -> rhi::SamplerWrapMode override;
+        MKT_NODISCARD auto GetWrapV() const -> rhi::SamplerWrapMode override;
+        MKT_NODISCARD auto GetWrapW() const -> rhi::SamplerWrapMode override;
 
-        auto GetMipLevels() const -> float override;
+        MKT_NODISCARD auto GetMipLevels() const -> float override;
 
-        auto GetNativeHandle( renderer::rhi::ObjectType type ) -> renderer::rhi::Object override;
+        MKT_NODISCARD auto GetNativeHandle( renderer::rhi::ObjectType type ) -> renderer::rhi::Object override;
 
         auto Name() const -> GLuint;
 
@@ -65,22 +65,23 @@ namespace mikoto::renderer::opengl {
     public:
         Texture( const renderer::rhi::TextureCreateDescription &desc, eastl::shared_ptr<DeviceState> state, GLuint native = 0 );
 
-        auto GetSizeBytes() const -> core::usize override;
-        auto GetStorageSizeBytes() const -> core::usize override;
+        MKT_NODISCARD auto GetSizeBytes() const -> core::usize override;
+        MKT_NODISCARD auto GetStorageSizeBytes() const -> core::usize override;
 
-        auto GetFormat() const -> rhi::Format override;
+        MKT_NODISCARD auto GetFormat() const -> rhi::Format override;
 
-        auto GetWidth() const -> core::u32 override;
-        auto GetHeight() const -> core::u32 override;
-        auto GetTextureUsage() const -> rhi::TextureUsageFlags override;
+        MKT_NODISCARD auto GetWidth() const -> core::u32 override;
+        MKT_NODISCARD auto GetHeight() const -> core::u32 override;
+        MKT_NODISCARD auto GetDepth() const -> core::u32 override;
+        MKT_NODISCARD auto GetTextureUsage() const -> rhi::TextureUsageFlags override;
 
-        auto GetImage() const -> asset::ImageHandle override;
+        MKT_NODISCARD auto GetImage() const -> asset::ImageHandle override;
 
-        auto GetDimension() const -> rhi::TextureDimension override;
-        auto GetSampleCount() const -> rhi::Multisampling override;
-        auto GetMipLevelCount() const -> core::u32 override;
+        MKT_NODISCARD auto GetDimension() const -> rhi::TextureDimension override;
+        MKT_NODISCARD auto GetSampleCount() const -> rhi::Multisampling override;
+        MKT_NODISCARD auto GetMipLevelCount() const -> core::u32 override;
 
-        auto GetNativeHandle( renderer::rhi::ObjectType type ) -> renderer::rhi::Object override;
+        MKT_NODISCARD auto GetNativeHandle( renderer::rhi::ObjectType type ) -> renderer::rhi::Object override;
 
         auto Name() const -> GLuint;
 
@@ -94,6 +95,7 @@ namespace mikoto::renderer::opengl {
         auto Attach( GLuint framebuffer, GLenum attachment, const renderer::rhi::TextureSubresourceSet &subresources ) const -> void;
 
         ~Texture() override;
+
     private:
         // Cached views of the texture's subresources.
         struct View {
@@ -108,9 +110,9 @@ namespace mikoto::renderer::opengl {
         auto Destroy() -> void override;
 
     private:
-
         core::u32 mWidth{};
         core::u32 mHeight{};
+        core::u32 mDepth{ 1 };
         core::u32 mMipCount{ 1 };
 
         asset::ImageHandle mImageData{};

@@ -1,0 +1,41 @@
+{
+  "Version": 1,
+  "Project": "GrassFlow_Meadow",
+  "Assets": "Assets",
+  "Cache": "Assets/.cache",
+  "Scene": "Scene/GrassFlow_Meadow.mktscn",
+  "CompressTextures": false,
+  "AutoSave": false,
+  "Renderer": {
+    "Version": 1,
+    "Resolution": 1,
+    "Samples": 1,
+    "PathTracing": false,
+    "RayTracedAmbientOcclusion": false,
+    "SsaoEnabled": true,
+    "ShadowDistance": 300,
+    "BloomEnabled": false
+  },
+  "EditorCamera": {
+    "NavigationMode": "Fly",
+    "Position": [
+      -34,
+      7,
+      68
+    ],
+    "Direction": [
+      0.35,
+      -0.08,
+      -0.933
+    ],
+    "Projection": "Perspective",
+    "FieldOfView": 60,
+    "NearPlane": 0.1,
+    "FarPlane": 1000,
+    "MovementSpeed": 8,
+    "RotationSpeed": 10,
+    "SmoothTime": 0.1,
+    "AllowPitch": true,
+    "AllowYaw": true
+  }
+}

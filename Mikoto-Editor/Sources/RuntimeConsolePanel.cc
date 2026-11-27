@@ -315,7 +315,7 @@ namespace mikoto::editor {
         ImGui::Separator();
 
         {
-            imgui::ImGuiScopedTextFont font{ imgui::ImGuiService::Get()->PushFont( "./Resources/Fonts/Google_Sans_Code/static/GoogleSansCode-Light.ttf" ) };
+            imgui::ImGuiScopedTextFont font{ imgui::ImGuiService::Get()->PushConsoleFont() };
             const auto previousNextID{ mNextLogID };
             UpdateLogCache( filterChanged );
 

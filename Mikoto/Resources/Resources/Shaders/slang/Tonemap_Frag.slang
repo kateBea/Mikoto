@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Map HDR scene radiance into the display range with the selected tone mapper. Exposure, gamma
+// and optional bloom composition are applied according to the pass settings.
+
 #pragma once
 
 #include "base/Base.slang"
@@ -21,33 +24,33 @@
 #include "base/Tonemap_Helpers.slang"
 
 struct FSOutput {
-    float4 Color : SV_Target0;
+    float4 mColor : SV_Target0;
 };
 
 struct FSInput {
-    float2 UV : TEXCOORD0;
+    float2 mUV : TEXCOORD0;
 };
 
 struct TonemapParameters {
-    float Exposure;
-    float Gamma;
+    float mExposure;
+    float mGamma;
 
-    int ToneMapType;
+    int mToneMapType;
 };
 
 struct DrawParams {
-    uint TextureSamplerID;
-    uint BasicSamplerID;
+    uint mTextureSamplerID;
+    uint mBasicSamplerID;
 
-    float Exposure;
-    float Gamma;
+    float mExposure;
+    float mGamma;
 
-    int ToneMapType;
-    uint BloomImageID;
-    uint BloomSamplerID;
-    float BloomIntensity;
-    uint BloomEnabled;
-    uint VisualizeDepthOfField;
+    int mToneMapType;
+    uint mBloomImageID;
+    uint mBloomSamplerID;
+    float mBloomIntensity;
+    uint mBloomEnabled;
+    uint mVisualizeDepthOfField;
 };
 
 MKT_DECLARE_SAMPLERS samplers;
@@ -59,22 +62,22 @@ MKT_DECLARE_PUSH_CONSTANT( DrawParams, parameters );
 FSOutput main( FSInput input ) {
     FSOutput output;
 
-    Texture2D texture = textures[parameters.TextureSamplerID];
-    SamplerState sampler = samplers[parameters.BasicSamplerID];
+    Texture2D texture = textures[parameters.mTextureSamplerID];
+    SamplerState sampler = samplers[parameters.mBasicSamplerID];
 
-    float4 color = texture.Sample( sampler, input.UV );
-    if ( parameters.VisualizeDepthOfField != 0 ) {
-        output.Color = color;
+    float4 color = texture.Sample( sampler, input.mUV );
+    if ( parameters.mVisualizeDepthOfField != 0 ) {
+        output.mColor = color;
         return output;
     }
 
-    if ( parameters.BloomEnabled != 0 ) {
+    if ( parameters.mBloomEnabled != 0 ) {
         float3 bloom =
-                textures[parameters.BloomImageID].SampleLevel( samplers[parameters.BloomSamplerID], input.UV, 0 ).rgb;
-        color = BloomComposite( color, bloom, parameters.BloomIntensity );
+                textures[parameters.mBloomImageID].SampleLevel( samplers[parameters.mBloomSamplerID], input.mUV, 0 ).rgb;
+        color = BloomComposite( color, bloom, parameters.mBloomIntensity );
     }
 
-    output.Color = ApplyToneMapping( color, parameters.ToneMapType, parameters.Exposure, parameters.Gamma );
+    output.mColor = ApplyToneMapping( color, parameters.mToneMapType, parameters.mExposure, parameters.mGamma );
 
     return output;
 }

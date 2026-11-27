@@ -20,29 +20,30 @@
 #include <glm/gtc/constants.hpp>
 #include <glm/gtx/compatibility.hpp>
 
+#include <Animation/AnimationSystem.hh>
+#include <Animation/SkinningPalette.hh>
+#include <Animation/Utility.hh>
+
 #include <Core/Core.hh>
-#include <Core/Types.hh>
 #include <Core/Profiler.hh>
+#include <Core/Types.hh>
 
 #include <Math/Math.hh>
 #include <Math/Random.hh>
-
-#include <Animation/Utility.hh>
-#include <Animation/AnimationSystem.hh>
-#include <Animation/SkinningPalette.hh>
 
 #include <Physics/PhysicSystem.hh>
 
 #include <Renderer/Core/CommandContext.hh>
 #include <Renderer/ForwardRenderer/Passes/CameraModule.hh>
-#include <Renderer/ForwardRenderer/Passes/PrepassModule.hh>
-#include <Renderer/ForwardRenderer/Passes/PostProcessModule.hh>
 #include <Renderer/ForwardRenderer/Passes/DebugOverlayModule.hh>
-#include <Renderer/ForwardRenderer/Passes/PresentationModule.hh>
 #include <Renderer/ForwardRenderer/Passes/GeometryShadingModule.hh>
+#include <Renderer/ForwardRenderer/Passes/PostProcessModule.hh>
+#include <Renderer/ForwardRenderer/Passes/PrepassModule.hh>
+#include <Renderer/ForwardRenderer/Passes/PresentationModule.hh>
 
-#include <Scene/Scene.hh>
 #include <Scene/Component.hh>
+#include <Scene/Scene.hh>
+#include <Scene/Wind.hh>
 
 namespace mikoto::renderer {
 
@@ -57,27 +58,27 @@ namespace mikoto::renderer {
     auto DebugOverlayModule::SetMultisampling( rhi::Multisampling multisampling ) -> void {
     }
 
-    auto DebugOverlayModule::SetScene( const scene::Scene* scene ) -> void {
+    auto DebugOverlayModule::SetScene( const scene::Scene *scene ) -> void {
         MKT_BEGIN_PROFILER();
         mScene = scene;
     }
 
-    auto DebugOverlayModule::SetCamera( const scene::Camera* camera ) -> void {
+    auto DebugOverlayModule::SetCamera( const scene::Camera *camera ) -> void {
         MKT_BEGIN_PROFILER();
         mCamera = camera;
     }
 
-    auto DebugOverlayModule::SetGeometryManager( GeometryCullModule& geom ) -> void {
+    auto DebugOverlayModule::SetGeometryManager( GeometryCullModule &geom ) -> void {
         MKT_BEGIN_PROFILER();
         mGeometryCullModule = MKT_ADDRESSOF( geom );
     }
 
-    auto DebugOverlayModule::GetSceneVolumeSettings() -> SceneVolumeSettings& {
+    auto DebugOverlayModule::GetSceneVolumeSettings() -> SceneVolumeSettings & {
         MKT_BEGIN_PROFILER();
         return mSceneVolumeSettings;
     }
 
-    auto DebugOverlayModule::GetPhysicsSettings() -> physics::PhysicsDebugDrawSettings& {
+    auto DebugOverlayModule::GetPhysicsSettings() -> physics::PhysicsDebugDrawSettings & {
         MKT_BEGIN_PROFILER();
         return mPhysicsSettings;
     }
@@ -92,7 +93,7 @@ namespace mikoto::renderer {
         return mDroppedPhysicsLines;
     }
 
-    auto DebugOverlayModule::RegisterSceneVolumes( FrameGraph& graph ) -> void {
+    auto DebugOverlayModule::RegisterSceneVolumes( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER();
         mVolumeLinesBuffer = graph.Create( FGBufferDescription{}
             .SetName( "SceneVolumes_Lines" )
@@ -118,10 +119,10 @@ namespace mikoto::renderer {
         graph.RegisterPass(
             "SceneVolumes_Upload",
             FGPassType::eTransfer,
-            [this]( FGNodeBuilder& builder, core::Blackboard& ) {
+            [this]( FGNodeBuilder &builder, core::Blackboard & ) {
                 builder.UseResource( mVolumeLinesBuffer, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
             },
-            [this]( CommandContext& ctx, core::Blackboard& ) {
+            [this]( CommandContext &ctx, core::Blackboard & ) {
                 GatherSceneVolumes();
 
                 if ( !mVolumeLines.empty() ) {
@@ -132,47 +133,167 @@ namespace mikoto::renderer {
         graph.RegisterPass(
             "DebugOverlaySceneVolumes_Render",
             FGPassType::eGraphics,
-            [this]( FGNodeBuilder& builder, core::Blackboard& b ) {
+            [this]( FGNodeBuilder &builder, core::Blackboard &b ) {
                 builder.UseResource( mVolumeLinesBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
                 builder.UseResource( b.Get<CameraModuleInfo>().mCameraData, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
                 builder.UseResource( b.Get<PrepassModuleInfo>().mPrepassDepthTarget, FGPipelineStage::eDepthTarget, FGResourceAccess::eRead );
                 builder.UseResource( b.Get<PresentationPassData>().mColorImage, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
             },
-            [this, pipeline]( CommandContext& ctx, core::Blackboard& b ) {
+            [this, pipeline]( CommandContext &ctx, core::Blackboard &b ) {
                 if ( mVolumeLines.empty() ) {
                     return;
                 }
 
                 const auto [width, height]{ InferDimensions( mResolution ) };
                 struct Parameters {
-                    SPointer lines;
-                    SPointer camera;
-                    core::float2 viewport;
-                    float lineWidth;
-                    float padding;
-                } params{ ctx.GetDeviceBufferAddress( mVolumeLinesBuffer ),
-                    ctx.GetDeviceBufferAddress( b.Get<CameraModuleInfo>().mCameraData ),
-                    core::float2{ width, height }, mSceneVolumeSettings.mLineWidth, 0 };
+                    SPointer mLines;
+                    SPointer mCamera;
+                    core::float2 mViewport;
+                    float mLineWidth;
+                    float mPadding;
+                } params{
+                    .mLines = ctx.GetDeviceBufferAddress( mVolumeLinesBuffer ),
+                    .mCamera = ctx.GetDeviceBufferAddress( b.Get<CameraModuleInfo>().mCameraData ),
+                    .mViewport = core::float2{ width, height },
+                    .mLineWidth = mSceneVolumeSettings.mLineWidth,
+                    .mPadding = 0,
+                };
                 ctx.PushConstants( params );
                 ctx.BeginRender( RenderBeginDescription{}
                     .SetRenderArea( renderer::rhi::Rect{ core::as<core::i32>( width ), core::as<core::i32>( height ) } )
                     .AddRenderTarget( b.Get<PresentationPassData>().mColorImage, renderer::rhi::Color{}, renderer::rhi::LoadOp::eLoad )
                     .AddDepthTarget( b.Get<PrepassModuleInfo>().mPrepassDepthTarget, renderer::rhi::LoadOp::eLoad ) );
                 ctx.SetViewportState( renderer::rhi::ViewportState{}
-                    .AddViewportAndScissorRect( renderer::rhi::Viewport( core::as<float>( width ), core::as<float>( height ) ) ) );
+                        .AddViewportAndScissorRect( renderer::rhi::Viewport( core::as<float>( width ), core::as<float>( height ) ) ) );
                 ctx.BindPipeline( pipeline );
                 ctx.Draw( 6, core::as<core::u32>( mVolumeLines.size() ) );
                 ctx.EndRender();
             } );
     }
 
+    auto DebugOverlayModule::GatherWindAreas() -> void {
+        const auto view{ mSceneVolumeSettings.mWindDebugView };
+
+        if ( !mScene || view == WindDebugView::eDisabled ) {
+            return;
+        }
+
+        // Use the simulation snapshot so disabled/singular areas and the area
+        // budget match physics and grass. Sampling the combined field also
+        // makes overlapping zones visible without inventing a second model.
+        const auto field{ mScene->GetWindField() };
+        constexpr core::float4 boundaryColor{ .35f, .8f, 1.0f, 1.0f };
+        constexpr core::float4 falloffColor{ .2f, .45f, .55f, 1.0f };
+        constexpr core::float4 velocityColor{ 1.0f, .8f, .25f, 1.0f };
+
+        const auto line = [this]( const core::float3 &a, const core::float3 &b, const core::float4 &color ) {
+            if ( mVolumeLines.size() < kMaxVolumeLines ) {
+                mVolumeLines.push_back( DebugLine{ { core::float4{ a, 1.0f }, color }, { core::float4{ b, 1.0f }, color } } );
+            }
+        };
+
+        const auto arrow = [&]( const core::float3 &origin, core::f32 length ) {
+            const auto velocity{ scene::SampleWind( field, origin ) };
+            const float speed{ glm::length( velocity ) };
+
+            if ( speed < .001f ) {
+                return;
+            }
+
+            const auto direction{ velocity / speed };
+            const auto side{ glm::normalize( glm::cross( direction, glm::abs( direction.y ) > .9f ? core::float3{ 0, 0, 1 } : core::float3{ 0, 1, 0 } ) ) };
+            const float size{ length * glm::clamp( speed / 7.0f, .1f, 1.0f ) };
+            const auto tip{ origin + direction * size };
+            line( origin, tip, velocityColor );
+            line( tip, tip - direction * size * .25f + side * size * .15f, velocityColor );
+            line( tip, tip - direction * size * .25f - side * size * .15f, velocityColor );
+        };
+
+        for ( const auto &area: field.mAreas ) {
+            const auto world{ glm::inverse( area.mWorldToLocal ) };
+            const auto shape{ static_cast<scene::WindAreaShape>( area.mControl.x ) };
+            const auto point = [&]( const core::float3 &local ) {
+                return core::float3{ world * core::float4{ local, 1.0f } };
+            };
+
+            if ( shape == scene::WindAreaShape::eDirectional ) {
+                // A global field has no finite boundary; keep its direction
+                // visible at the authored origin even in the boundaries view.
+                arrow( point( {} ), 3.0f );
+                continue;
+            }
+
+            const auto boundary = [&]( core::f32 radius, const core::float4 &color ) {
+                if ( shape == scene::WindAreaShape::eBox ) {
+                    for ( core::u32 corner{}; corner < 8; ++corner ) {
+                        const core::float3 a{ corner & 1 ? radius : -radius,
+                            corner & 2 ? radius : -radius, corner & 4 ? radius : -radius };
+
+                        for ( core::u32 axis{ 1 }; axis <= 4; axis <<= 1 ) {
+                            if ( !( corner & axis ) ) {
+                                auto b{ a };
+                                b[axis == 1 ? 0 : axis == 2 ? 1
+                                                            : 2] = radius;
+                                line( point( a ), point( b ), color );
+                            }
+                        }
+                    }
+                }
+                else {
+                    for ( core::u32 axis{}; axis < 3; ++axis ) {
+                        for ( core::u32 segment{}; segment < 48; ++segment ) {
+                            const float a{ glm::two_pi<float>() * segment / 48.0f };
+                            const float b{ glm::two_pi<float>() * ( segment + 1 ) / 48.0f };
+                            core::float3 p{};
+                            core::float3 q{};
+                            p[( axis + 1 ) % 3] = glm::cos( a ) * radius;
+                            p[( axis + 2 ) % 3] = glm::sin( a ) * radius;
+                            q[( axis + 1 ) % 3] = glm::cos( b ) * radius;
+                            q[( axis + 2 ) % 3] = glm::sin( b ) * radius;
+                            line( point( p ), point( q ), color );
+                        }
+                    }
+                }
+            };
+
+            boundary( .5f, boundaryColor );
+            const float falloff{ area.mVelocityFalloff.w };
+
+            if ( falloff > .001f && falloff < .999f ) {
+                boundary( .5f * ( 1.0f - falloff ), falloffColor );
+            }
+
+            if ( view != WindDebugView::eBoundsAndVelocity ) {
+                continue;
+            }
+
+            const float extent{ glm::min( glm::length( core::float3{ world[0] } ),
+                glm::min( glm::length( core::float3{ world[1] } ), glm::length( core::float3{ world[2] } ) ) ) };
+            const float length{ glm::clamp( extent * .16f, .25f, 8.0f ) };
+
+            for ( core::i32 z{ -1 }; z <= 1; ++z ) {
+                for ( core::i32 y{ -1 }; y <= 1; ++y ) {
+                    for ( core::i32 x{ -1 }; x <= 1; ++x ) {
+                        const core::float3 local{ core::float3{ x, y, z } * .3f };
+
+                        if ( shape != scene::WindAreaShape::eSphere || glm::length2( local ) < .25f ) {
+                            arrow( point( local ), length );
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
     auto DebugOverlayModule::GatherSceneVolumes() -> void {
         MKT_BEGIN_PROFILER();
         mVolumeLines.clear();
-        const auto& settings{ mSceneVolumeSettings };
+        const auto &settings{ mSceneVolumeSettings };
 
         if ( !mScene || !mCamera ||
-             ( !settings.mShowBounds && !settings.mShowCameraFrustums && !settings.mShowPointLightRanges && !settings.mShowSpotLightRanges ) ) {
+             ( !settings.mShowBounds && settings.mWindDebugView == WindDebugView::eDisabled &&
+                 !settings.mShowCameraFrustums && !settings.mShowPointLightRanges && !settings.mShowSpotLightRanges ) ) {
             return;
         }
 
@@ -194,11 +315,13 @@ namespace mikoto::renderer {
                     center + radius * ( right * glm::cos( b ) + up * glm::sin( b ) ), color );
             }
         };
+        GatherWindAreas();
+
         // Reuse the palette storage; only read it after a successful build.
         eastl::array<core::float4x4, asset::kMaxBonesPerMesh> palette;
 
-        for ( const auto& [id, owned]: mScene->GetEntities() ) {
-            const auto& entity{ *owned };
+        for ( const auto &[id, owned]: mScene->GetEntities() ) {
+            const auto &entity{ *owned };
 
             if ( !entity.GetComponent<scene::TagComponent>().IsActive() ) {
                 continue;
@@ -208,15 +331,15 @@ namespace mikoto::renderer {
 
             if ( settings.mShowBounds && entity.HasComponent<scene::MeshComponent>() &&
                  entity.GetComponent<scene::MeshComponent>().HasMesh() ) {
-                const auto* mesh{ entity.GetComponent<scene::MeshComponent>().GetMesh() };
+                const auto *mesh{ entity.GetComponent<scene::MeshComponent>().GetMesh() };
                 bool skinned{};
 
                 if ( entity.HasComponent<scene::SkinnedMeshRenderer>() ) {
-                    auto* animations{ animation::AnimationSystem::GetPtr() };
-                    const auto* animator{ animations ? animations->GetAnimator( entity.GetComponent<scene::SkinnedMeshRenderer>().GetAnimatorID() ) : nullptr };
+                    auto *animations{ animation::AnimationSystem::GetPtr() };
+                    const auto *animator{ animations ? animations->GetAnimator( entity.GetComponent<scene::SkinnedMeshRenderer>().GetAnimatorID() ) : nullptr };
 
                     if ( animator ) {
-                        const auto& pose{ animator->GetJointModelMatrices( mesh->GetSkinBinding().mRigIndex ) };
+                        const auto &pose{ animator->GetJointModelMatrices( mesh->GetSkinBinding().mRigIndex ) };
                         skinned = animation::BuildSkinningPalette( mesh->GetSkinBinding(), { pose.data(), pose.size() }, palette );
                     }
                 }
@@ -248,10 +371,10 @@ namespace mikoto::renderer {
             }
 
             if ( settings.mShowCameraFrustums && entity.HasComponent<scene::CameraComponent>() ) {
-                const auto& component{ entity.GetComponent<scene::CameraComponent>() };
+                const auto &component{ entity.GetComponent<scene::CameraComponent>() };
 
                 if ( component.HasCamera() ) {
-                    scene::Camera camera{ static_cast<const scene::Camera&>( component.GetCamera() ) };
+                    scene::Camera camera{ static_cast<const scene::Camera &>( component.GetCamera() ) };
 
                     if ( !component.IsAspectRatioFixed() && settings.mGameViewport.x > 0 && settings.mGameViewport.y > 0 ) {
                         camera.SetViewportSize( settings.mGameViewport.x, settings.mGameViewport.y );
@@ -286,9 +409,9 @@ namespace mikoto::renderer {
             }
 
             if ( entity.HasComponent<scene::LightComponent>() ) {
-                const auto& light{ entity.GetComponent<scene::LightComponent>() };
+                const auto &light{ entity.GetComponent<scene::LightComponent>() };
                 const core::float3 origin{ world[3] };
-                const auto& color{ boundsAndLightColor };
+                const auto &color{ boundsAndLightColor };
 
                 if ( settings.mShowPointLightRanges && light.IsTypeActive( renderer::LightType::ePoint ) ) {
                     const auto radius{ light.Get<renderer::PointLight>().GetRadius() };
@@ -301,7 +424,7 @@ namespace mikoto::renderer {
 
                     for ( core::u32 latitude{ 1 }; latitude < latitudeSteps; ++latitude ) {
                         if ( latitude == latitudeSteps / 2 ) {
-                            continue; // The equator is already drawn above.
+                            continue;// The equator is already drawn above.
                         }
 
                         const float angle{ glm::pi<float>() * ( core::as<float>( latitude ) / latitudeSteps - 0.5f ) };
@@ -310,7 +433,7 @@ namespace mikoto::renderer {
                     }
                 }
                 else if ( settings.mShowSpotLightRanges && light.IsTypeActive( renderer::LightType::eSpot ) ) {
-                    const auto& spot{ light.Get<renderer::SpotLight>() };
+                    const auto &spot{ light.Get<renderer::SpotLight>() };
                     const auto forward{ spot.GetWorldDirection( world ) };
                     const core::float3 axis{ glm::abs( forward.y ) > 0.99f ? core::float3{ 0, 0, 1 } : core::float3{ 0, 1, 0 } };
                     const auto right{ glm::normalize( glm::cross( forward, axis ) ) };
@@ -336,7 +459,7 @@ namespace mikoto::renderer {
         }
     }
 
-    auto DebugOverlayModule::RegisterPhysicsDebugger( FrameGraph& graph ) -> void {
+    auto DebugOverlayModule::RegisterPhysicsDebugger( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 #if defined( JPH_DEBUG_RENDERER )
         mPhysicsLines = graph.Create( FGBufferDescription{}
@@ -360,19 +483,19 @@ namespace mikoto::renderer {
 
         const auto depthPipeline{ graph.Create( pipelineDesc ) };
         const auto overlayPipeline{ graph.Create( pipelineDesc
-            .SetName( "PhysicsDebug_ThroughGeometry" )
-            .SetDepthTest( false ) ) };
+                .SetName( "PhysicsDebug_ThroughGeometry" )
+                .SetDepthTest( false ) ) };
 
         graph.RegisterPass(
             "PhysicsDebug_Upload",
             FGPassType::eTransfer,
-            [this]( FGNodeBuilder& builder, core::Blackboard& ) {
+            [this]( FGNodeBuilder &builder, core::Blackboard & ) {
                 builder.UseResource( mPhysicsLines, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
             },
-            [this]( CommandContext& ctx, core::Blackboard& ) {
+            [this]( CommandContext &ctx, core::Blackboard & ) {
                 mPhysicsLineCount = 0;
                 mDroppedPhysicsLines = 0;
-                auto* renderer{ physics::PhysicSystem::Get()->GetDebugRendererSimple() };
+                auto *renderer{ physics::PhysicSystem::Get()->GetDebugRendererSimple() };
 
                 if ( !renderer ) {
                     return;
@@ -385,16 +508,16 @@ namespace mikoto::renderer {
                     return;
                 }
 
-                auto* world{ mScene->GetPhysicsWorld() };
+                auto *world{ mScene->GetPhysicsWorld() };
 
                 if ( !world ) {
                     return;
                 }
 
-                const auto& cameraPosition{ mCamera->GetPosition() };
+                const auto &cameraPosition{ mCamera->GetPosition() };
                 renderer->SetCameraPos( JPH::RVec3{ cameraPosition.x, cameraPosition.y, cameraPosition.z } );
                 world->DrawPhysics( renderer, mPhysicsSettings );
-                const auto& lines{ renderer->GetLines() };
+                const auto &lines{ renderer->GetLines() };
                 mPhysicsLineCount = core::as<core::u32>( lines.size() );
                 mDroppedPhysicsLines = renderer->GetDroppedLineCount();
 
@@ -406,25 +529,30 @@ namespace mikoto::renderer {
         graph.RegisterPass(
             "DebugOverlayColliders_Render",
             FGPassType::eGraphics,
-            [this]( FGNodeBuilder& builder, core::Blackboard& b ) {
+            [this]( FGNodeBuilder &builder, core::Blackboard &b ) {
                 builder.UseResource( mPhysicsLines, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
                 builder.UseResource( b.Get<CameraModuleInfo>().mCameraData, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
                 builder.UseResource( b.Get<PrepassModuleInfo>().mPrepassDepthTarget, FGPipelineStage::eDepthTarget, FGResourceAccess::eRead );
                 builder.UseResource( b.Get<PresentationPassData>().mColorImage, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
             },
-            [this, depthPipeline, overlayPipeline]( CommandContext& ctx, core::Blackboard& b ) {
+            [this, depthPipeline, overlayPipeline]( CommandContext &ctx, core::Blackboard &b ) {
                 if ( !mPhysicsSettings.mEnabled || mPhysicsLineCount == 0 ) {
                     return;
                 }
 
                 struct Parameters {
-                    SPointer lines;
-                    SPointer camera;
-                    core::float2 viewport;
-                    float lineWidth;
-                    float padding;
-                } params{ ctx.GetDeviceBufferAddress( mPhysicsLines ), ctx.GetDeviceBufferAddress( b.Get<CameraModuleInfo>().mCameraData ),
-                    core::float2{ InferDimensions( mResolution ).first, InferDimensions( mResolution ).second }, mPhysicsSettings.mLineWidth, 0 };
+                    SPointer mLines;
+                    SPointer mCamera;
+                    core::float2 mViewport;
+                    float mLineWidth;
+                    float mPadding;
+                } params{
+                    .mLines = ctx.GetDeviceBufferAddress( mPhysicsLines ),
+                    .mCamera = ctx.GetDeviceBufferAddress( b.Get<CameraModuleInfo>().mCameraData ),
+                    .mViewport = core::float2{ InferDimensions( mResolution ).first, InferDimensions( mResolution ).second },
+                    .mLineWidth = mPhysicsSettings.mLineWidth,
+                    .mPadding = 0,
+                };
                 ctx.PushConstants( params );
                 const auto [width, height]{ InferDimensions( mResolution ) };
                 ctx.BeginRender( RenderBeginDescription{}
@@ -433,7 +561,7 @@ namespace mikoto::renderer {
                     .AddDepthTarget( b.Get<PrepassModuleInfo>().mPrepassDepthTarget, renderer::rhi::LoadOp::eLoad ) );
                 ctx
                     .SetViewportState( renderer::rhi::ViewportState{}
-                        .AddViewportAndScissorRect( renderer::rhi::Viewport( core::as<float>( width ), core::as<float>( height ) ) ) );
+                            .AddViewportAndScissorRect( renderer::rhi::Viewport( core::as<float>( width ), core::as<float>( height ) ) ) );
                 ctx.BindPipeline( mPhysicsSettings.mShowThroughGeometry ? overlayPipeline : depthPipeline );
                 ctx.Draw( 6, mPhysicsLineCount );
                 ctx.EndRender();

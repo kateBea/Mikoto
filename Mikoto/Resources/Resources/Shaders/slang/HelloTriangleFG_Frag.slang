@@ -12,14 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Write the interpolated color of the frame-graph example triangle. This is a diagnostic
+// graphics pass rather than a lit scene material.
+
 #pragma once
 
 struct FSInput {
-    float4 position : SV_POSITION;
-    float3 color : COLOR;
+    float4 mPosition : SV_POSITION;
+    float3 mColor : COLOR;
 };
 
 [shader( "fragment" )]
 float4 main( FSInput input ) : SV_Target {
-    return float4( input.color, 1.0 );
+    return float4( input.mColor, 1.0 );
 }

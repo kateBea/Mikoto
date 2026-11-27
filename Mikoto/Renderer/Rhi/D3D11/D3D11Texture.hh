@@ -15,23 +15,23 @@
 #ifndef MIKOTO_RENDERER_RHI_D3D11_D3D11_TEXTURE_HH
 #define MIKOTO_RENDERER_RHI_D3D11_D3D11_TEXTURE_HH
 
-#include <Core/Core.hh>
-#include <Core/Types.hh>
-#include <Core/Platform.hh>
-
 #include <Assets/Image.hh>
 
-#include <Renderer/Rhi/Types.hh>
+#include <Core/Core.hh>
+#include <Core/Platform.hh>
+#include <Core/Types.hh>
+
 #include <Renderer/Rhi/Texture.hh>
+#include <Renderer/Rhi/Types.hh>
 
-#if defined(MIKOTO_PLATFORM_WINDOWS)
-
-#include <Platform/Windows/Windows.hh>
+#if defined( MIKOTO_PLATFORM_WINDOWS )
 
 #include <d3d11.h>
 #include <d3dcommon.h>
 #include <dxgi1_3.h>
 #include <wrl.h>
+
+#include <Platform/Windows/Windows.hh>
 
 #include <Renderer/Rhi/D3D11/Direct3D11Libraries.hh>
 
@@ -39,15 +39,16 @@ namespace mikoto::renderer::d3d11 {
 
     class Sampler final : public rhi::ISampler {
     public:
-        auto GetMinFilter() const -> rhi::SamplerFilter override;
-        auto GetMagFilter() const -> rhi::SamplerFilter override;
-        auto GetWrapU() const -> rhi::SamplerWrapMode override;
-        auto GetWrapV() const -> rhi::SamplerWrapMode override;
-        auto GetWrapW() const -> rhi::SamplerWrapMode override;
-        auto GetMipLevels() const -> float override;
+        MKT_NODISCARD auto GetMinFilter() const -> rhi::SamplerFilter override;
+        MKT_NODISCARD auto GetMagFilter() const -> rhi::SamplerFilter override;
+        MKT_NODISCARD auto GetWrapU() const -> rhi::SamplerWrapMode override;
+        MKT_NODISCARD auto GetWrapV() const -> rhi::SamplerWrapMode override;
+        MKT_NODISCARD auto GetWrapW() const -> rhi::SamplerWrapMode override;
+        MKT_NODISCARD auto GetMipLevels() const -> float override;
 
     private:
         float mMipLevels{ 1.0f };
+        float mMaxAnisotropy{ 1.0f };
 
         rhi::SamplerFilter mMinFilter{ rhi::SamplerFilter::eNearest };
         rhi::SamplerFilter mMagFilter{ rhi::SamplerFilter::eNearest };
@@ -58,7 +59,7 @@ namespace mikoto::renderer::d3d11 {
         rhi::Color mBorderColor{};
 
     public:
-        explicit Sampler( const rhi::SamplerCreateDescription& desc );
+        explicit Sampler( const rhi::SamplerCreateDescription &desc );
 
         auto SetDebugName( const eastl::string_view name ) -> void override;
 
@@ -75,15 +76,18 @@ namespace mikoto::renderer::d3d11 {
         Microsoft::WRL::ComPtr<ID3D11SamplerState> mSampler{};
     };
 
-    class Texture final : public renderer::rhi::ITexture  {
+    class Texture final : public renderer::rhi::ITexture {
     public:
-        explicit Texture( const renderer::rhi::TextureCreateDescription& data );
+        explicit Texture( const renderer::rhi::TextureCreateDescription &data );
+
+        auto SetDebugName( eastl::string_view name ) -> void override;
 
         MKT_NODISCARD auto GetStorageSizeBytes() const -> core::usize override;
 
         MKT_NODISCARD auto GetFormat() const -> rhi::Format override;
         MKT_NODISCARD auto GetWidth() const -> core::u32 override;
         MKT_NODISCARD auto GetHeight() const -> core::u32 override;
+        MKT_NODISCARD auto GetDepth() const -> core::u32 override;
 
         MKT_NODISCARD auto GetTextureUsage() const -> rhi::TextureUsageFlags override;
 
@@ -96,15 +100,13 @@ namespace mikoto::renderer::d3d11 {
 
         MKT_NODISCARD auto GetMipLevelCount() const -> core::u32 override;
 
-        auto SetDebugName( eastl::string_view name ) -> void override;
-
         MKT_NODISCARD auto GetNativeHandle( renderer::rhi::ObjectType type ) -> renderer::rhi::Object override;
         MKT_NODISCARD auto GetNativeHandle( renderer::rhi::ObjectType type ) const -> renderer::rhi::Object override;
 
         auto EnableUsage( renderer::rhi::ResourceStates state ) -> void;
 
-        MKT_NODISCARD operator ID3D11Resource*() const;
-        MKT_NODISCARD operator ID3D11RenderTargetView*() const;
+        MKT_NODISCARD operator ID3D11Resource *() const;
+        MKT_NODISCARD operator ID3D11RenderTargetView *() const;
 
         ~Texture() override;
 
@@ -115,6 +117,7 @@ namespace mikoto::renderer::d3d11 {
     private:
         core::u32 mWidth{};
         core::u32 mHeight{};
+        core::u32 mDepth{ 1 };
         core::u32 mMipCount{ 1 };
 
         asset::ImageHandle mImageData{};
@@ -135,9 +138,8 @@ namespace mikoto::renderer::d3d11 {
 
         bool mKeepInitializerResources{ false };
     };
-}
+}// namespace mikoto::renderer::d3d11
 
 #endif
 
 #endif// MIKOTO_RENDERER_RHI_D3D11_D3D11_TEXTURE_HH
-

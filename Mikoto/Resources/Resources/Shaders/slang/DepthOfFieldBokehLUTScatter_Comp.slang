@@ -12,12 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Build inverse-radius and area data for aperture normalization. Later depth-of-field stages
+// use the same aperture model for gathering and coverage.
+
 #include "base/DepthOfField_Helpers.slang"
 
 MKT_DECLARE_PUSH_CONSTANT( DepthOfFieldParameters, parameters );
 
 [shader( "compute" )]
-[numthreads( 8, 8, 1 )]
+[numthreads( kImageGroupWidth, kImageGroupHeight, 1 )]
 void main( uint3 thread : SV_DispatchThreadID ) {
     if ( any( thread.xy >= uint2( parameters.mTargetWidth, parameters.mTargetHeight ) ) ) { return; }
     float2 disk = ( float2( thread.xy ) + 0.5 ) / float2( parameters.mTargetWidth, parameters.mTargetHeight ) * 2.0 - 1.0;

@@ -29,7 +29,9 @@
 #include <Scene/Entity.hh>
 #include <Scene/Component.hh>
 
+#include <Physics/ContactEvents.hh>
 #include <Scripting/ScriptingService.hh>
+
 #include <Scripting/Native/NativeScript.hh>
 
 namespace mikoto::scripting {
@@ -267,6 +269,15 @@ namespace mikoto::scripting {
         if ( mRunning && !mUpdateFailed && ApplyProperties() && !mModule->mApi->mUpdate( mInstance, timeStep ) ) {
             mUpdateFailed = true;
             MKT_CORE_LOGGER_ERROR( "OnUpdate failed in native script '{}'.", mFile->GetPath().GetC_Str() );
+        }
+    }
+
+    auto NativeScript::OnPhysicsEvent( const physics::ContactEvent &event, scene::Entity &other ) -> void {
+        if ( mRunning && !mUpdateFailed &&
+             !mModule->mApi->mPhysicsEvent( mInstance, static_cast<native::PhysicsEvent>( event.GetCallbackIndex() ),
+                 { other.GetComponent<scene::TagComponent>().GetGuid() } ) ) {
+            mUpdateFailed = true;
+            MKT_CORE_LOGGER_ERROR( "{} failed in native script '{}'.", event.GetCallbackName(), mFile->GetPath().GetC_Str() );
         }
     }
 

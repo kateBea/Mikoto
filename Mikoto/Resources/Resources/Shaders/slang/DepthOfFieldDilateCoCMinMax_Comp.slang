@@ -12,17 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Expand the largest near/far blur extents into neighboring tiles. A source tile contributes
+// only when its blur disk can reach the destination tile.
+
 #include "base/DepthOfField_Helpers.slang"
 
 MKT_DECLARE_PUSH_CONSTANT( DepthOfFieldParameters, parameters );
 
 [shader( "compute" )]
-[numthreads( 8, 8, 1 )]
+[numthreads( kImageGroupWidth, kImageGroupHeight, 1 )]
 void main( uint3 thread : SV_DispatchThreadID ) {
     int2 tile = int2( thread.xy );
     if ( any( thread.xy >= uint2( parameters.mTargetWidth, parameters.mTargetHeight ) ) ) { return; }
     float4 bounds = DoFLoad( parameters.mInputs[0], tile );
-    int radius = int( ceil( parameters.mMaxRadius * 0.5 / 8.0 ) ) + 1;
+    int radius = int( ceil( parameters.mMaxRadius * 0.5 / float( kDoFTileSize ) ) ) + 1;
     for ( int y = -radius; y <= radius; ++y ) {
         for ( int x = -radius; x <= radius; ++x ) {
             int2 source = tile + int2( x, y );

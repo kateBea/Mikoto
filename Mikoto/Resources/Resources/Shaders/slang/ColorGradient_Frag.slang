@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Apply the configured color grading and saturation to the input image. The sampled scene color
+// is transformed before being written to the effect target.
+
 #pragma once
 
 #include "base/Base.slang"
@@ -19,11 +22,11 @@
 #include "base/Memory_Helpers.slang"
 
 struct FSOutput {
-    float4 Color : SV_Target0;
+    float4 mColor : SV_Target0;
 };
 
 struct FSInput {
-    float2 UV : TEXCOORD0;
+    float2 mUV : TEXCOORD0;
 };
 
 struct DrawParams {
@@ -59,7 +62,7 @@ FSOutput main( FSInput input ) {
     SamplerState sampler = samplers[parameters.mSamplerID];
     Texture2D finalImage = textures[parameters.mFinalImageID];
 
-    float3 color = finalImage.Sample( sampler, input.UV ).rgb;
+    float3 color = finalImage.Sample( sampler, input.mUV ).rgb;
 
     // Exposure
     color *= parameters.mExposure;
@@ -73,6 +76,6 @@ FSOutput main( FSInput input ) {
     // Tint
     color *= parameters.mTint.xyz;
 
-    o.Color = float4( color, 1.0 );
+    o.mColor = float4( color, 1.0 );
     return o;
 }

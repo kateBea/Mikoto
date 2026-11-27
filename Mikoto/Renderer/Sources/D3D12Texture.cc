@@ -13,25 +13,26 @@
 // limitations under the License.
 
 #include <Core/Core.hh>
-#include <Core/Types.hh>
+#include <Core/Exception.hh>
 #include <Core/Platform.hh>
 #include <Core/Profiler.hh>
-#include <Core/Exception.hh>
+#include <Core/Types.hh>
 
 #include <Logging/Logger.hh>
 
 #include <Memory/Allocator.hh>
 
-#include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/Texture.hh>
+#include <Renderer/Rhi/Types.hh>
 
 #if defined( MIKOTO_PLATFORM_WINDOWS )
 
-#include <Platform/Windows/Windows.hh>
-
 #include <D3D12MemAlloc.h>
+
 #include <directx/d3d12.h>
 #include <directx/d3dx12.h>
+
+#include <Platform/Windows/Windows.hh>
 
 #include <Renderer/Rhi/D3D12/D3D12Device.hh>
 #include <Renderer/Rhi/D3D12/D3D12Texture.hh>
@@ -43,7 +44,7 @@ namespace mikoto::renderer::d3d12 {
     using namespace mikoto::memory;
     using namespace mikoto::renderer::rhi;
 
-    Sampler::Sampler( const rhi::SamplerCreateDescription& desc, DeviceResources& resources )
+    Sampler::Sampler( const rhi::SamplerCreateDescription &desc, DeviceResources &resources )
         : mMipLevels{ desc.mMipLevels },
           mMinFilter{ desc.mMinFilter },
           mMagFilter{ desc.mMagFilter },
@@ -58,7 +59,10 @@ namespace mikoto::renderer::d3d12 {
         mSamplerDescription.MinLOD = 0;
         mSamplerDescription.MaxLOD = D3D12_FLOAT32_MAX;
         mSamplerDescription.MipLODBias = 0.0f;
-        mSamplerDescription.MaxAnisotropy = 1;
+        mSamplerDescription.MaxAnisotropy = static_cast<UINT>( glm::clamp( desc.mMaxAnisotropy, 1.0f, 16.0f ) );
+        if ( desc.mMaxAnisotropy > 1 && mMinFilter == rhi::SamplerFilter::eLinear && mMagFilter == rhi::SamplerFilter::eLinear ) {
+            mSamplerDescription.Filter = desc.mCompareOp == rhi::CompareOp::eNever ? D3D12_FILTER_ANISOTROPIC : D3D12_FILTER_COMPARISON_ANISOTROPIC;
+        }
         mSamplerDescription.ComparisonFunc = d3d12::GetCompareOp( desc.mCompareOp );
         mSamplerDescription.BorderColor[0] = mSamplerDescription.BorderColor[1] = mSamplerDescription.BorderColor[2] = mSamplerDescription.BorderColor[3] = 0;
     }
@@ -70,8 +74,8 @@ namespace mikoto::renderer::d3d12 {
 
     auto Sampler::AllocateSampler( D3D12_CPU_DESCRIPTOR_HANDLE handle ) -> void {
         MKT_BEGIN_PROFILER();
-        Device* device{ core::checked_cast<Device*>( mDevice ) };
-        ID3D12Device1* d3d12Device{ device->GetDevice() };
+        Device *device{ core::checked_cast<Device *>( mDevice ) };
+        ID3D12Device1 *d3d12Device{ device->GetDevice() };
         d3d12Device->CreateSampler( &mSamplerDescription, handle );
     }
 
@@ -109,9 +113,10 @@ namespace mikoto::renderer::d3d12 {
         mDebugName = name;
     }
 
-    Texture::Texture( const renderer::rhi::TextureCreateDescription& desc, DeviceResources& resources )
+    Texture::Texture( const renderer::rhi::TextureCreateDescription &desc, DeviceResources &resources )
         : mWidth{ desc.mWidth },
           mHeight{ desc.mHeight },
+          mDepth{ desc.mDimension == rhi::TextureDimension::eTexture3D ? desc.mDepth : 1u },
           mMipCount{ desc.mMipCount },
           mImageData{ desc.mImageHandle },
           mBufferSpan{ desc.mBufferSpan },
@@ -127,7 +132,7 @@ namespace mikoto::renderer::d3d12 {
         mResourceType = desc.mResourceType;
     }
 
-    Texture::Texture( const ExternalTextureDescription& info, DeviceResources& resources )
+    Texture::Texture( const ExternalTextureDescription &info, DeviceResources &resources )
         : Texture{ renderer::rhi::TextureCreateDescription{}
             .SetWidth( info.mWidth )
             .SetHeight( info.mHeight )
@@ -185,8 +190,8 @@ namespace mikoto::renderer::d3d12 {
     auto Texture::CreateSrv( core::usize descriptor, renderer::rhi::TextureSubresourceSet subResources, renderer::rhi::Format format, renderer::rhi::TextureDimension dimension ) const -> void {
         MKT_BEGIN_PROFILER();
         subResources = NormalizeSubResources( subResources );
-        Device* device{ core::checked_cast<Device*>( mDevice ) };
-        ID3D12Device2* d3d12Device{ device->GetDevice() };
+        Device *device{ core::checked_cast<Device *>( mDevice ) };
+        ID3D12Device2 *d3d12Device{ device->GetDevice() };
 
         D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc{};
 
@@ -284,8 +289,8 @@ namespace mikoto::renderer::d3d12 {
     auto Texture::CreateUav( core::usize descriptor, renderer::rhi::TextureSubresourceSet subResources, renderer::rhi::Format format, renderer::rhi::TextureDimension dimension ) const -> void {
         MKT_BEGIN_PROFILER();
         subResources = NormalizeSubResources( subResources );
-        Device* device{ core::checked_cast<Device*>( mDevice ) };
-        ID3D12Device2* d3d12Device{ device->GetDevice() };
+        Device *device{ core::checked_cast<Device *>( mDevice ) };
+        ID3D12Device2 *d3d12Device{ device->GetDevice() };
 
         D3D12_UNORDERED_ACCESS_VIEW_DESC viewDesc{};
 
@@ -341,8 +346,8 @@ namespace mikoto::renderer::d3d12 {
     auto Texture::CreateRtv( core::usize descriptor, renderer::rhi::TextureSubresourceSet subResources, renderer::rhi::Format format ) const -> void {
         MKT_BEGIN_PROFILER();
         subResources = NormalizeSubResources( subResources );
-        Device* device{ core::checked_cast<Device*>( mDevice ) };
-        ID3D12Device2* d3d12Device{ device->GetDevice() };
+        Device *device{ core::checked_cast<Device *>( mDevice ) };
+        ID3D12Device2 *d3d12Device{ device->GetDevice() };
 
         D3D12_RENDER_TARGET_VIEW_DESC viewDesc{};
 
@@ -402,8 +407,8 @@ namespace mikoto::renderer::d3d12 {
     auto Texture::CreateDsv( core::usize descriptor, renderer::rhi::TextureSubresourceSet subResources, bool isReadOnly ) const -> void {
         MKT_BEGIN_PROFILER();
         subResources = NormalizeSubResources( subResources );
-        Device* device{ core::checked_cast<Device*>( mDevice ) };
-        ID3D12Device2* d3d12Device{ device->GetDevice() };
+        Device *device{ core::checked_cast<Device *>( mDevice ) };
+        ID3D12Device2 *d3d12Device{ device->GetDevice() };
 
         D3D12_DEPTH_STENCIL_VIEW_DESC viewDesc{};
 
@@ -483,7 +488,7 @@ namespace mikoto::renderer::d3d12 {
         subresources.mNumMipLevels = 1;
         std::scoped_lock lock{ mViewMutex };
 
-        for ( const auto& view: mRenderTargetViews ) {
+        for ( const auto &view: mRenderTargetViews ) {
             if ( view.mSubResources.mBaseMipLevel == subresources.mBaseMipLevel &&
                  view.mSubResources.mBaseArraySlice == subresources.mBaseArraySlice &&
                  view.mSubResources.mNumArraySlices == subresources.mNumArraySlices && view.mReadOnly == false ) {
@@ -503,7 +508,7 @@ namespace mikoto::renderer::d3d12 {
         subresources.mNumMipLevels = 1;
         std::scoped_lock lock{ mViewMutex };
 
-        for ( const auto& view: mDepthStencilViews ) {
+        for ( const auto &view: mDepthStencilViews ) {
             if ( view.mSubResources.mBaseMipLevel == subresources.mBaseMipLevel &&
                  view.mSubResources.mBaseArraySlice == subresources.mBaseArraySlice &&
                  view.mSubResources.mNumArraySlices == subresources.mNumArraySlices && view.mReadOnly == readOnly ) {
@@ -518,7 +523,7 @@ namespace mikoto::renderer::d3d12 {
         return index;
     }
 
-    Texture::operator ID3D12Resource*() const {
+    Texture::operator ID3D12Resource *() const {
         MKT_BEGIN_PROFILER();
         return mImageAllocation.mResource.Get();
     }
@@ -538,7 +543,7 @@ namespace mikoto::renderer::d3d12 {
 
     auto Texture::Initialize() -> void {
         MKT_BEGIN_PROFILER();
-        Device* device{ core::checked_cast<Device*>( mDevice ) };
+        Device *device{ core::checked_cast<Device *>( mDevice ) };
 
         // https://asawicki.info/news_1726_secrets_of_direct3d_12_resource_alignment
         // https://logins.github.io/graphics/2020/07/31/DX12ResourceHandling.html
@@ -559,7 +564,8 @@ namespace mikoto::renderer::d3d12 {
             mImageAllocation.mDesc.Width = mWidth;
             mImageAllocation.mDesc.Height = mHeight;
             mImageAllocation.mDesc.DepthOrArraySize = static_cast<UINT16>(
-                mDimension == renderer::rhi::TextureDimension::eTextureCube ? 6u : glm::max( 1u, mSubResources.mNumArraySlices ) );
+                mDimension == rhi::TextureDimension::eTexture3D ? mDepth : mDimension == rhi::TextureDimension::eTextureCube ? 6u
+                                                                                                                             : glm::max( 1u, mSubResources.mNumArraySlices ) );
             mImageAllocation.mDesc.MipLevels = mMipCount;
             mImageAllocation.mDesc.Format = d3d12::GetFormat( mFormat );
             // Depth attachments are also sampled by SSAO, shadows and post effects.
@@ -621,7 +627,7 @@ namespace mikoto::renderer::d3d12 {
                 mResourceState = mInitialState;
             }
 
-            auto* allocator{ device->GetAllocator() };
+            auto *allocator{ device->GetAllocator() };
             ThrowIfFailed( allocator->AllocateImage( mImageAllocation ) );
         }
 
@@ -663,11 +669,11 @@ namespace mikoto::renderer::d3d12 {
     auto Texture::Destroy() -> void {
         MKT_BEGIN_PROFILER();
 
-        for ( const auto& view: mDepthStencilViews ) {
+        for ( const auto &view: mDepthStencilViews ) {
             mResources->mDepthStencilViewHeap->ReleaseDescriptor( view.mIndex );
         }
 
-        for ( const auto& view: mRenderTargetViews ) {
+        for ( const auto &view: mRenderTargetViews ) {
             mResources->mRenderTargetViewHeap->ReleaseDescriptor( view.mIndex );
         }
 
@@ -684,12 +690,12 @@ namespace mikoto::renderer::d3d12 {
         renderer::rhi::CommandListHandle cmd{ mDevice->CreateCommandList( renderer::rhi::QueueType::eGraphics ) };
         cmd->Open( { .mScopeName = string::Format( "Texture upload: {}", mDebugName ) } );
 
-        // Data is always writen at mip zero
+        // Upload the supplied base level or complete mip chain.
         cmd->Write( this, buffer->GetData(), buffer->GetSize() );
 
         // These textures are often loaded to be read from shaders
         cmd->SetTransition( renderer::rhi::TransitionDescription{}
-            .AddTexture( this, renderer::rhi::ResourceStates::eShaderResource ) );
+                .AddTexture( this, renderer::rhi::ResourceStates::eShaderResource ) );
 
         cmd->Close();
 
@@ -697,8 +703,8 @@ namespace mikoto::renderer::d3d12 {
         // commands, then we wait for that completion this blocks the caller
         // but client should ideally offload this task to worker threads
         const auto submitInfo{ renderer::rhi::SubmitInfo{}
-            .AddSignal( fence, fenceValue )
-            .AddCommandList( cmd ) };
+                .AddSignal( fence, fenceValue )
+                .AddCommandList( cmd ) };
         mDevice->GetQueue( renderer::rhi::QueueType::eGraphics )->ExecuteCommandLists( submitInfo );
         ( void )fence->Wait( fenceValue, eastl::numeric_limits<core::u64>::max() );// Host wait
     }
@@ -732,16 +738,18 @@ namespace mikoto::renderer::d3d12 {
     }
 
     auto Texture::GetStorageSizeBytes() const -> core::usize {
-        const auto& format{ rhi::GetFormatInfo( mFormat ) };
+        const auto &format{ rhi::GetFormatInfo( mFormat ) };
         const core::usize block{ eastl::max<core::usize>( 1, format.mBlockSize ) };
         core::usize width{ mWidth };
         core::usize height{ mHeight };
+        core::usize depth{ mDepth };
         core::usize result{};
 
         for ( core::u32 mip{}; mip < mMipCount; ++mip ) {
-            result += ( ( width + block - 1 ) / block ) * ( ( height + block - 1 ) / block ) * format.mBytesPerBlock;
+            result += ( ( width + block - 1 ) / block ) * ( ( height + block - 1 ) / block ) * depth * format.mBytesPerBlock;
             width = eastl::max<core::usize>( 1, width / 2 );
             height = eastl::max<core::usize>( 1, height / 2 );
+            depth = eastl::max<core::usize>( 1, depth / 2 );
         }
 
         return result * ( mDimension == rhi::TextureDimension::eTextureCube ? 6 : 1 );
@@ -757,6 +765,10 @@ namespace mikoto::renderer::d3d12 {
 
     auto Texture::GetHeight() const -> core::u32 {
         return mHeight;
+    }
+
+    auto Texture::GetDepth() const -> core::u32 {
+        return mDepth;
     }
 
     auto Texture::GetTextureUsage() const -> rhi::TextureUsageFlags {
@@ -786,5 +798,5 @@ namespace mikoto::renderer::d3d12 {
     auto Texture::GetMipLevelCount() const -> core::u32 {
         return mMipCount;
     }
-}
+}// namespace mikoto::renderer::d3d12
 #endif

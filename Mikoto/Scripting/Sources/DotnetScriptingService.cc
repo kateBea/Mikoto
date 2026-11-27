@@ -373,7 +373,7 @@ namespace mikoto::scripting {
         }
     }
 
-    auto DotnetCompilerStatus::Snapshot() -> eastl::vector<CompilationRecord> {
+    auto DotnetCompilerStatus::GetSnapshot() -> eastl::vector<CompilationRecord> {
         std::lock_guard lock{ sCompilationStatusMutex };
         return sCompilationRecords;
     }

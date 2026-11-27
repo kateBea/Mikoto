@@ -18,14 +18,14 @@
 #include <EASTL/vector.h>
 
 #include <Core/Core.hh>
-#include <Core/Types.hh>
 #include <Core/Profiler.hh>
+#include <Core/Types.hh>
 
 #include <Physics/PhysicsWorld.hh>
 
-#include <Renderer/Rhi/Types.hh>
 #include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/ForwardRenderer/Passes/GeometryCullModule.hh>
+#include <Renderer/Rhi/Types.hh>
 
 namespace mikoto::renderer {
 
@@ -39,8 +39,15 @@ namespace mikoto::renderer {
         DebugVertex mTo{};
     };
 
+    enum class WindDebugView : core::u8 {
+        eDisabled,
+        eBounds,
+        eBoundsAndVelocity
+    };
+
     struct SceneVolumeSettings {
         bool mShowBounds{};
+        WindDebugView mWindDebugView{ WindDebugView::eDisabled };
         bool mShowCameraFrustums{};
         bool mShowPointLightRanges{};
         bool mShowSpotLightRanges{};
@@ -64,14 +71,15 @@ namespace mikoto::renderer {
         auto RegisterPhysicsDebugger( FrameGraph &graph ) -> void;
         auto RegisterSceneVolumes( FrameGraph &graph ) -> void;
 
-        auto GetSceneVolumeSettings() -> SceneVolumeSettings&;
-        auto GetPhysicsSettings() -> physics::PhysicsDebugDrawSettings&;
+        MKT_NODISCARD auto GetSceneVolumeSettings() -> SceneVolumeSettings &;
+        MKT_NODISCARD auto GetPhysicsSettings() -> physics::PhysicsDebugDrawSettings &;
 
         MKT_NODISCARD auto GetPhysicsLineCount() const -> core::u32;
         MKT_NODISCARD auto GetDroppedPhysicsLineCount() const -> core::usize;
 
     private:
         auto GatherSceneVolumes() -> void;
+        auto GatherWindAreas() -> void;
 
     private:
         const scene::Scene *mScene{};

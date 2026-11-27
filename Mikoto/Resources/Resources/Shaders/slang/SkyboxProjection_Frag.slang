@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Sample the source environment along the interpolated cubemap direction. This produces the
+// cubemap used by sky and image-based-lighting passes.
+
 #pragma once
 
 #include "base/Base.slang"
@@ -20,17 +23,17 @@
 #include "base/Memory_Helpers.slang"
 
 struct FSInput {
-    float3 Pos : TEXCOORD0;
+    float3 mPos : TEXCOORD0;
 };
 
 struct FSOutput {
-    float4 Color : SV_Target0;
+    float4 mColor : SV_Target0;
 };
 
 struct DrawParams {
-    PushConstantMatrix4x4 Mvp;
-    uint BasicSamplerID;
-    uint EquirectangularID;
+    PushConstantMatrix4x4 mMvp;
+    uint mBasicSamplerID;
+    uint mEquirectangularID;
 
     uint mVertexBufferID;
     uint mIndexBufferID;
@@ -45,14 +48,14 @@ MKT_DECLARE_PUSH_CONSTANT( DrawParams, Parameters );
 FSOutput main( FSInput input ) {
     FSOutput o;
 
-    SamplerState sampler = Samplers[Parameters.BasicSamplerID];
-    Texture2D texture = Textures[Parameters.EquirectangularID];
+    SamplerState sampler = Samplers[Parameters.mBasicSamplerID];
+    Texture2D texture = Textures[Parameters.mEquirectangularID];
 
-    float3 dir = normalize( input.Pos );
+    float3 dir = normalize( input.mPos );
 
     float2 uv = SampleSphericalMap( dir );
     float3 color = texture.Sample( sampler, uv ).rgb;
 
-    o.Color = float4( color, 1.0 );
+    o.mColor = float4( color, 1.0 );
     return o;
 }

@@ -12,13 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Evaluate gradient noise over the fullscreen UV domain. The generated texture can be reused by
+// effects instead of evaluating noise for every consuming pixel.
+
 #include "base/Noise_Helpers.slang"
 
 MKT_DECLARE_PUSH_CONSTANT( NoiseParameters, parameters );
 
 [shader("fragment")]
 float4 main( float2 uv : TEXCOORD0 ) : SV_Target0 {
-    float noise = PerlinNoise2D( uv * parameters.baseFrequency );
+    float noise = PerlinNoise2D( uv * parameters.mBaseFrequency );
     // Store linear grayscale: signed noise [-1, 1] becomes image height [0, 1].
     float height = saturate( noise * 0.5f + 0.5f );
     return float4( height, height, height, 1.0f );

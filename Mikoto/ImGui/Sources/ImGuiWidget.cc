@@ -62,12 +62,18 @@ namespace mikoto::imgui {
 
     auto PushImageButton( eastl::string_view ID, ImTextureID textureHandle, ImVec2 size ) -> bool {
         MKT_BEGIN_PROFILER();
+
+        // Texture previews need an even inset rather than text-button padding.
+        // ImageButton derives the inner corner radius from this inset and the
+        // frame radius. Draw one frame, without a second border/shadow fringe.
+        const ImGuiScopedStyleVar padding{ ImGuiStyleVar_FramePadding, ImVec2{ 2.0f, 2.0f } };
+        const ImGuiScopedStyleVar border{ ImGuiStyleVar_FrameBorderSize, 0.0f };
         return ImGui::ImageButton( ID.data(), textureHandle, size );
     }
 
     auto PushImageButton( core::u64 textureId, ImTextureID textureHandle, ImVec2 size ) -> bool {
         MKT_BEGIN_PROFILER();
-        return ImGui::ImageButton( string::Format( "{}", textureId ).c_str(), textureHandle, size );
+        return PushImageButton( string::Format( "{}", textureId ), textureHandle, size );
     }
 
     auto CheckBox( eastl::string_view label, bool& value ) -> bool {

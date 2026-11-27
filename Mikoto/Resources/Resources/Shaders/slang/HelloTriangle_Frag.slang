@@ -17,8 +17,8 @@
 #include "base/Base.slang"
 
 struct FSInput {
-    float4 position : SV_POSITION;
-    float2 uv : TEXCOORD;
+    float4 mPosition : SV_POSITION;
+    float2 mUv : TEXCOORD;
 };
 
 DECL_BINDING( 0, 0 ) SamplerState sampler;
@@ -28,19 +28,19 @@ DECL_BINDING( 0, 1 ) Texture2D textures[];
 DECL_BINDING( 1, 1 ) SamplerState samplers[];
 
 struct MyData {
-    float4x4 model;
-    float4x4 view;
-    float4x4 projection;
+    float4x4 mModel;
+    float4x4 mView;
+    float4x4 mProjection;
 
-    int textureIndex;
-    int samplerIndex;
+    int mTextureIndex;
+    int mSamplerIndex;
 };
 
 DECL_BINDING( 2, 0 ) ConstantBuffer<MyData> Matrices;
 
 [shader( "fragment" )]
 float4 main( FSInput input ) : SV_TARGET {
-    return float4( textures[Matrices.textureIndex]
-            .Sample( samplers[Matrices.samplerIndex], input.uv ).xyz *
-                texture.Sample( sampler, input.uv ).xyz, 1.0 );
+    return float4( textures[Matrices.mTextureIndex]
+            .Sample( samplers[Matrices.mSamplerIndex], input.mUv ).xyz *
+                texture.Sample( sampler, input.mUv ).xyz, 1.0 );
 }

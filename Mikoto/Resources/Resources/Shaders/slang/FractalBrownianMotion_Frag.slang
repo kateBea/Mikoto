@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Render layered procedural noise into the generated-noise target. Increasing-frequency octaves
+// add detail while their amplitudes decay.
+
 #include "base/Noise_Helpers.slang"
 
 MKT_DECLARE_PUSH_CONSTANT( NoiseParameters, parameters );
@@ -19,11 +22,11 @@ MKT_DECLARE_PUSH_CONSTANT( NoiseParameters, parameters );
 [shader("fragment")]
 float4 main( float2 uv : TEXCOORD0 ) : SV_Target0 {
     FBMSettings settings;
-    settings.mFrequency = parameters.baseFrequency;
+    settings.mFrequency = parameters.mBaseFrequency;
     settings.mAmplitude = 1.0f;
-    settings.mPersistence = parameters.persistence;
-    settings.mLacunarity = parameters.lacunarity;
-    settings.mOctaves = parameters.octaves;
+    settings.mPersistence = parameters.mPersistence;
+    settings.mLacunarity = parameters.mLacunarity;
+    settings.mOctaves = parameters.mOctaves;
     float noise = FBM( uv, settings );
     float height = saturate( noise * 0.5f + 0.5f );
     return float4( height, height, height, 1.0f );

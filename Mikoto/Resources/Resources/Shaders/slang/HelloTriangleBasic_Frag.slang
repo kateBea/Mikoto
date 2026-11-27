@@ -17,8 +17,8 @@
 #include "base/Base.slang"
 
 struct FSInput {
-    float4 position : SV_POSITION;
-    float2 uv : TEXCOORD;
+    float4 mPosition : SV_POSITION;
+    float2 mUv : TEXCOORD;
 };
 
 DECL_BINDING( 0, 0 ) SamplerState sampler;
@@ -30,5 +30,5 @@ DECL_BINDING( 1, 0 ) Texture2D texture;
 
 [shader( "fragment" )]
 float4 main( FSInput input ) : SV_TARGET {
-    return float4( texture.Sample( sampler, input.uv ).xyz, 1.0 );
+    return float4( texture.Sample( sampler, input.mUv ).xyz, 1.0 );
 }

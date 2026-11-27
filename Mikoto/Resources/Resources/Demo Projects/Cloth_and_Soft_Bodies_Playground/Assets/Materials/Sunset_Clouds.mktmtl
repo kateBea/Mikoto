@@ -1,0 +1,33 @@
+{
+  "Version": 1,
+  "Type": "VolumeMaterial",
+  "Name": "Broken evening stratocumulus",
+  "Material": {
+    "DensityModel": 2,
+    "Absorption": [
+      0,
+      0,
+      0
+    ],
+    "Scattering": [
+      0.009,
+      0.009,
+      0.009
+    ],
+    "Anisotropy": 0.65,
+    "Density": 2.2,
+    "HeightFalloff": 0.1,
+    "NoiseScale": 0.0024,
+    "ErosionScale": 0.001,
+    "Erosion": 0.65,
+    "Coverage": 0.48,
+    "Octaves": 5,
+    "CloudDetailType": 0.32,
+    "CloudForm": 1,
+    "WeatherScale": 5e-05,
+    "CoverageVariation": 0.7,
+    "CloudTypeVariation": 0.25,
+    "CloudHeightVariation": 0.6,
+    "WindShear": 180
+  }
+}

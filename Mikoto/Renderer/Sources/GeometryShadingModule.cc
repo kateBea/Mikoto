@@ -12,38 +12,39 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <EASTL/utility.h>
-#include <EASTL/bit.h>
 #include <EASTL/array.h>
+#include <EASTL/bit.h>
 #include <EASTL/fixed_hash_map.h>
+#include <EASTL/utility.h>
 
 #include <glm/glm.hpp>
 
-#include <Core/Core.hh>
-#include <Core/Types.hh>
-#include <Core/Profiler.hh>
 #include <Core/Blackboard.hh>
+#include <Core/Core.hh>
+#include <Core/Profiler.hh>
+#include <Core/Types.hh>
 
 #include <Logging/Logger.hh>
 
 #include <Math/Math.hh>
 
-#include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Core/CommandContext.hh>
+#include <Renderer/Core/FrameGraph.hh>
+#include <Renderer/ForwardRenderer/Passes/AtmosphericScatteringModule.hh>
 #include <Renderer/ForwardRenderer/Passes/CameraModule.hh>
-#include <Renderer/ForwardRenderer/Passes/VolumeModule.hh>
-#include <Renderer/ForwardRenderer/Passes/PrepassModule.hh>
-#include <Renderer/ForwardRenderer/Passes/RayTracingModule.hh>
-#include <Renderer/ForwardRenderer/Passes/PostProcessModule.hh>
-#include <Renderer/ForwardRenderer/Passes/ShadowMappingModule.hh>
+#include <Renderer/ForwardRenderer/Passes/CloudsModule.hh>
 #include <Renderer/ForwardRenderer/Passes/GeometryShadingModule.hh>
 #include <Renderer/ForwardRenderer/Passes/IndirectLightingModule.hh>
+#include <Renderer/ForwardRenderer/Passes/PostProcessModule.hh>
+#include <Renderer/ForwardRenderer/Passes/PrepassModule.hh>
+#include <Renderer/ForwardRenderer/Passes/RayTracingModule.hh>
+#include <Renderer/ForwardRenderer/Passes/ShadowMappingModule.hh>
 #include <Renderer/ForwardRenderer/Passes/SubsurfaceScatteringModule.hh>
-#include <Renderer/ForwardRenderer/Passes/AtmosphericScatteringModule.hh>
+#include <Renderer/ForwardRenderer/Passes/VolumeModule.hh>
 
-#include <Scene/Scene.hh>
 #include <Scene/Camera.hh>
 #include <Scene/Component.hh>
+#include <Scene/Scene.hh>
 
 namespace mikoto::renderer {
 
@@ -67,17 +68,17 @@ namespace mikoto::renderer {
         mPrefilterMipLevels = eastl::bit_width( mPrefilterDimensions );
     }
 
-    auto GeometryShadingModule::SetScene( const scene::Scene* scene ) -> void {
+    auto GeometryShadingModule::SetScene( const scene::Scene *scene ) -> void {
         MKT_BEGIN_PROFILER();
         mScene = scene;
     }
 
-    auto GeometryShadingModule::SetCamera( const scene::Camera* camera ) -> void {
+    auto GeometryShadingModule::SetCamera( const scene::Camera *camera ) -> void {
         MKT_BEGIN_PROFILER();
         mCamera = camera;
     }
 
-    auto GeometryShadingModule::SetGeometryManager( GeometryCullModule& geom ) -> void {
+    auto GeometryShadingModule::SetGeometryManager( GeometryCullModule &geom ) -> void {
         MKT_BEGIN_PROFILER();
         mGeometryManagement = MKT_ADDRESSOF( geom );
     }
@@ -91,7 +92,7 @@ namespace mikoto::renderer {
         mMergeWireframeToFinalImage = merge;
     }
 
-    auto GeometryShadingModule::SetClearColor( const renderer::rhi::Color& color ) -> void {
+    auto GeometryShadingModule::SetClearColor( const renderer::rhi::Color &color ) -> void {
         MKT_BEGIN_PROFILER();
         mClearColor = color;
     }
@@ -138,10 +139,10 @@ namespace mikoto::renderer {
         return mSsaoIntensity;
     }
 
-    auto GeometryShadingModule::RegisterIrradiance( FrameGraph& graph ) -> void {
+    auto GeometryShadingModule::RegisterIrradiance( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        GeomShadingModuleInfo& info{ graph.GetOrCreate<GeomShadingModuleInfo>() };
+        GeomShadingModuleInfo &info{ graph.GetOrCreate<GeomShadingModuleInfo>() };
 
         auto colorImage{ FGTextureDescription{}
             .SetName( "Irradiance_CubeRT" )
@@ -166,15 +167,15 @@ namespace mikoto::renderer {
         graph.RegisterPass<GeomShadingModuleInfo>(
             "IrradiancePass",
             FGPassType::eGraphics,
-            []( FGNodeBuilder& b, GeomShadingModuleInfo& data ) {
+            []( FGNodeBuilder &b, GeomShadingModuleInfo &data ) {
                 b.UseResource( data.mIrradianceCubeRT, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
                 b.UseResource( data.mSkyboxCubeRT, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
                 b.UseResource( data.mAtmosphereCube, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
                 b.UseResource( data.mBoxVertexBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
                 b.UseResource( data.mBoxIndexBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
             },
-            [this]( CommandContext& ctx, core::Blackboard& blackboard ) {
-                const auto& data{ blackboard.Get<GeomShadingModuleInfo>() };
+            [this]( CommandContext &ctx, core::Blackboard &blackboard ) {
+                const auto &data{ blackboard.Get<GeomShadingModuleInfo>() };
 
                 struct DrawParams {
                     core::float4x4 mMvp{};
@@ -213,7 +214,7 @@ namespace mikoto::renderer {
                         ctx.BeginRender( graphicsState );
 
                         ctx.SetViewportState( renderer::rhi::ViewportState{}
-                            .AddViewportAndScissorRect( renderer::rhi::Viewport( width, heigh ) ) );
+                                .AddViewportAndScissorRect( renderer::rhi::Viewport( width, heigh ) ) );
 
                         ctx.BindPipeline( data.mIrradiancePipeline );
                         ctx.Draw( data.mBoxIndicesCount );
@@ -224,9 +225,9 @@ namespace mikoto::renderer {
             } );
     }
 
-    auto GeometryShadingModule::RegisterSkyboxGeometryUpload( FrameGraph& graph ) -> void {
+    auto GeometryShadingModule::RegisterSkyboxGeometryUpload( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER();
-        auto& info{ graph.GetOrCreate<GeomShadingModuleInfo>() };
+        auto &info{ graph.GetOrCreate<GeomShadingModuleInfo>() };
 
         mBoxModel = asset::AssetRegistryService::Get()->LoadAsset<asset::Model>( "Resources/Prefabs/box/Box.gltf" );
 
@@ -254,14 +255,14 @@ namespace mikoto::renderer {
         graph.RegisterPass<GeomShadingModuleInfo>(
             "GeometryShadingBox_Upload",
             FGPassType::eTransfer,
-            [vertices, indices]( FGNodeBuilder& b, GeomShadingModuleInfo& data ) {
+            [vertices, indices]( FGNodeBuilder &b, GeomShadingModuleInfo &data ) {
                 b.UseResource( vertices, FGPipelineStage::eCopy, FGResourceAccess::eRead );
                 b.UseResource( indices, FGPipelineStage::eCopy, FGResourceAccess::eRead );
                 b.UseResource( data.mBoxVertexBuffer, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
                 b.UseResource( data.mBoxIndexBuffer, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
             },
-            [vertices, indices]( CommandContext& ctx, core::Blackboard& blackboard ) {
-                const auto& data{ blackboard.Get<GeomShadingModuleInfo>() };
+            [vertices, indices]( CommandContext &ctx, core::Blackboard &blackboard ) {
+                const auto &data{ blackboard.Get<GeomShadingModuleInfo>() };
 
                 ctx.CopyBuffer( data.mBoxVertexBuffer, vertices );
                 ctx.CopyBuffer( data.mBoxIndexBuffer, indices );
@@ -270,10 +271,10 @@ namespace mikoto::renderer {
         graph.SetExecutionPolicy( "GeometryShadingBox_Upload", FGExecutionPolicy::eOnce );
     }
 
-    auto GeometryShadingModule::RegisterPrefilter( FrameGraph& graph ) -> void {
+    auto GeometryShadingModule::RegisterPrefilter( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        auto& info{ graph.GetOrCreate<GeomShadingModuleInfo>() };
+        auto &info{ graph.GetOrCreate<GeomShadingModuleInfo>() };
 
         auto iblSampler{ FGSamplerDescription{}
             .SetName( "IBLCubeSampler_Sampler01" )
@@ -316,7 +317,7 @@ namespace mikoto::renderer {
         graph.RegisterPass<GeomShadingModuleInfo>(
             "PrefilterPass",
             FGPassType::eGraphics,
-            []( FGNodeBuilder& b, GeomShadingModuleInfo& info ) {
+            []( FGNodeBuilder &b, GeomShadingModuleInfo &info ) {
                 b.UseResource( info.mPrefilterCubeRT, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
                 b.UseResource( info.mAtmospherePrefilter, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
                 b.UseResource( info.mSkyboxCubeRT, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
@@ -324,8 +325,8 @@ namespace mikoto::renderer {
                 b.UseResource( info.mBoxVertexBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
                 b.UseResource( info.mBoxIndexBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
             },
-            [this]( CommandContext& ctx, core::Blackboard& blackboard ) {
-                const auto& data{ blackboard.Get<GeomShadingModuleInfo>() };
+            [this]( CommandContext &ctx, core::Blackboard &blackboard ) {
+                const auto &data{ blackboard.Get<GeomShadingModuleInfo>() };
 
                 struct DrawParams {
                     core::float4x4 mMvp{};
@@ -366,7 +367,7 @@ namespace mikoto::renderer {
                         ctx.BeginRender( graphicsState );
 
                         ctx.SetViewportState( renderer::rhi::ViewportState{}
-                            .AddViewportAndScissorRect( renderer::rhi::Viewport( width, heigh ) ) );
+                                .AddViewportAndScissorRect( renderer::rhi::Viewport( width, heigh ) ) );
 
                         ctx.BindPipeline( data.mPrefilterPipeline );
                         ctx.Draw( data.mBoxIndicesCount );
@@ -377,10 +378,10 @@ namespace mikoto::renderer {
             } );
     }
 
-    auto GeometryShadingModule::RegisterBrdfLut( FrameGraph& graph ) -> void {
+    auto GeometryShadingModule::RegisterBrdfLut( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        GeomShadingModuleInfo& info{ graph.GetOrCreate<GeomShadingModuleInfo>() };
+        GeomShadingModuleInfo &info{ graph.GetOrCreate<GeomShadingModuleInfo>() };
 
         auto colorImage{ FGTextureDescription{}
             .SetName( "BRDFLut_ColorImage01" )
@@ -406,18 +407,18 @@ namespace mikoto::renderer {
         graph.RegisterPass<GeomShadingModuleInfo>(
             "BRDFLut",
             FGPassType::eGraphics,
-            []( FGNodeBuilder& b, GeomShadingModuleInfo& info ) {
+            []( FGNodeBuilder &b, GeomShadingModuleInfo &info ) {
                 b.UseResource( info.mBrdfColorTarget, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
             },
-            []( CommandContext& ctx, core::Blackboard& b ) -> void {
-                const auto& info{ b.Get<GeomShadingModuleInfo>() };
+            []( CommandContext &ctx, core::Blackboard &b ) -> void {
+                const auto &info{ b.Get<GeomShadingModuleInfo>() };
                 auto graphicsState{ RenderBeginDescription{}
                     .SetRenderArea( renderer::rhi::Rect{ 512, 512 } )
                     .AddRenderTarget( info.mBrdfColorTarget, renderer::rhi::kColorCyan, renderer::rhi::LoadOp::eClear ) };
                 ctx.BeginRender( graphicsState );
 
                 ctx.SetViewportState( renderer::rhi::ViewportState{}
-                    .AddViewportAndScissorRect( renderer::rhi::Viewport( 512, 512 ) ) );
+                        .AddViewportAndScissorRect( renderer::rhi::Viewport( 512, 512 ) ) );
 
                 ctx.BindPipeline( info.mBrdfPipeline );
                 ctx.Draw( 3 );
@@ -446,9 +447,9 @@ namespace mikoto::renderer {
         mSkyboxBlur = blur;
     }
 
-    auto GeometryShadingModule::RegisterSkyboxProjection( FrameGraph& graph ) -> void {
+    auto GeometryShadingModule::RegisterSkyboxProjection( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
-        auto& info{ graph.GetOrCreate<GeomShadingModuleInfo>() };
+        auto &info{ graph.GetOrCreate<GeomShadingModuleInfo>() };
 
         auto samplerDesc{ FGSamplerDescription{}
             .SetName( "SkyboxProjection_Sampler01" )
@@ -483,23 +484,23 @@ namespace mikoto::renderer {
         graph.RegisterPass<GeomShadingModuleInfo>(
             "SkyboxProjection",
             FGPassType::eGraphics,
-            []( FGNodeBuilder& builder, GeomShadingModuleInfo& data ) {
+            []( FGNodeBuilder &builder, GeomShadingModuleInfo &data ) {
                 builder.UseResource( data.mSkyboxCubeRT, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
                 builder.UseResource( data.mBoxVertexBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
                 builder.UseResource( data.mBoxIndexBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
             },
-            [this]( CommandContext& ctx, core::Blackboard& blackboard ) {
+            [this]( CommandContext &ctx, core::Blackboard &blackboard ) {
                 if ( mSkyboxMaterial.IsEmpty() ) {
                     return;
                 }
 
-                auto* material{ core::checked_cast<material::SkyboxMaterial*>( mSkyboxMaterial.GetPtr() ) };
+                auto *material{ core::checked_cast<material::SkyboxMaterial *>( mSkyboxMaterial.GetPtr() ) };
 
                 if ( !material->IsType( material::SkyboxType::eEquirectangular ) || material->GetEquirectangular().IsEmpty() ) {
                     return;
                 }
 
-                const auto& data{ blackboard.Get<GeomShadingModuleInfo>() };
+                const auto &data{ blackboard.Get<GeomShadingModuleInfo>() };
                 const auto panorama{ ctx.ImportTexture( material->GetEquirectangular() ) };
                 struct DrawParams {
                     core::float4x4 mMvp{};
@@ -522,7 +523,7 @@ namespace mikoto::renderer {
                         .AddRenderTarget( data.mSkyboxCubeRT, renderer::rhi::kColorBlack, renderer::rhi::LoadOp::eClear, face, 0 ) );
 
                     ctx.SetViewportState( renderer::rhi::ViewportState{}
-                        .AddViewportAndScissorRect( renderer::rhi::Viewport( core::as<core::f32>( mSkyboxDimensions ),
+                            .AddViewportAndScissorRect( renderer::rhi::Viewport( core::as<core::f32>( mSkyboxDimensions ),
                                 core::as<core::f32>( mSkyboxDimensions ) ) ) );
 
                     ctx.BindPipeline( data.mSkyboxProjectionPipeline_FlatImage );
@@ -545,15 +546,15 @@ namespace mikoto::renderer {
         graph.RegisterPass<GeomShadingModuleInfo>(
             "SkyboxProjection_Graphics",
             FGPassType::eGraphics,
-            []( FGNodeBuilder& builder, GeomShadingModuleInfo& data ) {
+            []( FGNodeBuilder &builder, GeomShadingModuleInfo &data ) {
                 builder.UseResource( data.mSkyboxCubeRT, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
             },
-            [this]( CommandContext& ctx, core::Blackboard& blackboard ) {
+            [this]( CommandContext &ctx, core::Blackboard &blackboard ) {
                 if ( mSkyboxMaterial.IsEmpty() ) {
                     return;
                 }
 
-                auto* material{ core::checked_cast<material::SkyboxMaterial*>( mSkyboxMaterial.GetPtr() ) };
+                auto *material{ core::checked_cast<material::SkyboxMaterial *>( mSkyboxMaterial.GetPtr() ) };
 
                 if ( !material->IsType( material::SkyboxType::eCubeFaces ) ) {
                     return;
@@ -571,7 +572,7 @@ namespace mikoto::renderer {
                 };
 
                 eastl::array<FGTextureHandle, rhi::kMaxCubeFaces> inputs{};
-                const auto& textures{ material->GetFaceTextures() };
+                const auto &textures{ material->GetFaceTextures() };
                 // Validate every named face before writing any output. Do not
                 // retain handles from a previous material or insert missing keys.
                 for ( core::u32 face{}; face < rhi::kMaxCubeFaces; ++face ) {
@@ -586,7 +587,7 @@ namespace mikoto::renderer {
                     inputs[face] = ctx.ImportTexture( resource->GetResource() );
                 }
 
-                const auto& data{ blackboard.Get<GeomShadingModuleInfo>() };
+                const auto &data{ blackboard.Get<GeomShadingModuleInfo>() };
 
                 for ( core::u32 face{}; face < rhi::kMaxCubeFaces; ++face ) {
                     struct DrawParams {
@@ -605,7 +606,7 @@ namespace mikoto::renderer {
                         .AddRenderTarget( data.mSkyboxCubeRT, renderer::rhi::kColorBlack, renderer::rhi::LoadOp::eClear, face, 0 ) );
 
                     ctx.SetViewportState( renderer::rhi::ViewportState{}
-                        .AddViewportAndScissorRect( renderer::rhi::Viewport( core::as<core::f32>( mSkyboxDimensions ),
+                            .AddViewportAndScissorRect( renderer::rhi::Viewport( core::as<core::f32>( mSkyboxDimensions ),
                                 core::as<core::f32>( mSkyboxDimensions ) ) ) );
 
                     ctx.BindPipeline( data.mSkyboxProjectionPipeline_Graphics );
@@ -616,7 +617,7 @@ namespace mikoto::renderer {
     }
 
 
-    auto GeometryShadingModule::SetSkyboxPassesEnabled( FrameGraph& graph, bool enabled ) -> void {
+    auto GeometryShadingModule::SetSkyboxPassesEnabled( FrameGraph &graph, bool enabled ) -> void {
         MKT_BEGIN_PROFILER();
         // Atmosphere mode requests this every frame. Do not recull the graph
         // for an already-disabled group; enabling always wakes cached passes.
@@ -643,7 +644,7 @@ namespace mikoto::renderer {
     }
 
 
-    auto GeometryShadingModule::RegisterSkyboxMipmaps( FrameGraph& graph ) -> void {
+    auto GeometryShadingModule::RegisterSkyboxMipmaps( FrameGraph &graph ) -> void {
         // Projection writes only the base level of the source cubemap. GGX
         // prefiltering chooses a source LOD from each importance sample's PDF and
         // solid-angle footprint; it needs averaged radiance at those source levels.
@@ -710,16 +711,16 @@ namespace mikoto::renderer {
             graph.RegisterPass(
                 renderName,
                 FGPassType::eGraphics,
-                [cube, scratch]( FGNodeBuilder& builder, core::Blackboard& ) {
+                [cube, scratch]( FGNodeBuilder &builder, core::Blackboard & ) {
                     builder.UseResource( cube, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
                     builder.UseResource( scratch, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
                 },
-                [this, cube, scratch, pipeline, mip, dimension]( CommandContext& ctx, core::Blackboard& blackboard ) {
+                [this, cube, scratch, pipeline, mip, dimension]( CommandContext &ctx, core::Blackboard &blackboard ) {
                     if ( mSkyboxMaterial.IsEmpty() || mAtmosphereEnabled ) {
                         return;
                     }
 
-                    const auto& data{ blackboard.Get<GeomShadingModuleInfo>() };
+                    const auto &data{ blackboard.Get<GeomShadingModuleInfo>() };
                     struct DrawParams {
                         core::u32 mCubeID{};
                         core::u32 mSamplerID{};
@@ -743,7 +744,7 @@ namespace mikoto::renderer {
                             .AddRenderTarget( scratch, renderer::rhi::kColorBlack, renderer::rhi::LoadOp::eClear, face ) );
 
                         ctx.SetViewportState( renderer::rhi::ViewportState{}
-                            .AddViewportAndScissorRect( renderer::rhi::Viewport( core::as<core::f32>( dimension ),
+                                .AddViewportAndScissorRect( renderer::rhi::Viewport( core::as<core::f32>( dimension ),
                                     core::as<core::f32>( dimension ) ) ) );
                         ctx.BindPipeline( pipeline );
                         ctx.Draw( 3 );
@@ -757,11 +758,11 @@ namespace mikoto::renderer {
             graph.RegisterPass(
                 copyName,
                 FGPassType::eTransfer,
-                [cube, scratch]( FGNodeBuilder& builder, core::Blackboard& ) {
+                [cube, scratch]( FGNodeBuilder &builder, core::Blackboard & ) {
                     builder.UseResource( scratch, FGPipelineStage::eCopy, FGResourceAccess::eRead );
                     builder.UseResource( cube, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
                 },
-                [this, cube, scratch, mip, dimension]( CommandContext& ctx, core::Blackboard& ) {
+                [this, cube, scratch, mip, dimension]( CommandContext &ctx, core::Blackboard & ) {
                     if ( mSkyboxMaterial.IsEmpty() || mAtmosphereEnabled ) {
                         return;
                     }
@@ -778,10 +779,10 @@ namespace mikoto::renderer {
         }
     }
 
-    auto GeometryShadingModule::RegisterSkyboxRender( FrameGraph& graph ) -> void {
+    auto GeometryShadingModule::RegisterSkyboxRender( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        auto& info{ graph.GetOrCreate<GeomShadingModuleInfo>() };
+        auto &info{ graph.GetOrCreate<GeomShadingModuleInfo>() };
 
         // Create shared resources
         const auto dimensions{ InferDimensions( mResolution ) };
@@ -832,10 +833,10 @@ namespace mikoto::renderer {
         graph.RegisterPass(
             "SkyboxRender",
             FGPassType::eGraphics,
-            [this]( FGNodeBuilder& builder, core::Blackboard& blackboard ) {
-                CameraModuleInfo& cameraData{ blackboard.Get<CameraModuleInfo>() };
-                PrepassModuleInfo& prePassData{ blackboard.Get<PrepassModuleInfo>() };
-                GeomShadingModuleInfo& finalCompData{ blackboard.Get<GeomShadingModuleInfo>() };
+            [this]( FGNodeBuilder &builder, core::Blackboard &blackboard ) {
+                CameraModuleInfo &cameraData{ blackboard.Get<CameraModuleInfo>() };
+                PrepassModuleInfo &prePassData{ blackboard.Get<PrepassModuleInfo>() };
+                GeomShadingModuleInfo &finalCompData{ blackboard.Get<GeomShadingModuleInfo>() };
 
                 builder.UseResource( finalCompData.mRasterColorImage, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
                 builder.UseResource( finalCompData.mRasterDepthImage, FGPipelineStage::eDepthTarget, mMultisampling == renderer::rhi::Multisampling::eMsaaX1 ? FGResourceAccess::eRead : FGResourceAccess::eWrite );
@@ -848,10 +849,10 @@ namespace mikoto::renderer {
                 builder.UseResource( finalCompData.mPrefilterCubeRT, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
                 builder.UseResource( cameraData.mCameraData, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
             },
-            [this]( CommandContext& ctx, core::Blackboard& b ) -> void {
-                const auto& cameraData{ b.Get<CameraModuleInfo>() };
-                const auto& prePassData{ b.Get<PrepassModuleInfo>() };
-                const auto& finalCompData{ b.Get<GeomShadingModuleInfo>() };
+            [this]( CommandContext &ctx, core::Blackboard &b ) -> void {
+                const auto &cameraData{ b.Get<CameraModuleInfo>() };
+                const auto &prePassData{ b.Get<PrepassModuleInfo>() };
+                const auto &finalCompData{ b.Get<GeomShadingModuleInfo>() };
 
                 // NOTE: the material has either a rectangular image or 6 cube images
                 // instead of expecting an actual cube image we can just use the 6 faces in the
@@ -900,7 +901,7 @@ namespace mikoto::renderer {
                 ctx.BeginRender( graphicsState );
 
                 ctx.SetViewportState( renderer::rhi::ViewportState{}
-                    .AddViewportAndScissorRect( renderer::rhi::Viewport( core::as<core::f32>( dimensions.first ), core::as<core::f32>( dimensions.second ) ) ) );
+                        .AddViewportAndScissorRect( renderer::rhi::Viewport( core::as<core::f32>( dimensions.first ), core::as<core::f32>( dimensions.second ) ) ) );
 
                 // For no clear color use background cube
                 // otherwise just clear the image with specified solid color
@@ -913,12 +914,12 @@ namespace mikoto::renderer {
             } );
     }
 
-    auto GeometryShadingModule::RegisterTransparentPass( FrameGraph& graph ) -> void {
+    auto GeometryShadingModule::RegisterTransparentPass( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER();
         RegisterShading( graph, true );
     }
 
-    auto GeometryShadingModule::RegisterSubsurfaceLighting( FrameGraph& graph ) -> void {
+    auto GeometryShadingModule::RegisterSubsurfaceLighting( FrameGraph &graph ) -> void {
 
         const auto dimensions{ InferDimensions( mResolution ) };
         const core::u32 width{ core::as<core::u32>( dimensions.first ) };
@@ -940,7 +941,7 @@ namespace mikoto::renderer {
         const auto specular{ texture( "Subsurface_Specular", renderer::rhi::Format::eRGBA16_FLOAT ) };
         const auto ambient{ texture( "Subsurface_Ambient", renderer::rhi::Format::eRGBA16_FLOAT ) };
 
-        auto& info{ graph.GetOrCreate<SubsurfaceScatteringInfo>() };
+        auto &info{ graph.GetOrCreate<SubsurfaceScatteringInfo>() };
         info.mDiffuse = original;
         info.mIdentityDepth = metadata;
         info.mSpecular = specular;
@@ -949,10 +950,10 @@ namespace mikoto::renderer {
         RegisterShading( graph, false, true );
     }
 
-    auto GeometryShadingModule::RegisterContours( FrameGraph& graph ) -> void {
+    auto GeometryShadingModule::RegisterContours( FrameGraph &graph ) -> void {
         RegisterShading( graph, false, false, true );
 
-        const auto& prepass{ graph.GetData<PrepassModuleInfo>() };
+        const auto &prepass{ graph.GetData<PrepassModuleInfo>() };
         const auto mask{ prepass.mGBufferContourTarget };
         const auto normal{ prepass.mGBufferNormalTarget };
         const auto position{ prepass.mGBufferPositionTarget };
@@ -978,7 +979,7 @@ namespace mikoto::renderer {
         graph.RegisterPass(
             "Stylized_Creases",
             FGPassType::eGraphics,
-            [=]( FGNodeBuilder& builder, core::Blackboard& ) {
+            [=]( FGNodeBuilder &builder, core::Blackboard & ) {
                 for ( auto texture: { mask, normal, position } ) {
                     builder.UseResource( texture, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
                 }
@@ -986,7 +987,7 @@ namespace mikoto::renderer {
                 builder.UseResource( camera, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
                 builder.UseResource( target, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
             },
-            [=, this]( CommandContext& ctx, core::Blackboard& ) {
+            [=, this]( CommandContext &ctx, core::Blackboard & ) {
                 if ( !mGeometryManagement->HasStylizedContours() ) {
                     return;
                 }
@@ -1016,7 +1017,7 @@ namespace mikoto::renderer {
                     .AddRenderTarget( target, renderer::rhi::Color{ 0, 0, 0, 0 }, renderer::rhi::LoadOp::eLoad ) );
 
                 ctx.SetViewportState( renderer::rhi::ViewportState{}
-                    .AddViewportAndScissorRect( renderer::rhi::Viewport{ core::as<core::f32>( width ), core::as<core::f32>( height ) } ) );
+                        .AddViewportAndScissorRect( renderer::rhi::Viewport{ core::as<core::f32>( width ), core::as<core::f32>( height ) } ) );
 
                 ctx.BindPipeline( pipeline );
                 ctx.Draw( 3 );
@@ -1024,13 +1025,13 @@ namespace mikoto::renderer {
             } );
     }
 
-    auto GeometryShadingModule::RegisterShading( FrameGraph& graph, bool transparent, bool subsurface, bool contour ) -> void {
+    auto GeometryShadingModule::RegisterShading( FrameGraph &graph, bool transparent, bool subsurface, bool contour ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
         // Resources:
         // https://github.khronos.org/Vulkan-Site/tutorial/latest/Building_a_Simple_Engine/Lighting_Materials/04_lighting_implementation.html
 
-        auto& info{ graph.GetOrCreate<GeomShadingModuleInfo>() };
+        auto &info{ graph.GetOrCreate<GeomShadingModuleInfo>() };
         const bool captureReflections{ !transparent && !subsurface && !contour && graph.Exists<IndirectLightingModuleInfo>() };
 
         auto pipelineBuilder{ FGPipelineDescription{}
@@ -1050,16 +1051,20 @@ namespace mikoto::renderer {
             .SetDepthWrite( !subsurface && !contour && !transparent && mMultisampling != renderer::rhi::Multisampling::eMsaaX1 )
             .SetDepthTest( true )
             .PushShader( contour ? "StylizedContour_Vert.slang" : "PBR_MetallicRoughness_Vert.slang", FGStageType::eVertex )
-            .PushShader( contour ? "StylizedContour_Frag.slang" : subsurface ? "SubsurfaceLighting_Frag.slang"
-                                                                                 : captureReflections ? "PBR_Reflections_Frag.slang" : "PBR_MetallicRoughness_Frag.slang",
+            .PushShader( contour ? "StylizedContour_Frag.slang" : subsurface       ? "SubsurfaceLighting_Frag.slang"
+                                                                  : captureReflections ? "PBR_Reflections_Frag.slang"
+                                                                                       : "PBR_MetallicRoughness_Frag.slang",
                     FGStageType::ePixel ) };
 
         if ( subsurface ) {
-            pipelineBuilder.AddColorFormat( renderer::rhi::Format::eRGBA16_FLOAT ).AddColorFormat( renderer::rhi::Format::eRGBA16_FLOAT ).AddColorFormat( renderer::rhi::Format::eRGBA32_FLOAT );
+            pipelineBuilder.AddColorFormat( renderer::rhi::Format::eRGBA16_FLOAT )
+                .AddColorFormat( renderer::rhi::Format::eRGBA16_FLOAT )
+                .AddColorFormat( renderer::rhi::Format::eRGBA32_FLOAT );
         }
 
         if ( captureReflections ) {
-            pipelineBuilder.AddColorFormat( rhi::Format::eRGBA16_FLOAT ).AddColorFormat( rhi::Format::eRGBA16_FLOAT );
+            pipelineBuilder.AddColorFormat( rhi::Format::eRGBA16_FLOAT )
+                .AddColorFormat( rhi::Format::eRGBA16_FLOAT );
         }
 
         const auto pipeline = graph.Create( pipelineBuilder );
@@ -1073,12 +1078,12 @@ namespace mikoto::renderer {
                                         : transparent  ? "PBR_Transparency"
                                                        : "PBR_Radiance",
             FGPassType::eGraphics,
-            [this, transparent, subsurface, contour, captureReflections]( FGNodeBuilder& builder, core::Blackboard& blackboard ) -> void {
-                const auto& shadowMapData{ blackboard.Get<ShadowMapInfo>() };
-                const auto& cameraData{ blackboard.Get<CameraModuleInfo>() };
-                const auto& prePassData{ blackboard.Get<PrepassModuleInfo>() };
-                const auto& geometryData{ blackboard.Get<GeometryCullModuleInfo>() };
-                const auto& finalCompData{ blackboard.Get<GeomShadingModuleInfo>() };
+            [this, transparent, subsurface, contour, captureReflections]( FGNodeBuilder &builder, core::Blackboard &blackboard ) -> void {
+                const auto &shadowMapData{ blackboard.Get<ShadowMapInfo>() };
+                const auto &cameraData{ blackboard.Get<CameraModuleInfo>() };
+                const auto &prePassData{ blackboard.Get<PrepassModuleInfo>() };
+                const auto &geometryData{ blackboard.Get<GeometryCullModuleInfo>() };
+                const auto &finalCompData{ blackboard.Get<GeomShadingModuleInfo>() };
 
                 // Fragment shading reads camera position and clustering data as
                 // well as the vertex transform; synchronize both consumers.
@@ -1103,8 +1108,15 @@ namespace mikoto::renderer {
 
                 builder.UseResource( prePassData.mClusterBuffer, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
                 builder.UseResource( prePassData.mLightsBuffer, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                if ( const auto *clouds{ blackboard.TryGet<CloudsModuleInfo>() } ) {
+                    builder.UseResource( clouds->mFrame, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                    builder.UseResource( clouds->mModels, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                    for ( const auto &volume: clouds->mVolumes ) {
+                        builder.UseResource( volume.mLighting, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                    }
+                }
 
-                if ( const auto* atmosphere{ blackboard.TryGet<AtmosphereModuleInfo>() }; atmosphere && !contour ) {
+                if ( const auto *atmosphere{ blackboard.TryGet<AtmosphereModuleInfo>() }; atmosphere && !contour ) {
                     builder.UseResource( atmosphere->mParameters, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
                     builder.UseResource( atmosphere->mTransmittance, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
                 }
@@ -1112,7 +1124,7 @@ namespace mikoto::renderer {
                 builder.UseResource( subsurface ? blackboard.Get<SubsurfaceScatteringInfo>().mDiffuse : finalCompData.mRasterColorImage, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
 
                 if ( subsurface ) {
-                    const auto& sss{ blackboard.Get<SubsurfaceScatteringInfo>() };
+                    const auto &sss{ blackboard.Get<SubsurfaceScatteringInfo>() };
 
                     for ( auto target: { sss.mSpecular, sss.mAmbient, sss.mIdentityDepth } ) {
                         builder.UseResource( target, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
@@ -1120,7 +1132,7 @@ namespace mikoto::renderer {
                 }
 
                 if ( captureReflections ) {
-                    const auto& reflections{ blackboard.Get<IndirectLightingModuleInfo>() };
+                    const auto &reflections{ blackboard.Get<IndirectLightingModuleInfo>() };
                     builder.UseResource( reflections.mRasterSurfaceResponse, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
                     builder.UseResource( reflections.mRasterEnvironmentSpecular, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
                 }
@@ -1138,25 +1150,31 @@ namespace mikoto::renderer {
                 builder.UseResource( blackboard.Get<PostProcessModuleInfo>().mSsaoBlurColorTarget, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
 
                 if ( blackboard.Contains<RayTracingInfo>() ) {
-                    const auto& ray{ blackboard.Get<RayTracingInfo>() };
+                    const auto &ray{ blackboard.Get<RayTracingInfo>() };
                     builder.UseResource( ray.mDirect, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
                     builder.UseResource( ray.mIndirect, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
                     builder.UseResource( ray.mAmbientOcclusion, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
                 }
                 // Shadow mapping stuff here
-                if ( const auto* volumes{ blackboard.TryGet<VolumeModuleInfo>() } ) {
+                if ( const auto *volumes{ blackboard.TryGet<VolumeModuleInfo>() } ) {
                     builder.UseResource( volumes->mData, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
                 }
-                if ( const auto* fog{ blackboard.TryGet<FogModuleInfo>() }; fog && transparent ) {
+                if ( const auto *fog{ blackboard.TryGet<FogModuleInfo>() }; fog && transparent ) {
                     builder.UseResource( fog->mFrame, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
                     builder.UseResource( fog->mRadiance, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
                     builder.UseResource( fog->mTransmittance, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
                 }
                 builder.UseResource( shadowMapData.mRecordsBuffer, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
 
-                for ( const auto& map: shadowMapData.mMaps ) {
+                for ( const auto &map: shadowMapData.mMaps ) {
                     if ( map.mHandle != 0 ) {
                         builder.UseResource( map, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                    }
+                }
+
+                for ( const auto receiver: shadowMapData.mGrassReceiverData ) {
+                    if ( receiver.mHandle ) {
+                        builder.UseResource( receiver, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
                     }
                 }
 
@@ -1170,16 +1188,16 @@ namespace mikoto::renderer {
                     builder.UseResource( shadowMapData.mVisibilityDepth, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
                 }
             },
-            [this, pipeline, transparent, subsurface, contour, captureReflections]( CommandContext& ctx, core::Blackboard& blackboard ) -> void {
+            [this, pipeline, transparent, subsurface, contour, captureReflections]( CommandContext &ctx, core::Blackboard &blackboard ) -> void {
                 if ( contour && !mGeometryManagement->HasStylizedContours() ) {
                     return;
                 }
 
-                const auto& shadowMapData{ blackboard.Get<ShadowMapInfo>() };
-                const auto& cameraData{ blackboard.Get<CameraModuleInfo>() };
-                const auto& prePassData{ blackboard.Get<PrepassModuleInfo>() };
-                const auto& geometryData{ blackboard.Get<GeometryCullModuleInfo>() };
-                auto& finalCompData{ blackboard.Get<GeomShadingModuleInfo>() };
+                const auto &shadowMapData{ blackboard.Get<ShadowMapInfo>() };
+                const auto &cameraData{ blackboard.Get<CameraModuleInfo>() };
+                const auto &prePassData{ blackboard.Get<PrepassModuleInfo>() };
+                const auto &geometryData{ blackboard.Get<GeometryCullModuleInfo>() };
+                auto &finalCompData{ blackboard.Get<GeomShadingModuleInfo>() };
 
                 finalCompData.mExposure = mExposure;
                 finalCompData.mGamma = mGamma;
@@ -1261,7 +1279,7 @@ namespace mikoto::renderer {
                 };
 
                 if ( !transparent && blackboard.Contains<RayTracingInfo>() ) {
-                    const auto& ray{ blackboard.Get<RayTracingInfo>() };
+                    const auto &ray{ blackboard.Get<RayTracingInfo>() };
 
                     if ( ray.mTraceOutputsReady && ray.mAmbientOcclusionEnabled ) {
                         // PBRT's visibility estimate replaces SSAO for IBL; transport GI stays untouched.
@@ -1305,7 +1323,7 @@ namespace mikoto::renderer {
                             subsurface ? renderer::rhi::Color{ 0, 0, 0, 0 } : mClearColor, colorLoadOp ) };
 
                 if ( subsurface ) {
-                    const auto& sss{ blackboard.Get<SubsurfaceScatteringInfo>() };
+                    const auto &sss{ blackboard.Get<SubsurfaceScatteringInfo>() };
 
                     for ( auto target: { sss.mSpecular, sss.mAmbient, sss.mIdentityDepth } ) {
                         graphicsState.AddRenderTarget( target, renderer::rhi::Color{ 0, 0, 0, 0 }, renderer::rhi::LoadOp::eClear );
@@ -1313,7 +1331,7 @@ namespace mikoto::renderer {
                 }
 
                 if ( captureReflections ) {
-                    const auto& reflections{ blackboard.Get<IndirectLightingModuleInfo>() };
+                    const auto &reflections{ blackboard.Get<IndirectLightingModuleInfo>() };
                     graphicsState.AddRenderTarget( reflections.mRasterSurfaceResponse, rhi::Color{ 0, 0, 0, 0 }, rhi::LoadOp::eClear );
                     graphicsState.AddRenderTarget( reflections.mRasterEnvironmentSpecular, rhi::Color{ 0, 0, 0, 0 }, rhi::LoadOp::eClear );
                 }
@@ -1321,7 +1339,7 @@ namespace mikoto::renderer {
                 ctx.BeginRender( graphicsState );
 
                 ctx.SetViewportState( renderer::rhi::ViewportState{}
-                    .AddViewportAndScissorRect( renderer::rhi::Viewport( core::as<core::f32>( dimensions.first ), core::as<core::f32>( dimensions.second ) ) ) );
+                        .AddViewportAndScissorRect( renderer::rhi::Viewport( core::as<core::f32>( dimensions.first ), core::as<core::f32>( dimensions.second ) ) ) );
 
                 ctx.BindPipeline( pipeline );
 
@@ -1331,7 +1349,7 @@ namespace mikoto::renderer {
             } );
     }
 
-    auto GeometryShadingModule::RegisterResolve( FrameGraph& graph, bool transparent ) -> void {
+    auto GeometryShadingModule::RegisterResolve( FrameGraph &graph, bool transparent ) -> void {
         if ( mMultisampling == renderer::rhi::Multisampling::eMsaaX1 ) {
             return;
         }
@@ -1339,20 +1357,20 @@ namespace mikoto::renderer {
         graph.RegisterPass<GeomShadingModuleInfo>(
             transparent ? "Shading_Transparent_MSAA_Resolve" : "Shading_MSAA_Resolve",
             FGPassType::eGraphics,
-            []( FGNodeBuilder& builder, GeomShadingModuleInfo& info ) {
+            []( FGNodeBuilder &builder, GeomShadingModuleInfo &info ) {
                 builder.UseResource( info.mRasterColorImage, FGPipelineStage::eResolve, FGResourceAccess::eRead );
                 builder.UseResource( info.mColorImage, FGPipelineStage::eResolve, FGResourceAccess::eWrite );
             },
-            []( CommandContext& ctx, core::Blackboard& b ) {
-                const auto& info{ b.Get<GeomShadingModuleInfo>() };
+            []( CommandContext &ctx, core::Blackboard &b ) {
+                const auto &info{ b.Get<GeomShadingModuleInfo>() };
                 ctx.ResolveTexture( info.mRasterColorImage, info.mColorImage );
             } );
     }
 
-    auto GeometryShadingModule::RegisterWireframe( FrameGraph& graph ) -> void {
+    auto GeometryShadingModule::RegisterWireframe( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER_NAMED();
 
-        auto& info{ graph.GetOrCreate<WireframeData>() };
+        auto &info{ graph.GetOrCreate<WireframeData>() };
 
         auto dimensions{ InferDimensions( mResolution ) };
 
@@ -1396,12 +1414,12 @@ namespace mikoto::renderer {
         graph.RegisterPass(
             "WireframePass",
             FGPassType::eGraphics,
-            []( FGNodeBuilder& builder, core::Blackboard& blackboard ) {
-                const auto& wireframeData{ blackboard.Get<WireframeData>() };
-                const auto& prePassData{ blackboard.Get<PrepassModuleInfo>() };
-                const auto& cameraPassData{ blackboard.Get<CameraModuleInfo>() };
-                const auto& geometryData{ blackboard.Get<GeometryCullModuleInfo>() };
-                const auto& finalCompData{ blackboard.Get<GeomShadingModuleInfo>() };
+            []( FGNodeBuilder &builder, core::Blackboard &blackboard ) {
+                const auto &wireframeData{ blackboard.Get<WireframeData>() };
+                const auto &prePassData{ blackboard.Get<PrepassModuleInfo>() };
+                const auto &cameraPassData{ blackboard.Get<CameraModuleInfo>() };
+                const auto &geometryData{ blackboard.Get<GeometryCullModuleInfo>() };
+                const auto &finalCompData{ blackboard.Get<GeomShadingModuleInfo>() };
 
                 builder.UseResource( wireframeData.mColorImage, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
 
@@ -1423,12 +1441,12 @@ namespace mikoto::renderer {
 
                 builder.UseResource( geometryData.mIndirectBuffer, FGPipelineStage::eIndirectArgument, FGResourceAccess::eRead );
             },
-            [this]( CommandContext& ctx, core::Blackboard& b ) -> void {
-                const auto& wireframeData{ b.Get<WireframeData>() };
-                const auto& finalCompData{ b.Get<GeomShadingModuleInfo>() };
-                const auto& prePassData{ b.Get<PrepassModuleInfo>() };
-                const auto& cameraPassData{ b.Get<CameraModuleInfo>() };
-                const auto& geometryData{ b.Get<GeometryCullModuleInfo>() };
+            [this]( CommandContext &ctx, core::Blackboard &b ) -> void {
+                const auto &wireframeData{ b.Get<WireframeData>() };
+                const auto &finalCompData{ b.Get<GeomShadingModuleInfo>() };
+                const auto &prePassData{ b.Get<PrepassModuleInfo>() };
+                const auto &cameraPassData{ b.Get<CameraModuleInfo>() };
+                const auto &geometryData{ b.Get<GeometryCullModuleInfo>() };
 
                 struct DrawParams {
                     SPointer mGeometryBuffer{};
@@ -1457,7 +1475,7 @@ namespace mikoto::renderer {
                     ctx.BeginRender( graphicsState );
 
                     ctx.SetViewportState( renderer::rhi::ViewportState{}
-                        .AddViewportAndScissorRect( renderer::rhi::Viewport( core::as<core::f32>( dimensions.first ),
+                            .AddViewportAndScissorRect( renderer::rhi::Viewport( core::as<core::f32>( dimensions.first ),
                                 core::as<core::f32>( dimensions.second ) ) ) );
 
                     ctx.SetPolygonLineWidth( 1.0f );
@@ -1477,4 +1495,4 @@ namespace mikoto::renderer {
                 }
             } );
     }
-}
+}// namespace mikoto::renderer

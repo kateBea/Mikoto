@@ -13,15 +13,16 @@
 // limitations under the License.
 
 #include <Core/Core.hh>
-#include <Core/Types.hh>
 #include <Core/Profiler.hh>
+#include <Core/Types.hh>
 
-#include <Renderer/Rhi/Types.hh>
+#include <Renderer/Core/CommandContext.hh>
 #include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/ForwardRenderer/Passes/WeatherModule.hh>
+#include <Renderer/Rhi/Types.hh>
 
-#include <Scene/Scene.hh>
 #include <Scene/Camera.hh>
+#include <Scene/Scene.hh>
 
 namespace mikoto::renderer {
 
@@ -29,48 +30,46 @@ namespace mikoto::renderer {
         : mResolution{ resolution } {
     }
 
-    auto WeatherModule::RegisterWindSimulation( FrameGraph& graph ) -> void {
+    auto WeatherModule::RegisterWindSimulation( FrameGraph &graph ) -> void {
         MKT_BEGIN_PROFILER();
 
-        // Filter and upload for all wind simulation entities
-        // Could cull simulation for entities that are not visible
+        const auto field{ graph.Create( FGBufferDescription{}
+            .SetName( "Wind_Field" )
+            .SetSizeBytes( 16 + scene::kMaxWindAreas * sizeof( scene::WindAreaData ) )
+            .SetHeapType( rhi::HeapType::eDeviceLocal )
+            .SetUsage( rhi::BufferUsageFlagsBits::Structured |
+                           rhi::BufferUsageFlagsBits::CopyDest |
+                           rhi::BufferUsageFlagsBits::CopySource ) ) };
+
+        graph.GetOrCreate<WeatherModuleInfo>().mWindField = field;
+
         graph.RegisterPass(
-            "WindSimulationInit_Upload",
+            "Wind_UploadField",
             FGPassType::eTransfer,
-            []( FGNodeBuilder&, core::Blackboard& ) {
-
+            [field]( FGNodeBuilder &builder, core::Blackboard & ) {
+                builder.UseResource( field, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
             },
-            []( CommandContext&, core::Blackboard& ) {
-                // Traverse all WindSimulationComponent
-                // components and upload their data to a buffer
-            } );
+            [this, field]( CommandContext &ctx, core::Blackboard & ) {
+                const auto wind{ mScene ? mScene->GetWindField() : scene::WindField{} };
+                struct Header {
+                    core::f32 mTime{};
+                    core::u32 mCount{};
+                    core::u32 mReserved[2]{};
+                } header{ wind.mTime, core::as<core::u32>( wind.mAreas.size() ) };
 
-        graph.RegisterPass(
-            "WindSimulationInit_Compute",
-            FGPassType::eCompute,
-            []( FGNodeBuilder&, core::Blackboard& ) {
+                ctx.CopyBuffer( field, 0, &header, sizeof( header ) );
 
-            },
-            []( CommandContext&, core::Blackboard& ) {
-                // Nothing
-            } );
-
-        graph.RegisterPass(
-            "WindSimulationFieldUpdate",
-            FGPassType::eCompute,
-            []( FGNodeBuilder&, core::Blackboard& ) {
-
-            },
-            []( CommandContext&, core::Blackboard& ) {
-                // Nothing
+                if ( !wind.mAreas.empty() ) {
+                    ctx.CopyBuffer( field, sizeof( header ), wind.mAreas.data(), wind.mAreas.size() * sizeof( scene::WindAreaData ) );
+                }
             } );
     }
 
-    auto WeatherModule::SetScene( const scene::Scene* scene ) -> void {
+    auto WeatherModule::SetScene( const scene::Scene *scene ) -> void {
         mScene = scene;
     }
 
-    auto WeatherModule::SetCamera( const scene::Camera* camera ) -> void {
+    auto WeatherModule::SetCamera( const scene::Camera *camera ) -> void {
         mCamera = camera;
     }
 }// namespace mikoto::renderer

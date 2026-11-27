@@ -59,7 +59,7 @@ namespace mikoto::editor {
         auto ReplaceEmitter( const renderer::ParticleEmitterSettings& settings, const material::ParticleMaterialHandle& material ) -> void;
         auto SelectEmitter( core::usize index ) -> void;
         auto RefreshPreview() -> void;
-        auto SaveAsset() -> void;
+        auto SaveAsset( bool saveAs ) -> void;
         auto DrawGraph() -> void;
 
         EditorState* mEditorState{};

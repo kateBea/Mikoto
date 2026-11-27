@@ -12,16 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Gradient noise and fractal-octave helpers for generated textures and terrain. Smooth
+// interpolation joins lattice corners without discontinuities at cell boundaries.
+
 #pragma once
 
 #include "Base.slang"
 
 // Matches FractalBrownianMotionParameters in PrepassModule.hh (16 bytes).
 struct NoiseParameters {
-    uint octaves;
-    float persistence;
-    float lacunarity;
-    float baseFrequency;
+    uint mOctaves;
+    float mPersistence;
+    float mLacunarity;
+    float mBaseFrequency;
 };
 
 // Improved 2D gradient noise, following the construction described at:

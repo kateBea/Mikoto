@@ -1,0 +1,36 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Callback playground checkerboard",
+  "Material": {
+    "BaseColorFactor": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "MetallicFactor": 0,
+    "RoughnessFactor": 0.9,
+    "DoubleSided": 0,
+    "AlphaMask": 0,
+    "Checkerboard": {
+      "Enabled": true,
+      "CellSize": 1,
+      "ColorA": [
+        0.09,
+        0.12,
+        0.15
+      ],
+      "ColorB": [
+        0.46,
+        0.52,
+        0.58
+      ],
+      "Offset": [
+        0,
+        0,
+        0
+      ]
+    }
+  }
+}

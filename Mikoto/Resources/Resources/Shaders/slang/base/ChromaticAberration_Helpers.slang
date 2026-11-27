@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Shared channel-offset sampling for chromatic aberration. The caller supplies the screen
+// position, source texture and strength of the radial displacement.
+
 #pragma once
 
 // Channel separation adapted from moonlightoctopus, 2025-05-25.

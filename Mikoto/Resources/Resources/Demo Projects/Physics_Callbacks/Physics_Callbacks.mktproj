@@ -1,0 +1,24 @@
+# A compact character-controller playground for collision and trigger callbacks.
+# Play, focus Game, then use WASD and Space. R resets the character.
+# All nine lifecycle/contact callbacks are demonstrated; Stay/Update logs are throttled.
+Version: 1
+Project: "Physics_Callbacks"
+Assets: "Assets"
+Cache: "Assets/.cache"
+Scene: "Scene/Physics_Callbacks.mktscn"
+CompressTextures: false
+AutoSave: false
+AutoSaveIntervalMs: 2000
+EditorCamera:
+  NavigationMode: "Fly"
+  Position: [0, 13, 17]
+  Direction: [0, -0.574, -0.819]
+  Projection: "Perspective"
+  FieldOfView: 55
+  NearPlane: 0.1
+  FarPlane: 200
+  MovementSpeed: 8
+  RotationSpeed: 10
+  SmoothTime: 0.1
+  AllowPitch: true
+  AllowYaw: true

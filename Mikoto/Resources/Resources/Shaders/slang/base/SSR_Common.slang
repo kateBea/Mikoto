@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Screen/world projection, sampling sequences and rough-reflection weights for SSR. Normal
+// encoding and depth conventions are shared by trace, resolve and temporal filtering.
+
 #pragma once
 
 #include "Base.slang"
@@ -27,28 +30,37 @@
 
 static const uint SsrMaxMipCount = 16;
 
+// Each frame reserves four reflection attempts; inverse-sequence evaluation has a fixed digit budget.
+static const uint kSsrDirectionAttempts = 4;
+static const uint kSsrRadicalInverseDigits = 16;
+
+// A 3x3 current reflection neighborhood bounds temporal history.
+static const int kSsrHistoryClampRadius = 1;
+
 struct SsrFrame {
-    float4x4 InverseView;
-    float4x4 PreviousViewProjection;
-    float4x4 PreviousView;
-    float4 Screen; // Full width/height, trace width/height.
-    float4 Trace; // Maximum distance, thickness, maximum perceptual roughness, sampling bias.
-    float4 Filter; // History weight, spatial sample count, intensity, reserved.
-    uint4 Control; // Sequence index, history validity, reversed depth, maximum traversal steps.
+    float4x4 mInverseView;
+    float4x4 mPreviousViewProjection;
+    float4x4 mPreviousView;
+    float4 mScreen; // Full width/height, trace width/height.
+    float4 mTrace; // Maximum distance, thickness, maximum perceptual roughness, sampling bias.
+    float4 mFilter; // History weight, spatial sample count, intensity, reserved.
+    uint4 mControl; // Sequence index, history validity, reversed depth, maximum traversal steps.
 };
 
 float3 SsrWorldPosition( float3 viewPosition, SsrFrame frame ) {
-    return mul( frame.InverseView, float4( viewPosition, 1 ) ).xyz;
+    return mul( frame.mInverseView, float4( viewPosition, 1 ) ).xyz;
 }
 
+// Project a view-space point into screen coordinates and normalize depth to the SSR near-to-far
+// convention. Traversal uses this convention for both camera depth modes.
 float3 SsrProject( float3 viewPosition, CameraInfo camera, SsrFrame frame ) {
     float4 clip = mul( camera.mProjection, float4( viewPosition, 1 ) );
     float3 ndc = clip.xyz / clip.w;
-    return float3( ndc.x * 0.5 + 0.5, 0.5 - ndc.y * 0.5, frame.Control.z != 0 ? 1 - ndc.z : ndc.z );
+    return float3( ndc.x * 0.5 + 0.5, 0.5 - ndc.y * 0.5, frame.mControl.z != 0 ? 1 - ndc.z : ndc.z );
 }
 
 float SsrViewDepth( float3 screenPosition, CameraInfo camera, SsrFrame frame ) {
-    float depth = frame.Control.z != 0 ? 1 - screenPosition.z : screenPosition.z;
+    float depth = frame.mControl.z != 0 ? 1 - screenPosition.z : screenPosition.z;
     float4 view = mul( camera.mInverseProjection, float4( screenPosition.x * 2 - 1, 1 - screenPosition.y * 2, depth, 1 ) );
     return -view.z / view.w;
 }
@@ -64,7 +76,7 @@ uint SsrHash( uint value ) {
 float SsrRadicalInverse( uint value, uint base ) {
     float inverse = 1.0 / float( base );
     float result = 0;
-    for ( uint digit = 0; digit < 16 && value != 0; ++digit ) {
+    for ( uint digit = 0; digit < kSsrRadicalInverseDigits && value != 0; ++digit ) {
         result += float( value % base ) * inverse;
         value /= base;
         inverse /= float( base );
@@ -72,10 +84,12 @@ float SsrRadicalInverse( uint value, uint base ) {
     return result;
 }
 
+// Rotate a low-discrepancy sequence independently per pixel. The frame/attempt index advances
+// samples while the spatial hash decorrelates neighboring pixels.
 float2 SsrSequence( uint2 pixel, uint frame, uint attempt = 0 ) {
     uint seed = SsrHash( pixel.x + pixel.y * 65537u );
     float2 rotation = float2( seed & 65535u, seed >> 16 ) / 65536.0;
-    uint index = ( frame * 4 + attempt ) % 65536u + 1;
+    uint index = ( frame * kSsrDirectionAttempts + attempt ) % 65536u + 1;
     return frac( float2( SsrRadicalInverse( index, 2 ), SsrRadicalInverse( index, 3 ) ) + rotation );
 }
 
@@ -94,6 +108,8 @@ float SsrSmithVisibility( float roughness, float normalView, float normalLight )
     return 0.5 / max( view + light, 1e-6 );
 }
 
+// Evaluate the receiving pixel BRDF divided by the original ray PDF. Normalized spatial
+// reconstruction uses this weight to reuse stochastic hits without a simple blur bias.
 float SsrRayWeight( float3 normal, float3 view, float3 light, float roughness, float originalPdf ) {
     float normalLight = saturate( dot( normal, light ) );
     float normalView = max( saturate( dot( normal, view ) ), 0.001 );
@@ -107,6 +123,8 @@ float SsrRayWeight( float3 normal, float3 view, float3 light, float roughness, f
     return min( localBrdf / max( originalPdf, 1e-6 ), 1e6 );
 }
 
+// Octahedrally encode a unit normal into two channels. Folding the lower hemisphere preserves
+// directional information for temporal guide storage.
 float2 SsrEncodeNormal( float3 normal ) {
     normal /= abs( normal.x ) + abs( normal.y ) + abs( normal.z );
     float2 packed = normal.xy;
@@ -116,6 +134,8 @@ float2 SsrEncodeNormal( float3 normal ) {
     return packed;
 }
 
+// Unfold the octahedral normal representation and renormalize it before geometry-agreement
+// tests.
 float3 SsrDecodeNormal( float2 packed ) {
     float3 normal = float3( packed, 1 - abs( packed.x ) - abs( packed.y ) );
     if ( normal.z < 0 ) {

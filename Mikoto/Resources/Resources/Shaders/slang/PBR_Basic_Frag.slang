@@ -23,20 +23,20 @@
 #include "base/Tonemap_Helpers.slang"
 
 struct FinalShadingParameters {
-    float4 GridSize;
-    float Exposure;
-    float Gamma;
-    float MaxReflectionLOD;
+    float4 mGridSize;
+    float mExposure;
+    float mGamma;
+    float mMaxReflectionLOD;
 
-    int EnableSSAO;
-    int UseBlurred;
-    float SSAOIntensity;
+    int mEnableSSAO;
+    int mUseBlurred;
+    float mSSAOIntensity;
 
-    int PrefilteredCubeMipLevels;
-    float ScaleIBLAmbient;
-    int Step;// for debug
+    int mPrefilteredCubeMipLevels;
+    float mScaleIBLAmbient;
+    int mStep;// for debug
 
-    int IsSkyboxActive;
+    int mIsSkyboxActive;
 };
 
 [[vk::binding( Slot_0, BUFFER_VIEWS_SET_INDEX )]]
@@ -61,74 +61,74 @@ Sampler2D g_BindlessTextures[];
 FinalShadingParameters u_Constants;
 
 struct FSInput {
-    float3 FragmentViewPos : TEXCOORD0;
-    float3 FragmentWorldPos : TEXCOORD1;
-    float3 Normal : TEXCOORD2;
-    float2 TexCoord : TEXCOORD3;
-    float3 VertexColor : TEXCOORD4;
-    float2 TexCoord1 : TEXCOORD5;
-    int MaterialIndex : TEXCOORD5;
+    float3 mFragmentViewPos : TEXCOORD0;
+    float3 mFragmentWorldPos : TEXCOORD1;
+    float3 mNormal : TEXCOORD2;
+    float2 mTexCoord : TEXCOORD3;
+    float3 mVertexColor : TEXCOORD4;
+    float2 mTexCoord1 : TEXCOORD5;
+    int mMaterialIndex : TEXCOORD5;
 
-    float4 ScreenPos : SV_Position;
+    float4 mScreenPos : SV_Position;
 };
 
 struct FSOutput {
-    float4 Color : SV_Target0;
+    float4 mColor : SV_Target0;
 };
 
 [shader( "fragment" )]
 FSOutput main( FSInput input ) {
     FSOutput o;
 
-    MaterialParameters material = Materials[input.MaterialIndex];
+    MaterialParameters material = Materials[input.mMaterialIndex];
 
-    float4 albedo = ( material.AlbedoIndex != INVALID_TEXTURE_INDEX )
-                            ? pow( g_BindlessTextures[material.AlbedoIndex].Sample( input.TexCoord ), float4( 2.2 ) )
-                            : material.BaseColorFactor;
+    float4 albedo = ( material.mAlbedoIndex != INVALID_TEXTURE_INDEX )
+                            ? pow( g_BindlessTextures[material.mAlbedoIndex].Sample( input.mTexCoord ), float4( 2.2 ) )
+                            : material.mBaseColorFactor;
 
-    float metallic = ( material.MetallicIndex != INVALID_TEXTURE_INDEX )
-                             ? g_BindlessTextures[material.MetallicIndex].Sample( input.TexCoord ).r
-                             : material.MetallicFactor;
+    float metallic = ( material.mMetallicIndex != INVALID_TEXTURE_INDEX )
+                             ? g_BindlessTextures[material.mMetallicIndex].Sample( input.mTexCoord ).r
+                             : material.mMetallicFactor;
 
-    float roughness = ( material.RoughnessIndex != INVALID_TEXTURE_INDEX )
-                              ? g_BindlessTextures[material.RoughnessIndex].Sample( input.TexCoord ).r
-                              : material.RoughnessFactor;
+    float roughness = ( material.mRoughnessIndex != INVALID_TEXTURE_INDEX )
+                              ? g_BindlessTextures[material.mRoughnessIndex].Sample( input.mTexCoord ).r
+                              : material.mRoughnessFactor;
 
-    float3 N = ( material.NormalIndex != INVALID_TEXTURE_INDEX )
-                       ? GetNormalFromMap( g_BindlessTextures[material.NormalIndex], input.TexCoord,
-                                           input.FragmentWorldPos, input.Normal )
-                       : normalize( input.Normal );
+    float3 N = ( material.mNormalIndex != INVALID_TEXTURE_INDEX )
+                       ? GetNormalFromMap( g_BindlessTextures[material.mNormalIndex], input.mTexCoord,
+                                           input.mFragmentWorldPos, input.mNormal )
+                       : normalize( input.mNormal );
 
-    float3 V = normalize( u_Camera.ViewPosition.xyz - input.FragmentWorldPos );
+    float3 V = normalize( u_Camera.ViewPosition.xyz - input.mFragmentWorldPos );
     float3 F0 = lerp( float3( 0.04 ), albedo.xyz, metallic );
 
-    uint zTile = uint( ( log( abs( input.FragmentViewPos.z ) / u_Camera.Planes.y ) * u_Constants.GridSize.z ) /
+    uint zTile = uint( ( log( abs( input.mFragmentViewPos.z ) / u_Camera.Planes.y ) * u_Constants.mGridSize.z ) /
                        log( u_Camera.Planes.x / u_Camera.Planes.y ) );
 
-    float2 tileSize = u_Camera.ScreenDimensions / u_Constants.GridSize.xy;
+    float2 tileSize = u_Camera.ScreenDimensions / u_Constants.mGridSize.xy;
 
-    uint xTile = uint( input.ScreenPos.x / tileSize.x );
-    uint yTile = uint( input.ScreenPos.y / tileSize.y );
+    uint xTile = uint( input.mScreenPos.x / tileSize.x );
+    uint yTile = uint( input.mScreenPos.y / tileSize.y );
 
-    uint tileIndex = xTile + yTile * uint( u_Constants.GridSize.x ) +
-                     zTile * uint( u_Constants.GridSize.x * u_Constants.GridSize.y );
+    uint tileIndex = xTile + yTile * uint( u_Constants.mGridSize.x ) +
+                     zTile * uint( u_Constants.mGridSize.x * u_Constants.mGridSize.y );
 
     float3 Lo = float3( 0, 0, 0 );
 
     if ( tileIndex < Clusters.getCount() ) {
-        uint lightCount = Clusters[tileIndex].Count;
+        uint lightCount = Clusters[tileIndex].mCount;
 
         for ( uint i = 0; i < lightCount; i++ ) {
             uint idx = Clusters[tileIndex].LightIndices[i];
             LightInfo L = Lights[idx];
 
-            switch ( L.ActiveLightType ) {
+            switch ( L.mActiveLightType ) {
                 case LIGHT_TYPE_POINT:
-                    Lo += ComputePointLight( N, V, F0, roughness, metallic, albedo.xyz, L, input.FragmentWorldPos );
+                    Lo += ComputePointLight( N, V, F0, roughness, metallic, albedo.xyz, L, input.mFragmentWorldPos );
                     break;
 
                 case LIGHT_TYPE_SPOT:
-                    Lo += ComputeSpotLight( N, V, F0, roughness, metallic, albedo.xyz, L, input.FragmentWorldPos );
+                    Lo += ComputeSpotLight( N, V, F0, roughness, metallic, albedo.xyz, L, input.mFragmentWorldPos );
                     break;
 
                 case LIGHT_TYPE_DIRECTIONAL:
@@ -147,23 +147,23 @@ FSOutput main( FSInput input ) {
 
     float3 F = F_SchlickR( max( dot( N, V ), 0.0 ), F0, roughness );
 
-    if ( u_Constants.IsSkyboxActive == 1 ) {
-        reflection = PrefilteredReflection( u_PrefilteredMap, R, roughness, u_Constants.MaxReflectionLOD );
+    if ( u_Constants.mIsSkyboxActive == 1 ) {
+        reflection = PrefilteredReflection( u_PrefilteredMap, R, roughness, u_Constants.mMaxReflectionLOD );
         irradiance = u_SamplerIrradiance.Sample( N ).rgb;
     }
 
     // SSAO
     float ssao = 1.0f;
 
-    if ( u_Constants.EnableSSAO != MKT_SHADER_FALSE ) {
-        float2 uv = input.ScreenPos.xy / u_Camera.ScreenDimensions;
+    if ( u_Constants.mEnableSSAO != MKT_SHADER_FALSE ) {
+        float2 uv = input.mScreenPos.xy / u_Camera.ScreenDimensions;
 
-        ssao = ( material.AoIndex != INVALID_TEXTURE_INDEX )
-                       ? g_BindlessTextures[material.AoIndex].Sample( input.TexCoord ).r
-                       : ( u_Constants.UseBlurred == MKT_SHADER_TRUE ? u_SSAOBlur.Sample( uv ).r
+        ssao = ( material.mAoIndex != INVALID_TEXTURE_INDEX )
+                       ? g_BindlessTextures[material.mAoIndex].Sample( input.mTexCoord ).r
+                       : ( u_Constants.mUseBlurred == MKT_SHADER_TRUE ? u_SSAOBlur.Sample( uv ).r
                                                                      : u_SSAO.Sample( uv ).r );
 
-        float ssaoStrength = u_Constants.SSAOIntensity;
+        float ssaoStrength = u_Constants.mSSAOIntensity;
         ssao = pow( ssao, ssaoStrength );
     }
 
@@ -176,28 +176,28 @@ FSOutput main( FSInput input ) {
     float3 color = ambient + Lo;
 
     // Tone Mapping
-    color = Uncharted2Tonemap( color * u_Constants.Exposure );
+    color = Uncharted2Tonemap( color * u_Constants.mExposure );
     color *= ( 1.0 / Uncharted2Tonemap( float3( 11.2 ) ) );
 
     // Gamma Correction
-    color = pow( color, float3( 1.0 / u_Constants.Gamma ) );
+    color = pow( color, float3( 1.0 / u_Constants.mGamma ) );
 
     // Emissive
     float3 emissive = float3( 0, 0, 0 );
-    if ( material.EmissiveIndex != INVALID_TEXTURE_INDEX ) {
-        Sampler2D emissiveMap = g_BindlessTextures[material.EmissiveIndex];
-        emissive = CalculateEmissive( material.EmissiveFactor.xyz, material.EmissiveStrength, material.EmissiveIndex,
-                                      emissiveMap, input.TexCoord );
+    if ( material.mEmissiveIndex != INVALID_TEXTURE_INDEX ) {
+        Sampler2D emissiveMap = g_BindlessTextures[material.mEmissiveIndex];
+        emissive = CalculateEmissive( material.mEmissiveFactor.xyz, material.mEmissiveStrength, material.mEmissiveIndex,
+                                      emissiveMap, input.mTexCoord );
     } else {
-        emissive = CalculateEmissive( material.EmissiveFactor.xyz, material.EmissiveStrength, material.EmissiveIndex,
-                                      input.TexCoord );
+        emissive = CalculateEmissive( material.mEmissiveFactor.xyz, material.mEmissiveStrength, material.mEmissiveIndex,
+                                      input.mTexCoord );
     }
 
-    float alpha = material.AlphaMaskCutoff * albedo.a;
-    if ( material.AlbedoIndex == INVALID_TEXTURE_INDEX ) {
-        alpha = material.AlphaMaskCutoff;
+    float alpha = material.mAlphaMaskCutoff * albedo.a;
+    if ( material.mAlbedoIndex == INVALID_TEXTURE_INDEX ) {
+        alpha = material.mAlphaMaskCutoff;
     }
 
-    o.Color = float4( color + emissive, alpha );
+    o.mColor = float4( color + emissive, alpha );
     return o;
 }

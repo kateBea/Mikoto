@@ -1,0 +1,38 @@
+{
+  "Version": 1,
+  "Type": "VolumeMaterial",
+  "Name": "Seeded Cumulus",
+  "Material": {
+    "DensityModel": 2,
+    "Absorption": [
+      0.0001,
+      0.0001,
+      0.0001
+    ],
+    "Scattering": [
+      0.0099,
+      0.0099,
+      0.0099
+    ],
+    "Anisotropy": 0.65,
+    "Density": 2,
+    "HeightFalloff": 0.1,
+    "NoiseScale": 0.001,
+    "ErosionScale": 0.0017,
+    "Erosion": 0.9,
+    "Coverage": 0.72,
+    "Octaves": 5,
+    "CloudForm": 2,
+    "WeatherScale": 5e-05,
+    "CoverageVariation": 0.65,
+    "CloudTypeVariation": 0.25,
+    "CloudHeightVariation": 0.65,
+    "WindShear": 80,
+    "CloudSeed": 21,
+    "CloudDetailType": 0.82,
+    "CloudFormationCount": 16,
+    "CloudFormationScale": 0.55,
+    "CloudFormationVariation": 0.8,
+    "CloudProfileDepth": 0.1
+  }
+}

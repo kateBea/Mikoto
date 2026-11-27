@@ -1,0 +1,24 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Coastal Asphalt",
+  "Material": {
+    "BaseColorFactor": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "MetallicFactor": 0,
+    "RoughnessFactor": 0.96,
+    "ShadingModel": 0,
+    "Textures": [
+      {
+        "Map": 1,
+        "Present": true,
+        "Used": true,
+        "TexturePath": "../../../Tanegashima_Highlands/Assets/Textures/Coastal_Asphalt.png"
+      }
+    ]
+  }
+}

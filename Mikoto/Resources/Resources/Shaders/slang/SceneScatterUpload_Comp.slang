@@ -12,28 +12,33 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Scatter uploaded byte ranges into their destination scene buffers. The CPU-provided copy
+// records describe source offsets, destination addresses and copy sizes.
 
 #include "base/Memory_Helpers.slang"
 
+// Matches the CPU scatter-upload dispatch divisor.
+static const uint kSceneScatterGroupSize = 64;
+
 struct Parameters {
-    Pointer Source;
-    Pointer Destination;
-    uint Count;
-    uint Words;
+    Pointer mSource;
+    Pointer mDestination;
+    uint mCount;
+    uint mWords;
 };
 MKT_DECLARE_PUSH_CONSTANT( Parameters, parameters );
 
 [shader( "compute" )]
-[numthreads( 64, 1, 1 )]
+[numthreads( kSceneScatterGroupSize, 1, 1 )]
 void main( uint3 thread : SV_DispatchThreadID ) {
     uint word = thread.x;
-    if ( word >= parameters.Count * parameters.Words ) {
+    if ( word >= parameters.mCount * parameters.mWords ) {
         return;
     }
 
-    uint record = word / parameters.Words;
-    uint slot = LoadBufferValue<uint>( parameters.Source, record * 4 );
-    uint value = LoadBufferValue<uint>( parameters.Source, ( parameters.Count + word ) * 4 );
+    uint record = word / parameters.mWords;
+    uint slot = LoadBufferValue<uint>( parameters.mSource, record * 4 );
+    uint value = LoadBufferValue<uint>( parameters.mSource, ( parameters.mCount + word ) * 4 );
 
-    StoreBufferValue<uint>( parameters.Destination, ( slot * parameters.Words + word % parameters.Words ) * 4, value );
+    StoreBufferValue<uint>( parameters.mDestination, ( slot * parameters.mWords + word % parameters.mWords ) * 4, value );
 }

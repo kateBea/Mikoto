@@ -12,31 +12,37 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Build coarser color/CoC inputs for wide bokeh gathers. CoC agreement controls which samples
+// can contribute to the reduced texel.
+
 #include "base/DepthOfField_Helpers.slang"
 
 MKT_DECLARE_PUSH_CONSTANT( DepthOfFieldParameters, parameters );
 
 [shader( "compute" )]
-[numthreads( 8, 8, 1 )]
+[numthreads( kImageGroupWidth, kImageGroupHeight, 1 )]
 void main( uint3 thread : SV_DispatchThreadID ) {
-    if ( any( thread.xy >= uint2( parameters.mTargetWidth, parameters.mTargetHeight ) ) ) { return; }
-    float4 samples[4];
-    float minimum = 65504.0;
-    float maximum = -65504.0;
-    for ( uint i = 0; i < 4; ++i ) {
+    if ( any( thread.xy >= uint2( parameters.mTargetWidth, parameters.mTargetHeight ) ) ) {
+        return;
+    }
+    float4 samples[kBilinearTapCount];
+    float minimum = kDoFMaxHalfFloat;
+    float maximum = -kDoFMaxHalfFloat;
+    for ( uint i = 0; i < kBilinearTapCount; ++i ) {
         samples[i] = DoFLoad( parameters.mInputs[0], int2( thread.xy * 2 + uint2( i & 1, i >> 1 ) ) );
         minimum = min( minimum, samples[i].a );
         maximum = max( maximum, samples[i].a );
     }
     float referenceCoC = minimum < -0.25 ? minimum : maximum;
-    uint quarterWidth, quarterHeight;
+    uint quarterWidth;
+    uint quarterHeight;
     dofImages[parameters.mInputs[1]].GetDimensions( quarterWidth, quarterHeight );
     float2 uv = ( float2( thread.xy ) + 0.5 ) * float( 1u << ( parameters.mMipLevel - 1 ) ) / float2( quarterWidth, quarterHeight );
     float3 referenceColor = DoFSample( parameters.mInputs[1], parameters.mSampler, uv ).rgb;
     float referenceLuminance = DoFLuminance( referenceColor );
     float3 color = 0.0;
     float sum = 0.0;
-    for ( uint i = 0; i < 4; ++i ) {
+    for ( uint i = 0; i < kBilinearTapCount; ++i ) {
         float bilateral = saturate( 1.0 - abs( samples[i].a - referenceCoC ) / max( abs( referenceCoC ), 0.5 ) );
         float hdrWeight = ( 1.0 + referenceLuminance ) / ( 1.0 + max( referenceLuminance, DoFLuminance( samples[i].rgb ) ) );
         float weight = bilateral * hdrWeight;

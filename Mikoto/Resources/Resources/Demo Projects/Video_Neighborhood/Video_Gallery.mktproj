@@ -1,0 +1,56 @@
+# Video Neighborhood. Keep the historical Video_Gallery path for existing World selector entries.
+{
+  "Version": 1,
+  "Project": "Video_Neighborhood",
+  "Assets": "Assets",
+  "Cache": "Assets/.cache",
+  "Scene": "Scene/Video_Gallery.mktscn",
+  "CompressTextures": false,
+  "AutoSave": false,
+  "Renderer": {
+    "Version": 1,
+    "Resolution": 1,
+    "Samples": 1,
+    "PathTracing": false,
+    "PathSamplesPerFrame": 2,
+    "PathMaxBounces": 6,
+    "PathMaxSamples": 4096,
+    "SsaoEnabled": true,
+    "RayTracedAmbientOcclusion": false,
+    "ShadowDistance": 120,
+    "ScreenSpaceReflections": {
+      "Enabled": true,
+      "HalfResolution": true,
+      "MaxSteps": 96,
+      "SpatialSamples": 8,
+      "MaxDistance": 80.0,
+      "Thickness": 0.15,
+      "MaxRoughness": 0.85,
+      "HistoryWeight": 0.9,
+      "SamplingBias": 0.3,
+      "Intensity": 1.0
+    }
+  },
+  "EditorCamera": {
+    "NavigationMode": "Fly",
+    "Position": [
+      -33,
+      12.1,
+      23
+    ],
+    "Direction": [
+      0.31,
+      -0.35,
+      -0.8839683252
+    ],
+    "Projection": "Perspective",
+    "FieldOfView": 65,
+    "NearPlane": 0.05,
+    "FarPlane": 250,
+    "MovementSpeed": 10,
+    "RotationSpeed": 10,
+    "SmoothTime": 0.1,
+    "AllowPitch": true,
+    "AllowYaw": true
+  }
+}

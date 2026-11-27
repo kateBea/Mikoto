@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Path state, deterministic random sampling and local-frame transforms. A path carries its
+// random state so successive decisions consume a reproducible sample sequence.
+
 #pragma once
 
 // Shared transport records, random numbers and local shading coordinates.
@@ -37,43 +40,70 @@ static const uint SAMPLE_SEED_STRIDE = 0x9e3779b9u;
 static const uint OCCLUSION_SEED_SALT = 0x85ebca6bu;
 
 struct Surface {
-    float3 Position, PositionError;
-    float3 Normal, GeometricNormal;
-    float3 Base, Emission, F0;
-    float Roughness, Metallic, Alpha, Cutoff;
-    uint AlphaMode;
-    bool DoubleSided, AreaLight, EmissionTwoSided, EmissionOnly;
-    uint Model, Material, Profile;
-    float IOR, Transmission, Thickness, Anisotropy;
-    float3 Absorption, Scattering;
-    bool FrontFace, ThinWalled, SubsurfaceExit;
+    float3 mPosition;
+    float3 mPositionError;
+    float3 mNormal;
+    float3 mGeometricNormal;
+    float3 mBase;
+    float3 mEmission;
+    float3 mF0;
+    float mRoughness;
+    float mMetallic;
+    float mAlpha;
+    float mCutoff;
+    uint mAlphaMode;
+    bool mDoubleSided;
+    bool mAreaLight;
+    bool mEmissionTwoSided;
+    bool mEmissionOnly;
+    uint mModel;
+    uint mMaterial;
+    uint mProfile;
+    float mIOR;
+    float mTransmission;
+    float mThickness;
+    float mAnisotropy;
+    float3 mAbsorption;
+    float3 mScattering;
+    bool mFrontFace;
+    bool mThinWalled;
+    bool mSubsurfaceExit;
 };
 
 struct BSDFSample {
-    float3 Direction, Value;
-    float PDF;
-    float Eta;
-    bool Delta, Transmitted;
+    float3 mDirection;
+    float3 mValue;
+    float mPDF;
+    float mEta;
+    bool mDelta;
+    bool mTransmitted;
 };
 
 struct PreviousVertex {
-    float3 Position;
-    float BSDFPDF;
-    uint LightCount;
+    float3 mPosition;
+    float mBSDFPDF;
+    uint mLightCount;
 };
 
+// Fixed path-local medium capacity and traversal/roulette thresholds preserve the existing budget.
+static const uint kPathMediumStackCapacity = 8;
+static const uint kPathBoundaryCrossingLimit = 256;
+static const uint kPathRouletteStartDepth = 2;
+
 struct MediumStack {
-    uint Materials[8];
-    uint Count;
+    uint mMaterials[kPathMediumStackCapacity];
+    uint mCount;
 };
 
 struct MediumState {
-    float3 Absorption, Scattering;
-    float IOR, Anisotropy;
+    float3 mAbsorption;
+    float3 mScattering;
+    float mIOR;
+    float mAnisotropy;
 };
 
 SceneRecord SceneData() {
-    return LoadBufferValue<SceneRecord>( Parameters.Data, 0 );
+    return LoadBufferValue<SceneRecord>( Parameters.mData, 0 );
 }
 
 float MaxComponent( float3 value ) {

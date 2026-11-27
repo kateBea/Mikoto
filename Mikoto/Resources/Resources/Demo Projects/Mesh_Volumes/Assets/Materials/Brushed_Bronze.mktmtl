@@ -1,0 +1,16 @@
+{
+  "Version": 2,
+  "Type": "SurfaceMaterial",
+  "Name": "Brushed_Bronze",
+  "Material": {
+    "BaseColorFactor": [
+      0.3,
+      0.18,
+      0.08,
+      1
+    ],
+    "MetallicFactor": 0.75,
+    "RoughnessFactor": 0.32,
+    "AlphaMask": 0
+  }
+}

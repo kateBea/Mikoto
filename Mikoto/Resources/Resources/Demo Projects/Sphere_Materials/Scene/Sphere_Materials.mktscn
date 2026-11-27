@@ -16,7 +16,7 @@ Objects:
       Name: "Spheres Grid"
       Visibility: true
     TransformComponent:
-      Position: [0,0,0]
+      Position: [0,0.1,0]
       Rotation: [0,0,0]
       Scale: [1,1,1]
       Uniform Scale: false
@@ -578,7 +578,7 @@ Objects:
       Name: "Camera"
       Visibility: true
     TransformComponent:
-      Position: [0,0,0]
+      Position: [0,0.1,0]
       Rotation: [0,0,0]
       Scale: [1,1,1]
       Uniform Scale: false
@@ -586,7 +586,7 @@ Objects:
         - [1.0,0.0,0.0,0]
         - [0.0,1.0,0.0,0]
         - [0.0,0.0,1.0,0]
-        - [60,60,220,1]
+        - [60,60.1,220,1]
     Children: []
     CameraComponent:
       Projection: 1
@@ -606,7 +606,7 @@ Objects:
       Name: "Sun"
       Visibility: true
     TransformComponent:
-      Position: [0,0,0]
+      Position: [0,0.1,0]
       Rotation: [0,0,0]
       Scale: [1,1,1]
       Uniform Scale: false
@@ -625,7 +625,7 @@ Objects:
       Name: "Modern Evening Street Skybox"
       Visibility: true
     TransformComponent:
-      Position: [0,0,0]
+      Position: [0,0.1,0]
       Rotation: [0,0,0]
       Scale: [1,1,1]
       Uniform Scale: false

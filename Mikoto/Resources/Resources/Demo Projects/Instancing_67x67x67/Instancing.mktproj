@@ -1,0 +1,27 @@
+# Instancing demo project.
+# An 67 x 67 x 67 grid contains 300,763 cubes to stress repeated-geometry submission.
+# Open this manifest in the editor; Scene selects the authored scene below.
+# Assets and Cache paths are relative to this manifest.
+# EditorCamera configures editor navigation; the scene camera controls the Game view.
+
+Version: 1
+Project: "Instancing_67x67x67"
+Assets: "Assets"
+Cache: "Assets/.cache"
+Scene: "Scene/Instancing.mktscn"
+CompressTextures: false
+AutoSave: false
+AutoSaveIntervalMs: 2000
+EditorCamera:
+  NavigationMode: "Fly"
+  Position: [13367.089,10860.859,13367.089]
+  Direction: [-0.6276875017271643,-0.4604528209828043,-0.6276875017271643]
+  Projection: "Perspective"
+  FieldOfView: 45
+  NearPlane: 0.1
+  FarPlane: 40000
+  MovementSpeed: 500
+  RotationSpeed: 10
+  SmoothTime: 0.1
+  AllowPitch: true
+  AllowYaw: true

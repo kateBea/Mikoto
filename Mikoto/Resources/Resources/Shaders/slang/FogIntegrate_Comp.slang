@@ -12,22 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Integrate lit froxels front to back along each camera ray. Store cumulative scattering and
+// RGB transmittance so later passes can stop fog at a surface or cloud distance.
+
 #include "Fog_Common.slang"
 
 // Front-to-back integration of lit froxels, using the homogeneous segment solution.
 // https://bartwronski.com/wp-content/uploads/2014/08/bwronski_volumetric_fog_siggraph2014.pdf
 // https://pbr-book.org/4ed/Volume_Scattering/Transmittance
 
-[numthreads( 8, 8, 1 )] void main( uint3 thread : SV_DispatchThreadID ) {
-    FogFrameData frame = LoadBufferValue<FogFrameData>( parameters.Frame, 0 );
-    if ( any( thread.xy >= frame.Grid.xy ) ) {
+[numthreads( kImageGroupWidth, kImageGroupHeight, 1 )] void main( uint3 thread : SV_DispatchThreadID ) {
+    FogFrameData frame = LoadBufferValue<FogFrameData>( parameters.mFrame, 0 );
+    if ( any( thread.xy >= frame.mGrid.xy ) ) {
         return;
     }
-    float3 radiance = 0.0, transmittance = 1.0;
-    for ( uint slice = 0; slice < frame.Grid.z; ++slice ) {
-        uint2 pixel = FogAtlasPixel( uint3( thread.xy, slice ), frame.Grid );
-        float3 source = textures[parameters.Lighting].Load( int3( pixel, 0 ) ).rgb;
-        float3 extinction = textures[parameters.Extinction].Load( int3( pixel, 0 ) ).rgb;
+    float3 radiance = 0.0;
+    float3 transmittance = 1.0;
+    for ( uint slice = 0; slice < frame.mGrid.z; ++slice ) {
+        uint2 pixel = FogAtlasPixel( uint3( thread.xy, slice ), frame.mGrid );
+        float3 source = textures[parameters.mLighting].Load( int3( pixel, 0 ) ).rgb;
+        float3 extinction = textures[parameters.mExtinction].Load( int3( pixel, 0 ) ).rgb;
         float step = FogSliceDistance( slice + 1, frame ) - FogSliceDistance( slice, frame );
         float3 segmentT = exp( -extinction * step );
         float3 integral;
@@ -36,7 +40,7 @@
         }
         radiance += transmittance * source * integral;
         transmittance *= segmentT;
-        images[parameters.Radiance][pixel] = float4( min( radiance, 60000.0 ), 0.0 );
-        images[parameters.Transmittance][pixel] = float4( transmittance, 1.0 );
+        images[parameters.mRadiance][pixel] = float4( min( radiance, 60000.0 ), 0.0 );
+        images[parameters.mTransmittance][pixel] = float4( transmittance, 1.0 );
     }
 }

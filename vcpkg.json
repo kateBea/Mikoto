@@ -120,6 +120,15 @@
           ]
         }
       ]
+    },
+    "cloud-authoring": {
+      "description": "Native OpenVDB cloud import and export",
+      "dependencies": [
+        {
+          "name": "openvdb",
+          "default-features": false
+        }
+      ]
     }
   }
 }

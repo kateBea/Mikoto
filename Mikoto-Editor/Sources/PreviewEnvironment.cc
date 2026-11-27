@@ -14,13 +14,13 @@
 
 #include <mutex>
 
-#include <Core/Exception.hh>
-
-#include <Threading/TaskService.hh>
+#include <Application/PreviewEnvironment.hh>
 
 #include <Assets/AssetRegistryService.hh>
 
-#include <Application/PreviewEnvironment.hh>
+#include <Core/Exception.hh>
+
+#include <Threading/TaskService.hh>
 
 namespace mikoto::editor {
     struct PreviewEnvironment::Load {
@@ -35,7 +35,12 @@ namespace mikoto::editor {
         return path.Exists() ? path : filesystem::Path{ "Mikoto/Resources/Resources/Cubemaps/modern_evening_street_4k.hdr" };
     }
 
-    auto PreviewEnvironment::Request( const filesystem::Path& path ) -> void {
+    auto PreviewEnvironment::DaylightPath() -> filesystem::Path {
+        filesystem::Path path{ "Resources/Cubemaps/farm_field_puresky_4k.hdr" };
+        return path.Exists() ? path : filesystem::Path{ "Mikoto/Resources/Resources/Cubemaps/farm_field_puresky_4k.hdr" };
+    }
+
+    auto PreviewEnvironment::Request( const filesystem::Path &path ) -> void {
         auto load{ eastl::make_shared<Load>() };
         threading::TaskService::Get()->ExecuteWorkerTask( [load, path]() {
             asset::AssetHandle<asset::Texture> texture{};
@@ -47,7 +52,7 @@ namespace mikoto::editor {
                 if ( !texture.IsReady() ) {
                     MKT_THROW_RUNTIME_ERROR( "Preview environment could not be loaded." );
                 }
-            } catch ( const std::exception& exception ) {
+            } catch ( const std::exception &exception ) {
                 error = exception.what();
             }
 
@@ -61,7 +66,7 @@ namespace mikoto::editor {
         mError.clear();
     }
 
-    auto PreviewEnvironment::Poll( asset::AssetHandle<asset::Texture>& texture ) -> bool {
+    auto PreviewEnvironment::Poll( asset::AssetHandle<asset::Texture> &texture ) -> bool {
         if ( !mLoad || mConsumed ) {
             return false;
         }
@@ -83,7 +88,7 @@ namespace mikoto::editor {
         return false;
     }
 
-    auto PreviewEnvironment::Poll( renderer::rhi::TextureHandle& texture ) -> bool {
+    auto PreviewEnvironment::Poll( renderer::rhi::TextureHandle &texture ) -> bool {
         asset::AssetHandle<asset::Texture> handle{};
 
         if ( !Poll( handle ) ) {
@@ -104,7 +109,7 @@ namespace mikoto::editor {
         return mLoad != nullptr;
     }
 
-    auto PreviewEnvironment::GetError() const -> const eastl::string& {
+    auto PreviewEnvironment::GetError() const -> const eastl::string & {
         return mError;
     }
 }// namespace mikoto::editor

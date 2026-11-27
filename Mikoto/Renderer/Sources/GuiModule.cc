@@ -127,9 +127,9 @@ namespace mikoto::renderer {
                     core::u32 mSampler;
                     core::u32 mOffset;
                 } params{
-                    ctx.GetDeviceBufferAddress( mBuffer ),
-                    ctx.PushSampler( mSampler ),
-                    0
+                    .mQuads = ctx.GetDeviceBufferAddress( mBuffer ),
+                    .mSampler = ctx.PushSampler( mSampler ),
+                    .mOffset = 0,
                 };
 
                 if ( mWorldQuads ) {

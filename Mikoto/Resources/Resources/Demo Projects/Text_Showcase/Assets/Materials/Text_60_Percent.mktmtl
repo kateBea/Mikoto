@@ -1,0 +1,14 @@
+{
+  "Version": 2,
+  "Type": "TextMaterial",
+  "Name": "Text_60_Percent",
+  "Material": {
+    "Color": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "Opacity": 0.6
+  }
+}

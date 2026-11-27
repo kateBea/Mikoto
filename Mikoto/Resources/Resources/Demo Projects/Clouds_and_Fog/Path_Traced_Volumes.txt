@@ -1,0 +1,34 @@
+Path-traced clouds and fog
+
+This project uses path tracing by default and keeps the existing sample/bounce
+settings. The high sky and local storm now use bundled baked density volumes.
+Ground mist and global haze use exact exponential-height sampling/transmittance;
+the small fog sphere is a density-grid example. The sky includes its fluid recipe.
+The Game camera shows the atmospheric sky, matching the intended cloud backdrop.
+
+Wind speed is zero on both clouds so a stationary camera can accumulate samples.
+Enable wind deliberately to animate them; changing density/placement must then
+restart accumulation. Receive shadows now controls connection visibility without
+disabling sun/point-light sampling. Authored grid bounds now translate with the cloud's wind. Procedural density uses
+the material frame so rotation/scale also move the pattern with its boundary.
+
+Heterogeneous grids use conservative coarse maximum-density cells (including
+trilinear-filter support), traversed front to back. Empty cells consume no null
+events. Density data and these bounds upload only after an edit/storage change;
+animated placement updates just the small records. A separate preparation pass
+allocates replacements before upload barriers are recorded. Gray and chromatic media retain all RGB
+channels using weighted null collisions; empty grid bounds do not tint paths.
+
+Procedural FBM remains a valid fallback, but baking gives it the acceleration
+provided by maximum-density grids. This is physical Monte Carlo volume transport,
+so thick multiple scattering still costs more than the raster cloud approximation.
+Measured tracking-kernel work is not an editor FPS guarantee.
+
+References:
+Alex Tardif, GPU Tracing Participating Media (RGB transport and common pitfalls):
+https://alextardif.com/ParticipatingMedia.html
+PBRT v4, media/majorant-grid DDA and delta/ratio tracking:
+https://pbr-book.org/4ed/Volume_Scattering/Media
+https://pbr-book.org/4ed/Light_Transport_II_Volume_Rendering/Volume_Scattering_Integrators
+
+Rebuild before opening: CPU/shader VolumeRecord layouts changed together.

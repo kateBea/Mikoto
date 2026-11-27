@@ -1,0 +1,26 @@
+{
+  "Version": 1,
+  "Type": "VolumeMaterial",
+  "Name": "Ground mist",
+  "Material": {
+    "DensityModel": 1,
+    "Absorption": [
+      0,
+      0,
+      0
+    ],
+    "Scattering": [
+      0.08,
+      0.08,
+      0.08
+    ],
+    "Anisotropy": 0.35,
+    "Density": 0.3,
+    "HeightFalloff": 0.18,
+    "NoiseScale": 0.06,
+    "ErosionScale": 0.3,
+    "Erosion": 0.12,
+    "Coverage": 0.82,
+    "Octaves": 5
+  }
+}

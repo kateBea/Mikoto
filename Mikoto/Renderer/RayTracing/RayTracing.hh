@@ -15,19 +15,20 @@
 #ifndef MIKOTO_RENDERER_RAY_TRACING_RAY_TRACING_HH
 #define MIKOTO_RENDERER_RAY_TRACING_RAY_TRACING_HH
 
+#include <ankerl/unordered_dense.h>
+
 #include <EASTL/array.h>
 #include <EASTL/vector.h>
 
 #include <glm/glm.hpp>
-#include <ankerl/unordered_dense.h>
 
 #include <Core/Core.hh>
 #include <Core/Types.hh>
 
 #include <Material/SurfaceMaterial.hh>
 
-#include <Renderer/Rhi/Texture.hh>
 #include <Renderer/Core/MeshRenderData.hh>
+#include <Renderer/Rhi/Texture.hh>
 
 namespace mikoto::renderer {
 
@@ -44,8 +45,12 @@ namespace mikoto::renderer {
 
         bool mUseCosineWeightedAoSampling{ true };
         core::u32 mAoSamplesPerFrame{ 2 };
-        core::f32 mAoMaxDistance{}; // Zero selects PBRT's unlimited-distance default.
+        core::f32 mAoMaxDistance{};// Zero selects PBRT's unlimited-distance default.
 
+        core::u32 mShadowSamplesPerFrame{ 1 };
+        core::u32 mReflectionMaxBounces{ 4 };
+
+        // Shared indirect sampling budget for hybrid reflections and diffuse GI.
         core::u32 mRayGiSamplesPerFrame{ 1 };
         core::u32 mRayGiMaxBounces{ 2 };
 
@@ -60,11 +65,11 @@ namespace mikoto::renderer {
     inline constexpr core::u64 kRevisionHashPrime{ 1099511628211ull };
 
     inline constexpr core::u32 kTriangleIndexCount{ 3 };
-    inline constexpr core::usize kPositionStreamStride{ 3 * sizeof( core::f32 ) }; // Packed by MeshRenderData.
+    inline constexpr core::usize kPositionStreamStride{ 3 * sizeof( core::f32 ) };// Packed by MeshRenderData.
     inline constexpr core::u32 kInstanceTransformRows{ 3 };
     inline constexpr core::u32 kInstanceTransformColumns{ 4 };
     inline constexpr core::i32 kInvalidTextureIndex{ -1 };
-    inline constexpr core::u32 kRayHitPayloadBytes{ 52 }; // Hit in PathTracing_Common.slang.
+    inline constexpr core::u32 kRayHitPayloadBytes{ 52 };// Hit in PathTracing_Common.slang.
     inline constexpr core::u32 kOcclusionHistoryLimit{ 4096 };
     inline constexpr core::u32 kHybridHistoryLimit{ 256 };
 
@@ -78,14 +83,14 @@ namespace mikoto::renderer {
         glm::ivec4 mUVSets{};
         core::float4 mSpecular{};
         core::float4 mUvTransform{ 1, 1, 0, 0 };
-        glm::uvec4 mProperties{}; // Shading model, thin wall, BSSRDF byte offset, reserved.
-        core::float4 mOptical{}; // IOR, transmission, artist thickness, reserved.
-        core::float4 mAbsorption{}; // Inverse world units, phase anisotropy.
-        core::float4 mScattering{}; // Inverse world units, reserved.
+        glm::uvec4 mProperties{};  // Shading model, thin wall, BSSRDF byte offset, reserved.
+        core::float4 mOptical{};   // IOR, transmission, artist thickness, reserved.
+        core::float4 mAbsorption{};// Inverse world units, phase anisotropy.
+        core::float4 mScattering{};// Inverse world units, reserved.
         core::float4 mHeightMapping{};
         glm::ivec4 mHeightInfo{ kInvalidTextureIndex, 0, 0, 0 };
-        core::float4 mCheckerboardColorA{}; // RGB tint, enabled in W.
-        core::float4 mCheckerboardColorB{}; // RGB tint, world-space cell size in W.
+        core::float4 mCheckerboardColorA{};// RGB tint, enabled in W.
+        core::float4 mCheckerboardColorB{};// RGB tint, world-space cell size in W.
         core::float4 mCheckerboardOffset{};
     };
 
@@ -93,7 +98,7 @@ namespace mikoto::renderer {
         core::float4 mPositionType{};
         core::float4 mDirectionRadius{};
         core::float4 mColorIntensity{};
-        core::float4 mSpot{}; // Cone cosines (xy), PT point radius / directional half-angle in radians (z).
+        core::float4 mSpot{};// Cone cosines (xy), PT point radius / directional half-angle in radians (z).
     };
 
     struct RectangleEmitter {
@@ -110,7 +115,7 @@ namespace mikoto::renderer {
         MeshRenderDataHandle mMesh{};
         core::float4x4 mTransform{ 1.0f };
         eastl::vector<core::float4x4> mPalette{};
-        const material::SurfaceMaterial* mMaterialSource{};
+        const material::SurfaceMaterial *mMaterialSource{};
 
         bool mMeshEmitter{};
     };
@@ -121,16 +126,18 @@ namespace mikoto::renderer {
         eastl::vector<rhi::TextureHandle> mTextures{};
         eastl::vector<RectangleEmitter> mRectangleEmitters{};
 
-        ankerl::unordered_dense::map<const rhi::ITexture*, core::i32> mTextureIndices{};
+        ankerl::unordered_dense::map<const rhi::ITexture *, core::i32> mTextureIndices{};
 
         core::i32 mEnvironmentIndex{ kInvalidTextureIndex };
         core::u32 mEnvironmentFaceBase{};
         core::u64 mHash{ kRevisionHashSeed };
+        core::u64 mTopologyHash{ kRevisionHashSeed };
+        core::u64 mLightingHash{ kRevisionHashSeed };
 
         bool mCubeEnvironment{};
 
         // Material references use these local indices until the frame resolves descriptors.
-        MKT_NODISCARD auto AddTexture( const rhi::TextureHandle& texture ) -> core::i32 {
+        MKT_NODISCARD auto AddTexture( const rhi::TextureHandle &texture ) -> core::i32 {
             if ( !texture || texture->GetDimension() != rhi::TextureDimension::eTexture2D ) {
                 return kInvalidTextureIndex;
             }

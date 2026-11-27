@@ -55,6 +55,7 @@ namespace mikoto::physics {
 
         MKT_NODISCARD auto CreatePhysicsWorld(const PhysicsWorldCreateInfo& spec) -> PhysicsWorld*;
         MKT_NODISCARD auto GetPhysicsBackend() const -> const PhysicsBackend&;
+        MKT_NODISCARD auto GetSimulationTarget() const -> scene::Scene *;
 
         ~PhysicSystem() override = default;
 

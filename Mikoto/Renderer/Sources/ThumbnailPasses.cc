@@ -122,7 +122,9 @@ namespace mikoto::renderer {
         const core::float3 origin{ ( minimum.x + maximum.x ) * 0.5f, minimum.y, ( minimum.z + maximum.z ) * 0.5f };
         // Normalize once at import boundaries. Orbit and lighting then work in
         // stable preview units, regardless of the source model's units or pivot.
-        mNormalization = glm::scale( core::float4x4{ 1.0f }, core::float3{ scale } ) * glm::translate( core::float4x4{ 1.0f }, -origin );
+        mNormalization = glm::translate( core::float4x4{ 1.0f }, core::float3{ 0, kPreviewStageElevation, 0 } ) *
+                         glm::scale( core::float4x4{ 1.0f }, core::float3{ scale } ) *
+                         glm::translate( core::float4x4{ 1.0f }, -origin );
         mNormalizedHalfExtent = extent * ( scale * 0.5f );
         mDrawData.resize( mMeshes.size() + 1 );
 
@@ -540,7 +542,7 @@ namespace mikoto::renderer {
             distance = radius / glm::sin( halfAngle ) * 1.002f;
         }
         else if ( settings.mFrameModelBounds ) {
-            // Normalization places the model's bottom at zero. Aim at its actual
+            // Normalization places the model on the preview stage. Aim at its actual
             // center so short/wide assets do not sit at the bottom of the tile.
             target.y = mNormalizedHalfExtent.y;
             const core::float3 right{ glm::normalize( glm::cross( core::float3{ 0, 1, 0 }, backward ) ) };
@@ -562,6 +564,8 @@ namespace mikoto::renderer {
             }
         }
 
+        // Move the orbit and shadow target with the stage, preserving framing.
+        target.y += kPreviewStageElevation;
         const core::float3 eye{ target + distance * backward };
         auto projection{ glm::perspectiveRH_ZO( fieldOfView, aspect, 0.03f, 50.0f ) };
 
@@ -682,6 +686,7 @@ namespace mikoto::renderer {
 
         auto& ground{ mDrawData.back() };
         ground = {};
+        ground.mModel = glm::translate( core::float4x4{ 1.0f }, core::float3{ 0, kPreviewStageElevation, 0 } );
         ground.mBaseColor = { 0.32f, 0.35f, 0.39f, 1.0f };
         ground.mFactors = { 0.0f, 0.8f, 1.0f, 1.0f };
         ground.mFlags.w = 1.0f;
@@ -759,10 +764,21 @@ namespace mikoto::renderer {
                         }
                         else {
                             struct MipParameters {
-                                core::u32 cube, sampler, level, face, sourceSize, destinationSize;
+                                core::u32 mCube;
+                                core::u32 mSampler;
+                                core::u32 mLevel;
+                                core::u32 mFace;
+                                core::u32 mSourceSize;
+                                core::u32 mDestinationSize;
                             };
-                            const MipParameters parameters{ context.PushTexture_SRV( source ), context.PushSampler( mSampler ),
-                                mip - 1, face, size * 2, size };
+                            const MipParameters parameters{
+                                .mCube = context.PushTexture_SRV( source ),
+                                .mSampler = context.PushSampler( mSampler ),
+                                .mLevel = mip - 1,
+                                .mFace = face,
+                                .mSourceSize = size * 2,
+                                .mDestinationSize = size,
+                            };
                             context.PushConstants( parameters );
                             context.BindPipeline( mipPipeline );
                         }

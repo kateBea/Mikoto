@@ -40,7 +40,15 @@ namespace mikoto::renderer {
         core::float4 mWindOctaves{};
         core::uint4 mGrid{};               // dimensions, byte offset
         core::float4 mExtinctionMajorant{};// Base RGB/density bounds; height varies per ray segment.
+        core::uint4 mMajorantGrid{};       // Coarse density bounds XYZ and byte offset.
+
+        // Seeded procedural clouds share their rounded formation geometry with raster.
+        core::uint4 mCloudPattern{}; // Formation count, seed, reserved.
+        core::float4 mCloudProfile{};// Form, profile depth, formation scale, variation.
+        core::float4 mCloudWeather{};// Frequency, coverage/type/height variation.
     };
+
+    static_assert( sizeof( VolumeRecord ) == 256 );
 
     struct VolumeModuleInfo {
         FGBufferHandle mData{};
@@ -78,9 +86,12 @@ namespace mikoto::renderer {
         auto RegisterFogMultisample( FrameGraph &graph, rhi::Multisampling samples ) -> void;
 
         // Returns true if density/shape/wind changed, invalidating path accumulation.
-        auto Prepare( const scene::Scene *scene, const scene::Camera *camera, core::f32 ambientScale ) -> bool;
+        auto Prepare( const scene::Scene *scene, const scene::Camera *camera, core::f32 ambientScale, bool includeClouds = true ) -> bool;
 
         MKT_NODISCARD auto GetData() const -> const eastl::vector<core::ubyte> &;
+        MKT_NODISCARD auto GetCount() const -> core::u32 {
+            return mCount;
+        }
 
     private:
         auto RegisterFogLighting( FrameGraph &graph ) -> void;
@@ -94,10 +105,14 @@ namespace mikoto::renderer {
         FogFrameData mFogFrame{};
 
         eastl::vector<core::ubyte> mData{};
+        eastl::vector<core::u32> mGridOffsets{};
+        eastl::vector<core::uint4> mMajorantLayouts{};
+        core::u64 mPayloadHash{};
         core::u64 mHash{};
         core::u32 mCount{};
 
         bool mUploadDirty{ true };
+        bool mPayloadDirty{ true };
         bool mHistoryValid{};
         core::f32 mAmbientScale{};
     };

@@ -27,7 +27,8 @@ float4 main( float2 uv : TEXCOORD0 ) : SV_Target0 {
 
     float3 color = previewCubes[preview.mPrefilter].SampleLevel( previewSamplers[preview.mClampSampler], direction,
         clamp(scene.mSettings.w, 0.0, float(preview.mPrefilterMipCount - 1)) ).rgb * scene.mSettings.z;
-    float3 world, ray;
+    float3 world;
+    float3 ray;
     bool hit = GridPlaneIntersection( scene.mInverseViewProjection, clip, world, ray );
     float2 footprint = max( fwidth( world.xz ), float2( 1e-6 ) );
     if ( scene.mPreviewOptions.x > 0 && hit ) {

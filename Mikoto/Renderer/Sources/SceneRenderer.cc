@@ -12,18 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cmath>
+
 #include <EASTL/memory.h>
 
-#include <Core/Profiler.hh>
 #include <Core/Exception.hh>
+#include <Core/Profiler.hh>
 
 #include <Logging/Logger.hh>
 
-#include <Renderer/Rhi/GpuDevice.hh>
+#include <Renderer/CompatibilityRenderer/CompatibilityRenderer.hh>
 #include <Renderer/Core/SceneRenderer.hh>
 #include <Renderer/ForwardRenderer/ForwardRenderer.hh>
 #include <Renderer/ForwardRenderer/Passes/OutlineModule.hh>
-#include <Renderer/CompatibilityRenderer/CompatibilityRenderer.hh>
+#include <Renderer/Rhi/GpuDevice.hh>
 
 namespace mikoto::renderer {
 
@@ -52,35 +54,35 @@ namespace mikoto::renderer {
         }
     }
 
-    auto SceneRendererCreateInfo::SetName( eastl::string_view name ) -> SceneRendererCreateInfo& {
+    auto SceneRendererCreateInfo::SetName( eastl::string_view name ) -> SceneRendererCreateInfo & {
         MKT_BEGIN_PROFILER();
         this->mName = name;
         return *this;
     }
 
-    auto SceneRendererCreateInfo::SetDevice( renderer::rhi::IGpuDevice* device ) -> SceneRendererCreateInfo& {
+    auto SceneRendererCreateInfo::SetDevice( renderer::rhi::IGpuDevice *device ) -> SceneRendererCreateInfo & {
         MKT_BEGIN_PROFILER();
         this->mDevice = device;
         return *this;
     }
 
-    auto SceneRendererCreateInfo::SetRendererType( SceneRendererType type ) -> SceneRendererCreateInfo& {
+    auto SceneRendererCreateInfo::SetRendererType( SceneRendererType type ) -> SceneRendererCreateInfo & {
         mType = type;
         return *this;
     }
 
-    auto SceneRendererCreateInfo::SetMultisampling( rhi::Multisampling multisampling ) -> SceneRendererCreateInfo& {
+    auto SceneRendererCreateInfo::SetMultisampling( rhi::Multisampling multisampling ) -> SceneRendererCreateInfo & {
         mMultisampling = multisampling;
         return *this;
     }
 
-    auto SceneRendererCreateInfo::SetRenderResolution( renderer::rhi::RenderResolution resolution ) -> SceneRendererCreateInfo& {
+    auto SceneRendererCreateInfo::SetRenderResolution( renderer::rhi::RenderResolution resolution ) -> SceneRendererCreateInfo & {
         MKT_BEGIN_PROFILER();
         mResolution = resolution;
         return *this;
     }
 
-    auto SceneRendererCreateInfo::SetViewportConvention( rhi::ViewportConvention convention ) -> SceneRendererCreateInfo& {
+    auto SceneRendererCreateInfo::SetViewportConvention( rhi::ViewportConvention convention ) -> SceneRendererCreateInfo & {
         MKT_BEGIN_PROFILER();
         mViewportConvention = convention;
         return *this;
@@ -96,8 +98,29 @@ namespace mikoto::renderer {
         }
 
         mRayTracing.Sanitize();
+        mDenoiser.Sanitize();
 
-        auto& reflections{ mScreenSpaceReflections };
+        mInfiniteGrid.mCellSize = glm::clamp( mInfiniteGrid.mCellSize, 0.01f, 10000.0f );
+        mInfiniteGrid.mOpacity = glm::clamp( mInfiniteGrid.mOpacity, 0.0f, 1.0f );
+        mInfiniteGrid.mLineWidth = glm::clamp( mInfiniteGrid.mLineWidth, 0.5f, 4.0f );
+        mInfiniteGrid.mAxisWidth = glm::clamp( mInfiniteGrid.mAxisWidth, 0.5f, 8.0f );
+
+        mClouds.mFieldResolution = mClouds.mFieldResolution <= 64 ? 64 : mClouds.mFieldResolution <= 128 ? 128
+                                                                                                         : 256;
+        mClouds.mMaxSteps = glm::clamp( mClouds.mMaxSteps, 32u, 512u );
+        mClouds.mSunSteps = glm::clamp( mClouds.mSunSteps, 4u, 64u );
+        mClouds.mStepLength = glm::clamp( mClouds.mStepLength, 0.5f, 128.0f );
+        mClouds.mMaxDistance = glm::clamp( mClouds.mMaxDistance, 100.0f, 200000.0f );
+        mClouds.mHistoryWeight = glm::clamp( mClouds.mHistoryWeight, 0.0f, 0.98f );
+        mClouds.mDetailStrength = glm::clamp( mClouds.mDetailStrength, 0.0f, 2.0f );
+        mClouds.mMultipleScattering = glm::clamp( mClouds.mMultipleScattering, 0.0f, 0.9f );
+        mClouds.mAmbientIntensity = glm::clamp( mClouds.mAmbientIntensity, 0.0f, 4.0f );
+        mClouds.mEdgeDarkening = glm::clamp( mClouds.mEdgeDarkening, 0.0f, 1.0f );
+        mClouds.mInnerGlow = glm::clamp( mClouds.mInnerGlow, 0.0f, 1.0f );
+        mClouds.mDetailMipBias = glm::clamp( mClouds.mDetailMipBias, -2.0f, 2.0f );
+        mClouds.mAnimatedJitterDistance = glm::clamp( mClouds.mAnimatedJitterDistance, 0.0f, 2000.0f );
+
+        auto &reflections{ mScreenSpaceReflections };
         reflections.mMaxSteps = glm::clamp( reflections.mMaxSteps, 16u, 256u );
         reflections.mSpatialSamples = glm::clamp( reflections.mSpatialSamples, 1u, 16u );
         reflections.mMaxDistance = glm::clamp( reflections.mMaxDistance, 0.1f, 1000.0f );

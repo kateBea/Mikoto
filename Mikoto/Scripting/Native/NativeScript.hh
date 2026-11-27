@@ -45,6 +45,7 @@ namespace mikoto::scripting {
 
         auto Stop() -> void override;
         auto Update( float timeStep ) -> void override;
+        auto OnPhysicsEvent( const physics::ContactEvent &event, scene::Entity &other ) -> void override;
         auto ReloadScript() -> void override;
 
         MKT_NODISCARD auto GetFile() const -> filesystem::FileHandle override;

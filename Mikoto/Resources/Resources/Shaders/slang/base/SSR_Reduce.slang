@@ -12,16 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Shared SSR mip-reduction kernel specialized by the including entry file. Depth reductions
+// preserve traversal bounds; color reductions provide filtered reflection radiance.
+
 #include "SSR_Common.slang"
 
 struct Parameters {
-    Pointer Frame;
-    Pointer Camera;
-    uint Input;
-    uint Output;
-    uint Width;
-    uint Height;
-    uint Mode; // 0: depth from G-buffer, 1: minimum depth, 2: HDR colour average.
+    Pointer mFrame;
+    Pointer mCamera;
+    uint mInput;
+    uint mOutput;
+    uint mWidth;
+    uint mHeight;
+    uint mMode; // 0: depth from G-buffer, 1: minimum depth, 2: HDR colour average.
 };
 
 MKT_DECLARE_STRUCTURED_SRV buffers;
@@ -34,44 +37,45 @@ MKT_DECLARE_TEXTURE_UAV( RWTexture2D<float4> ) images;
 MKT_DECLARE_PUSH_CONSTANT( Parameters, parameters );
 
 [shader( "compute" )]
-[numthreads( 8, 8, 1 )]
+[numthreads( kImageGroupWidth, kImageGroupHeight, 1 )]
 void main( uint3 thread : SV_DispatchThreadID ) {
     uint2 pixel = thread.xy;
-    if ( pixel.x >= parameters.Width || pixel.y >= parameters.Height ) {
+    if ( pixel.x >= parameters.mWidth || pixel.y >= parameters.mHeight ) {
         return;
     }
 
 #if defined( MKT_SSR_DEPTH )
-    if ( parameters.Mode == 0 ) {
-        SsrFrame frame = ( ( BufferReference<SsrFrame> )parameters.Frame )[0];
-        CameraInfo camera = ( ( BufferReference<CameraInfo> )parameters.Camera )[0];
-        float4 position = textures[parameters.Input].Load( int3( pixel, 0 ) );
-        images[parameters.Output][pixel] = position.w > 0 ? saturate( SsrProject( position.xyz, camera, frame ).z ) : 1;
+    if ( parameters.mMode == 0 ) {
+        SsrFrame frame = ( ( BufferReference<SsrFrame> )parameters.mFrame )[0];
+        CameraInfo camera = ( ( BufferReference<CameraInfo> )parameters.mCamera )[0];
+        float4 position = textures[parameters.mInput].Load( int3( pixel, 0 ) );
+        images[parameters.mOutput][pixel] = position.w > 0 ? saturate( SsrProject( position.xyz, camera, frame ).z ) : 1;
         return;
     }
 #endif
 
-    uint width, height;
-    textures[parameters.Input].GetDimensions( width, height );
-    float4 value = parameters.Mode == 1 ? float4( 1 ) : float4( 0 );
+    uint width;
+    uint height;
+    textures[parameters.mInput].GetDimensions( width, height );
+    float4 value = parameters.mMode == 1 ? float4( 1 ) : float4( 0 );
     uint samples = 0;
 
     // Overlap the source footprint at odd dimensions. A min-depth cell must
     // conservatively cover its entire normalized screen region for traversal.
-    float2 scale = float2( width, height ) / float2( parameters.Width, parameters.Height );
+    float2 scale = float2( width, height ) / float2( parameters.mWidth, parameters.mHeight );
     uint2 first = uint2( floor( float2( pixel ) * scale ) );
     uint2 last = min( uint2( ceil( float2( pixel + 1 ) * scale ) ), uint2( width, height ) );
     for ( uint y = first.y; y < last.y; ++y ) {
         for ( uint x = first.x; x < last.x; ++x ) {
-            float4 sample = textures[parameters.Input].Load( int3( x, y, 0 ) );
-            value = parameters.Mode == 1 ? min( value, sample ) : value + sample;
+            float4 sample = textures[parameters.mInput].Load( int3( x, y, 0 ) );
+            value = parameters.mMode == 1 ? min( value, sample ) : value + sample;
             ++samples;
         }
     }
 
 #if defined( MKT_SSR_DEPTH )
-    images[parameters.Output][pixel] = value.r;
+    images[parameters.mOutput][pixel] = value.r;
 #else
-    images[parameters.Output][pixel] = value / max( samples, 1u );
+    images[parameters.mOutput][pixel] = value / max( samples, 1u );
 #endif
 }

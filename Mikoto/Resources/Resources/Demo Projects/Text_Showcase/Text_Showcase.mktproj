@@ -1,0 +1,41 @@
+{
+  "Version": 1,
+  "Project": "Text_Showcase",
+  "Assets": "Assets",
+  "Cache": "Assets/.cache",
+  "Scene": "Scene/Text_Showcase.mktscn",
+  "CompressTextures": false,
+  "AutoSave": false,
+  "Renderer": {
+    "Version": 1,
+    "Resolution": 1,
+    "Samples": 1,
+    "PathTracing": false,
+    "RayTracedAmbientOcclusion": false,
+    "SsaoEnabled": true,
+    "ShadowDistance": 120,
+    "BloomEnabled": false
+  },
+  "EditorCamera": {
+    "NavigationMode": "Fly",
+    "Position": [
+      38,
+      30,
+      48
+    ],
+    "Direction": [
+      -0.544,
+      -0.415,
+      -0.729
+    ],
+    "Projection": "Perspective",
+    "FieldOfView": 55,
+    "NearPlane": 0.1,
+    "FarPlane": 500,
+    "MovementSpeed": 16,
+    "RotationSpeed": 10,
+    "SmoothTime": 0.1,
+    "AllowPitch": true,
+    "AllowYaw": true
+  }
+}

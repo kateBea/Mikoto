@@ -40,7 +40,7 @@ namespace mikoto::renderer {
                 //     u32 mInputImageID{};
                 //     u32 mOutPutImageID{};
                 // } params{
-                //     //.mBufferIndex = ctx.PushBuffer_UAV( data.mComputeBuffer )
+                //     //.mBufferIndex = ctx.PushUAV( data.mComputeBuffer )
                 // };
                 //
                 // ctx.PushConstants( params );

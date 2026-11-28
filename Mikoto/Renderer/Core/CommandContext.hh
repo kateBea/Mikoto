@@ -107,7 +107,9 @@ namespace mikoto::renderer {
 
     class CommandContext final {
     public:
-        CommandContext( FrameGraphPass *pass, FGResourceManager *resourceManager,
+        CommandContext( 
+            FrameGraphPass *pass, 
+            FGResourceManager *resourceManager,
             FrameGraphDescriptorAllocator *descriptorAllocator,
             rhi::PipelineLayoutHandle pipelineLayout, FGStatisticsManager *statsManager );
 
@@ -125,9 +127,15 @@ namespace mikoto::renderer {
 
         MKT_NODISCARD auto GetDeviceBufferAddress( FGBufferHandle handle ) -> core::u64;
 
-        MKT_NODISCARD auto PushTexture_SRV( FGTextureHandle handle ) -> core::u32;
-        MKT_NODISCARD auto PushTexture_UAV( FGTextureHandle handle ) -> core::u32;
-        MKT_NODISCARD auto PushAccelerationStructure( FGAccelerationStructureHandle handle ) -> core::u32;
+        // Resource handle types select the descriptor overload.
+        MKT_NODISCARD auto PushSRV( FGTextureHandle handle ) -> core::u32;
+        MKT_NODISCARD auto PushSRV( FGBufferHandle handle ) -> core::u32;
+        MKT_NODISCARD auto PushSRV( FGAccelerationStructureHandle handle ) -> core::u32;
+
+        MKT_NODISCARD auto PushUAV( FGTextureHandle handle ) -> core::u32;
+        MKT_NODISCARD auto PushUAV( FGBufferHandle handle ) -> core::u32;
+
+        MKT_NODISCARD auto PushSampler( FGSamplerHandle handle ) -> core::u32;
 
         /** Reuses this pass context's unchanged BLASes, builds the TLAS and publishes it to the manager.
          * Cached shapes are grouped by the target handle and survive across graph executions.
@@ -137,11 +145,6 @@ namespace mikoto::renderer {
             FGAccelerationStructureHandle handle,
             FGBufferHandle vertices, FGBufferHandle indices,
             eastl::span<const FGAccelerationGeometry> geometries ) -> void;
-
-        MKT_NODISCARD auto PushSampler( FGSamplerHandle handle ) -> core::u32;
-
-        MKT_NODISCARD auto PushBuffer_SRV( FGBufferHandle handle ) -> core::u32;
-        MKT_NODISCARD auto PushBuffer_UAV( FGBufferHandle handle ) -> core::u32;
 
         MKT_NODISCARD auto ImportTexture( rhi::TextureHandle handle ) -> FGTextureHandle;
         MKT_NODISCARD auto ImportSampler( rhi::SamplerHandle handle ) -> FGSamplerHandle;
@@ -180,26 +183,26 @@ namespace mikoto::renderer {
         auto EnsureBufferCapacity( FGBufferHandle buffer, core::usize bytes ) -> bool;
         auto ReplaceBufferStorage( FGBufferHandle buffer, core::usize bytes ) -> void;
 
-        auto CopyBuffer( FGBufferHandle dstBuffer, FGBufferHandle srcBuffer ) -> void;
-        auto CopyBuffer( FGBufferHandle dstBuffer, rhi::IBuffer *src, core::usize dstOffset ) -> void;
+        auto Copy( FGBufferHandle dstBuffer, FGBufferHandle srcBuffer ) -> void;
+        auto Copy( FGBufferHandle dstBuffer, rhi::IBuffer *src, core::usize dstOffset ) -> void;
 
         auto Copy( FGBufferHandle dstBuffer, FGTextureHandle srcImage ) -> void;
 
-        auto CopyTexture( FGTextureHandle destImage, const void *data, core::usize sizeBytes ) -> void;
+        auto Copy( FGTextureHandle destImage, const void *data, core::usize sizeBytes ) -> void;
 
         // The pass declares source as copy/read and destination as copy/write.
         // This records an exact region copy; all barriers belong to the graph.
-        auto CopyTexture( FGTextureHandle source, const rhi::TextureSlice &sourceSlice, FGTextureHandle destination, const rhi::TextureSlice &destinationSlice ) -> void;
+        auto Copy( FGTextureHandle source, const rhi::TextureSlice &sourceSlice, FGTextureHandle destination, const rhi::TextureSlice &destinationSlice ) -> void;
         auto ResolveTexture( FGTextureHandle source, FGTextureHandle destination ) -> void;
 
-        auto CopyBuffer( FGBufferHandle dstBuffer, const auto &data, core::usize offset ) -> void {
+        auto Copy( FGBufferHandle dstBuffer, const auto &data, core::usize offset ) -> void {
             MKT_BEGIN_PROFILER();
-            CopyBuffer( dstBuffer, offset, MKT_ADDRESSOF( data ), MKT_SIZEOF( data ) );
+            Copy( dstBuffer, offset, MKT_ADDRESSOF( data ), MKT_SIZEOF( data ) );
         }
 
-        auto CopyBuffer( FGBufferHandle dstBuffer, core::usize offset, const void *ptr, core::usize sizeBytes ) -> void;
-        auto CopyBuffer( rhi::BufferHandle destination, core::usize offset, const void *data, core::usize sizeBytes ) -> void;
-        auto CopyTexture( FGTextureHandle source, rhi::TextureHandle destination ) -> void;
+        auto Copy( FGBufferHandle dstBuffer, core::usize offset, const void *ptr, core::usize sizeBytes ) -> void;
+        auto Copy( rhi::BufferHandle destination, core::usize offset, const void *data, core::usize sizeBytes ) -> void;
+        auto Copy( FGTextureHandle source, rhi::TextureHandle destination ) -> void;
 
         auto PushConstants( const auto &data ) -> void {
             MKT_BEGIN_PROFILER();
@@ -242,7 +245,6 @@ namespace mikoto::renderer {
         auto CacheGpuDeviceAddress( FGBufferHandle handle ) -> rhi::DeviceAddress;
 
         auto RefreshBufferCaches() -> void;
-        core::u64 mBufferRevision{};
         auto CacheResource( FGBufferHandle handle ) -> renderer::rhi::IBuffer *;
         auto CacheResource( FGTextureHandle handle ) -> renderer::rhi::ITexture *;
 
@@ -257,6 +259,8 @@ namespace mikoto::renderer {
         rhi::CommandListHandle mCommands{};
         FGScheduler *mScheduler{};
         rhi::PipelineLayoutHandle mPipelineLayout{};
+
+        core::u64 mBufferRevision{};
 
         // Contexts are pass-local; separate targets within the pass keep independent caches.
         eastl::hash_map<FGResourceHandle, eastl::vector<CachedBottomLevel>> mBottomLevelCache{};
@@ -275,9 +279,9 @@ namespace mikoto::renderer {
     class BufferUploadBatch final {
     public:
         auto Clear() -> void;
-        auto CopyBuffer( FGBufferHandle buffer, core::usize offset, const void *data, core::usize sizeBytes ) -> void;
-        auto CopyBuffer( FGBufferHandle buffer, const auto &value, core::usize offset ) -> void {
-            CopyBuffer( buffer, offset, MKT_ADDRESSOF( value ), sizeof( value ) );
+        auto Copy( FGBufferHandle buffer, core::usize offset, const void *data, core::usize sizeBytes ) -> void;
+        auto Copy( FGBufferHandle buffer, const auto &value, core::usize offset ) -> void {
+            Copy( buffer, offset, MKT_ADDRESSOF( value ), sizeof( value ) );
         }
         auto Submit( CommandContext &context ) -> void;
 

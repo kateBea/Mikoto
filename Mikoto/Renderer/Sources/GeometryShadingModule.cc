@@ -188,11 +188,11 @@ namespace mikoto::renderer {
                     core::u32 mVertexBufferID{};
                     core::u32 mIndexBufferID{};
                 } params{
-                    .mSkyboxCubeID = ctx.PushTexture_SRV( mAtmosphereEnabled ? data.mAtmosphereCube : data.mSkyboxCubeRT ),
+                    .mSkyboxCubeID = ctx.PushSRV( mAtmosphereEnabled ? data.mAtmosphereCube : data.mSkyboxCubeRT ),
                     .mBasicSamplerID = ctx.PushSampler( data.mSkyboxCubeSampler ),
 
-                    .mVertexBufferID = ctx.PushBuffer_SRV( data.mBoxVertexBuffer ),
-                    .mIndexBufferID = ctx.PushBuffer_SRV( data.mBoxIndexBuffer )
+                    .mVertexBufferID = ctx.PushSRV( data.mBoxVertexBuffer ),
+                    .mIndexBufferID = ctx.PushSRV( data.mBoxIndexBuffer )
                 };
 
                 for ( core::u32 mipLevel{}; mipLevel < kIrradianceMipLevels; mipLevel++ ) {
@@ -264,8 +264,8 @@ namespace mikoto::renderer {
             [vertices, indices]( CommandContext &ctx, core::Blackboard &blackboard ) {
                 const auto &data{ blackboard.Get<GeomShadingModuleInfo>() };
 
-                ctx.CopyBuffer( data.mBoxVertexBuffer, vertices );
-                ctx.CopyBuffer( data.mBoxIndexBuffer, indices );
+                ctx.Copy( data.mBoxVertexBuffer, vertices );
+                ctx.Copy( data.mBoxIndexBuffer, indices );
             } );
 
         graph.SetExecutionPolicy( "GeometryShadingBox_Upload", FGExecutionPolicy::eOnce );
@@ -340,11 +340,11 @@ namespace mikoto::renderer {
                     core::u32 mIndexBufferID{};
                 } params{
                     .mNumSamples = mAtmosphereEnabled ? 64u : 1024u,
-                    .mSkyboxCubeID = ctx.PushTexture_SRV( mAtmosphereEnabled ? data.mAtmosphereCube : data.mSkyboxCubeRT ),
+                    .mSkyboxCubeID = ctx.PushSRV( mAtmosphereEnabled ? data.mAtmosphereCube : data.mSkyboxCubeRT ),
                     .mBasicSamplerID = ctx.PushSampler( data.mSkyboxCubeSampler ),
 
-                    .mVertexBufferID = ctx.PushBuffer_SRV( data.mBoxVertexBuffer ),
-                    .mIndexBufferID = ctx.PushBuffer_SRV( data.mBoxIndexBuffer )
+                    .mVertexBufferID = ctx.PushSRV( data.mBoxVertexBuffer ),
+                    .mIndexBufferID = ctx.PushSRV( data.mBoxIndexBuffer )
                 };
 
                 const core::u32 mipCount{ mAtmosphereEnabled ? 8u : mPrefilterMipLevels };
@@ -510,9 +510,9 @@ namespace mikoto::renderer {
                     core::u32 mIndexBufferID{};
                 } params{
                     .mBasicSamplerID = ctx.PushSampler( data.mDefaultSampler ),
-                    .mEquirectangularID = ctx.PushTexture_SRV( panorama ),
-                    .mVertexBufferID = ctx.PushBuffer_SRV( data.mBoxVertexBuffer ),
-                    .mIndexBufferID = ctx.PushBuffer_SRV( data.mBoxIndexBuffer )
+                    .mEquirectangularID = ctx.PushSRV( panorama ),
+                    .mVertexBufferID = ctx.PushSRV( data.mBoxVertexBuffer ),
+                    .mIndexBufferID = ctx.PushSRV( data.mBoxIndexBuffer )
                 };
 
                 for ( core::u32 face{}; face < rhi::kMaxCubeFaces; ++face ) {
@@ -596,7 +596,7 @@ namespace mikoto::renderer {
                         core::u32 mDimension{};
                     } params{
                         .mSamplerID = ctx.PushSampler( data.mSkyboxCubeSampler ),
-                        .mTextureID = ctx.PushTexture_SRV( inputs[face] ),
+                        .mTextureID = ctx.PushSRV( inputs[face] ),
                         .mDimension = mSkyboxDimensions
                     };
 
@@ -729,7 +729,7 @@ namespace mikoto::renderer {
                         core::u32 mSourceDimension{};
                         core::u32 mDestinationDimension{};
                     } params{
-                        .mCubeID = ctx.PushTexture_SRV( cube ),
+                        .mCubeID = ctx.PushSRV( cube ),
                         .mSamplerID = ctx.PushSampler( data.mSkyboxCubeSampler ),
                         .mSourceMip = mip - 1,
                         .mSourceDimension = glm::max( 1u, mSkyboxDimensions >> ( mip - 1 ) ),
@@ -771,7 +771,7 @@ namespace mikoto::renderer {
                         const renderer::rhi::TextureSlice source{ .mWidth = dimension, .mHeight = dimension, .mArrayLayer = face };
                         const renderer::rhi::TextureSlice destination{ .mWidth = dimension, .mHeight = dimension, .mMipLevel = mip, .mArrayLayer = face };
 
-                        ctx.CopyTexture( scratch, source, cube, destination );
+                        ctx.Copy( scratch, source, cube, destination );
                     }
                 } );
 
@@ -877,14 +877,14 @@ namespace mikoto::renderer {
                     core::f32 mGamma{ 2.0f };
                     core::f32 mSkyboxBlur{ .5f };
                 } params{
-                    .mCameraBufferID = ctx.PushBuffer_SRV( cameraData.mCameraData ),
+                    .mCameraBufferID = ctx.PushSRV( cameraData.mCameraData ),
                     .mBasicSamplerID = ctx.PushSampler( finalCompData.mSkyboxCubeSampler ),
 
-                    .mVertexBufferID = ctx.PushBuffer_SRV( finalCompData.mBoxVertexBuffer ),
-                    .mIndexBufferID = ctx.PushBuffer_SRV( finalCompData.mBoxIndexBuffer ),
+                    .mVertexBufferID = ctx.PushSRV( finalCompData.mBoxVertexBuffer ),
+                    .mIndexBufferID = ctx.PushSRV( finalCompData.mBoxIndexBuffer ),
 
-                    .mSkyboxCubeRtID = ctx.PushTexture_SRV( finalCompData.mSkyboxCubeRT ),
-                    .mPrefilterCubeRtID = ctx.PushTexture_SRV( finalCompData.mPrefilterCubeRT ),
+                    .mSkyboxCubeRtID = ctx.PushSRV( finalCompData.mSkyboxCubeRT ),
+                    .mPrefilterCubeRtID = ctx.PushSRV( finalCompData.mPrefilterCubeRT ),
 
                     .mBackGroundType = core::as<core::u32>( mBackgroundType ),
 
@@ -1002,9 +1002,9 @@ namespace mikoto::renderer {
                     core::u32 mPadding{};
                 } params{
                     .mCamera = ctx.GetDeviceBufferAddress( camera ),
-                    .mMask = ctx.PushTexture_SRV( mask ),
-                    .mNormal = ctx.PushTexture_SRV( normal ),
-                    .mPosition = ctx.PushTexture_SRV( position ),
+                    .mMask = ctx.PushSRV( mask ),
+                    .mNormal = ctx.PushSRV( normal ),
+                    .mPosition = ctx.PushSRV( position ),
                     .mWidth = width,
                     .mHeight = height,
                     .mPadding = 0
@@ -1259,11 +1259,11 @@ namespace mikoto::renderer {
                     .mClusterBufferSize = prePassData.mClusterCount,
                     .mSsaoIntensity = mSsaoIntensity,
 
-                    .mSsaoTextureID = mEnableSsao && !transparent ? ctx.PushTexture_SRV( blackboard.Get<PostProcessModuleInfo>().mSsaoBlurColorTarget ) : 0xFFFFFFFFu,
+                    .mSsaoTextureID = mEnableSsao && !transparent ? ctx.PushSRV( blackboard.Get<PostProcessModuleInfo>().mSsaoBlurColorTarget ) : 0xFFFFFFFFu,
 
-                    .mBrdfColorTargetID = ctx.PushTexture_SRV( finalCompData.mBrdfColorTarget ),
-                    .mPrefilterCubeRtID = ctx.PushTexture_SRV( mAtmosphereEnabled ? finalCompData.mAtmospherePrefilter : finalCompData.mPrefilterCubeRT ),
-                    .mIrradianceCubeRtID = ctx.PushTexture_SRV( finalCompData.mIrradianceCubeRT ),
+                    .mBrdfColorTargetID = ctx.PushSRV( finalCompData.mBrdfColorTarget ),
+                    .mPrefilterCubeRtID = ctx.PushSRV( mAtmosphereEnabled ? finalCompData.mAtmospherePrefilter : finalCompData.mPrefilterCubeRT ),
+                    .mIrradianceCubeRtID = ctx.PushSRV( finalCompData.mIrradianceCubeRT ),
 
                     .mSamplerCubeID = ctx.PushSampler( finalCompData.mSkyboxCubeSampler ),
                     .mSamplerBasicID = ctx.PushSampler( geometryData.mMaterialSampler ),
@@ -1274,7 +1274,7 @@ namespace mikoto::renderer {
                     .mScaleIblAmbient = mAbientScale,
                     // Camera clear flags control the visible background only.
                     // An environment still lights/reflects on objects over a solid color.
-                    .mShadowInfoBufferID = ctx.PushBuffer_SRV( shadowMapData.mRecordsBuffer ),
+                    .mShadowInfoBufferID = ctx.PushSRV( shadowMapData.mRecordsBuffer ),
                     .mShadowRecordCount = shadowMapData.mRecordCount
                 };
 
@@ -1283,16 +1283,16 @@ namespace mikoto::renderer {
 
                     if ( ray.mTraceOutputsReady && ray.mAmbientOcclusionEnabled ) {
                         // PBRT's visibility estimate replaces SSAO for IBL; transport GI stays untouched.
-                        params.mSsaoTextureID = ctx.PushTexture_SRV( ray.mAmbientOcclusion );
+                        params.mSsaoTextureID = ctx.PushSRV( ray.mAmbientOcclusion );
                         params.mSsaoIntensity = 1.0f;
                     }
 
                     if ( ray.mTraceOutputsReady && ray.mShadowsEnabled ) {
-                        params.mRayDirect = ctx.PushTexture_SRV( ray.mDirect );
+                        params.mRayDirect = ctx.PushSRV( ray.mDirect );
                     }
 
                     if ( ray.mTraceOutputsReady && ( ray.mReflectionsEnabled || ray.mGlobalIlluminationEnabled ) ) {
-                        params.mRayIndirect = ctx.PushTexture_SRV( ray.mIndirect );
+                        params.mRayIndirect = ctx.PushSRV( ray.mIndirect );
                         params.mPrefilterMipLevelsAndSkybox |= ( ray.mReflectionsEnabled ? 0x20000000u : 0u ) |
                                                                ( ray.mGlobalIlluminationEnabled ? 0x40000000u : 0u );
                     }

@@ -251,7 +251,7 @@ namespace mikoto::renderer {
             constants.mChroma = context.UseImportedTexture( context.ImportSampledTexture( frame->mSurface->GetChromaImage() ) );
             
             constants.mSampler = context.PushSampler( mSampler );
-            constants.mOutput = context.PushTexture_UAV( context.ImportTexture( output ) );
+            constants.mOutput = context.PushUAV( context.ImportTexture( output ) );
             
             constants.mTransfer = track.mTransferCharacteristics;
             constants.mMatrix = track.mMatrixCoefficients;

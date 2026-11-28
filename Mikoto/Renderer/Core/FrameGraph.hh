@@ -70,6 +70,8 @@ namespace mikoto::renderer {
     // https://godotengine.org/article/rendering-acyclic-graph/
     // https://levelup.gitconnected.com/organizing-gpu-work-with-directed-acyclic-graphs-f3fd5f2c2af3
 
+    // https://ipotrick.github.io/site/blogs/practical-efficient-rendergraphs/#the-problem-gpu-execution-and-barriers
+
     class CommandContext;
 
     struct FrameGraphStatistics {
@@ -131,7 +133,6 @@ namespace mikoto::renderer {
         // It starts as ready so we can update
         // the fence value for the first submission
         bool mIsReady{ true };
-
         bool mRunsEveryFrame{ false };
     };
 
@@ -266,9 +267,7 @@ namespace mikoto::renderer {
                                       .mDebugLabel{ string::Format( "Pass: {}", name ) },
                                       .mSourceLocation = source,
                                       .mType = nodeType,
-                                      .mExecuteCallback = [execute]( CommandContext &ctx, core::Blackboard &blackboard ) -> void {
-                                          execute( ctx, blackboard );
-                                      },
+                                      .mExecuteCallback = execute,
                                   } };
             PassData &data{ GetOrCreate<PassData>() };
             node.mBuilderCallback = [&]() -> void {
@@ -289,9 +288,7 @@ namespace mikoto::renderer {
                                       .mDebugLabel{ string::Format( "Pass: {}", name ) },
                                       .mSourceLocation = source,
                                       .mType = nodeType,
-                                      .mExecuteCallback = [execute]( CommandContext &ctx, core::Blackboard &blackboard ) -> void {
-                                          execute( ctx, blackboard );
-                                      },
+                                      .mExecuteCallback = execute,
                                   } };
             node.mBuilderCallback = [&]() -> void {
                 FGNodeBuilder builder{ node, *mNodeControl };

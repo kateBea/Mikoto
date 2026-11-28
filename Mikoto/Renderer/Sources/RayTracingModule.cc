@@ -633,11 +633,11 @@ namespace mikoto::renderer {
         };
         if ( !mTracePassUsesPathTracing || !mReconstructionDenoising ) {
             // RR owns radiance history; AO debug keeps its separate history below.
-            context.CopyTexture( mAccumulatedLightingOutput, slice, mLightingHistory, slice );
+            context.Copy( mAccumulatedLightingOutput, slice, mLightingHistory, slice );
         }
 
         if ( IsOcclusionActive() ) {
-            context.CopyTexture( mOcclusionOutput, slice, mOcclusionHistory, slice );
+            context.Copy( mOcclusionOutput, slice, mOcclusionHistory, slice );
             mAccumulatedOcclusionSamples = eastl::min( kOcclusionHistoryLimit, mAccumulatedOcclusionSamples + mConfiguration.mAoSamplesPerFrame );
         }
 
@@ -666,7 +666,7 @@ namespace mikoto::renderer {
             const usize bytes{ values.size() * sizeof( values[0] ) };
             context.EnsureBufferCapacity( handle, bytes );
 
-            mGeometryUploads.CopyBuffer( handle, 0, values.data(), bytes );
+            mGeometryUploads.Copy( handle, 0, values.data(), bytes );
         } };
 
         upload( mShadingVertexBuffer, mPackedScene.mVertices );
@@ -680,25 +680,25 @@ namespace mikoto::renderer {
         const auto data{ ResolveSceneTextures( context ) };
         context.EnsureBufferCapacity( mSceneDataBuffer, data.size() );
 
-        mFrameUploads.CopyBuffer( mSceneDataBuffer, 0, data.data(), data.size() );
-        mFrameUploads.CopyBuffer( mViewEffectsBuffer, mViewEffects, 0 );
+        mFrameUploads.Copy( mSceneDataBuffer, 0, data.data(), data.size() );
+        mFrameUploads.Copy( mViewEffectsBuffer, mViewEffects, 0 );
         if ( mDenoiserDataBuffer.mHandle ) {
             PreparePositionHistoryUpload( context, mPreviousPositionsBuffer, mPreviousPositions );
             auto images{ mDenoiserInputs.Textures() };
             for ( core::u32 i{}; i < 4; ++i ) {
-                mDenoiserData.mImages0[i] = context.PushTexture_UAV( images[i] );
-                mDenoiserData.mImages1[i] = context.PushTexture_UAV( images[i + 4] );
+                mDenoiserData.mImages0[i] = context.PushUAV( images[i] );
+                mDenoiserData.mImages1[i] = context.PushUAV( images[i + 4] );
             }
             mDenoiserData.mPreviousPositions = context.GetDeviceBufferAddress( mPreviousPositionsBuffer );
             mDenoiserData.mEnabled = mDenoiserSettings.mEnabled;
             mDenoiserData.mMethod = static_cast<core::u32>( mDenoiserSettings.mType );
             mDenoiserData.mJitter.z = static_cast<float>( mAccumulatedRadianceSamples );
-            mFrameUploads.CopyBuffer( mDenoiserDataBuffer, mDenoiserData, 0 );
+            mFrameUploads.Copy( mDenoiserDataBuffer, mDenoiserData, 0 );
         }
 
         PrepareReconstructionUpload( context );
         BindFrameResources( context );
-        mFrameUploads.CopyBuffer( mFrameConstantsBuffer, mFrameConstants, 0 );
+        mFrameUploads.Copy( mFrameConstantsBuffer, mFrameConstants, 0 );
     }
 
     auto RayTracingModule::CapturePositionHistory( PositionHistory &history ) -> void {
@@ -730,7 +730,7 @@ namespace mikoto::renderer {
         if ( history.mUploadPending ) {
             // Upload once per captured pose (or fresh storage), not once per view
             // update. Transfer and ray-read dependencies remain owned by the graph.
-            mFrameUploads.CopyBuffer( buffer, 0, history.mPositions.data(), bytes );
+            mFrameUploads.Copy( buffer, 0, history.mPositions.data(), bytes );
         }
     }
 
@@ -747,10 +747,10 @@ namespace mikoto::renderer {
         const auto images{ mReconstructionInputs.GetTextures() };
         for ( core::u32 index{}; index < images.size(); ++index ) {
             if ( index < mReconstructionData.mImages0.length() ) {
-                mReconstructionData.mImages0[index] = context.PushTexture_UAV( images[index] );
+                mReconstructionData.mImages0[index] = context.PushUAV( images[index] );
             }
             else {
-                mReconstructionData.mImages1[index - mReconstructionData.mImages0.length()] = context.PushTexture_UAV( images[index] );
+                mReconstructionData.mImages1[index - mReconstructionData.mImages0.length()] = context.PushUAV( images[index] );
             }
         }
         const auto width{ mDimensions.x };
@@ -779,7 +779,7 @@ namespace mikoto::renderer {
         const auto index{ mTraceFrameIndex % jitterPeriod + 1u };
         mReconstructionData.mJitter = core::float4{ halton( index, 2u ) - .5f, halton( index, 3u ) - .5f,
             mReconstructionHistoryValid ? 1.0f : 0.0f, 0.0f };
-        mFrameUploads.CopyBuffer( mReconstructionDataBuffer, mReconstructionData, 0 );
+        mFrameUploads.Copy( mReconstructionDataBuffer, mReconstructionData, 0 );
     }
 
     auto RayTracingModule::ResolveSceneTextures( CommandContext &context ) const -> eastl::vector<ubyte> {
@@ -841,18 +841,18 @@ namespace mikoto::renderer {
         mFrameConstants.mData = context.GetDeviceBufferAddress( mSceneDataBuffer );
         mFrameConstants.mViewEffects = context.GetDeviceBufferAddress( mViewEffectsBuffer );
 
-        mFrameConstants.mOutput = context.PushTexture_UAV( mRadianceOutput );
-        mFrameConstants.mAuxiliary = context.PushTexture_UAV( mAccumulatedLightingOutput );
-        mFrameConstants.mHistory = context.PushTexture_SRV( mLightingHistory );
-        mFrameConstants.mOcclusionOutput = context.PushTexture_UAV( mOcclusionOutput );
-        mFrameConstants.mOcclusionHistory = context.PushTexture_SRV( mOcclusionHistory );
+        mFrameConstants.mOutput = context.PushUAV( mRadianceOutput );
+        mFrameConstants.mAuxiliary = context.PushUAV( mAccumulatedLightingOutput );
+        mFrameConstants.mHistory = context.PushSRV( mLightingHistory );
+        mFrameConstants.mOcclusionOutput = context.PushUAV( mOcclusionOutput );
+        mFrameConstants.mOcclusionHistory = context.PushSRV( mOcclusionHistory );
         mFrameConstants.mOcclusion = glm::uvec4{ IsOcclusionActive(),
             mConfiguration.mAoSamplesPerFrame, mAccumulatedOcclusionSamples, mConfiguration.mUseCosineWeightedAoSampling };
         mFrameConstants.mOcclusionMaxDistance = mConfiguration.mAoMaxDistance > 0.0f ? mConfiguration.mAoMaxDistance : 1e30f;
         mFrameConstants.mLightDistribution = mPackedScene.mLightDistribution;
         mFrameConstants.mMaterialSampler = context.PushSampler( mMaterialSampler );
         mFrameConstants.mAtmosphereSampler = context.PushSampler( mAtmosphereSampler );
-        mFrameConstants.mSceneIndex = context.PushAccelerationStructure( mSceneAccelerationStructure );
+        mFrameConstants.mSceneIndex = context.PushSRV( mSceneAccelerationStructure );
 
         for ( usize index{}; index < mAtmosphereTextures.size(); ++index ) {
             const auto &texture{ mAtmosphereTextures[index] };
@@ -874,7 +874,7 @@ namespace mikoto::renderer {
 
     auto RayTracingModule::Trace( CommandContext &context ) -> void {
         // Frame preparation has already resolved the TLAS index written to the shader constants.
-        ( void )context.PushAccelerationStructure( mSceneAccelerationStructure );
+        ( void )context.PushSRV( mSceneAccelerationStructure );
 
         const auto frameAddress{ context.GetDeviceBufferAddress( mFrameConstantsBuffer ) };
         const auto width{ mDimensions.x };

@@ -171,7 +171,7 @@ namespace mikoto::renderer {
             },
             [this, spheres = eastl::move( spheres )]( CommandContext& ctx, core::Blackboard& b ) {
                 if ( mUseComputeApproach && !mSceneUploaded ) {
-                    ctx.CopyBuffer( b.Get<CpuPathTraceModuleInfo>().mSpheres, 0, spheres.data(), MKT_VECTOR_SIZE_BYTES( spheres ) );
+                    ctx.Copy( b.Get<CpuPathTraceModuleInfo>().mSpheres, 0, spheres.data(), MKT_VECTOR_SIZE_BYTES( spheres ) );
                     mSceneUploaded = true;
                 }
             } );
@@ -202,7 +202,7 @@ namespace mikoto::renderer {
                     core::u32 mTileY{};
                 } params{
                     .mSpheres = ctx.GetDeviceBufferAddress( data.mSpheres ),
-                    .mImageIndex = ctx.PushTexture_UAV( data.mColorImage ),
+                    .mImageIndex = ctx.PushUAV( data.mColorImage ),
                     .mSphereCount = clearImage ? 0 : sphereCount,
                     .mTileX = mRenderPerTile ? ( mNextTile % tilesX ) * kTileSize : 0,
                     .mTileY = mRenderPerTile ? ( mNextTile / tilesX ) * kTileSize : 0,

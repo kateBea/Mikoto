@@ -138,7 +138,7 @@ namespace mikoto::renderer {
 
                 const auto bytes{ mHighlightedDraws.size() * sizeof( DrawIndirectCommand ) };
                 ctx.EnsureBufferCapacity( outline.mHighlightedDraws, bytes );
-                mUploads.CopyBuffer( outline.mHighlightedDraws, 0, mHighlightedDraws.data(), bytes );
+                mUploads.Copy( outline.mHighlightedDraws, 0, mHighlightedDraws.data(), bytes );
             } );
         graph.RegisterPass(
             "Outline_HighlightFilter",
@@ -262,7 +262,7 @@ namespace mikoto::renderer {
                 struct Parameters {
                     core::u32 mSilhouette;
                 } params{
-                    .mSilhouette = ctx.PushTexture_SRV( outline.mSilhouette ),
+                    .mSilhouette = ctx.PushSRV( outline.mSilhouette ),
                 };
                 ctx.PushConstants( params );
                 BeginOutlineRender( ctx, outline.mSeeds[0], pipeline, mResolution, rhi::Color{ -1.0f } );
@@ -302,7 +302,7 @@ namespace mikoto::renderer {
                             core::u32 mAxis;
                             core::u32 mPadding;
                         } params{
-                            .mSeeds = ctx.PushTexture_SRV( input ),
+                            .mSeeds = ctx.PushSRV( input ),
                             .mStep = step,
                             .mAxis = axis,
                             .mPadding = 0,
@@ -352,9 +352,9 @@ namespace mikoto::renderer {
                     core::u32 mPadding;
                 } params{
                     .mColor = outline.mColor,
-                    .mSeeds = ctx.PushTexture_SRV( outline.mSeeds[0] ),
+                    .mSeeds = ctx.PushSRV( outline.mSeeds[0] ),
                     .mWidth = outline.mWidth,
-                    .mInterior = ctx.PushTexture_SRV( outline.mInteriorMask ),
+                    .mInterior = ctx.PushSRV( outline.mInteriorMask ),
                     .mPadding = 0,
                 };
                 ctx.PushConstants( params );
@@ -406,8 +406,8 @@ namespace mikoto::renderer {
                     core::u32 mHover;
                     core::u32 mShowOutline;
                 } params{
-                    .mOutline = ctx.PushTexture_SRV( outline.mResolvedColor ),
-                    .mIDs = ctx.PushTexture_SRV( b.Get<MousePickingModuleInfo>().mColorImage ),
+                    .mOutline = ctx.PushSRV( outline.mResolvedColor ),
+                    .mIDs = ctx.PushSRV( b.Get<MousePickingModuleInfo>().mColorImage ),
                     .mHover = mTextureDropHover,
                     .mShowOutline = outline.mEnabled ? 1u : 0u,
                 };

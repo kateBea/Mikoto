@@ -126,7 +126,7 @@ namespace mikoto::renderer {
                 GatherSceneVolumes();
 
                 if ( !mVolumeLines.empty() ) {
-                    ctx.CopyBuffer( mVolumeLinesBuffer, 0, mVolumeLines.data(), mVolumeLines.size() * sizeof( DebugLine ) );
+                    ctx.Copy( mVolumeLinesBuffer, 0, mVolumeLines.data(), mVolumeLines.size() * sizeof( DebugLine ) );
                 }
             } );
 
@@ -522,7 +522,7 @@ namespace mikoto::renderer {
                 mDroppedPhysicsLines = renderer->GetDroppedLineCount();
 
                 if ( !lines.empty() ) {
-                    ctx.CopyBuffer( mPhysicsLines, 0, lines.data(), lines.size() * sizeof( DebugLine ) );
+                    ctx.Copy( mPhysicsLines, 0, lines.data(), lines.size() * sizeof( DebugLine ) );
                 }
             } );
 

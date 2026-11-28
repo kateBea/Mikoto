@@ -271,7 +271,7 @@ namespace mikoto::renderer {
                     core::float4 mYAxisColor{ 0.12f, 0.8f, 0.22f, 1.0f };
                     core::float4 mGrid{};// Cell size, opacity, vertical-axis draw, reserved.
                 } params{
-                    .mCameraBufferID = ctx.PushBuffer_SRV( cameraData.mCameraData )
+                    .mCameraBufferID = ctx.PushSRV( cameraData.mCameraData )
                 };
 
                 static_assert( sizeof( DrawParams ) == 128 );
@@ -397,8 +397,8 @@ namespace mikoto::renderer {
             [this]( CommandContext& ctx, core::Blackboard& blackboard ) {
                 const auto& data{ blackboard.Get<PostProcessModuleInfo>() };
 
-                ctx.CopyTexture( data.mSsaoNoiseTexture, mSsaoNoiseData.data(), MKT_VECTOR_SIZE_BYTES( mSsaoNoiseData ) );
-                ctx.CopyBuffer( data.mSsaoKernelBuffer, 0, mSsaoKernelSamples.data(), MKT_VECTOR_SIZE_BYTES( mSsaoKernelSamples ) );
+                ctx.Copy( data.mSsaoNoiseTexture, mSsaoNoiseData.data(), MKT_VECTOR_SIZE_BYTES( mSsaoNoiseData ) );
+                ctx.Copy( data.mSsaoKernelBuffer, 0, mSsaoKernelSamples.data(), MKT_VECTOR_SIZE_BYTES( mSsaoKernelSamples ) );
             } );
 
         graph.SetExecutionPolicy( "SSAO_DataUpload", FGExecutionPolicy::eOnWake );
@@ -456,12 +456,12 @@ namespace mikoto::renderer {
                 } params{
                     .mSamplerID = ctx.PushSampler( ssaoData.mSsaoSampler ),
 
-                    .mKernelBufferID = ctx.PushBuffer_SRV( ssaoData.mSsaoKernelBuffer ),
-                    .mNoiseTextureID = ctx.PushTexture_SRV( ssaoData.mSsaoNoiseTexture ),
-                    .mGBufferNormalsID = ctx.PushTexture_SRV( prePassData.mGBufferNormalTarget ),
-                    .mGBufferPositionsID = ctx.PushTexture_SRV( prePassData.mGBufferPositionTarget ),
+                    .mKernelBufferID = ctx.PushSRV( ssaoData.mSsaoKernelBuffer ),
+                    .mNoiseTextureID = ctx.PushSRV( ssaoData.mSsaoNoiseTexture ),
+                    .mGBufferNormalsID = ctx.PushSRV( prePassData.mGBufferNormalTarget ),
+                    .mGBufferPositionsID = ctx.PushSRV( prePassData.mGBufferPositionTarget ),
 
-                    .mCameraBufferID = ctx.PushBuffer_SRV( blackboard.Get<CameraModuleInfo>().mCameraData )
+                    .mCameraBufferID = ctx.PushSRV( blackboard.Get<CameraModuleInfo>().mCameraData )
                 };
 
                 ctx.PushConstants( params );
@@ -513,8 +513,8 @@ namespace mikoto::renderer {
                     core::u32 mPositionID{};
                 } params{
                     .mSamplerID = ctx.PushSampler( ssaoData.mSsaoSampler ),
-                    .mSsaoColorTargetID = ctx.PushTexture_SRV( ssaoData.mSsaoColorTarget ),
-                    .mPositionID = ctx.PushTexture_SRV( blackboard.Get<PrepassModuleInfo>().mGBufferPositionTarget )
+                    .mSsaoColorTargetID = ctx.PushSRV( ssaoData.mSsaoColorTarget ),
+                    .mPositionID = ctx.PushSRV( blackboard.Get<PrepassModuleInfo>().mGBufferPositionTarget )
                 };
                 ctx.PushConstants( params );
 
@@ -634,7 +634,7 @@ namespace mikoto::renderer {
                         core::u32 mPrefilter;
                     } params{
                         .mSamplerID = ctx.PushSampler( post.mBloomSampler ),
-                        .mTargetImageID = ctx.PushTexture_SRV( input ),
+                        .mTargetImageID = ctx.PushSRV( input ),
                         .mThreshold = post.mBloomSettings.mThreshold,
                         .mPrefilter = mip == 0 ? 1u : 0u,
                     };
@@ -680,8 +680,8 @@ namespace mikoto::renderer {
                         core::f32 mRadius{};
                     } params{
                         .mSamplerID = ctx.PushSampler( post.mBloomSampler ),
-                        .mLowerImageID = ctx.PushTexture_SRV( post.mBloomChainImages[mip + 1].mReconstructed ),
-                        .mDetailImageID = ctx.PushTexture_SRV( target.mImage ),
+                        .mLowerImageID = ctx.PushSRV( post.mBloomChainImages[mip + 1].mReconstructed ),
+                        .mDetailImageID = ctx.PushSRV( target.mImage ),
                         .mScatter = post.mBloomSettings.mScatter,
                         .mRadius = post.mBloomSettings.mRadius,
                     };
@@ -812,7 +812,7 @@ namespace mikoto::renderer {
                     core::float2 mChromaticOffsetPixels{};
                 } parameters{
                     .mMaterials = ctx.GetDeviceBufferAddress( info.mMaterials ),
-                    .mSceneImage = ctx.PushTexture_SRV( input ),
+                    .mSceneImage = ctx.PushSRV( input ),
                     .mSampler = ctx.PushSampler( info.mSampler ),
                     .mMaterialCount = effects.mVisualizeDepthOfField ? 0u : info.mMaterialCount,
                     .mStage = core::as<core::u32>( stage ),
@@ -856,7 +856,7 @@ namespace mikoto::renderer {
         info.mMaterialCount = core::as<core::u32>( mPostProcessMaterials.size() );
 
         if ( !mPostProcessMaterials.empty() ) {
-            ctx.CopyBuffer( info.mMaterials, 0, mPostProcessMaterials.data(), MKT_VECTOR_SIZE_BYTES( mPostProcessMaterials ) );
+            ctx.Copy( info.mMaterials, 0, mPostProcessMaterials.data(), MKT_VECTOR_SIZE_BYTES( mPostProcessMaterials ) );
         }
     }
 

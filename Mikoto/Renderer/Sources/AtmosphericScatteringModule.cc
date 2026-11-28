@@ -230,7 +230,7 @@ namespace mikoto::renderer {
                 builder.UseResource( b.Get<AtmosphereModuleInfo>().mParameters, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
             },
             [this]( CommandContext& ctx, core::Blackboard& b ) {
-                ctx.CopyBuffer( b.Get<AtmosphereModuleInfo>().mParameters, 0, &mData, sizeof( mData ) );
+                ctx.Copy( b.Get<AtmosphereModuleInfo>().mParameters, 0, &mData, sizeof( mData ) );
             } );
     }
 
@@ -294,9 +294,9 @@ namespace mikoto::renderer {
                     core::u32 mOutput{};
                 } params{
                     .mAtmosphere = ctx.GetDeviceBufferAddress( data.mParameters ),
-                    .mTransmittance = ctx.PushTexture_SRV( data.mTransmittance ),
+                    .mTransmittance = ctx.PushSRV( data.mTransmittance ),
                     .mSampler = ctx.PushSampler( data.mSampler ),
-                    .mOutput = ctx.PushTexture_UAV( data.mMultipleScattering )
+                    .mOutput = ctx.PushUAV( data.mMultipleScattering )
                 };
 
                 ctx.PushConstants( params );
@@ -473,16 +473,16 @@ namespace mikoto::renderer {
         } params{
             .mAtmosphere = ctx.GetDeviceBufferAddress( info.mParameters ),
             .mCamera = stage == 2 || stage >= 4 ? ctx.GetDeviceBufferAddress( b.Get<CameraModuleInfo>().mCameraData ) : SPointer{},
-            .mTransmittance = stage == 0 || stage == 5 ? 0 : ctx.PushTexture_SRV( info.mTransmittance ),
-            .mMultipleScattering = stage >= 2 && stage <= 4 ? ctx.PushTexture_SRV( info.mMultipleScattering ) : 0,
-            .mSkyView = stage >= 6 ? ctx.PushTexture_SRV( info.mSkyView ) : 0,
-            .mSource = stage >= 5 ? ctx.PushTexture_SRV( stage == 5 ? b.Get<GeomShadingModuleInfo>().mColorImage : info.mSceneCopy ) : 0,
-            .mDepth = stage == 6 ? ctx.PushTexture_SRV( b.Get<PrepassModuleInfo>().mPrepassDepthTarget ) : 0,
+            .mTransmittance = stage == 0 || stage == 5 ? 0 : ctx.PushSRV( info.mTransmittance ),
+            .mMultipleScattering = stage >= 2 && stage <= 4 ? ctx.PushSRV( info.mMultipleScattering ) : 0,
+            .mSkyView = stage >= 6 ? ctx.PushSRV( info.mSkyView ) : 0,
+            .mSource = stage >= 5 ? ctx.PushSRV( stage == 5 ? b.Get<GeomShadingModuleInfo>().mColorImage : info.mSceneCopy ) : 0,
+            .mDepth = stage == 6 ? ctx.PushSRV( b.Get<PrepassModuleInfo>().mPrepassDepthTarget ) : 0,
             .mSampler = ctx.PushSampler( info.mSampler ),
             .mStage = stage,
             .mFace = face,
-            .mAerialRadiance = stage == 6 ? ctx.PushTexture_SRV( info.mAerialRadiance ) : 0,
-            .mAerialTransmittance = stage == 6 ? ctx.PushTexture_SRV( info.mAerialTransmittance ) : 0
+            .mAerialRadiance = stage == 6 ? ctx.PushSRV( info.mAerialRadiance ) : 0,
+            .mAerialTransmittance = stage == 6 ? ctx.PushSRV( info.mAerialTransmittance ) : 0
         };
 
         ctx.PushConstants( params );

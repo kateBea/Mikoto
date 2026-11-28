@@ -100,7 +100,7 @@ namespace mikoto::renderer {
                 SetupTextRenderData( ctx, b );
 
                 if ( mGlyphCount ) {
-                    ctx.CopyBuffer( b.Get<TextRenderingPassParameters>().mMsdfTextRenderData, 0,
+                    ctx.Copy( b.Get<TextRenderingPassParameters>().mMsdfTextRenderData, 0,
                         mTextInfo.data(), sizeof( TextDrawParameters ) * mGlyphCount );
                 }
             } );
@@ -126,7 +126,7 @@ namespace mikoto::renderer {
                     core::u32 mGlyphOffset{};
                 } params{
                     .mSampler = ctx.PushSampler( color.mDefaultSampler ),
-                    .mBuffer = ctx.PushBuffer_SRV( p.mMsdfTextRenderData ),
+                    .mBuffer = ctx.PushSRV( p.mMsdfTextRenderData ),
                     .mGlyphOffset = 0,
                 };
 
@@ -190,7 +190,7 @@ namespace mikoto::renderer {
                     core::u32 mGlyphOffset{};
                 } params{
                     .mSampler = ctx.PushSampler( b.Get<GeomShadingModuleInfo>().mDefaultSampler ),
-                    .mBuffer = ctx.PushBuffer_SRV( p.mMsdfTextRenderData ),
+                    .mBuffer = ctx.PushSRV( p.mMsdfTextRenderData ),
                     .mGlyphOffset = core::as<core::u32>( mWorldGlyphCount ),
                 };
 
@@ -268,7 +268,7 @@ namespace mikoto::renderer {
 
         const auto textureID = [&]( const renderer::rhi::TextureHandle& texture ) {
             return mAtlasBindings.Resolve( texture, [&]( const renderer::rhi::TextureHandle& page ) {
-                return ctx.PushTexture_SRV( ctx.ImportTexture( page ) );
+                return ctx.PushSRV( ctx.ImportTexture( page ) );
             } );
         };
 

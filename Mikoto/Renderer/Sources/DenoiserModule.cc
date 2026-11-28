@@ -365,7 +365,7 @@ namespace mikoto::renderer {
                 for ( core::u32 i{}; i < mState->mDispatches.size(); ++i ) {
                     const auto &bytes{ mState->mDispatches[i].mConstants };
                     if ( !bytes.empty() ) {
-                        ctx.CopyBuffer( mState->mConstants[i], 0, bytes.data(), bytes.size() );
+                        ctx.Copy( mState->mConstants[i], 0, bytes.data(), bytes.size() );
                     }
                 }
             } );
@@ -391,7 +391,7 @@ namespace mikoto::renderer {
                     core::u32 mHeight{};
                     core::f32 mConfidence{};
                 } parameters{};
-                parameters.mOutput = context.PushTexture_UAV( mState->mConfidence );
+                parameters.mOutput = context.PushUAV( mState->mConfidence );
                 parameters.mWidth = mState->mWidth;
                 parameters.mHeight = mState->mHeight;
                 parameters.mConfidence = mState->mHistoryConfidence;
@@ -476,10 +476,10 @@ namespace mikoto::renderer {
                     core::u32 mMethod{};
                     core::uint3 mPadding{};
                 } p{};
-                p.mInputs = { ctx.PushTexture_SRV( mState->mDiffuse ), ctx.PushTexture_SRV( mState->mSpecular ),
-                    ctx.PushTexture_SRV( mState->mInputs.mDiffuseFactor ), ctx.PushTexture_SRV( mState->mInputs.mSpecularFactor ) };
-                p.mBase = ctx.PushTexture_SRV( mState->mInputs.mBase );
-                p.mOutput = ctx.PushTexture_UAV( target );
+                p.mInputs = { ctx.PushSRV( mState->mDiffuse ), ctx.PushSRV( mState->mSpecular ),
+                    ctx.PushSRV( mState->mInputs.mDiffuseFactor ), ctx.PushSRV( mState->mInputs.mSpecularFactor ) };
+                p.mBase = ctx.PushSRV( mState->mInputs.mBase );
+                p.mOutput = ctx.PushUAV( target );
                 p.mMethod = static_cast<core::u32>( mSettings.mType );
                 p.mWidth = mState->mWidth;
                 p.mHeight = mState->mHeight;

@@ -134,9 +134,12 @@ namespace mikoto::renderer {
 
     auto ShadowMappingModule::RegisterShadowMaps( FrameGraph& graph ) -> void {
         MKT_BEGIN_PROFILER();
+
         auto& info = graph.GetOrCreate<ShadowMapInfo>();
+        
         info.mDirectionalSize = mDirectionalSize;
         info.mDirectionalCascadeCount = mDirectionalCascadeCount;
+        
         const auto create = [&]( core::cstr kind, core::u32 light, core::u32 face, core::u32 size ) {
             const auto texture = graph.Create( FGTextureDescription{}
                 .SetName( string::Format( "{}Shadow_{}_{}", kind, light, face ) )
@@ -194,6 +197,7 @@ namespace mikoto::renderer {
             builder.UseResource( geometry.mAttributeBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
             builder.UseResource( geometry.mIndexBuffer, FGPipelineStage::eVertexShader, FGResourceAccess::eRead );
             builder.UseResource( geometry.mMaterialsBuffer, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+
             // Kept for the bounded command arena's unculled fallback.
             builder.UseResource( geometry.mUnculledIndirectBuffer, FGPipelineStage::eIndirectArgument, FGResourceAccess::eRead );
         };
@@ -279,8 +283,8 @@ namespace mikoto::renderer {
                     core::u32 mDepth{};
                     core::u32 mOutput{};
                 } parameters{
-                    .mDepth = ctx.PushTexture_SRV( b.Get<PrepassModuleInfo>().mPrepassDepthTarget ),
-                    .mOutput = ctx.PushTexture_UAV( data.mVisibilityDepth ),
+                    .mDepth = ctx.PushSRV( b.Get<PrepassModuleInfo>().mPrepassDepthTarget ),
+                    .mOutput = ctx.PushUAV( data.mVisibilityDepth ),
                 };
                 ctx.BindPipeline( receiverPipeline );
                 ctx.PushConstants( parameters );
@@ -348,20 +352,20 @@ namespace mikoto::renderer {
 
                         VisibilityParameters parameters{
                             .mCamera = ctx.GetDeviceBufferAddress( b.Get<CameraModuleInfo>().mCameraData ),
-                            .mRecords = ctx.PushBuffer_SRV( data.mRecordsBuffer ),
+                            .mRecords = ctx.PushSRV( data.mRecordsBuffer ),
                             .mRecord = data.mDirectionalRecords[light],
-                            .mDepth = ctx.PushTexture_SRV( data.mVisibilityDepth ),
-                            .mOutput = ctx.PushTexture_UAV( output ),
+                            .mDepth = ctx.PushSRV( data.mVisibilityDepth ),
+                            .mOutput = ctx.PushUAV( output ),
                             .mStage = as<core::u32>( stage ),
                             .mToLight = data.mDirectionalToLight[light]
                         };
 
                         if ( input.mHandle ) {
-                            parameters.mInput = ctx.PushTexture_SRV( input );
+                            parameters.mInput = ctx.PushSRV( input );
                         }
 
                         if ( stage == VisibilityStage::eUpsample ) {
-                            parameters.mRawVisibility = ctx.PushTexture_SRV( raw );
+                            parameters.mRawVisibility = ctx.PushSRV( raw );
                         }
 
                         ctx.BindPipeline( pipeline );
@@ -392,7 +396,7 @@ namespace mikoto::renderer {
         auto& records{ mRecords };
         shadows.mRecordCount = glm::min( lights.mShadowRecordCount, kMaxShadowRecords );
         const auto add = [&]( core::u32 record, core::u32 face, FGTextureHandle texture, core::u32 size ) {
-            records[record].mTextureIDs[face] = ctx.PushTexture_SRV( texture );
+            records[record].mTextureIDs[face] = ctx.PushSRV( texture );
             mViews.push_back( { texture, record, face, size } );
         };
 
@@ -425,6 +429,7 @@ namespace mikoto::renderer {
                 record.mCascadeSplits = cascades.splits;
                 record.mPositionRange.w = mCamera->GetNearPlane();
                 record.mFaceCount = mDirectionalCascadeCount;
+
                 // Directional bias is in meters. Convert separately for each
                 // cascade in the shader so padded light depth ranges cannot
                 // turn a small precision offset into detached car-sized gaps.
@@ -435,10 +440,10 @@ namespace mikoto::renderer {
                 // Cascades occupy slots 0..3. The remaining directional-only slots
                 // publish the filtered visibility and its receiver depth without enlarging draw constants.
                 const auto visibility{ shadows.mDirectionalVisibility[slot] };
-                record.mTextureIDs[4] = mSoftShadowsEnabled && visibility.mHandle ? ctx.PushTexture_SRV( visibility ) : ~core::u32{};
+                record.mTextureIDs[4] = mSoftShadowsEnabled && visibility.mHandle ? ctx.PushSRV( visibility ) : ~core::u32{};
                 const auto receivers{ shadows.mGrassReceiverData[slot] };
-                record.mTextureIDs[5] = receivers.mHandle    ? ctx.PushTexture_SRV( receivers )
-                                        : visibility.mHandle ? ctx.PushTexture_SRV( shadows.mVisibilityDepth )
+                record.mTextureIDs[5] = receivers.mHandle    ? ctx.PushSRV( receivers )
+                                        : visibility.mHandle ? ctx.PushSRV( shadows.mVisibilityDepth )
                                                              : ~core::u32{};
 
                 for ( core::u32 face = 0; face < mDirectionalCascadeCount; ++face ) {
@@ -493,13 +498,13 @@ namespace mikoto::renderer {
             if ( !mShadowCommands.empty() ) {
                 // One upload before any map consumes this buffer; never overwrite
                 // a command range between shadow draws.
-                ctx.CopyBuffer( shadows.mIndirectBuffer, 0, mShadowCommands.data(),
+                ctx.Copy( shadows.mIndirectBuffer, 0, mShadowCommands.data(),
                     mShadowCommands.size() * sizeof( DrawIndirectCommand ) );
             }
         }
 
         if ( shadows.mRecordCount ) {
-            ctx.CopyBuffer( shadows.mRecordsBuffer, 0, records.data(), shadows.mRecordCount * sizeof( ShadowMapParameters ) );
+            ctx.Copy( shadows.mRecordsBuffer, 0, records.data(), shadows.mRecordCount * sizeof( ShadowMapParameters ) );
         }
     }
 

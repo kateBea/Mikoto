@@ -327,8 +327,8 @@ namespace mikoto::renderer {
                     const auto &info{ b.Get<WaterSimulationModuleInfo>() };
                     const auto [width, height]{ rhi::InferDimensions( mResolution ) };
                     const rhi::TextureSlice slice{ .mWidth = static_cast<core::u32>( width ), .mHeight = static_cast<core::u32>( height ) };
-                    ctx.CopyTexture( colorTarget, slice, info.mSceneColor, slice );
-                    ctx.CopyTexture( b.Get<PrepassModuleInfo>().mPrepassDepthTarget, slice, info.mSceneDepth, slice );
+                    ctx.Copy( colorTarget, slice, info.mSceneColor, slice );
+                    ctx.Copy( b.Get<PrepassModuleInfo>().mPrepassDepthTarget, slice, info.mSceneDepth, slice );
                 }
             } );
 
@@ -452,8 +452,8 @@ namespace mikoto::renderer {
                 params.mFftGradients = ctx.GetDeviceBufferAddress( info.mFftGradients );
 
                 if ( hdr ) {
-                    params.mSceneColor = ctx.PushTexture_SRV( info.mSceneColor );
-                    params.mSceneDepth = ctx.PushTexture_SRV( info.mSceneDepth );
+                    params.mSceneColor = ctx.PushSRV( info.mSceneColor );
+                    params.mSceneDepth = ctx.PushSRV( info.mSceneDepth );
                     params.mScreenSampler = ctx.PushSampler( info.mSampler );
                     const auto &lighting{ b.Get<GeomShadingModuleInfo>() };
                     const auto &prepass{ b.Get<PrepassModuleInfo>() };
@@ -465,9 +465,9 @@ namespace mikoto::renderer {
                     const auto environment{ mScene->GetEnvironmentMaterial() };
 
                     if ( atmosphere || ( mScene->GetEnvironmentLightingSource() == scene::EnvironmentLightingSource::eEnvironmentMap && environment ) ) {
-                        params.mEnvironment = ctx.PushTexture_SRV( atmosphere ? lighting.mAtmospherePrefilter : lighting.mPrefilterCubeRT );
-                        params.mIrradiance = ctx.PushTexture_SRV( lighting.mIrradianceCubeRT );
-                        params.mBrdf = ctx.PushTexture_SRV( lighting.mBrdfColorTarget );
+                        params.mEnvironment = ctx.PushSRV( atmosphere ? lighting.mAtmospherePrefilter : lighting.mPrefilterCubeRT );
+                        params.mIrradiance = ctx.PushSRV( lighting.mIrradianceCubeRT );
+                        params.mBrdf = ctx.PushSRV( lighting.mBrdfColorTarget );
                         params.mSampler = ctx.PushSampler( lighting.mSkyboxCubeSampler );
                         params.mEnvironmentScale = mScene->GetEnvironmentIntensity();
                     }
@@ -499,7 +499,7 @@ namespace mikoto::renderer {
                         return;
                     }
                     const auto &info{ b.Get<WaterSimulationModuleInfo>() };
-                    ctx.CopyBuffer( info.mCoastHistory, info.mCoast );
+                    ctx.Copy( info.mCoastHistory, info.mCoast );
                 } );
 
             RegisterUnderwaterPass( graph );
@@ -557,7 +557,7 @@ namespace mikoto::renderer {
 
                 const auto [width, height]{ rhi::InferDimensions( mResolution ) };
                 const rhi::TextureSlice slice{ .mWidth = as<u32>( width ), .mHeight = as<u32>( height ) };
-                ctx.CopyTexture( b.Get<GeomShadingModuleInfo>().mColorImage, slice, b.Get<WaterSimulationModuleInfo>().mSceneColor, slice );
+                ctx.Copy( b.Get<GeomShadingModuleInfo>().mColorImage, slice, b.Get<WaterSimulationModuleInfo>().mSceneColor, slice );
             } );
 
         graph.RegisterPass(
@@ -610,9 +610,9 @@ namespace mikoto::renderer {
                 parameters.mSurfaces = ctx.GetDeviceBufferAddress( info.mSurfaces );
                 parameters.mLights = ctx.GetDeviceBufferAddress( prepass.mLightsBuffer );
                 parameters.mShadows = ctx.GetDeviceBufferAddress( shadows.mRecordsBuffer );
-                parameters.mSource = ctx.PushTexture_SRV( info.mSceneColor );
-                parameters.mDepth = ctx.PushTexture_SRV( prepass.mPrepassDepthTarget );
-                parameters.mOpaqueDepth = ctx.PushTexture_SRV( info.mSceneDepth );
+                parameters.mSource = ctx.PushSRV( info.mSceneColor );
+                parameters.mDepth = ctx.PushSRV( prepass.mPrepassDepthTarget );
+                parameters.mOpaqueDepth = ctx.PushSRV( info.mSceneDepth );
                 parameters.mSampler = ctx.PushSampler( info.mSampler );
                 parameters.mSurfaceCount = as<u32>( mPlanes.size() );
                 parameters.mLightCount = prepass.mActiveLightCount;
@@ -792,7 +792,7 @@ namespace mikoto::renderer {
 
             GenerateWaterSpectrum( settings, spectrum );
             const auto bytes{ spectrum.size() * sizeof( core::float2 ) };
-            mUploads.CopyBuffer( info.mFftInitialSpectrum, index * bytes, spectrum.data(), bytes );
+            mUploads.Copy( info.mFftInitialSpectrum, index * bytes, spectrum.data(), bytes );
             uploaded = settings;
         }
     }
@@ -934,8 +934,8 @@ namespace mikoto::renderer {
                 ctx.EnsureBufferCapacity( info.mVertices, vertices.size() * sizeof( core::float3 ) );
                 ctx.EnsureBufferCapacity( info.mIndices, indices.size() * sizeof( core::u32 ) );
 
-                mUploads.CopyBuffer( info.mVertices, 0, vertices.data(), vertices.size() * sizeof( core::float3 ) );
-                mUploads.CopyBuffer( info.mIndices, 0, indices.data(), indices.size() * sizeof( core::u32 ) );
+                mUploads.Copy( info.mVertices, 0, vertices.data(), vertices.size() * sizeof( core::float3 ) );
+                mUploads.Copy( info.mIndices, 0, indices.data(), indices.size() * sizeof( core::u32 ) );
             }
 
             mPlanes = eastl::move( planes );
@@ -972,8 +972,8 @@ namespace mikoto::renderer {
 
             const auto &appearance{ water.GetAppearance() };
             if ( const auto *atmosphere{ b.TryGet<AtmosphereModuleInfo>() }; atmosphere && atmosphere->mAerialRadiance.mHandle != 0 ) {
-                surface.mAirResources = { ctx.PushTexture_SRV( atmosphere->mAerialRadiance ),
-                    ctx.PushTexture_SRV( atmosphere->mAerialTransmittance ), ctx.PushSampler( atmosphere->mSampler ), 0 };
+                surface.mAirResources = { ctx.PushSRV( atmosphere->mAerialRadiance ),
+                    ctx.PushSRV( atmosphere->mAerialTransmittance ), ctx.PushSampler( atmosphere->mSampler ), 0 };
             }
             surface.mWorldToLocal = glm::inverse( surface.mWorld );
             surface.mBounds = { water.GetPlaneDimensions(), glm::clamp( appearance.mMaximumDepth, .1f, 1000.0f ), 0.0f };
@@ -1056,11 +1056,11 @@ namespace mikoto::renderer {
             PrepareFftInputs( ctx, info );
 
             ctx.EnsureBufferCapacity( info.mSurfaces, surfaces.size() * sizeof( WaterSurfaceGPU ) );
-            mUploads.CopyBuffer( info.mSurfaces, 0, surfaces.data(), surfaces.size() * sizeof( WaterSurfaceGPU ) );
+            mUploads.Copy( info.mSurfaces, 0, surfaces.data(), surfaces.size() * sizeof( WaterSurfaceGPU ) );
 
             if ( !waves.empty() ) {
                 ctx.EnsureBufferCapacity( info.mWaves, waves.size() * sizeof( WaterWaveGPU ) );
-                mUploads.CopyBuffer( info.mWaves, 0, waves.data(), waves.size() * sizeof( WaterWaveGPU ) );
+                mUploads.Copy( info.mWaves, 0, waves.data(), waves.size() * sizeof( WaterWaveGPU ) );
             }
         }
     }

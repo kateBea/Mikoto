@@ -315,7 +315,7 @@ namespace mikoto::renderer {
         mShadowCommands.clear();
         const auto add{ [&]( u32 record, u32 face, FGTextureHandle target, u32 size ) {
             auto &shadow{ mMeshShadows[record] };
-            shadow.mTextureIDs[face] = ctx.PushTexture_SRV( target );
+            shadow.mTextureIDs[face] = ctx.PushSRV( target );
             ShadowView view{ target, record, face, size, as<u32>( mShadowCommands.size() ), 0, false };
             if ( mGeometryManagement ) {
                 u32 tested{};
@@ -363,16 +363,16 @@ namespace mikoto::renderer {
             }
             mCasterRevision = revision;
         }
-        ctx.CopyBuffer( info.mFrame, 0, &mFrame, sizeof( mFrame ) );
-        ctx.CopyBuffer( info.mMeshShadows, 0, mMeshShadows.data(), mMeshShadows.size() * sizeof( CloudMeshShadow ) );
+        ctx.Copy( info.mFrame, 0, &mFrame, sizeof( mFrame ) );
+        ctx.Copy( info.mMeshShadows, 0, mMeshShadows.data(), mMeshShadows.size() * sizeof( CloudMeshShadow ) );
         if ( !mLocalLights.empty() ) {
-            ctx.CopyBuffer( info.mLocalLights, 0, mLocalLights.data(), mLocalLights.size() * sizeof( CloudLocalLight ) );
+            ctx.Copy( info.mLocalLights, 0, mLocalLights.data(), mLocalLights.size() * sizeof( CloudLocalLight ) );
         }
         if ( !mBolts.empty() ) {
-            ctx.CopyBuffer( info.mBolts, 0, mBolts.data(), mBolts.size() * sizeof( CloudBoltSegment ) );
+            ctx.Copy( info.mBolts, 0, mBolts.data(), mBolts.size() * sizeof( CloudBoltSegment ) );
         }
         if ( !mShadowCommands.empty() ) {
-            ctx.CopyBuffer( info.mShadowCommands, 0, mShadowCommands.data(), mShadowCommands.size() * sizeof( DrawIndirectCommand ) );
+            ctx.Copy( info.mShadowCommands, 0, mShadowCommands.data(), mShadowCommands.size() * sizeof( DrawIndirectCommand ) );
         }
     }
 
@@ -425,7 +425,7 @@ namespace mikoto::renderer {
                         u32 mVolume{};
                     } parameters{};
                     parameters.mFrame = ctx.GetDeviceBufferAddress( b.Get<CloudsModuleInfo>().mFrame );
-                    parameters.mOutput = ctx.PushTexture_UAV( output );
+                    parameters.mOutput = ctx.PushUAV( output );
                     parameters.mVolume = i;
                     ctx.BindPipeline( pipeline );
                     ctx.PushConstants( parameters );
@@ -482,7 +482,7 @@ namespace mikoto::renderer {
                 } parameters{
                     .mFrame = ctx.GetDeviceBufferAddress( b.Get<CloudsModuleInfo>().mFrame ),
                     .mCamera = ctx.GetDeviceBufferAddress( b.Get<CameraModuleInfo>().mCameraData ),
-                    .mDepth = ctx.PushTexture_SRV( b.Get<PrepassModuleInfo>().mPrepassDepthTarget ),
+                    .mDepth = ctx.PushSRV( b.Get<PrepassModuleInfo>().mPrepassDepthTarget ),
                 };
                 const i32 width{ as<i32>( mFrame.mScreen.x ) };
                 const i32 height{ as<i32>( mFrame.mScreen.y ) };

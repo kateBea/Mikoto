@@ -94,11 +94,11 @@ namespace mikoto::renderer {
             parameters.mShadows = context.GetDeviceBufferAddress( shadows.mRecordsBuffer );
             parameters.mClusters = context.GetDeviceBufferAddress( prepass.mClusterBuffer );
 
-            parameters.mLighting = context.PushTexture_UAV( fog.mLighting );
-            parameters.mExtinction = context.PushTexture_UAV( fog.mExtinction );
-            parameters.mHistory = context.PushTexture_SRV( fog.mHistory );
-            parameters.mExtinctionHistory = context.PushTexture_SRV( fog.mExtinctionHistory );
-            parameters.mIrradiance = context.PushTexture_SRV( blackboard.Get<GeomShadingModuleInfo>().mIrradianceCubeRT );
+            parameters.mLighting = context.PushUAV( fog.mLighting );
+            parameters.mExtinction = context.PushUAV( fog.mExtinction );
+            parameters.mHistory = context.PushSRV( fog.mHistory );
+            parameters.mExtinctionHistory = context.PushSRV( fog.mExtinctionHistory );
+            parameters.mIrradiance = context.PushSRV( blackboard.Get<GeomShadingModuleInfo>().mIrradianceCubeRT );
 
             parameters.mLightCount = prepass.mActiveLightCount;
             parameters.mShadowCount = shadows.mRecordCount;
@@ -107,22 +107,22 @@ namespace mikoto::renderer {
             parameters.mClusterCount = prepass.mClusterCount;
         }
         else if ( stage == 1 ) {
-            parameters.mLighting = context.PushTexture_SRV( fog.mLighting );
-            parameters.mExtinction = context.PushTexture_SRV( fog.mExtinction );
+            parameters.mLighting = context.PushSRV( fog.mLighting );
+            parameters.mExtinction = context.PushSRV( fog.mExtinction );
 
-            parameters.mRadiance = context.PushTexture_UAV( fog.mRadiance );
-            parameters.mTransmittance = context.PushTexture_UAV( fog.mTransmittance );
+            parameters.mRadiance = context.PushUAV( fog.mRadiance );
+            parameters.mTransmittance = context.PushUAV( fog.mTransmittance );
         }
         else if ( stage == 2 ) {
             parameters.mCamera = context.GetDeviceBufferAddress( blackboard.Get<CameraModuleInfo>().mCameraData );
-            parameters.mSource = context.PushTexture_SRV( fog.mSceneCopy );
-            parameters.mDepth = context.PushTexture_SRV( prepass.mPrepassDepthTarget );
+            parameters.mSource = context.PushSRV( fog.mSceneCopy );
+            parameters.mDepth = context.PushSRV( prepass.mPrepassDepthTarget );
 
-            parameters.mRadiance = context.PushTexture_SRV( fog.mRadiance );
-            parameters.mTransmittance = context.PushTexture_SRV( fog.mTransmittance );
+            parameters.mRadiance = context.PushSRV( fog.mRadiance );
+            parameters.mTransmittance = context.PushSRV( fog.mTransmittance );
         }
         else {
-            parameters.mSource = context.PushTexture_SRV( blackboard.Get<GeomShadingModuleInfo>().mColorImage );
+            parameters.mSource = context.PushSRV( blackboard.Get<GeomShadingModuleInfo>().mColorImage );
         }
 
         return parameters;
@@ -355,7 +355,7 @@ namespace mikoto::renderer {
 
                 const auto buffer{ b.Get<VolumeModuleInfo>().mData };
                 const usize bytes{ mPayloadDirty ? mData.size() : 16 + mCount * sizeof( VolumeRecord ) };
-                context.CopyBuffer( buffer, 0, mData.data(), bytes );
+                context.Copy( buffer, 0, mData.data(), bytes );
                 mPayloadDirty = false;
 
                 mUploadDirty = false;
@@ -420,9 +420,9 @@ namespace mikoto::renderer {
                 auto frame{ mFogFrame };
                 const f32 distance{ glm::max( mCamera->GetFarPlane(), 0.001f ) };
                 frame.mRange = float4{ 0.0f, distance, mFogFrame.mRange.y, mHistoryValid ? 0.9f : 0.0f };
-                frame.mTextures = uint4{ context.PushTexture_SRV( fog.mRadiance ), context.PushTexture_SRV( fog.mTransmittance ),
+                frame.mTextures = uint4{ context.PushSRV( fog.mRadiance ), context.PushSRV( fog.mTransmittance ),
                     context.PushSampler( fog.mSampler ), mCount };
-                context.CopyBuffer( fog.mFrame, 0, &frame, sizeof( frame ) );
+                context.Copy( fog.mFrame, 0, &frame, sizeof( frame ) );
 
                 mFogFrame.mPreviousViewProjection = mCamera->GetViewProjection();
                 mFogFrame.mPreviousInverseViewProjection = glm::inverse( mFogFrame.mPreviousViewProjection );
@@ -530,8 +530,8 @@ namespace mikoto::renderer {
                     .mHeight = mFogFrame.mGrid.y * mFogFrame.mGrid.w,
                     .mDepth = 1
                 };
-                context.CopyTexture( fog.mLighting, slice, fog.mHistory, slice );
-                context.CopyTexture( fog.mExtinction, slice, fog.mExtinctionHistory, slice );
+                context.Copy( fog.mLighting, slice, fog.mHistory, slice );
+                context.Copy( fog.mExtinction, slice, fog.mExtinctionHistory, slice );
             } );
     }
 
@@ -559,7 +559,7 @@ namespace mikoto::renderer {
                 }
                 const auto [width, height]{ InferDimensions( mResolution ) };
                 const TextureSlice slice{ .mWidth = as<u32>( width ), .mHeight = as<u32>( height ), .mDepth = 1 };
-                context.CopyTexture( b.Get<GeomShadingModuleInfo>().mColorImage, slice, b.Get<FogModuleInfo>().mSceneCopy, slice );
+                context.Copy( b.Get<GeomShadingModuleInfo>().mColorImage, slice, b.Get<FogModuleInfo>().mSceneCopy, slice );
             } );
 
         graph.RegisterPass(

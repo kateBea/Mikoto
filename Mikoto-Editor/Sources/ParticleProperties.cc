@@ -243,10 +243,11 @@ namespace mikoto::editor {
     }
 
     auto DrawParticleEmitterMaterial( material::ParticleMaterialHandle &material, bool sandbox ) -> bool {
-        bool changed{};
+        bool hasChanged{};
         bool choose{};
         bool create{};
         bool clear{};
+
         filesystem::Path materialPath{};
 
         const auto acceptDrop{ [&]() {
@@ -280,10 +281,12 @@ namespace mikoto::editor {
                                   ? source.IsEmpty() ? material->GetName() : eastl::string{ source.GetFilename() }
                                   : MKT_LOC( "volume_choose_material" ) };
             const auto buttonLabel{ string::Format( "{}###EmitterMaterial", label ) };
+
             choose = ImGui::Button( buttonLabel.c_str(), { chooseWidth, 0 } );
             if ( material ) {
                 imgui::widget::ItemTooltip( "%s", source.IsEmpty() ? material->GetName().c_str() : source.GetC_Str() );
             }
+
             acceptDrop();
             ImGui::SameLine();
             ImGui::BeginDisabled( !material );
@@ -312,21 +315,21 @@ namespace mikoto::editor {
             }
 
             material = loaded.As<material::ParticleMaterial>();
-            changed = true;
+            hasChanged = true;
         }
 
         if ( create ) {
             material = material::ParticleMaterialHandle::New( material::ParticleMaterialDescription{} );
-            changed = true;
+            hasChanged = true;
         }
 
         if ( clear ) {
             material = {};
-            changed = true;
+            hasChanged = true;
         }
 
         if ( material ) {
-            changed |= DrawParticleMaterial( *material );
+            hasChanged |= DrawParticleMaterial( *material );
 
             bool save{};
             bool saveAs{};
@@ -357,6 +360,6 @@ namespace mikoto::editor {
             }
         }
 
-        return changed;
+        return hasChanged;
     }
 }// namespace mikoto::editor

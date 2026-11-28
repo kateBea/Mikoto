@@ -78,7 +78,7 @@ namespace mikoto::renderer {
             // The scatter shader copies whole words. Use a sequential transfer for partial words or dense edits.
             if ( sizeof( T ) % sizeof( core::u32 ) != 0 ||
                  mDirty.size() * 2 >= values.size() || mDirty.size() > kMaxScatterRecords ) {
-                ctx.CopyBuffer( target, 0, values.data(), values.size() * sizeof( T ) );
+                ctx.Copy( target, 0, values.data(), values.size() * sizeof( T ) );
                 mStatistics.mBytes = values.size() * sizeof( T );
                 mStatistics.mCopyCalls = 1;
             } else if ( runs <= 8 || mDirty.size() < 64 ) {
@@ -89,7 +89,7 @@ namespace mikoto::renderer {
                         ++count;
                     }
 
-                    ctx.CopyBuffer( target, core::usize{ first } * sizeof( T ), values.data() + first, count * sizeof( T ) );
+                    ctx.Copy( target, core::usize{ first } * sizeof( T ), values.data() + first, count * sizeof( T ) );
                     mStatistics.mBytes += count * sizeof( T );
                     ++mStatistics.mCopyCalls;
                     i += count;
@@ -104,7 +104,7 @@ namespace mikoto::renderer {
                     std::memcpy( mPayload.data() + mDirty.size() + i * words, &values[mDirty[i]], sizeof( T ) );
                 }
 
-                ctx.CopyBuffer( scratch, 0, mPayload.data(), mPayload.size() * 4 );
+                ctx.Copy( scratch, 0, mPayload.data(), mPayload.size() * 4 );
                 
                 mStatistics.mBytes = mPayload.size() * 4;
                 mStatistics.mCopyCalls = 1;

@@ -57,10 +57,10 @@ namespace mikoto::renderer {
                     core::u32 mReserved[2]{};
                 } header{ wind.mTime, core::as<core::u32>( wind.mAreas.size() ) };
 
-                ctx.CopyBuffer( field, 0, &header, sizeof( header ) );
+                ctx.Copy( field, 0, &header, sizeof( header ) );
 
                 if ( !wind.mAreas.empty() ) {
-                    ctx.CopyBuffer( field, sizeof( header ), wind.mAreas.data(), wind.mAreas.size() * sizeof( scene::WindAreaData ) );
+                    ctx.Copy( field, sizeof( header ), wind.mAreas.data(), wind.mAreas.size() * sizeof( scene::WindAreaData ) );
                 }
             } );
     }

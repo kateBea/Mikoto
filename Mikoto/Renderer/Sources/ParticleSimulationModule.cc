@@ -77,7 +77,7 @@ namespace mikoto::renderer {
 
         const auto [entry, added]{ descriptors.try_emplace( texture.GetPtr() ) };
         if ( added ) {
-            entry->second = ctx.PushTexture_SRV( ctx.ImportTexture( texture ) );
+            entry->second = ctx.PushSRV( ctx.ImportTexture( texture ) );
         }
 
         return entry->second;
@@ -198,7 +198,7 @@ namespace mikoto::renderer {
                 GatherCpuParticles( ctx );
 
                 if ( !mRenderData.empty() ) {
-                    ctx.CopyBuffer( b.Get<ParticleSimulationInfo>().mParticlesBuffer, 0, mRenderData.data(), mRenderData.size() * MKT_SIZEOF( ParticleRenderData ) );
+                    ctx.Copy( b.Get<ParticleSimulationInfo>().mParticlesBuffer, 0, mRenderData.data(), mRenderData.size() * MKT_SIZEOF( ParticleRenderData ) );
                 }
             } );
     }
@@ -518,10 +518,10 @@ namespace mikoto::renderer {
 
                 if ( mGpuDrawCount ) {
                     const auto &info{ blackboard.Get<ParticleSimulationInfo>() };
-                    ctx.CopyBuffer( info.mEmitterParameters, 0, mParameters.data(), sizeof( mParameters ) );
-                    ctx.CopyBuffer( info.mParticleIndices, 0, mParticleIndices.data(), MKT_VECTOR_SIZE_BYTES( mParticleIndices ) );
+                    ctx.Copy( info.mEmitterParameters, 0, mParameters.data(), sizeof( mParameters ) );
+                    ctx.Copy( info.mParticleIndices, 0, mParticleIndices.data(), MKT_VECTOR_SIZE_BYTES( mParticleIndices ) );
                     if ( !mTextureDescriptors.empty() ) {
-                        ctx.CopyBuffer( info.mTextureDescriptors, 0, mTextureDescriptors.data(), MKT_VECTOR_SIZE_BYTES( mTextureDescriptors ) );
+                        ctx.Copy( info.mTextureDescriptors, 0, mTextureDescriptors.data(), MKT_VECTOR_SIZE_BYTES( mTextureDescriptors ) );
                     }
                 }
             } );

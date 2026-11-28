@@ -77,7 +77,7 @@ namespace mikoto::renderer {
             case FGPipelineStage::eDepthTarget:
                 return renderer::rhi::PipelineStageFlagsBits::EarlyFragmentTests | renderer::rhi::PipelineStageFlagsBits::LateFragmentTests;
 
-            // Small CopyBuffer uploads use vkCmdUpdateBuffer (CLEAR stage);
+            // Small Copy uploads use vkCmdUpdateBuffer (CLEAR stage);
             // larger uploads use vkCmdCopyBuffer (COPY stage).
             case FGPipelineStage::eCopy:
                 return renderer::rhi::PipelineStageFlagsBits::Copy | renderer::rhi::PipelineStageFlagsBits::Clear;
@@ -491,7 +491,7 @@ namespace mikoto::renderer {
         return ( core::u64 )CacheGpuDeviceAddress( handle );
     }
 
-    auto CommandContext::PushTexture_SRV( FGTextureHandle handle ) -> core::u32 {
+    auto CommandContext::PushSRV( FGTextureHandle handle ) -> core::u32 {
         MKT_BEGIN_PROFILER();
         auto &resource{ mResourceManager->Get( handle.mHandle ) };
         auto *texture{ core::checked_cast<rhi::ITexture *>( resource.mResource.GetPtr() ) };
@@ -499,7 +499,7 @@ namespace mikoto::renderer {
         return mDescriptorAllocator->AllocateTextureIndex_SRV( texture );
     }
 
-    auto CommandContext::PushTexture_UAV( FGTextureHandle handle ) -> core::u32 {
+    auto CommandContext::PushUAV( FGTextureHandle handle ) -> core::u32 {
         MKT_BEGIN_PROFILER();
         auto &resource{ mResourceManager->Get( handle.mHandle ) };
         auto *texture{ core::checked_cast<rhi::ITexture *>( resource.mResource.GetPtr() ) };
@@ -507,7 +507,7 @@ namespace mikoto::renderer {
         return mDescriptorAllocator->AllocateTextureIndex_UAV( texture );
     }
 
-    auto CommandContext::PushAccelerationStructure( FGAccelerationStructureHandle handle ) -> core::u32 {
+    auto CommandContext::PushSRV( FGAccelerationStructureHandle handle ) -> core::u32 {
         MKT_BEGIN_PROFILER();
         auto &resource{ mResourceManager->Get( handle.mHandle ) };
         auto *structure{ core::checked_cast<rhi::IAccelerationStructure *>( resource.mResource.GetPtr() ) };
@@ -595,7 +595,7 @@ namespace mikoto::renderer {
         return mDescriptorAllocator->AllocateSamplerIndex( sampler );
     }
 
-    auto CommandContext::PushBuffer_SRV( FGBufferHandle handle ) -> core::u32 {
+    auto CommandContext::PushSRV( FGBufferHandle handle ) -> core::u32 {
         MKT_BEGIN_PROFILER();
         auto &resource{ mResourceManager->Get( handle.mHandle ) };
         auto *buffer{ core::checked_cast<rhi::IBuffer *>( resource.mResource.GetPtr() ) };
@@ -603,7 +603,7 @@ namespace mikoto::renderer {
         return mDescriptorAllocator->AllocateBufferIndex_SRV( buffer );
     }
 
-    auto CommandContext::PushBuffer_UAV( FGBufferHandle handle ) -> core::u32 {
+    auto CommandContext::PushUAV( FGBufferHandle handle ) -> core::u32 {
         MKT_BEGIN_PROFILER();
         auto &resource{ mResourceManager->Get( handle.mHandle ) };
         auto *buffer{ core::checked_cast<rhi::IBuffer *>( resource.mResource.GetPtr() ) };
@@ -735,7 +735,7 @@ namespace mikoto::renderer {
     }
 
     auto CommandContext::UseImportedTexture( FGTextureHandle texture ) -> core::u32 {
-        return PushTexture_SRV( texture );
+        return PushSRV( texture );
     }
 
     auto CommandContext::ImportTexture( renderer::rhi::TextureHandle handle ) -> FGTextureHandle {
@@ -928,7 +928,7 @@ namespace mikoto::renderer {
         return changed;
     }
 
-    auto CommandContext::CopyBuffer( FGBufferHandle dstBuffer, FGBufferHandle srcBuffer ) -> void {
+    auto CommandContext::Copy( FGBufferHandle dstBuffer, FGBufferHandle srcBuffer ) -> void {
         MKT_BEGIN_PROFILER();
 
         MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
@@ -939,7 +939,7 @@ namespace mikoto::renderer {
         mCommands->Copy( srcResource, dstResource );
     }
 
-    auto CommandContext::CopyBuffer( FGBufferHandle dstBuffer, renderer::rhi::IBuffer *src, core::usize dstOffset ) -> void {
+    auto CommandContext::Copy( FGBufferHandle dstBuffer, renderer::rhi::IBuffer *src, core::usize dstOffset ) -> void {
         MKT_BEGIN_PROFILER();
 
         MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
@@ -949,7 +949,7 @@ namespace mikoto::renderer {
         mCommands->Copy( src, resource, dstOffset );
     }
 
-    auto CommandContext::CopyBuffer( FGBufferHandle dstBuffer, core::usize offset, const void *ptr, core::usize sizeBytes ) -> void {
+    auto CommandContext::Copy( FGBufferHandle dstBuffer, core::usize offset, const void *ptr, core::usize sizeBytes ) -> void {
         MKT_BEGIN_PROFILER();
 
         MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
@@ -969,14 +969,14 @@ namespace mikoto::renderer {
         mCommands->Copy( buffer, image );
     }
 
-    auto CommandContext::CopyTexture( FGTextureHandle destImage, const void *data, core::usize size ) -> void {
+    auto CommandContext::Copy( FGTextureHandle destImage, const void *data, core::usize size ) -> void {
         MKT_BEGIN_PROFILER();
         MKT_ASSERT( mResourceManager, "FrameGraph Resource manager cannot be null" );
         renderer::rhi::ITexture *image{ CacheResource( destImage ) };
         mCommands->Write( image, data, size );
     }
 
-    auto CommandContext::CopyTexture( FGTextureHandle source, const renderer::rhi::TextureSlice &sourceSlice, FGTextureHandle destination, const renderer::rhi::TextureSlice &destinationSlice ) -> void {
+    auto CommandContext::Copy( FGTextureHandle source, const renderer::rhi::TextureSlice &sourceSlice, FGTextureHandle destination, const renderer::rhi::TextureSlice &destinationSlice ) -> void {
         MKT_BEGIN_PROFILER();
         MKT_ASSERT( source.mHandle != destination.mHandle, "Whole-resource copy barriers require distinct textures" );
         MKT_ASSERT( sourceSlice.mWidth == destinationSlice.mWidth && sourceSlice.mHeight == destinationSlice.mHeight && sourceSlice.mDepth == destinationSlice.mDepth,
@@ -988,12 +988,12 @@ namespace mikoto::renderer {
         mCommands->Build( structure.GetPtr() );
     }
 
-    auto CommandContext::CopyBuffer( rhi::BufferHandle destination, core::usize offset, const void *data, core::usize sizeBytes ) -> void {
+    auto CommandContext::Copy( rhi::BufferHandle destination, core::usize offset, const void *data, core::usize sizeBytes ) -> void {
         MKT_BEGIN_PROFILER();
         mCommands->Write( destination.GetPtr(), offset, data, sizeBytes );
     }
 
-    auto CommandContext::CopyTexture( FGTextureHandle source, rhi::TextureHandle destination ) -> void {
+    auto CommandContext::Copy( FGTextureHandle source, rhi::TextureHandle destination ) -> void {
         MKT_BEGIN_PROFILER();
 
         auto *texture{ CacheResource( source ) };
@@ -1098,7 +1098,7 @@ namespace mikoto::renderer {
         mUploads.clear();
     }
 
-    auto BufferUploadBatch::CopyBuffer( FGBufferHandle buffer, core::usize offset, const void *data, core::usize sizeBytes ) -> void {
+    auto BufferUploadBatch::Copy( FGBufferHandle buffer, core::usize offset, const void *data, core::usize sizeBytes ) -> void {
         if ( sizeBytes == 0 ) {
             return;
         }
@@ -1112,7 +1112,7 @@ namespace mikoto::renderer {
 
     auto BufferUploadBatch::Submit( CommandContext &context ) -> void {
         for ( const auto &upload: mUploads ) {
-            context.CopyBuffer( upload.mBuffer, upload.mOffset, upload.mBytes.data(), upload.mBytes.size() );
+            context.Copy( upload.mBuffer, upload.mOffset, upload.mBytes.data(), upload.mBytes.size() );
         }
 
         Clear();

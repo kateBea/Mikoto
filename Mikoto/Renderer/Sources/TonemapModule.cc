@@ -120,12 +120,12 @@ namespace mikoto::renderer {
                     core::u32 mBloomEnabled{};
                     core::u32 mVisualizeDepthOfField{};
                 } params{
-                    .mFinalImageID = ctx.PushTexture_SRV( source ),
+                    .mFinalImageID = ctx.PushSRV( source ),
                     .mBasicSamplerID = ctx.PushSampler( sampler ),
                     .mExposure = mExposure,
                     .mGamma = mGamma,
                     .mToneMapType = core::as<core::i32>( mToneMapType ),
-                    .mBloomImageID = ctx.PushTexture_SRV( post.mBloomResult ),
+                    .mBloomImageID = ctx.PushSRV( post.mBloomResult ),
                     .mBloomSamplerID = ctx.PushSampler( post.mBloomSampler ),
                     .mBloomIntensity = post.mBloomSettings.mIntensity,
                     .mBloomEnabled = post.mBloomSettings.mEnabled && post.mBloomSettings.mIntensity > 0.0f ? 1u : 0u,
@@ -203,9 +203,9 @@ namespace mikoto::renderer {
                     core::float4 mColorTint{ 0.2f, 0.3f, 0.5f, 1.0f };
                 } params{
                     .mSamplerID = ctx.PushSampler( geometryData.mDefaultSampler ),
-                    .mFinalImageID = ctx.PushTexture_SRV( geometryData.mColorImage ),
+                    .mFinalImageID = ctx.PushSRV( geometryData.mColorImage ),
 
-                    .mCameraBufferID = ctx.PushBuffer_SRV( cameraData.mCameraData ),
+                    .mCameraBufferID = ctx.PushSRV( cameraData.mCameraData ),
 
                     .mExposure = 2.3f,
                     .mContrast = 3.5f,

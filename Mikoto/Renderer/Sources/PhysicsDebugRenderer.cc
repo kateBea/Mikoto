@@ -405,11 +405,11 @@ namespace mikoto::renderer {
                 MKT_ASSERT( mLines.size() <= kMaxVerticesLines && mTriangles.size() <= kMaxVerticesTriangles, "Exceeded debug buffer capacity" );
 
                 if ( !mLines.empty() ) {
-                    context.CopyBuffer( mLinesBuffer, 0, mLines.data(), MKT_VECTOR_SIZE_BYTES( mLines ) );
+                    context.Copy( mLinesBuffer, 0, mLines.data(), MKT_VECTOR_SIZE_BYTES( mLines ) );
                 }
 
                 if ( !mTriangles.empty() ) {
-                    context.CopyBuffer( mTrianglesBuffer, 0, mTriangles.data(), MKT_VECTOR_SIZE_BYTES( mTriangles ) );
+                    context.Copy( mTrianglesBuffer, 0, mTriangles.data(), MKT_VECTOR_SIZE_BYTES( mTriangles ) );
                 }
             } );
 

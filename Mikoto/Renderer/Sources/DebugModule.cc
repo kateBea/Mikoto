@@ -215,8 +215,8 @@ namespace mikoto::renderer {
 
                 if ( !mArmatureBones.empty() ) {
                     const auto mesh{ BuildBoneMesh() };
-                    ctx.CopyBuffer( vertices, 0, mesh.data(), sizeof( mesh ) );
-                    ctx.CopyBuffer( bones, 0, mArmatureBones.data(), mArmatureBones.size() * sizeof( ArmatureBone ) );
+                    ctx.Copy( vertices, 0, mesh.data(), sizeof( mesh ) );
+                    ctx.Copy( bones, 0, mArmatureBones.data(), mArmatureBones.size() * sizeof( ArmatureBone ) );
                 }
             } );
 
@@ -391,7 +391,7 @@ namespace mikoto::renderer {
                     core::u32 mTextureIndex{};
                     core::u32 mSamplerIndex{};
                 } params{
-                    .mTextureIndex = ctx.PushTexture_SRV( data.mImportedTexture ),
+                    .mTextureIndex = ctx.PushSRV( data.mImportedTexture ),
                     .mSamplerIndex = ctx.PushSampler( data.mSampler ),
                 };
 
@@ -570,7 +570,7 @@ namespace mikoto::renderer {
             mInfoQuads.push_back( quad );
         }
 
-        ctx.CopyBuffer( mInfoBuffer, 0, mInfoQuads.data(), mInfoQuads.size() * sizeof( CanvasQuad ) );
+        ctx.Copy( mInfoBuffer, 0, mInfoQuads.data(), mInfoQuads.size() * sizeof( CanvasQuad ) );
     }
 
     auto DebugModule::RegisterInfoOverlayPass( FrameGraph& graph ) -> void {
@@ -735,7 +735,7 @@ namespace mikoto::renderer {
             },
             []( CommandContext &ctx, core::Blackboard &blackboard ) {
                 const auto &data{ blackboard.Get<SimpleCompute>() };
-                ctx.CopyBuffer( data.mReadbackBuffer, data.mComputeBuffer );
+                ctx.Copy( data.mReadbackBuffer, data.mComputeBuffer );
             } );
 
         graph.SetExecutionPolicy( "SimpleCompute_Readback", FGExecutionPolicy::eOnce );

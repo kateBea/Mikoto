@@ -304,7 +304,7 @@ namespace mikoto::renderer {
                         core::u32 mSampler{};
                         core::u32 mMode{};
                     } parameters{
-                        .mTexture = ctx.PushTexture_SRV( GetTargetImage( b ) ),
+                        .mTexture = ctx.PushSRV( GetTargetImage( b ) ),
                         .mSampler = ctx.PushSampler( geometryData.mBasicSampler ),
                         .mMode = static_cast<core::u32>( mPresentTarget ) - static_cast<core::u32>( FinalImageType::eDlssNoisyColor ),
                     };
@@ -326,8 +326,8 @@ namespace mikoto::renderer {
                         .mClusters = ctx.GetDeviceBufferAddress( prepass.mClusterBuffer ),
                         .mCamera = ctx.GetDeviceBufferAddress( b.Get<CameraModuleInfo>().mCameraData ),
                         .mGridSize = prepass.mGridSize,
-                        .mSceneTexture = ctx.PushTexture_SRV( GetTargetImage( b ) ),
-                        .mDepthTexture = ctx.PushTexture_SRV( prepass.mPrepassDepthTarget ),
+                        .mSceneTexture = ctx.PushSRV( GetTargetImage( b ) ),
+                        .mDepthTexture = ctx.PushSRV( prepass.mPrepassDepthTarget ),
                         .mSampler = ctx.PushSampler( geometryData.mBasicSampler ),
                         .mClusterCount = prepass.mClusterCount,
                         .mOverlay = mPresentTarget == FinalImageType::eClusterHeatmapOverlay ? 1u : 0u
@@ -339,7 +339,7 @@ namespace mikoto::renderer {
                         core::u32 mTextureIndex{};
                         core::u32 mSamplerIndex{};
                     } params{
-                        .mTextureIndex = ctx.PushTexture_SRV( fixedSource && !rayAoDebug && !denoiserDebug && !reconstructionTarget ? source : GetTargetImage( b ) ),
+                        .mTextureIndex = ctx.PushSRV( fixedSource && !rayAoDebug && !denoiserDebug && !reconstructionTarget ? source : GetTargetImage( b ) ),
                         .mSamplerIndex = ctx.PushSampler( geometryData.mBasicSampler )
                     };
                     ctx.PushConstants( params );

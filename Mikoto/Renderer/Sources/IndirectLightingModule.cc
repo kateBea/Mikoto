@@ -179,7 +179,7 @@ namespace mikoto::renderer {
                 frame.mFilter = { mSettings.mHistoryWeight, core::as<core::f32>( mSettings.mSpatialSamples ), mSettings.mIntensity, 0 };
                 frame.mControl = { mFrameIndex, mReflectionHistoryValid ? 1u : 0u,
                     nearClip.z / nearClip.w > farClip.z / farClip.w ? 1u : 0u, mSettings.mMaxSteps };
-                ctx.CopyBuffer( frameBuffer, frame, 0 );
+                ctx.Copy( frameBuffer, frame, 0 );
             } );
 
         if ( samples != rhi::Multisampling::eMsaaX1 ) {
@@ -229,8 +229,8 @@ namespace mikoto::renderer {
                     } parameters{
                         .mFrame = ctx.GetDeviceBufferAddress( frameBuffer ),
                         .mCamera = ctx.GetDeviceBufferAddress( camera ),
-                        .mInput = ctx.PushTexture_SRV( input ),
-                        .mOutput = ctx.PushTexture_UAV( output ),
+                        .mInput = ctx.PushSRV( input ),
+                        .mOutput = ctx.PushUAV( output ),
                         .mWidth = x,
                         .mHeight = y,
                         .mMode = mode,
@@ -308,14 +308,14 @@ namespace mikoto::renderer {
                     .mCamera = ctx.GetDeviceBufferAddress( camera ),
                     .mDepthMips = {},
                     .mMipCount = mipCount,
-                    .mPosition = ctx.PushTexture_SRV( position ),
-                    .mNormal = ctx.PushTexture_SRV( normal ),
-                    .mSurface = ctx.PushTexture_SRV( surface.mSurfaceResponse ),
-                    .mHits = ctx.PushTexture_UAV( hitPoints ),
-                    .mDirections = ctx.PushTexture_UAV( directions ),
+                    .mPosition = ctx.PushSRV( position ),
+                    .mNormal = ctx.PushSRV( normal ),
+                    .mSurface = ctx.PushSRV( surface.mSurfaceResponse ),
+                    .mHits = ctx.PushUAV( hitPoints ),
+                    .mDirections = ctx.PushUAV( directions ),
                 };
                 for ( core::u32 mip{}; mip < mipCount; ++mip ) {
-                    parameters.mDepthMips[mip] = ctx.PushTexture_SRV( depths[mip] );
+                    parameters.mDepthMips[mip] = ctx.PushSRV( depths[mip] );
                 }
                 dispatch( ctx, tracePipeline, parameters, traceWidth, traceHeight );
             } );
@@ -356,17 +356,17 @@ namespace mikoto::renderer {
                     .mCamera = ctx.GetDeviceBufferAddress( camera ),
                     .mColorMips = {},
                     .mMipCount = mipCount,
-                    .mPosition = ctx.PushTexture_SRV( position ),
-                    .mNormal = ctx.PushTexture_SRV( normal ),
-                    .mSurface = ctx.PushTexture_SRV( surface.mSurfaceResponse ),
-                    .mHits = ctx.PushTexture_SRV( hitPoints ),
-                    .mDirections = ctx.PushTexture_SRV( directions ),
-                    .mOutput = ctx.PushTexture_UAV( resolved ),
-                    .mDistance = ctx.PushTexture_UAV( reflectionDistance ),
+                    .mPosition = ctx.PushSRV( position ),
+                    .mNormal = ctx.PushSRV( normal ),
+                    .mSurface = ctx.PushSRV( surface.mSurfaceResponse ),
+                    .mHits = ctx.PushSRV( hitPoints ),
+                    .mDirections = ctx.PushSRV( directions ),
+                    .mOutput = ctx.PushUAV( resolved ),
+                    .mDistance = ctx.PushUAV( reflectionDistance ),
                     .mSampler = ctx.PushSampler( sampler ),
                 };
                 for ( core::u32 mip{}; mip < mipCount; ++mip ) {
-                    parameters.mColorMips[mip] = ctx.PushTexture_SRV( colors[mip] );
+                    parameters.mColorMips[mip] = ctx.PushSRV( colors[mip] );
                 }
                 dispatch( ctx, resolvePipeline, parameters, width, height );
             } );
@@ -402,15 +402,15 @@ namespace mikoto::renderer {
                 } parameters{
                     .mFrame = ctx.GetDeviceBufferAddress( frameBuffer ),
                     .mCamera = ctx.GetDeviceBufferAddress( camera ),
-                    .mCurrent = ctx.PushTexture_SRV( resolved ),
-                    .mDistance = ctx.PushTexture_SRV( reflectionDistance ),
-                    .mPosition = ctx.PushTexture_SRV( position ),
-                    .mNormal = ctx.PushTexture_SRV( normal ),
-                    .mSurface = ctx.PushTexture_SRV( surface.mSurfaceResponse ),
-                    .mHistory = ctx.PushTexture_SRV( history ),
-                    .mHistoryMetadata = ctx.PushTexture_SRV( historyMetadata ),
-                    .mOutput = ctx.PushTexture_UAV( filtered ),
-                    .mMetadataOutput = ctx.PushTexture_UAV( metadata ),
+                    .mCurrent = ctx.PushSRV( resolved ),
+                    .mDistance = ctx.PushSRV( reflectionDistance ),
+                    .mPosition = ctx.PushSRV( position ),
+                    .mNormal = ctx.PushSRV( normal ),
+                    .mSurface = ctx.PushSRV( surface.mSurfaceResponse ),
+                    .mHistory = ctx.PushSRV( history ),
+                    .mHistoryMetadata = ctx.PushSRV( historyMetadata ),
+                    .mOutput = ctx.PushUAV( filtered ),
+                    .mMetadataOutput = ctx.PushUAV( metadata ),
                     .mSampler = ctx.PushSampler( sampler ),
                 };
                 dispatch( ctx, temporalPipeline, parameters, width, height );
@@ -436,10 +436,10 @@ namespace mikoto::renderer {
                     core::u32 mOutput;
                 } parameters{
                     .mFrame = ctx.GetDeviceBufferAddress( frameBuffer ),
-                    .mScene = ctx.PushTexture_SRV( sceneColor ),
-                    .mReflection = ctx.PushTexture_SRV( filtered ),
-                    .mEnvironment = ctx.PushTexture_SRV( surface.mEnvironmentSpecular ),
-                    .mOutput = ctx.PushTexture_UAV( composite ),
+                    .mScene = ctx.PushSRV( sceneColor ),
+                    .mReflection = ctx.PushSRV( filtered ),
+                    .mEnvironment = ctx.PushSRV( surface.mEnvironmentSpecular ),
+                    .mOutput = ctx.PushUAV( composite ),
                 };
                 dispatch( ctx, compositePipeline, parameters, width, height );
             } );
@@ -460,9 +460,9 @@ namespace mikoto::renderer {
                 // Copy back to the existing HDR handle so later glass, water and
                 // post-process passes keep their established render-target bindings.
                 const rhi::TextureSlice slice{ .mWidth = width, .mHeight = height, .mDepth = 1 };
-                ctx.CopyTexture( composite, slice, sceneColor, slice );
-                ctx.CopyTexture( filtered, slice, history, slice );
-                ctx.CopyTexture( metadata, slice, historyMetadata, slice );
+                ctx.Copy( composite, slice, sceneColor, slice );
+                ctx.Copy( filtered, slice, history, slice );
+                ctx.Copy( metadata, slice, historyMetadata, slice );
                 mPreviousView = mCamera->GetViewMatrix();
                 mPreviousProjection = mCamera->GetProjection();
                 mPreviousViewProjection = mPreviousProjection * mPreviousView;

@@ -390,11 +390,11 @@ namespace mikoto::renderer {
                         .AddRenderTarget( output, renderer::rhi::kColorBlack ) );
                     SetViewport( context, width, height );
                     auto parameters{ ParametersFor( context, upsample ? 5u : 4u ) };
-                    parameters.mColor = context.PushTexture_SRV( source );
+                    parameters.mColor = context.PushSRV( source );
                     parameters.mDrawIndex = level;
 
                     if ( upsample ) {
-                        parameters.mBloom = context.PushTexture_SRV( detail );
+                        parameters.mBloom = context.PushSRV( detail );
                     }
 
                     context.PushConstants( parameters );
@@ -619,7 +619,7 @@ namespace mikoto::renderer {
                 }
 
                 const auto texture{ material.GetTexture( type ) };
-                return texture ? static_cast<core::i32>( context.PushTexture_SRV( context.ImportTexture( texture ) ) ) : -1;
+                return texture ? static_cast<core::i32>( context.PushSRV( context.ImportTexture( texture ) ) ) : -1;
             } };
             data.mClearCoatNormalIndex = textureID( material::MapType::eClearCoatNormal );
             data.mClearCoatNormalTextureSet = material.GetClearCoatNormalTextureSet();
@@ -664,7 +664,7 @@ namespace mikoto::renderer {
 
                     for ( core::u32 face{}; face < ( latLong ? 1u : 6u ); ++face ) {
                         const auto texture{ latLong ? sky->GetEquirectangular() : sky->GetFace( faces[face] ) };
-                        const core::i32 id{ texture ? static_cast<core::i32>( context.PushTexture_SRV( context.ImportTexture( texture ) ) ) : -1 };
+                        const core::i32 id{ texture ? static_cast<core::i32>( context.PushSRV( context.ImportTexture( texture ) ) ) : -1 };
                         ( face < 4 ? data.mTextures0[face] : data.mTextures1[face - 4] ) = id;
 
                         if ( texture && ( texture->GetFormat() == renderer::rhi::Format::eRGBA8_UNORM || texture->GetFormat() == renderer::rhi::Format::eBGRA8_UNORM ) ) {
@@ -690,9 +690,9 @@ namespace mikoto::renderer {
         ground.mBaseColor = { 0.32f, 0.35f, 0.39f, 1.0f };
         ground.mFactors = { 0.0f, 0.8f, 1.0f, 1.0f };
         ground.mFlags.w = 1.0f;
-        context.CopyBuffer( mSceneBuffer, mSceneData, 0 );
-        context.CopyBuffer( mDrawBuffer, 0, mDrawData.data(), mDrawData.size() * sizeof( DrawData ) );
-        context.CopyBuffer( mPaletteBuffer, 0, mPalettes.data(), mPalettes.size() * sizeof( core::float4x4 ) );
+        context.Copy( mSceneBuffer, mSceneData, 0 );
+        context.Copy( mDrawBuffer, 0, mDrawData.data(), mDrawData.size() * sizeof( DrawData ) );
+        context.Copy( mPaletteBuffer, 0, mPalettes.data(), mPalettes.size() * sizeof( core::float4x4 ) );
     }
 
     auto ThumbnailPasses::RegisterPrefilter( FrameGraph& graph ) -> void {
@@ -772,7 +772,7 @@ namespace mikoto::renderer {
                                 core::u32 mDestinationSize;
                             };
                             const MipParameters parameters{
-                                .mCube = context.PushTexture_SRV( source ),
+                                .mCube = context.PushSRV( source ),
                                 .mSampler = context.PushSampler( mSampler ),
                                 .mLevel = mip - 1,
                                 .mFace = face,
@@ -795,7 +795,7 @@ namespace mikoto::renderer {
                         builder.UseResource( source, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
                     },
                     [source, scratch, mip, face, size]( CommandContext& context, core::Blackboard& ) {
-                        context.CopyTexture( scratch, renderer::rhi::TextureSlice{ .mWidth = size, .mHeight = size },
+                        context.Copy( scratch, renderer::rhi::TextureSlice{ .mWidth = size, .mHeight = size },
                             source, renderer::rhi::TextureSlice{ .mWidth = size, .mHeight = size, .mMipLevel = mip, .mArrayLayer = face } );
                     } );
             }
@@ -829,7 +829,7 @@ namespace mikoto::renderer {
             },
             [this, source]( CommandContext& context, core::Blackboard& ) {
                 auto parameters{ ParametersFor( context, 6 ) };
-                parameters.mPrefilter = context.PushTexture_SRV( source );
+                parameters.mPrefilter = context.PushSRV( source );
                 parameters.mPrefilterMipCount = kPrefilterMipCount;
 
                 for ( core::u32 mip{}; mip < kPrefilterMipCount; ++mip ) {
@@ -863,21 +863,21 @@ namespace mikoto::renderer {
         parameters.mMode = mode;
 
         if ( mode == 0 || mode == 2 ) {
-            parameters.mPrefilter = context.PushTexture_SRV( mPrefilter );
+            parameters.mPrefilter = context.PushSRV( mPrefilter );
             parameters.mPrefilterMipCount = kPrefilterMipCount;
         }
 
         if ( mode == 0 ) {
-            parameters.mShadow = context.PushTexture_SRV( mShadow );
+            parameters.mShadow = context.PushSRV( mShadow );
         }
 
         if ( mode == 3 ) {
-            parameters.mColor = context.PushTexture_SRV( mHdr );
-            parameters.mBloom = context.PushTexture_SRV( mBloomUp[0] );
+            parameters.mColor = context.PushSRV( mHdr );
+            parameters.mBloom = context.PushSRV( mBloomUp[0] );
         }
 
         if ( mSettings.mEnvironment ) {
-            parameters.mEnvironment = static_cast<core::i32>( context.PushTexture_SRV( context.ImportTexture( mSettings.mEnvironment ) ) );
+            parameters.mEnvironment = static_cast<core::i32>( context.PushSRV( context.ImportTexture( mSettings.mEnvironment ) ) );
         }
 
         return parameters;

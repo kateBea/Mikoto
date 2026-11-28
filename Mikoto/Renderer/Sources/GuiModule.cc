@@ -193,7 +193,7 @@ namespace mikoto::renderer {
             const auto [entry, inserted] = textures.try_emplace( texture.GetPtr(), 0 );
 
             if ( inserted ) {
-                entry->second = ctx.PushTexture_SRV( ctx.ImportTexture( texture ) );
+                entry->second = ctx.PushSRV( ctx.ImportTexture( texture ) );
             }
 
             return entry->second;
@@ -446,7 +446,7 @@ namespace mikoto::renderer {
         mReportedCapacity = truncated;
 
         if ( !mQuads.empty() ) {
-            ctx.CopyBuffer( mBuffer, 0, mQuads.data(), mQuads.size() * sizeof( Quad ) );
+            ctx.Copy( mBuffer, 0, mQuads.data(), mQuads.size() * sizeof( Quad ) );
         }
     }
 }// namespace mikoto::renderer

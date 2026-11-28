@@ -687,7 +687,7 @@ namespace mikoto::renderer {
             const TerrainNoiseParameters noise{
                 .mSettings = request->GetSettings(),
             };
-            mUploads.CopyBuffer( info.mNoiseParameters, 0, &noise, sizeof( noise ) );
+            mUploads.Copy( info.mNoiseParameters, 0, &noise, sizeof( noise ) );
         }
 
         if ( mColorsDirty && !mTerrains.empty() ) {
@@ -701,7 +701,7 @@ namespace mikoto::renderer {
 
             ctx.EnsureBufferCapacity( info.mElevationColors, colors.size() * sizeof( TerrainElevationColors ) );
 
-            mUploads.CopyBuffer( info.mElevationColors, 0, colors.data(), colors.size() * sizeof( TerrainElevationColors ) );
+            mUploads.Copy( info.mElevationColors, 0, colors.data(), colors.size() * sizeof( TerrainElevationColors ) );
             mColorsDirty = false;
         }
 
@@ -722,10 +722,10 @@ namespace mikoto::renderer {
 
         const core::uint4 count{ static_cast<core::u32>( sampling.size() ), 0, 0, 0 };
         ctx.EnsureBufferCapacity( info.mSamplingRecords, sizeof( count ) + sampling.size() * sizeof( SamplingRecord ) );
-        mUploads.CopyBuffer( info.mSamplingRecords, 0, &count, sizeof( count ) );
+        mUploads.Copy( info.mSamplingRecords, 0, &count, sizeof( count ) );
 
         if ( !sampling.empty() ) {
-            mUploads.CopyBuffer( info.mSamplingRecords, sizeof( count ), sampling.data(), sampling.size() * sizeof( SamplingRecord ) );
+            mUploads.Copy( info.mSamplingRecords, sizeof( count ), sampling.data(), sampling.size() * sizeof( SamplingRecord ) );
         }
 
         if ( !mGeometryDirty || !mScene || mTerrains.empty() ) {
@@ -796,10 +796,10 @@ namespace mikoto::renderer {
         ctx.EnsureBufferCapacity( info.mBuildParameters, descriptions.size() * sizeof( TerrainBuildDescription ) );
         ctx.EnsureBufferCapacity( info.mHeightmapPixels, pixels.size() );
 
-        mUploads.CopyBuffer( info.mBuildParameters, 0, descriptions.data(), descriptions.size() * sizeof( TerrainBuildDescription ) );
+        mUploads.Copy( info.mBuildParameters, 0, descriptions.data(), descriptions.size() * sizeof( TerrainBuildDescription ) );
 
         if ( !pixels.empty() ) {
-            mUploads.CopyBuffer( info.mHeightmapPixels, 0, pixels.data(), pixels.size() );
+            mUploads.Copy( info.mHeightmapPixels, 0, pixels.data(), pixels.size() );
         }
     }
 
@@ -821,7 +821,7 @@ namespace mikoto::renderer {
             .mIndices = ctx.GetDeviceBufferAddress( info.mIndices ),
             .mDescriptions = ctx.GetDeviceBufferAddress( info.mBuildParameters ),
             .mHeightmapPixels = ctx.GetDeviceBufferAddress( info.mHeightmapPixels ),
-            .mNoiseTexture = ctx.PushTexture_SRV( info.mNoiseTarget ),
+            .mNoiseTexture = ctx.PushSRV( info.mNoiseTarget ),
         };
         ctx.BindPipeline( info.mGeometryPipeline );
 
@@ -904,8 +904,8 @@ namespace mikoto::renderer {
             surface.mControls.x = ctx.PushSampler( info.mLayerSampler );
             surface.mControls.y = terrain.mWorld.GetResolutionY();
             if ( ibl ) {
-                surface.mEnvironment = { ctx.PushTexture_SRV( lighting->mIrradianceCubeRT ),
-                    ctx.PushTexture_SRV( atmosphere ? lighting->mAtmospherePrefilter : lighting->mPrefilterCubeRT ),
+                surface.mEnvironment = { ctx.PushSRV( lighting->mIrradianceCubeRT ),
+                    ctx.PushSRV( atmosphere ? lighting->mAtmospherePrefilter : lighting->mPrefilterCubeRT ),
                     ctx.PushSampler( lighting->mSkyboxCubeSampler ), 6 };
             }
 
@@ -929,7 +929,7 @@ namespace mikoto::renderer {
             }
             ctx.EnsureBufferCapacity( info.mPaintWeights, glm::max<core::usize>( sizeof( core::float4 ), weights.size() * sizeof( core::float4 ) ) );
             if ( !weights.empty() ) {
-                ctx.CopyBuffer( info.mPaintWeights, 0, weights.data(), weights.size() * sizeof( core::float4 ) );
+                ctx.Copy( info.mPaintWeights, 0, weights.data(), weights.size() * sizeof( core::float4 ) );
             }
             mPaintSources = eastl::move( paintSources );
         }
@@ -939,7 +939,7 @@ namespace mikoto::renderer {
         }
 
         ctx.EnsureBufferCapacity( info.mSurfaces, surfaces.size() * sizeof( TerrainSurfaceData ) );
-        ctx.CopyBuffer( info.mSurfaces, 0, surfaces.data(), surfaces.size() * sizeof( TerrainSurfaceData ) );
+        ctx.Copy( info.mSurfaces, 0, surfaces.data(), surfaces.size() * sizeof( TerrainSurfaceData ) );
 
         eastl::erase_if( mLayerRequests, [&]( const auto &request ) {
             return eastl::find( usedTextures.begin(), usedTextures.end(), request.mID ) == usedTextures.end();
@@ -1336,15 +1336,15 @@ namespace mikoto::renderer {
         for ( auto &description: descriptions ) {
             description.mTiles += tileAddress;
         }
-        ctx.CopyBuffer( info.mGrassTiles, 0, tiles.data(), tiles.size() * sizeof( GrassTile ) );
+        ctx.Copy( info.mGrassTiles, 0, tiles.data(), tiles.size() * sizeof( GrassTile ) );
         ctx.EnsureBufferCapacity( info.mGrassDescriptions, descriptions.size() * sizeof( TerrainGrassDescription ) );
         ctx.EnsureBufferCapacity( info.mGrassArguments, arguments.size() * sizeof( DrawIndirectCommand ) );
         ctx.EnsureBufferCapacity( info.mGrassBlades, core::usize{ bladeCount } * sizeof( core::float4 ) * 4 );
         ctx.EnsureBufferCapacity( info.mGrassMeshes, glm::max<core::usize>( sizeof( GrassMeshVertex ), meshVertices.size() * sizeof( GrassMeshVertex ) ) );
-        ctx.CopyBuffer( info.mGrassDescriptions, 0, descriptions.data(), descriptions.size() * sizeof( TerrainGrassDescription ) );
-        ctx.CopyBuffer( info.mGrassArguments, 0, arguments.data(), arguments.size() * sizeof( DrawIndirectCommand ) );
+        ctx.Copy( info.mGrassDescriptions, 0, descriptions.data(), descriptions.size() * sizeof( TerrainGrassDescription ) );
+        ctx.Copy( info.mGrassArguments, 0, arguments.data(), arguments.size() * sizeof( DrawIndirectCommand ) );
         if ( !meshVertices.empty() ) {
-            ctx.CopyBuffer( info.mGrassMeshes, 0, meshVertices.data(), meshVertices.size() * sizeof( GrassMeshVertex ) );
+            ctx.Copy( info.mGrassMeshes, 0, meshVertices.data(), meshVertices.size() * sizeof( GrassMeshVertex ) );
         }
     }
 
@@ -1543,8 +1543,8 @@ namespace mikoto::renderer {
                         core::u32 mOutputOffset{};
                         core::u32 mFirstLevel{};
                     } parameters{
-                        .mDepth = ctx.PushTexture_SRV( b.Get<PrepassModuleInfo>().mPrepassDepthTarget ),
-                        .mOutput = ctx.PushBuffer_UAV( data.mGrassHiZ ),
+                        .mDepth = ctx.PushSRV( b.Get<PrepassModuleInfo>().mPrepassDepthTarget ),
+                        .mOutput = ctx.PushUAV( data.mGrassHiZ ),
                         .mWidth = width,
                         .mHeight = height,
                         .mSourceWidth = previousWidth,
@@ -1584,7 +1584,7 @@ namespace mikoto::renderer {
             parameters.mCamera = ctx.GetDeviceBufferAddress( b.Get<CameraModuleInfo>().mCameraData );
             parameters.mBlades = ctx.GetDeviceBufferAddress( data.mGrassBlades );
             parameters.mHiZ = ctx.GetDeviceBufferAddress( data.mGrassHiZ );
-            parameters.mArguments = ctx.PushBuffer_UAV( data.mGrassArguments );
+            parameters.mArguments = ctx.PushUAV( data.mGrassArguments );
             parameters.mFinalize = finalize ? 1u : 0u;
             parameters.mHiZWidth = static_cast<core::u32>( viewportWidth );
             parameters.mHiZHeight = static_cast<core::u32>( viewportHeight );
@@ -1660,7 +1660,7 @@ namespace mikoto::renderer {
                     .mWidth = core::as<core::u32>( viewportWidth ),
                     .mHeight = core::as<core::u32>( viewportHeight ),
                 };
-                ctx.CopyTexture( b.Get<PrepassModuleInfo>().mPrepassDepthTarget, slice,
+                ctx.Copy( b.Get<PrepassModuleInfo>().mPrepassDepthTarget, slice,
                     b.Get<TerrainGenerationInfo>().mGrassContactDepth, slice );
             } );
         graph.RegisterPass(
@@ -1844,10 +1844,10 @@ namespace mikoto::renderer {
                         core::float3 mToLight{};
                     } parameters{
                         .mCamera = ctx.GetDeviceBufferAddress( b.Get<CameraModuleInfo>().mCameraData ),
-                        .mSceneDepth = ctx.PushTexture_SRV( b.Get<PrepassModuleInfo>().mPrepassDepthTarget ),
-                        .mGrassDepth = ctx.PushTexture_SRV( data.mGrassContactDepth ),
-                        .mCoverage = ctx.PushTexture_SRV( data.mGrassContactMask ),
-                        .mOutput = ctx.PushTexture_UAV( shadow.mGrassReceiverData[light] ),
+                        .mSceneDepth = ctx.PushSRV( b.Get<PrepassModuleInfo>().mPrepassDepthTarget ),
+                        .mGrassDepth = ctx.PushSRV( data.mGrassContactDepth ),
+                        .mCoverage = ctx.PushSRV( data.mGrassContactMask ),
+                        .mOutput = ctx.PushUAV( shadow.mGrassReceiverData[light] ),
                         .mActive = active ? 1u : 0u,
                         .mToLight = shadow.mDirectionalToLight[light],
                     };

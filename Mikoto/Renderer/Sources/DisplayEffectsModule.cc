@@ -199,13 +199,13 @@ namespace mikoto::renderer {
             FGSamplerHandle sampler, FGPipelineHandle pipeline, core::u32 width, core::u32 height, core::u32 mipLevel = 0 ) -> void {
             for ( core::usize i{}; i < inputs.size(); ++i ) {
                 if ( inputs[i].mHandle ) {
-                    parameters.mInputs[i] = ctx.PushTexture_SRV( inputs[i] );
+                    parameters.mInputs[i] = ctx.PushSRV( inputs[i] );
                 }
             }
 
             for ( core::usize i{}; i < outputs.size(); ++i ) {
                 if ( outputs[i].mHandle ) {
-                    parameters.mOutputs[i] = ctx.PushTexture_UAV( outputs[i] );
+                    parameters.mOutputs[i] = ctx.PushUAV( outputs[i] );
                 }
             }
 
@@ -455,7 +455,7 @@ namespace mikoto::renderer {
                     core::f32 mDirection{};
                 } params{
                     .mSamplerID = ctx.PushSampler( sampler ),
-                    .mTonemapImageID = ctx.PushTexture_SRV( blackboard.Get<GeomShadingModuleInfo>().mTonemapColor ),
+                    .mTonemapImageID = ctx.PushSRV( blackboard.Get<GeomShadingModuleInfo>().mTonemapColor ),
                     .mTexelSize = { 1.0f / width, 1.0f / height },
                     .mIntensity = mChromaticAberration.mIntensity,
                     .mDirection = glm::radians( mChromaticAberration.mDirection )
@@ -697,10 +697,10 @@ namespace mikoto::renderer {
                     core::float3 mColor{};
                     core::f32 mPadding{};
                 } params{
-                    .mSceneImage = ctx.PushTexture_SRV( effects.mChromaticAberrationEnabled
+                    .mSceneImage = ctx.PushSRV( effects.mChromaticAberrationEnabled
                         ? effects.mChromaAbRenderTarget
                         : blackboard.Get<GeomShadingModuleInfo>().mTonemapColor ),
-                    .mMaskImage = ctx.PushTexture_SRV( effects.mVignetteShapeTarget ),
+                    .mMaskImage = ctx.PushSRV( effects.mVignetteShapeTarget ),
                     .mSampler = ctx.PushSampler( sampler ),
                     .mStrength = settings.mStrength,
                     .mColor = settings.mColor

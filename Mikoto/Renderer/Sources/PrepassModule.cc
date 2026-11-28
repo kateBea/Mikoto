@@ -540,7 +540,7 @@ namespace mikoto::renderer {
         mActiveLights = lightsCount;
 
         if ( mActiveLights != 0 ) {
-            ctx.CopyBuffer( lightBuffer, 0, mLights.data(), mActiveLights * MKT_SIZEOF( LightParameters ) );
+            ctx.Copy( lightBuffer, 0, mLights.data(), mActiveLights * MKT_SIZEOF( LightParameters ) );
         }
     }
 

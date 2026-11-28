@@ -100,11 +100,11 @@ namespace mikoto::renderer {
                 if ( const auto *atmosphere{ b.TryGet<AtmosphereModuleInfo>() }; atmosphere && atmosphere->mSunLight ) {
                     // Surface passes consume these bindings after the LUT bake.
                     mCameraData.mAtmosphere = ctx.GetDeviceBufferAddress( atmosphere->mParameters );
-                    mCameraData.mAtmosphereTransmittance = ctx.PushTexture_SRV( atmosphere->mTransmittance );
+                    mCameraData.mAtmosphereTransmittance = ctx.PushSRV( atmosphere->mTransmittance );
                     mCameraData.mAtmosphereSampler = ctx.PushSampler( atmosphere->mSampler );
                 }
 
-                ctx.CopyBuffer( data.mCameraData, mCameraData, 0 );
+                ctx.Copy( data.mCameraData, mCameraData, 0 );
             } );
     }
 

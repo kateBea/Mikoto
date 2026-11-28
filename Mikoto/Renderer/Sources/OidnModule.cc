@@ -154,8 +154,8 @@ namespace mikoto::renderer {
                     core::u32 mHeight{};
                     core::f32 mSplit{};
                 } parameters{
-                    .mFiltered = context.PushTexture_SRV( mState->mOutput ),
-                    .mOutput = context.PushTexture_UAV( mState->mInput ),
+                    .mFiltered = context.PushSRV( mState->mOutput ),
+                    .mOutput = context.PushUAV( mState->mInput ),
                     .mWidth = mState->mWidth,
                     .mHeight = mState->mHeight,
                     .mSplit = mSettings.mSplitScreen,

@@ -298,7 +298,7 @@ namespace mikoto::renderer {
             const auto attributes{ source->GetAttributes() };
             const auto positionStream{ core::as<core::usize>( MeshStream::Position ) };
             const auto offset{ mAllocations[index].mStreams[positionStream] - baseAddress - source->GetOffsets()[positionStream] };
-            ctx.CopyBuffer( info.mAttributeBuffer, offset, attributes.data(), attributes.size() );
+            ctx.Copy( info.mAttributeBuffer, offset, attributes.data(), attributes.size() );
             mUploadedRevisions[index] = source->GetRevision();
         }
 
@@ -313,15 +313,15 @@ namespace mikoto::renderer {
             const auto indices{ source->GetIndices() };
             const auto &allocation{ mAllocations[index] };
 
-            ctx.CopyBuffer( info.mAttributeBuffer, mUploadedAttributeBytes, attributes.data(), attributes.size() );
-            ctx.CopyBuffer( info.mIndexBuffer, core::usize{ allocation.mFirstIndex } * sizeof( core::u32 ), indices.data(), indices.size() * sizeof( core::u32 ) );
+            ctx.Copy( info.mAttributeBuffer, mUploadedAttributeBytes, attributes.data(), attributes.size() );
+            ctx.Copy( info.mIndexBuffer, core::usize{ allocation.mFirstIndex } * sizeof( core::u32 ), indices.data(), indices.size() * sizeof( core::u32 ) );
 
             mUploadedAttributeBytes += attributes.size();
             mUploadedRevisions[index] = source->GetRevision();
         }
 
         if ( mUploadedCount < mAllocations.size() ) {
-            ctx.CopyBuffer( info.mGeometryAllocBuffer, mUploadedCount * sizeof( GeometryAllocation ),
+            ctx.Copy( info.mGeometryAllocBuffer, mUploadedCount * sizeof( GeometryAllocation ),
                 mAllocations.data() + mUploadedCount, ( mAllocations.size() - mUploadedCount ) * sizeof( GeometryAllocation ) );
         }
 
@@ -652,7 +652,7 @@ namespace mikoto::renderer {
                     .mDraws = ctx.GetDeviceBufferAddress( info.mDrawInstanceBuffer )
                 };
 
-                ctx.CopyBuffer( info.mGeometryBuffer, 0, &view, sizeof( view ) );
+                ctx.Copy( info.mGeometryBuffer, 0, &view, sizeof( view ) );
             } );
     }
 
@@ -943,7 +943,7 @@ namespace mikoto::renderer {
                 ++count;
             }
 
-            context.CopyBuffer( info.mSkinningBuffer, core::usize{ slot } * sizeof( SkinningPalette ),
+            context.Copy( info.mSkinningBuffer, core::usize{ slot } * sizeof( SkinningPalette ),
                 mSkinningInfo.data() + slot, count * sizeof( SkinningPalette ) );
             first += count;
         }
@@ -1848,7 +1848,7 @@ namespace mikoto::renderer {
 
     auto GeometryCullModule::UploadIndirectDraw( CommandContext &context, core::Blackboard &b ) -> void {
         if ( mFirstChangedDraw < mIndirectCmds.size() ) {
-            context.CopyBuffer( mUnculledIndirectBuffer, core::usize{ mFirstChangedDraw } * sizeof( DrawIndirectCommand ),
+            context.Copy( mUnculledIndirectBuffer, core::usize{ mFirstChangedDraw } * sizeof( DrawIndirectCommand ),
                 mIndirectCmds.data() + mFirstChangedDraw, ( mIndirectCmds.size() - mFirstChangedDraw ) * sizeof( DrawIndirectCommand ) );
         }
 
@@ -1862,7 +1862,7 @@ namespace mikoto::renderer {
                 ++count;
             }
 
-            context.CopyBuffer( target, core::usize{ first } * sizeof( DrawBounds ), mDrawBounds.data() + first, count * sizeof( DrawBounds ) );
+            context.Copy( target, core::usize{ first } * sizeof( DrawBounds ), mDrawBounds.data() + first, count * sizeof( DrawBounds ) );
             i += count;
         }
 

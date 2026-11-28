@@ -95,9 +95,9 @@ namespace mikoto::renderer {
                 } params{
                     .mMaterials = ctx.GetDeviceBufferAddress( materials ),
                     .mKernels = ctx.GetDeviceBufferAddress( kernels ),
-                    .mOriginal = ctx.PushTexture_SRV( original ),
-                    .mInput = ctx.PushTexture_SRV( input ),
-                    .mMetadata = ctx.PushTexture_SRV( metadata ),
+                    .mOriginal = ctx.PushSRV( original ),
+                    .mInput = ctx.PushSRV( input ),
+                    .mMetadata = ctx.PushSRV( metadata ),
                     .mAxis = axis,
                     .mWidth = width,
                     .mHeight = height,
@@ -182,11 +182,11 @@ namespace mikoto::renderer {
                         .mAllocations = ctx.GetDeviceBufferAddress( data.mGeometryAllocBuffer ),
                         .mCamera = ctx.GetDeviceBufferAddress( camera ),
                         .mMaterials = ctx.GetDeviceBufferAddress( materials ),
-                        .mOriginal = ctx.PushTexture_SRV( original ),
-                        .mFiltered = ctx.PushTexture_SRV( vertical ),
-                        .mSpecular = ctx.PushTexture_SRV( specular ),
-                        .mAmbient = ctx.PushTexture_SRV( ambient ),
-                        .mMetadata = ctx.PushTexture_SRV( metadata ),
+                        .mOriginal = ctx.PushSRV( original ),
+                        .mFiltered = ctx.PushSRV( vertical ),
+                        .mSpecular = ctx.PushSRV( specular ),
+                        .mAmbient = ctx.PushSRV( ambient ),
+                        .mMetadata = ctx.PushSRV( metadata ),
                         .mSampler = ctx.PushSampler( data.mMaterialSampler ),
                     };
                     ctx.PushConstants( params );
@@ -224,11 +224,11 @@ namespace mikoto::renderer {
                     core::u32 mPadding{};
                 } params{
                     .mMaterials = ctx.GetDeviceBufferAddress( materials ),
-                    .mOriginal = ctx.PushTexture_SRV( original ),
-                    .mFiltered = ctx.PushTexture_SRV( vertical ),
-                    .mSpecular = ctx.PushTexture_SRV( specular ),
-                    .mAmbient = ctx.PushTexture_SRV( ambient ),
-                    .mScene = ctx.PushTexture_SRV( scene ),
+                    .mOriginal = ctx.PushSRV( original ),
+                    .mFiltered = ctx.PushSRV( vertical ),
+                    .mSpecular = ctx.PushSRV( specular ),
+                    .mAmbient = ctx.PushSRV( ambient ),
+                    .mScene = ctx.PushSRV( scene ),
                 };
                 ctx.PushConstants( params );
                 draw( ctx, composite, compositePipeline );
@@ -256,7 +256,7 @@ namespace mikoto::renderer {
             },
             [=]( CommandContext& ctx, core::Blackboard& ) {
                 const renderer::rhi::TextureSlice slice{ .mWidth = width, .mHeight = height };
-                ctx.CopyTexture( composite, slice, scene, slice );
+                ctx.Copy( composite, slice, scene, slice );
             } );
     }
 

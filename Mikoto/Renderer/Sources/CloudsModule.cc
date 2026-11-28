@@ -468,42 +468,42 @@ namespace mikoto::renderer {
                 mFrame.mTerrainVertices = ctx.GetDeviceBufferAddress( terrain.mVertices );
                 mFrame.mTerrainRecords = ctx.GetDeviceBufferAddress( terrain.mSamplingRecords );
                 mFrame.mTerrainBounds = ctx.GetDeviceBufferAddress( terrain.mHeightBounds );
-                mFrame.mShapeResources = { ctx.PushTexture_SRV( clouds.mBaseShapeNoise ),
-                    ctx.PushTexture_SRV( clouds.mWeatherMap ), 0, 0 };
+                mFrame.mShapeResources = { ctx.PushSRV( clouds.mBaseShapeNoise ),
+                    ctx.PushSRV( clouds.mWeatherMap ), 0, 0 };
                 mFrame.mDistanceFields = ctx.GetDeviceBufferAddress( clouds.mDistanceFields );
                 for ( u32 mip{}; mip < clouds.mNoiseMips.size(); ++mip ) {
-                    mFrame.mNoiseMips[mip] = ctx.PushTexture_SRV( clouds.mNoiseMips[mip] );
+                    mFrame.mNoiseMips[mip] = ctx.PushSRV( clouds.mNoiseMips[mip] );
                 }
-                mFrame.mResources = { ctx.PushTexture_SRV( clouds.mNoise ), ctx.PushSampler( clouds.mClampSampler ),
+                mFrame.mResources = { ctx.PushSRV( clouds.mNoise ), ctx.PushSampler( clouds.mClampSampler ),
                     ctx.PushSampler( clouds.mRepeatSampler ), mSettings.mCastSurfaceShadows ? 1u : 0u };
                 mFrame.mAtmosphere = 0;
                 if ( mFrame.mFiltering.z ) {
                     const auto &atmosphere{ b.Get<AtmosphereModuleInfo>() };
                     mFrame.mAtmosphere = ctx.GetDeviceBufferAddress( atmosphere.mParameters );
-                    mFrame.mAtmosphereTextures = { ctx.PushTexture_SRV( atmosphere.mTransmittance ), ctx.PushTexture_SRV( atmosphere.mAerialRadiance ),
-                        ctx.PushTexture_SRV( atmosphere.mAerialTransmittance ), ctx.PushSampler( atmosphere.mSampler ) };
+                    mFrame.mAtmosphereTextures = { ctx.PushSRV( atmosphere.mTransmittance ), ctx.PushSRV( atmosphere.mAerialRadiance ),
+                        ctx.PushSRV( atmosphere.mAerialTransmittance ), ctx.PushSampler( atmosphere.mSampler ) };
                 }
                 mFrame.mFogFrame = 0;
                 if ( const auto *fog{ b.TryGet<FogModuleInfo>() } ) {
                     mFrame.mFogFrame = ctx.GetDeviceBufferAddress( fog->mFrame );
-                    mFrame.mFogTextures = { ctx.PushTexture_SRV( fog->mRadiance ), ctx.PushTexture_SRV( fog->mTransmittance ),
+                    mFrame.mFogTextures = { ctx.PushSRV( fog->mRadiance ), ctx.PushSRV( fog->mTransmittance ),
                         ctx.PushSampler( fog->mSampler ), 0 };
                 }
                 for ( usize index{}; index < mRecords.size(); ++index ) {
-                    mFrame.mLocalTextures[index / 4][index % 4] = ctx.PushTexture_SRV( clouds.mVolumes[index].mLocalLighting );
-                    mRecords[index].mTextures = { ctx.PushTexture_SRV( clouds.mVolumes[index].mModel ),
-                        ctx.PushTexture_SRV( clouds.mVolumes[index].mLighting ),
+                    mFrame.mLocalTextures[index / 4][index % 4] = ctx.PushSRV( clouds.mVolumes[index].mLocalLighting );
+                    mRecords[index].mTextures = { ctx.PushSRV( clouds.mVolumes[index].mModel ),
+                        ctx.PushSRV( clouds.mVolumes[index].mLighting ),
                         as<u32>( index * mFrame.mResolution.x * mFrame.mResolution.y * mFrame.mResolution.z ),
                         mSettings.mDistanceFieldEnabled ? 1u : 0u };
                     std::memcpy( mModelData.data() + 16 + index * sizeof( CloudRecord ), &mRecords[index], sizeof( CloudRecord ) );
                 }
                 if ( !mInteractions.empty() ) {
-                    ctx.CopyBuffer( clouds.mInteractions, 0, mInteractions.data(), mInteractions.size() * sizeof( CloudInteractionRecord ) );
+                    ctx.Copy( clouds.mInteractions, 0, mInteractions.data(), mInteractions.size() * sizeof( CloudInteractionRecord ) );
                 }
-                ctx.CopyBuffer( clouds.mFrame, 0, &mFrame, sizeof( mFrame ) );
+                ctx.Copy( clouds.mFrame, 0, &mFrame, sizeof( mFrame ) );
                 if ( !mModelData.empty() ) {
                     const usize bytes{ mSourceDataDirty ? mModelData.size() : 16 + mRecords.size() * sizeof( CloudRecord ) };
-                    ctx.CopyBuffer( clouds.mModels, 0, mModelData.data(), bytes );
+                    ctx.Copy( clouds.mModels, 0, mModelData.data(), bytes );
                     mSourceDataDirty = false;
                 }
             } );
@@ -538,17 +538,17 @@ namespace mikoto::renderer {
                     return;
                 }
                 auto parameters{ CloudParameters( ctx, b ) };
-                parameters.mOutput = ctx.PushTexture_UAV( noise );
+                parameters.mOutput = ctx.PushUAV( noise );
                 ctx.BindPipeline( noisePipeline );
                 ctx.PushConstants( parameters );
                 ctx.Dispatch( 32, 32, 32 );
 
-                parameters.mOutput = ctx.PushTexture_UAV( baseShape );
+                parameters.mOutput = ctx.PushUAV( baseShape );
                 ctx.BindPipeline( shapePipeline );
                 ctx.PushConstants( parameters );
                 ctx.Dispatch( 32, 32, 32 );
 
-                parameters.mOutput = ctx.PushTexture_UAV( weather );
+                parameters.mOutput = ctx.PushUAV( weather );
                 ctx.BindPipeline( weatherPipeline );
                 ctx.PushConstants( parameters );
                 ctx.Dispatch( 64, 64, 1 );
@@ -573,8 +573,8 @@ namespace mikoto::renderer {
                         return;
                     }
                     CloudsParameters parameters{};
-                    parameters.mInput = ctx.PushTexture_SRV( input );
-                    parameters.mOutput = ctx.PushTexture_UAV( output );
+                    parameters.mInput = ctx.PushSRV( input );
+                    parameters.mOutput = ctx.PushUAV( output );
                     ctx.BindPipeline( mipPipeline );
                     ctx.PushConstants( parameters );
                     const auto groups{ glm::max( ( 64u >> mip ) / 4, 1u ) };
@@ -609,7 +609,7 @@ namespace mikoto::renderer {
                     }
                     auto parameters{ CloudParameters( ctx, b ) };
                     parameters.mVolume = index;
-                    parameters.mOutput = ctx.PushTexture_UAV( field );
+                    parameters.mOutput = ctx.PushUAV( field );
                     ctx.BindPipeline( pipeline );
                     ctx.PushConstants( parameters );
                     ctx.Dispatch( mFrame.mResolution.x / 4, mFrame.mResolution.y / 4, mFrame.mResolution.z / 4 );
@@ -684,7 +684,7 @@ namespace mikoto::renderer {
                             .mOutput = ctx.GetDeviceBufferAddress( output ),
                             .mVolume = index,
                             .mAxis = axis,
-                            .mModelOutput = axis == 3 ? ctx.PushTexture_UAV( model ) : 0,
+                            .mModelOutput = axis == 3 ? ctx.PushUAV( model ) : 0,
                         };
                         ctx.BindPipeline( pipeline );
                         ctx.PushConstants( parameters );
@@ -734,7 +734,7 @@ namespace mikoto::renderer {
                     }
                     auto parameters{ CloudParameters( ctx, b ) };
                     parameters.mVolume = index;
-                    parameters.mOutput = ctx.PushTexture_UAV( output );
+                    parameters.mOutput = ctx.PushUAV( output );
                     ctx.BindPipeline( pipeline );
                     ctx.PushConstants( parameters );
                     ctx.Dispatch( mFrame.mResolution.x / 8, mFrame.mResolution.y / 8, mFrame.mResolution.z / 8 );
@@ -788,9 +788,9 @@ namespace mikoto::renderer {
             [this, pipeline]( CommandContext &ctx, Blackboard &b ) {
                 auto parameters{ CloudParameters( ctx, b ) };
                 const auto &clouds{ b.Get<CloudsModuleInfo>() };
-                parameters.mDepth = ctx.PushTexture_SRV( b.Get<PrepassModuleInfo>().mPrepassDepthTarget );
-                parameters.mOutput = ctx.PushTexture_UAV( clouds.mRawRadiance );
-                parameters.mMetadata = ctx.PushTexture_UAV( clouds.mRawTransmittance );
+                parameters.mDepth = ctx.PushSRV( b.Get<PrepassModuleInfo>().mPrepassDepthTarget );
+                parameters.mOutput = ctx.PushUAV( clouds.mRawRadiance );
+                parameters.mMetadata = ctx.PushUAV( clouds.mRawTransmittance );
                 ctx.BindPipeline( pipeline );
                 ctx.PushConstants( parameters );
                 ctx.Dispatch( ( as<u32>( mFrame.mScreen.z ) + 7 ) / 8, ( as<u32>( mFrame.mScreen.w ) + 7 ) / 8, 1 );
@@ -820,12 +820,12 @@ namespace mikoto::renderer {
             [this, pipeline]( CommandContext &ctx, Blackboard &b ) {
                 const auto &clouds{ b.Get<CloudsModuleInfo>() };
                 auto parameters{ CloudParameters( ctx, b ) };
-                parameters.mInput = ctx.PushTexture_SRV( clouds.mRawRadiance );
-                parameters.mInputMetadata = ctx.PushTexture_SRV( clouds.mRawTransmittance );
-                parameters.mHistory = ctx.PushTexture_SRV( clouds.mRadianceHistory );
-                parameters.mHistoryMetadata = ctx.PushTexture_SRV( clouds.mTransmittanceHistory );
-                parameters.mOutput = ctx.PushTexture_UAV( clouds.mRadiance );
-                parameters.mMetadata = ctx.PushTexture_UAV( clouds.mTransmittance );
+                parameters.mInput = ctx.PushSRV( clouds.mRawRadiance );
+                parameters.mInputMetadata = ctx.PushSRV( clouds.mRawTransmittance );
+                parameters.mHistory = ctx.PushSRV( clouds.mRadianceHistory );
+                parameters.mHistoryMetadata = ctx.PushSRV( clouds.mTransmittanceHistory );
+                parameters.mOutput = ctx.PushUAV( clouds.mRadiance );
+                parameters.mMetadata = ctx.PushUAV( clouds.mTransmittance );
                 ctx.BindPipeline( pipeline );
                 ctx.PushConstants( parameters );
                 ctx.Dispatch( ( as<u32>( mFrame.mScreen.z ) + 7 ) / 8, ( as<u32>( mFrame.mScreen.w ) + 7 ) / 8, 1 );
@@ -848,8 +848,8 @@ namespace mikoto::renderer {
             [this]( CommandContext &ctx, Blackboard &b ) {
                 const auto &clouds{ b.Get<CloudsModuleInfo>() };
                 const TextureSlice slice{ .mWidth = as<u32>( mFrame.mScreen.z ), .mHeight = as<u32>( mFrame.mScreen.w ) };
-                ctx.CopyTexture( clouds.mRadiance, slice, clouds.mRadianceHistory, slice );
-                ctx.CopyTexture( clouds.mTransmittance, slice, clouds.mTransmittanceHistory, slice );
+                ctx.Copy( clouds.mRadiance, slice, clouds.mRadianceHistory, slice );
+                ctx.Copy( clouds.mTransmittance, slice, clouds.mTransmittanceHistory, slice );
             } );
     }
 
@@ -863,7 +863,7 @@ namespace mikoto::renderer {
             },
             [this]( CommandContext &ctx, Blackboard &b ) {
                 const TextureSlice slice{ .mWidth = as<u32>( mFrame.mScreen.x ), .mHeight = as<u32>( mFrame.mScreen.y ) };
-                ctx.CopyTexture( b.Get<GeomShadingModuleInfo>().mColorImage, slice, b.Get<CloudsModuleInfo>().mSceneCopy, slice );
+                ctx.Copy( b.Get<GeomShadingModuleInfo>().mColorImage, slice, b.Get<CloudsModuleInfo>().mSceneCopy, slice );
             } );
         const auto pipeline{ graph.Create( FGPipelineDescription{}
             .SetName( "Clouds_CompositePipeline" )
@@ -891,11 +891,11 @@ namespace mikoto::renderer {
             [this, pipeline]( CommandContext &ctx, Blackboard &b ) {
                 const auto &clouds{ b.Get<CloudsModuleInfo>() };
                 auto parameters{ CloudParameters( ctx, b ) };
-                parameters.mInput = ctx.PushTexture_SRV( clouds.mSceneCopy );
-                parameters.mHistory = ctx.PushTexture_SRV( clouds.mRadiance );
-                parameters.mHistoryMetadata = ctx.PushTexture_SRV( clouds.mTransmittance );
-                parameters.mDepth = ctx.PushTexture_SRV( b.Get<PrepassModuleInfo>().mPrepassDepthTarget );
-                parameters.mOutput = ctx.PushTexture_UAV( clouds.mComposite );
+                parameters.mInput = ctx.PushSRV( clouds.mSceneCopy );
+                parameters.mHistory = ctx.PushSRV( clouds.mRadiance );
+                parameters.mHistoryMetadata = ctx.PushSRV( clouds.mTransmittance );
+                parameters.mDepth = ctx.PushSRV( b.Get<PrepassModuleInfo>().mPrepassDepthTarget );
+                parameters.mOutput = ctx.PushUAV( clouds.mComposite );
                 ctx.BindPipeline( pipeline );
                 ctx.PushConstants( parameters );
                 ctx.Dispatch( ( as<u32>( mFrame.mScreen.x ) + 7 ) / 8, ( as<u32>( mFrame.mScreen.y ) + 7 ) / 8, 1 );
@@ -909,7 +909,7 @@ namespace mikoto::renderer {
             },
             [this]( CommandContext &ctx, Blackboard &b ) {
                 const TextureSlice slice{ .mWidth = as<u32>( mFrame.mScreen.x ), .mHeight = as<u32>( mFrame.mScreen.y ) };
-                ctx.CopyTexture( b.Get<CloudsModuleInfo>().mComposite, slice, b.Get<GeomShadingModuleInfo>().mColorImage, slice );
+                ctx.Copy( b.Get<CloudsModuleInfo>().mComposite, slice, b.Get<GeomShadingModuleInfo>().mColorImage, slice );
             } );
     }
 

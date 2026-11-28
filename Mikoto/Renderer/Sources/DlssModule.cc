@@ -238,8 +238,8 @@ namespace mikoto::renderer {
                     core::u32 mWidth{};
                     core::u32 mHeight{};
                 } parameters{
-                    .mSource = context.PushTexture_SRV( mState->mExecuted ? mState->mReconstructed : mState->mInputs.mNoisyColor ),
-                    .mOutput = context.PushTexture_UAV( mState->mOutput ),
+                    .mSource = context.PushSRV( mState->mExecuted ? mState->mReconstructed : mState->mInputs.mNoisyColor ),
+                    .mOutput = context.PushUAV( mState->mOutput ),
                     .mSampler = context.PushSampler( sampler ),
                     .mWidth = mState->mOutputSize.x,
                     .mHeight = mState->mOutputSize.y,

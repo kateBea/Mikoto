@@ -269,7 +269,7 @@ namespace mikoto::renderer {
             eastl::unique_ptr<FrameGraph> mFrameGraph{};
         };
 
-        // Only graph compilation runs on the worker. Registration, scene access
+        // Graph compilation and denoiser initialization run on the worker. Scene access
         // and publication stay on the render thread; the active graph is untouched.
         struct PendingRenderState {
             eastl::shared_ptr<RenderState> mState{};

@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#pragma once
+#ifndef MIKOTO_RENDERER_FORWARD_RENDERER_DENOISER_MODULE_HH
+#define MIKOTO_RENDERER_FORWARD_RENDERER_DENOISER_MODULE_HH
 
 #include <EASTL/string.h>
 #include <EASTL/unique_ptr.h>
@@ -33,6 +34,7 @@ namespace mikoto::renderer {
 
         auto SetSettings( DenoiserSettings settings ) -> void;
         auto RegisterPasses( FrameGraph &graph, rhi::IGpuDevice *device, bool pathTracing ) -> void;
+        auto Initialize( rhi::IGpuDevice *device ) -> void;
         auto Prepare( const scene::Scene *scene, const scene::Camera *camera, const RayTracingModule &rays ) -> void;
 
         MKT_NODISCARD auto IsActive() const -> bool;
@@ -47,3 +49,5 @@ namespace mikoto::renderer {
         rhi::RenderResolution mResolution{};
     };
 }// namespace mikoto::renderer
+
+#endif// MIKOTO_RENDERER_FORWARD_RENDERER_DENOISER_MODULE_HH

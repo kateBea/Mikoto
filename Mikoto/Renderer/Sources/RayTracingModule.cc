@@ -287,6 +287,10 @@ namespace mikoto::renderer {
             mPreviousPositionsBuffer = CreateUploadBuffer( graph, "Denoiser_PreviousPositions", sizeof( core::float4 ) );
         }
 #endif
+        if ( mDenoiserSettings.mReconstructionGuides ) {
+            mReconstructionDataBuffer = CreateUploadBuffer( graph, "DLSS_RayData", sizeof( DlssRayData ) );
+            mReconstructionPositionsBuffer = CreateUploadBuffer( graph, "DLSS_PreviousPositions", sizeof( core::float4 ) );
+        }
         graph.RegisterPass(
             "RayTracing_PrepareFrame",
             FGPassType::eGraphics,
@@ -301,6 +305,10 @@ namespace mikoto::renderer {
                 if ( mDenoiserDataBuffer.mHandle ) {
                     builder.UseResource( mDenoiserDataBuffer, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
                     builder.UseResource( mPreviousPositionsBuffer, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
+                }
+                if ( mReconstructionDataBuffer.mHandle ) {
+                    builder.UseResource( mReconstructionDataBuffer, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
+                    builder.UseResource( mReconstructionPositionsBuffer, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
                 }
                 for ( const auto handle: { mFrameConstantsBuffer, mViewEffectsBuffer, mSceneDataBuffer } ) {
                     builder.UseResource( handle, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
@@ -335,6 +343,10 @@ namespace mikoto::renderer {
                 if ( mDenoiserDataBuffer.mHandle ) {
                     builder.UseResource( mDenoiserDataBuffer, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
                     builder.UseResource( mPreviousPositionsBuffer, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
+                }
+                if ( mReconstructionDataBuffer.mHandle ) {
+                    builder.UseResource( mReconstructionDataBuffer, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
+                    builder.UseResource( mReconstructionPositionsBuffer, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
                 }
                 for ( const auto handle: { mFrameConstantsBuffer, mViewEffectsBuffer, mSceneDataBuffer } ) {
                     builder.UseResource( handle, FGPipelineStage::eCopy, FGResourceAccess::eWrite );
@@ -377,6 +389,13 @@ namespace mikoto::renderer {
                         builder.UseResource( texture, FGPipelineStage::eRayTracingShader, FGResourceAccess::eWrite );
                     }
                 }
+                if ( mReconstructionPipeline.mHandle ) {
+                    builder.UseResource( mReconstructionDataBuffer, FGPipelineStage::eRayTracingShader, FGResourceAccess::eRead );
+                    builder.UseResource( mReconstructionPositionsBuffer, FGPipelineStage::eRayTracingShader, FGResourceAccess::eRead );
+                    for ( auto texture: mReconstructionInputs.GetTextures() ) {
+                        builder.UseResource( texture, FGPipelineStage::eRayTracingShader, FGResourceAccess::eWrite );
+                    }
+                }
                 builder.UseResource( mLightingHistory, FGPipelineStage::eRayTracingShader, FGResourceAccess::eRead );
                 builder.UseResource( mRadianceOutput, FGPipelineStage::eRayTracingShader, FGResourceAccess::eWrite );
                 builder.UseResource( mAccumulatedLightingOutput, FGPipelineStage::eRayTracingShader, FGResourceAccess::eWrite );
@@ -408,6 +427,7 @@ namespace mikoto::renderer {
                 }
 
                 info.mTraceOutputsReady = mCanTraceFrame;
+                info.mReconstructionReady = mCanTraceFrame && mReconstructionPipeline.mHandle;
             } );
     }
 
@@ -427,6 +447,21 @@ namespace mikoto::renderer {
         } };
 
         mRadianceOutput = texture( "RayTracing_Output" );
+        if ( mTracePassUsesPathTracing && mReconstructionDataBuffer.mHandle ) {
+            auto fields{ mReconstructionInputs.GetTextures() };
+            constexpr const char *names[]{ "NoisyHDR", "DiffuseAlbedo", "SpecularAlbedo", "NormalRoughness", "Depth", "Motion" };
+            constexpr Format formats[]{ Format::eRGBA32_FLOAT, Format::eRGBA16_FLOAT, Format::eRGBA16_FLOAT,
+                Format::eRGBA16_FLOAT, Format::eR32_FLOAT, Format::eRG16_FLOAT };
+            for ( core::u32 index{}; index < fields.size(); ++index ) {
+                fields[index] = graph.Create( FGTextureDescription{}
+                    .SetName( string::Format( "DLSS_Input_{}", names[index] ) )
+                    .SetWidth( width )
+                    .SetHeight( height )
+                    .SetFormat( formats[index] )
+                    .SetUsage( TextureUsageFlagsBits::ShaderResource | TextureUsageFlagsBits::UnorderedAccess ) );
+            }
+            mReconstructionInputs = { fields[0], fields[1], fields[2], fields[3], fields[4], fields[5] };
+        }
 #if MIKOTO_ENABLE_NRD
         if ( mDenoiserSettings.mEnabled ) {
             auto fields{ mDenoiserInputs.Textures() };
@@ -462,6 +497,7 @@ namespace mikoto::renderer {
 
         auto &info{ graph.GetOrCreate<RayTracingInfo>() };
         info.mDenoiser = mDenoiserInputs;
+        info.mReconstruction = mReconstructionInputs;
         info.mDirect = mRadianceOutput;
         info.mIndirect = mAccumulatedLightingOutput;
         info.mAmbientOcclusion = mOcclusionOutput;
@@ -480,6 +516,17 @@ namespace mikoto::renderer {
         pipeline.mRayPayloadBytes = kRayHitPayloadBytes;
         mTracePipeline = graph.Create( pipeline );
         mTraceShaderTable = graph.CreateShaderTable( mTracePipeline );
+        if ( mReconstructionInputs.mNoisyColor.mHandle ) {
+            FGPipelineDescription reconstruction{};
+            reconstruction.SetName( "DLSS_InputPipeline" )
+                .SetPipelineType( PipelineType::eRayTracing )
+                .PushShader( "PathTracing_DLSS_RayGen.slang", FGStageType::eRayGen )
+                .PushShader( "PathTracing_Miss.slang", FGStageType::eMiss )
+                .PushShader( "PathTracing_ClosestHit.slang", FGStageType::eClosestHit );
+            reconstruction.mRayPayloadBytes = kRayHitPayloadBytes;
+            mReconstructionPipeline = graph.Create( reconstruction );
+            mReconstructionShaderTable = graph.CreateShaderTable( mReconstructionPipeline );
+        }
     }
 
     auto RayTracingModule::RegisterHistoryPass( FrameGraph &graph ) -> void {
@@ -572,8 +619,61 @@ namespace mikoto::renderer {
             mFrameUploads.CopyBuffer( mDenoiserDataBuffer, mDenoiserData, 0 );
         }
 
+        PrepareReconstructionUpload( context );
         BindFrameResources( context );
         mFrameUploads.CopyBuffer( mFrameConstantsBuffer, mFrameConstants, 0 );
+    }
+
+    auto RayTracingModule::PrepareReconstructionUpload( CommandContext &context ) -> void {
+        if ( !mReconstructionPipeline.mHandle ) {
+            return;
+        }
+        // Capture previous rendered positions, including CPU skinning/displacement.
+        // A changed scene/topology starts with current positions and zero motion.
+        if ( !mReconstructionHistoryValid || mReconstructionPositions.size() != mPackedScene.mVertices.size() ) {
+            mReconstructionHistoryValid = false;
+            mReconstructionPositions.clear();
+            for ( const auto &vertex: mPackedScene.mVertices ) {
+                mReconstructionPositions.push_back( vertex.mPosition );
+            }
+        }
+        context.EnsureBufferCapacity( mReconstructionPositionsBuffer, mReconstructionPositions.size() * sizeof( core::float4 ) );
+        mFrameUploads.CopyBuffer( mReconstructionPositionsBuffer, 0, mReconstructionPositions.data(),
+            mReconstructionPositions.size() * sizeof( core::float4 ) );
+        const auto images{ mReconstructionInputs.GetTextures() };
+        for ( core::u32 index{}; index < images.size(); ++index ) {
+            if ( index < mReconstructionData.mImages0.length() ) {
+                mReconstructionData.mImages0[index] = context.PushTexture_UAV( images[index] );
+            }
+            else {
+                mReconstructionData.mImages1[index - mReconstructionData.mImages0.length()] = context.PushTexture_UAV( images[index] );
+            }
+        }
+        const auto [width, height]{ InferDimensions( mRenderResolution ) };
+        mReconstructionData.mWidth = static_cast<core::u32>( width );
+        mReconstructionData.mHeight = static_cast<core::u32>( height );
+        mReconstructionData.mPreviousPositions = context.GetDeviceBufferAddress( mReconstructionPositionsBuffer );
+        mReconstructionData.mViewProjection = glm::inverse( mFrameConstants.mInverseViewProjection );
+        mReconstructionData.mPreviousViewProjection = mReconstructionHistoryValid
+            ? mPreviousReconstructionViewProjection : mReconstructionData.mViewProjection;
+
+        // Halton film jitter follows the reference renderer; matrices remain
+        // unjittered so motion vectors describe motion rather than sample offsets.
+        constexpr core::u32 jitterPeriod{ 1024 };
+        const auto halton{ []( core::u32 index, core::u32 base ) {
+            core::f32 value{};
+            core::f32 weight{ 1.0f };
+            while ( index != 0 ) {
+                weight /= static_cast<core::f32>( base );
+                value += weight * static_cast<core::f32>( index % base );
+                index /= base;
+            }
+            return value;
+        } };
+        const auto index{ mTraceFrameIndex % jitterPeriod + 1u };
+        mReconstructionData.mJitter = core::float4{ halton( index, 2u ) - .5f, halton( index, 3u ) - .5f,
+            mReconstructionHistoryValid ? 1.0f : 0.0f, 0.0f };
+        mFrameUploads.CopyBuffer( mReconstructionDataBuffer, mReconstructionData, 0 );
     }
 
     auto RayTracingModule::ResolveSceneTextures( CommandContext &context ) const -> eastl::vector<ubyte> {
@@ -628,6 +728,7 @@ namespace mikoto::renderer {
     auto RayTracingModule::BindFrameResources( CommandContext &context ) -> void {
         // Scene arrays use buffer addresses. Textures, samplers and the TLAS use descriptor indices.
         mFrameConstants.mDenoiser = mDenoiserDataBuffer.mHandle ? context.GetDeviceBufferAddress( mDenoiserDataBuffer ) : 0;
+        mFrameConstants.mReconstruction = mReconstructionPipeline.mHandle ? context.GetDeviceBufferAddress( mReconstructionDataBuffer ) : 0;
         mFrameConstants.mVertices = context.GetDeviceBufferAddress( mShadingVertexBuffer );
         mFrameConstants.mBuildPositions = context.GetDeviceBufferAddress( mAccelerationBuildPositionBuffer );
         mFrameConstants.mIndices = context.GetDeviceBufferAddress( mIndexBuffer );
@@ -678,6 +779,20 @@ namespace mikoto::renderer {
         const auto [width, height]{ InferDimensions( mRenderResolution ) };
 
         context.DispatchRays( width, height );
+        if ( mReconstructionPipeline.mHandle ) {
+            // This diagnostic dispatch has its own current-frame color contract.
+            // It never reads/writes the progressive or NRD/OIDN beauty histories.
+            context.BindPipeline( mReconstructionPipeline );
+            context.BindShaderTable( mReconstructionShaderTable );
+            context.PushConstants( frameAddress );
+            context.DispatchRays( width, height );
+            mReconstructionPositions.clear();
+            for ( const auto &vertex: mPackedScene.mVertices ) {
+                mReconstructionPositions.push_back( vertex.mPosition );
+            }
+            mPreviousReconstructionViewProjection = mReconstructionData.mViewProjection;
+            mReconstructionHistoryValid = true;
+        }
     }
 
     auto RayTracingConfiguration::Sanitize() -> void {
@@ -695,6 +810,10 @@ namespace mikoto::renderer {
     auto RayTracingModule::Prepare( FrameGraph &, const scene::Scene *scene, const scene::Camera *camera, const RayTracingConfiguration &settings,
         rhi::TextureHandle environment, float environmentScale, float exposure, float gamma ) -> void {
         mCanTraceFrame = false;
+        if ( mReconstructionCamera != camera ) {
+            mReconstructionHistoryValid = false;
+            mReconstructionCamera = camera;
+        }
         mPreviousPositions.clear();
         if ( mDenoiserDataBuffer.mHandle ) {
             mPreviousPositions.reserve( mPackedScene.mVertices.size() );
@@ -914,6 +1033,9 @@ namespace mikoto::renderer {
 
         const bool topologyChanged{ inputs.mTopologyHash != mTopologyHash || scene != mDenoiserScene };
         mPackedScene = PackScene( inputs );
+        if ( topologyChanged ) {
+            mReconstructionHistoryValid = false;
+        }
         if ( mDenoiserDataBuffer.mHandle && ( topologyChanged || mPreviousPositions.size() != mPackedScene.mVertices.size() ) ) {
             ++mTopologyRevision;
             mPreviousPositions.clear();

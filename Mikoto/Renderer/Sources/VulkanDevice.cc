@@ -84,12 +84,14 @@ namespace mikoto::renderer::vulkan {
         VkDevice mDevice{};
         VkCommandPool mPool{};
 
-        ~TracyCalibrationPool() {
-            if ( mPool ) {
-                vkDestroyCommandPool( mDevice, mPool, nullptr );
-            }
-        }
+        ~TracyCalibrationPool();
     };
+
+    TracyCalibrationPool::~TracyCalibrationPool() {
+        if ( mPool ) {
+            vkDestroyCommandPool( mDevice, mPool, nullptr );
+        }
+    }
 #endif
 
 #if MIKOTO_DEBUG
@@ -253,6 +255,8 @@ namespace mikoto::renderer::vulkan {
         InitPipelineCache();
         InitDummyResources();
 
+        mDlssContext.Initialize( pInstance.mInstance, mPhysicalDevice->mPhysicalDevice,
+            mLogicalDevice, mDlssExtensionsReady );
         mIsInitialized = true;
     }
 
@@ -267,6 +271,7 @@ namespace mikoto::renderer::vulkan {
 
         WaitIdle();
 
+        mDlssContext.Shutdown();
         DestroyDummyResources();
 
         SerializePipelineCache();
@@ -1140,6 +1145,24 @@ namespace mikoto::renderer::vulkan {
         }
 #endif
 
+        // These extensions must be enabled at device creation. Feature startup
+        // itself is deferred to the device-owned NGX worker, shared by all views.
+        const auto dlss{ DlssContext::GetRequiredDeviceExtensions( Context::Get()->GetInstance().mInstance,
+            mPhysicalDevice->mPhysicalDevice ) };
+        mDlssExtensionsReady = Context::Get()->GetInstance().mDlssExtensionsReady && dlss.mAvailable &&
+            std::ranges::all_of( dlss.mNames, [this]( const auto &extension ) {
+                return mPhysicalDevice->IsExtensionAvailable( extension.c_str() );
+            } );
+        if ( mDlssExtensionsReady ) {
+            for ( const auto &extension: dlss.mNames ) {
+                if ( eastl::none_of( mExtensions.begin(), mExtensions.end(), [&]( const auto &enabled ) {
+                         return enabled == extension.c_str();
+                     } ) ) {
+                    mExtensions.emplace_back( extension.c_str() );
+                }
+            }
+        }
+
         VkDeviceCreateInfo createInfo{ initializers::DeviceCreateInfo() };
         createInfo.pNext = MKT_ADDRESSOF( mEnabledFeatures2 );
 
@@ -1408,6 +1431,10 @@ namespace mikoto::renderer::vulkan {
         }
 
         return device.HasQueueSupport( queueSupport );
+    }
+
+    auto Device::GetDlssContext() -> DlssContext & {
+        return mDlssContext;
     }
 
     auto Device::SupportsOidn() const -> bool {

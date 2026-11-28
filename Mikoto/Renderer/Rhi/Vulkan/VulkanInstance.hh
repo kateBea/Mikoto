@@ -94,6 +94,7 @@ namespace mikoto::renderer::vulkan {
         eastl::string mEngineName{};
 
         eastl::vector<PhysicalDevice> mPhysicalDevices{};
+        bool mDlssExtensionsReady{};
 
         eastl::vector<const char*> mValidationLayers{
             "VK_LAYER_KHRONOS_validation",

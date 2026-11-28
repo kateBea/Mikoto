@@ -2485,6 +2485,17 @@ namespace mikoto::editor {
             }
 
             mikoto::imgui::widget::ItemTooltip( MKT_LOC( "editor_layer_blend_the_cluster_heatmap_over_the_final_image_uses_opaque" ).c_str() );
+            ImGui::SeparatorText( "DLSS RR inputs" );
+            const auto reconstructionSettings{ mEditorRenderer->GetSettings() };
+            ImGui::BeginDisabled( !MIKOTO_ENABLE_DLSS || !reconstructionSettings.mRayTracing.mPathTracingEnabled );
+            constexpr const char *reconstructionLabels[]{ "Noisy HDR", "Diffuse albedo", "Specular albedo", "Normal / roughness", "Depth", "Motion vectors" };
+            for ( core::u32 index{}; index < std::size( reconstructionLabels ); ++index ) {
+                if ( EditorMenuItem( reconstructionLabels[index] ) ) {
+                    const auto output{ static_cast<renderer::FinalImageType>( static_cast<core::u32>( renderer::FinalImageType::eDlssNoisyColor ) + index ) };
+                    mEditorState->mFinalComposition = mEditorRenderer->GetFinalImage( output );
+                }
+            }
+            ImGui::EndDisabled();
             ImGui::SeparatorText( "NRD preview" );
             auto settings{ mEditorRenderer->GetSettings() };
             auto &denoiser{ settings.mDenoiser };

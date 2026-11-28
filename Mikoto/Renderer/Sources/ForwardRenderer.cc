@@ -48,6 +48,7 @@ namespace mikoto::renderer {
                a.mDenoiser.mEnabled == b.mDenoiser.mEnabled && a.mDenoiser.mBackend == b.mDenoiser.mBackend &&
                ( a.mDenoiser.mBackend != DenoiserBackend::eNrd || a.mDenoiser.mType == b.mDenoiser.mType ) &&
                ( a.mDenoiser.mBackend != DenoiserBackend::eOidn || a.mDenoiser.mOidnQuality == b.mDenoiser.mOidnQuality ) &&
+               a.mDenoiser.mReconstructionGuides == b.mDenoiser.mReconstructionGuides &&
                usesDenoiser( a ) == usesDenoiser( b ) &&
                a.mScreenSpaceReflections.mEnabled == b.mScreenSpaceReflections.mEnabled &&
                a.mScreenSpaceReflections.mHalfResolution == b.mScreenSpaceReflections.mHalfResolution &&
@@ -76,6 +77,7 @@ namespace mikoto::renderer {
 
         RegisterRenderState();
         mState->mFrameGraph->Compile();
+        mState->mDenoiserModule.Initialize( mDevice );
         CompleteRenderState();
         mRebuildPending = false;
     }
@@ -631,8 +633,9 @@ namespace mikoto::renderer {
             pending->mParticleMode = mParticleModeOverride.value_or( particles ? particles->GetSimulationMode() : ParticleSimulationMode::eCpu );
             mState = previous;
 
-            pending->mCompilation = std::async( std::launch::async, [state = pending->mState] {
+            pending->mCompilation = std::async( std::launch::async, [state = pending->mState, device = mDevice] {
                 state->mFrameGraph->Compile();
+                state->mDenoiserModule.Initialize( device );
             } );
             mPendingRenderState = eastl::move( pending );
             mRebuildPending = false;
@@ -879,6 +882,11 @@ namespace mikoto::renderer {
 
     auto ForwardRenderer::GetFinalImage( FinalImageType type ) -> renderer::rhi::TextureHandle {
         MKT_BEGIN_PROFILER();
+        const bool reconstruction{ type >= FinalImageType::eDlssNoisyColor && type <= FinalImageType::eDlssMotion };
+        if ( mSettings.mDenoiser.mReconstructionGuides != reconstruction ) {
+            mSettings.mDenoiser.mReconstructionGuides = reconstruction;
+            mRebuildPending = true;
+        }
         mFinalImageType = type;
         mState->mPresentationModule.SetFinalImageTarget( type );
 

@@ -82,6 +82,20 @@ namespace mikoto::renderer {
                 return b.Get<PostProcessModuleInfo>().mSsaoBlurColorTarget;
             case FinalImageType::eRayTracedAmbientOcclusion:
                 return b.Get<RayTracingInfo>().mAmbientOcclusion;
+            case FinalImageType::eDlssNoisyColor:
+            case FinalImageType::eDlssDiffuseAlbedo:
+            case FinalImageType::eDlssSpecularAlbedo:
+            case FinalImageType::eDlssNormalRoughness:
+            case FinalImageType::eDlssDepth:
+            case FinalImageType::eDlssMotion:
+                if ( b.Contains<RayTracingInfo>() ) {
+                    const auto &rays{ b.Get<RayTracingInfo>() };
+                    if ( rays.mReconstructionReady ) {
+                        return rays.mReconstruction.GetTextures()[static_cast<core::u32>( mPresentTarget ) -
+                            static_cast<core::u32>( FinalImageType::eDlssNoisyColor )];
+                    }
+                }
+                return b.Get<PostProcessModuleInfo>().mAfterToneMapping.mColorImage;
             case FinalImageType::eDenoiserValidation:
                 if ( b.Contains<DenoiserModuleInfo>() ) {
                     const auto &denoiser{ b.Get<DenoiserModuleInfo>() };
@@ -176,16 +190,40 @@ namespace mikoto::renderer {
             .PushShader( "FullQuad_Vert.slang", FGStageType::eVertex )
             .PushShader( "SSAODebug_Frag.slang", FGStageType::ePixel ) ) };
 
+        FGPipelineHandle reconstructionDebugPipeline{};
+        if ( const auto *rays{ graph.GetBlackBoard().TryGet<RayTracingInfo>() };
+             rays && rays->mReconstruction.mNoisyColor.mHandle ) {
+            reconstructionDebugPipeline = graph.Create( FGPipelineDescription{}
+                .SetName( "DLSS_InputPreviewPipeline" )
+                .SetPipelineType( rhi::PipelineType::eGraphics )
+                .SetTopology( rhi::PrimitiveTopology::eTriangleList )
+                .SetCullMode( rhi::CullMode::eNone )
+                .SetDepthTest( false )
+                .SetDepthWrite( false )
+                .SetBlendEnable( false )
+                .AddColorFormat( rhi::Format::eBGRA8_UNORM )
+                .PushShader( "FullQuad_Vert.slang", FGStageType::eVertex )
+                .PushShader( "DlssDebug_Frag.slang", FGStageType::ePixel ) );
+        }
+
         graph.RegisterPass(
             "FinalImage_Resolve",
             FGPassType::eGraphics,
             [source]( FGNodeBuilder& builder, core::Blackboard& blackboard ) {
-                // Both the raster and fixed path-tracing source can be replaced
-                // by the raw validation attachment. Declare its compute-to-fragment read.
-                if ( blackboard.Contains<DenoiserModuleInfo>() ) {
-                    builder.UseResource( blackboard.Get<DenoiserModuleInfo>().mValidation, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                // NRD alone provides a validation attachment. Declare its read
+                // when allocated; readiness is updated later during filtering.
+                if ( const auto *denoiser{ blackboard.TryGet<DenoiserModuleInfo>() };
+                     denoiser && denoiser->mValidation.mHandle != FGResourceManager::kInvalidResourceHandle ) {
+                    builder.UseResource( denoiser->mValidation, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
                 }
 
+                if ( const auto *rays{ blackboard.TryGet<RayTracingInfo>() } ) {
+                    for ( auto texture: rays->mReconstruction.GetTextures() ) {
+                        if ( texture.mHandle ) {
+                            builder.UseResource( texture, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
+                        }
+                    }
+                }
                 if ( source.mHandle != FGResourceManager::kInvalidResourceHandle ) {
                     builder.UseResource( source, FGPipelineStage::ePixelShader, FGResourceAccess::eRead );
                     if ( blackboard.Contains<RayTracingInfo>() ) {
@@ -244,7 +282,7 @@ namespace mikoto::renderer {
 
                 builder.UseResource( presentData.mColorImage, FGPipelineStage::eRenderTarget, FGResourceAccess::eWrite );
             },
-            [this, source, ssaoDebugPipeline]( CommandContext& ctx, core::Blackboard& b ) {
+            [this, source, ssaoDebugPipeline, reconstructionDebugPipeline]( CommandContext& ctx, core::Blackboard& b ) {
                 const auto& presentData{ b.Get<PresentationPassData>() };
                 const auto& geometryData{ b.Get<GeometryCullModuleInfo>() };
 
@@ -252,9 +290,23 @@ namespace mikoto::renderer {
                 const bool heatmap{ !fixedSource && ( mPresentTarget == FinalImageType::eClusterHeatmap || mPresentTarget == FinalImageType::eClusterHeatmapOverlay ) };
                 const bool rayAoDebug{ mPresentTarget == FinalImageType::eRayTracedAmbientOcclusion };
                 const bool denoiserDebug{ mPresentTarget == FinalImageType::eDenoiserValidation };
+                const bool reconstructionTarget{ mPresentTarget >= FinalImageType::eDlssNoisyColor && mPresentTarget <= FinalImageType::eDlssMotion };
+                const bool reconstructionDebug{ reconstructionTarget && b.Contains<RayTracingInfo>() && b.Get<RayTracingInfo>().mReconstructionReady };
                 const bool ssaoDebug{ rayAoDebug || ( !fixedSource && mPresentTarget == FinalImageType::eSsao ) };
 
-                if ( heatmap ) {
+                if ( reconstructionDebug ) {
+                    struct Parameters {
+                        core::u32 mTexture{};
+                        core::u32 mSampler{};
+                        core::u32 mMode{};
+                    } parameters{
+                        .mTexture = ctx.PushTexture_SRV( GetTargetImage( b ) ),
+                        .mSampler = ctx.PushSampler( geometryData.mBasicSampler ),
+                        .mMode = static_cast<core::u32>( mPresentTarget ) - static_cast<core::u32>( FinalImageType::eDlssNoisyColor ),
+                    };
+                    ctx.PushConstants( parameters );
+                }
+                else if ( heatmap ) {
                     const auto& prepass{ b.Get<PrepassModuleInfo>() };
                     struct HeatmapParams {
                         SPointer mClusters{};
@@ -283,7 +335,7 @@ namespace mikoto::renderer {
                         core::u32 mTextureIndex{};
                         core::u32 mSamplerIndex{};
                     } params{
-                        .mTextureIndex = ctx.PushTexture_SRV( fixedSource && !rayAoDebug && !denoiserDebug ? source : GetTargetImage( b ) ),
+                        .mTextureIndex = ctx.PushTexture_SRV( fixedSource && !rayAoDebug && !denoiserDebug && !reconstructionTarget ? source : GetTargetImage( b ) ),
                         .mSamplerIndex = ctx.PushSampler( geometryData.mBasicSampler )
                     };
                     ctx.PushConstants( params );
@@ -302,7 +354,10 @@ namespace mikoto::renderer {
                 // Debug views select their own fragment shaders within the existing presentation draw.
                 auto pipeline{ presentData.mPipeline };
 
-                if ( heatmap ) {
+                if ( reconstructionDebug ) {
+                    pipeline = reconstructionDebugPipeline;
+                }
+                else if ( heatmap ) {
                     pipeline = presentData.mClusterHeatmapPipeline;
                 }
                 else if ( ssaoDebug ) {

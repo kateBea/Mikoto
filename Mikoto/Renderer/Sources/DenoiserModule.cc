@@ -97,13 +97,17 @@ namespace mikoto::renderer {
         core::u32 mWidth{};
         core::u32 mHeight{};
 
-        ~State() {
-            if ( mInstance ) {
-                nrd::DestroyInstance( *mInstance );
-            }
-        }
+        ~State();
 #endif
     };
+
+#if MIKOTO_ENABLE_NRD
+    DenoiserModule::State::~State() {
+        if ( mInstance ) {
+            nrd::DestroyInstance( *mInstance );
+        }
+    }
+#endif
 
     DenoiserModule::DenoiserModule( RenderResolution resolution ) : mState{ eastl::make_unique<State>() }, mOidn{ eastl::make_unique<OidnModule>( resolution ) }, mResolution{ resolution } {
     }
@@ -184,6 +188,12 @@ namespace mikoto::renderer {
         }
     }
 #endif
+
+    auto DenoiserModule::Initialize( IGpuDevice *device ) -> void {
+        if ( mSettings.mBackend == DenoiserBackend::eOidn ) {
+            mOidn->Initialize( device );
+        }
+    }
 
     auto DenoiserModule::RegisterPasses( FrameGraph &graph, IGpuDevice *device, bool pathTracing ) -> void {
         if ( mSettings.mBackend == DenoiserBackend::eOidn ) {

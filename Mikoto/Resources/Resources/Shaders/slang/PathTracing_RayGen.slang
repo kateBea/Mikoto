@@ -15,6 +15,10 @@
 // Dispatch the requested path-traced or hybrid lighting mode for each camera pixel. History
 // handling and NRD signal generation branch here before tracing work is submitted.
 
+#ifndef MKT_NRD_TRACE
+#define MKT_NRD_TRACE 0
+#endif
+
 #include "base/HeightMapping_Helpers.slang"
 #include "base/Memory_Helpers.slang"
 #include "base/RayTracing_Bindings.slang"

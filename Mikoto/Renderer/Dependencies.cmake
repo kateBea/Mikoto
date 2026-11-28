@@ -334,3 +334,5 @@ endif()
 include("${CMAKE_CURRENT_LIST_DIR}/../../CMake/NRD.cmake")
 
 include("${CMAKE_CURRENT_LIST_DIR}/../../CMake/OIDN.cmake")
+
+include("${CMAKE_CURRENT_LIST_DIR}/../../CMake/DLSS.cmake")

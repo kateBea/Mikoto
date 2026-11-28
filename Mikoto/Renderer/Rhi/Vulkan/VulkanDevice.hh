@@ -43,6 +43,7 @@
 #include <Filesystem/Path.hh>
 
 #include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/Vulkan/VulkanDlss.hh>
 #include <Renderer/Rhi/GpuDevice.hh>
 #include <Renderer/Rhi/CommandList.hh>
 #include <Renderer/Rhi/ShaderTable.hh>
@@ -292,6 +293,9 @@ namespace mikoto::renderer::vulkan {
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) -> rhi::Object override;
         MKT_NODISCARD auto GetNativeHandle( rhi::ObjectType type ) const -> rhi::Object override;
 
+        // Native SDK recordings must retain their device resources until GPU completion.
+        auto RetainResource( const rhi::DeviceObject* resource ) -> void;
+
         // Vulkan Specifics
         MKT_NODISCARD operator VkCommandBuffer() const;
 
@@ -302,8 +306,6 @@ namespace mikoto::renderer::vulkan {
         ~CommandList() override;
 
     private:
-        auto RetainResource( const rhi::DeviceObject* resource ) -> void;
-
         auto SetTransition( rhi::IBuffer*, rhi::ResourceStates ) -> void;
         auto SetTransition( rhi::ITexture*, rhi::ResourceStates ) -> void;
 
@@ -852,6 +854,7 @@ namespace mikoto::renderer::vulkan {
 
         MKT_NODISCARD auto GetDevice() -> VkDevice;
         MKT_NODISCARD auto SupportsOidn() const -> bool;
+        MKT_NODISCARD auto GetDlssContext() -> DlssContext &;
         MKT_NODISCARD auto GetEnabledExtensions() const -> eastl::span<const eastl::string>;
         MKT_NODISCARD auto GetAllocator() -> GpuMemoryAllocator*;
         MKT_NODISCARD auto GetPhysicalDevice() const -> const PhysicalDevice*;
@@ -928,7 +931,10 @@ namespace mikoto::renderer::vulkan {
         eastl::unique_ptr<IDescriptorAllocatorPool> mDescriptorAllocatorPool{};
 
         eastl::vector<eastl::string> mExtensions{};
+
         bool mOidnSupported{};
+        bool mDlssExtensionsReady{};
+        DlssContext mDlssContext{};
 
         // Presentation support (only if requested)
         VkSurfaceKHR mSurface{};

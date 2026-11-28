@@ -39,6 +39,12 @@ namespace mikoto::renderer {
         eSsao,
         eRayTracedAmbientOcclusion,
         eDenoiserValidation,
+        eDlssNoisyColor,
+        eDlssDiffuseAlbedo,
+        eDlssSpecularAlbedo,
+        eDlssNormalRoughness,
+        eDlssDepth,
+        eDlssMotion,
         eCount,
     };
 

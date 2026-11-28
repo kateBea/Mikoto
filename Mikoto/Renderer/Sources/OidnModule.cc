@@ -12,10 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <chrono>
-#include <future>
 #include <memory>
-#include <utility>
 #include <vector>
 
 #include <Core/String.hh>
@@ -29,6 +26,7 @@
 #if MIKOTO_ENABLE_OIDN
 #include <Renderer/Rhi/Vulkan/VulkanContext.hh>
 #include <Renderer/Rhi/Vulkan/VulkanDevice.hh>
+#include <Renderer/Rhi/Vulkan/VulkanHelpers.hh>
 
 #include <vk_oidn/vk_oidn.h>
 #endif
@@ -36,34 +34,126 @@
 namespace mikoto::renderer {
 
     // https://github.com/nvpro-samples/vk_oidn/blob/main/docs/architecture.md
-    
-    using namespace rhi;
+    using namespace mikoto::core;
+    using namespace mikoto::renderer::rhi;
 
-    struct OidnModule::State {
+    // Retaining this device object in the native command list keeps SDK buffers,
+    // pipelines and the upload command pool alive through the GPU submission.
+    struct OidnModule::State final : DeviceObject {
         eastl::string mError{};
         bool mReady{};
         bool mExecuted{};
         bool mHasResult{};
-#if MIKOTO_ENABLE_OIDN
-        struct Initialization {
-            vkoidn::Result mResult{};
-            std::unique_ptr<vkoidn::Context> mContext{};
-        };
+        bool mUploadPending{};
 
-        // The future is declared last, so it joins before the SDK objects are
-        // released. Initialization creates pipelines only; it never submits GPU work.
+#if MIKOTO_ENABLE_OIDN
         std::unique_ptr<vkoidn::Context> mContext{};
         std::unique_ptr<vkoidn::Denoiser> mDenoiser{};
+        VkDevice mNativeDevice{};
+        VkCommandPool mUploadPool{};
+        VkCommandBuffer mUploadCommands{};
         FGTextureHandle mInput{};
         FGTextureHandle mOutput{};
         core::u32 mWidth{};
         core::u32 mHeight{};
-        std::future<Initialization> mInitialization{};
+        OidnQuality mQuality{};
 #endif
+
+        ~State() override;
+
+        auto Initialize() -> void override;
+
+        auto Destroy() -> void override;
     };
 
+    OidnModule::State::~State() {
+        Destroy();
+    }
+
+    auto OidnModule::State::Initialize() -> void {
+#if MIKOTO_ENABLE_OIDN
+        auto *device{ core::checked_cast<vulkan::Device *>( GetOwningDevice() ) };
+        mNativeDevice = device->GetDevice();
+        std::vector<const char *> extensions{};
+        for ( const auto &extension: device->GetEnabledExtensions() ) {
+            extensions.push_back( extension.c_str() );
+        }
+
+        vkoidn::ContextCreateInfo contextInfo{};
+        contextInfo.instance = vulkan::Context::Get()->GetInstance().mInstance;
+        contextInfo.physicalDevice = device->GetPhysicalDevice()->mPhysicalDevice;
+        contextInfo.device = mNativeDevice;
+        contextInfo.getInstanceProcAddr = vkGetInstanceProcAddr;
+        contextInfo.getDeviceProcAddr = vkGetDeviceProcAddr;
+        contextInfo.enabledExtensions = extensions.data();
+        contextInfo.enabledExtensionCount = static_cast<uint32_t>( extensions.size() );
+        auto result{ vkoidn::Context::create( contextInfo, mContext ) };
+        if ( result != vkoidn::Result::eSuccess ) {
+            mError = string::Format( "OIDN initialization failed: {}", vkoidn::getResultString( result ) );
+            MKT_CORE_LOGGER_ERROR( "{}", mError );
+            return;
+        }
+
+        // Record the weights on this worker's own pool. The first filter pass
+        // executes this secondary buffer on Mikoto's graphics queue, before
+        // any network dispatch; initialization itself submits no GPU work.
+        const auto *queue{ core::checked_cast<vulkan::Queue *>( device->GetQueue( QueueType::eGraphics ) ) };
+
+        VkCommandPoolCreateInfo pool{ VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
+        pool.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+        pool.queueFamilyIndex = queue->GetFamilyIndex();
+        MKT_VK_CHECK( vkCreateCommandPool( mNativeDevice, &pool, nullptr, &mUploadPool ) );
+
+        VkCommandBufferAllocateInfo allocation{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
+        allocation.commandPool = mUploadPool;
+        allocation.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
+        allocation.commandBufferCount = 1;
+        MKT_VK_CHECK( vkAllocateCommandBuffers( mNativeDevice, &allocation, &mUploadCommands ) );
+
+        VkCommandBufferInheritanceInfo inheritance{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO };
+        VkCommandBufferBeginInfo begin{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+        begin.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+        begin.pInheritanceInfo = &inheritance;
+        MKT_VK_CHECK( vkBeginCommandBuffer( mUploadCommands, &begin ) );
+
+        // Denoiser::create compiles the network kernels and allocates scratch
+        // buffers. Keep the entire operation on the graph compilation worker,
+        // rather than deferring this expensive part to the first render pass.
+        vkoidn::DenoiserCreateInfo network{};
+        network.width = mWidth;
+        network.height = mHeight;
+        network.hdr = true;
+        network.quality = static_cast<vkoidn::Quality>( mQuality );
+        result = vkoidn::Denoiser::create( *mContext, mUploadCommands, network, mDenoiser );
+        MKT_VK_CHECK( vkEndCommandBuffer( mUploadCommands ) );
+        
+        if ( result != vkoidn::Result::eSuccess ) {
+            mError = string::Format( "OIDN network creation failed: {}", vkoidn::getResultString( result ) );
+            MKT_CORE_LOGGER_ERROR( "{}", mError );
+            return;
+        }
+
+        mUploadPending = true;
+        mIsAllocated = true;
+#endif
+    }
+
+    auto OidnModule::State::Destroy() -> void {
+#if MIKOTO_ENABLE_OIDN
+        mDenoiser.reset();
+        mContext.reset();
+
+        if ( mUploadPool ) {
+            vkDestroyCommandPool( mNativeDevice, mUploadPool, nullptr );
+            mUploadPool = VK_NULL_HANDLE;
+        }
+
+        mIsAllocated = false;
+#endif
+    }
+
     OidnModule::OidnModule( RenderResolution resolution )
-        : mState{ eastl::make_unique<State>() }, mResolution{ resolution } {
+        : mState{ core::Ref<State>::New() }, mResolution{ resolution } {
     }
 
     OidnModule::~OidnModule() = default;
@@ -80,20 +170,19 @@ namespace mikoto::renderer {
         return mState->mError;
     }
 
-    auto OidnModule::Prepare( const RayTracingModule &rays ) -> void {
-        auto &state{ *mState };
-        state.mReady = false;
+    auto OidnModule::Initialize( IGpuDevice *device ) -> void {
 #if MIKOTO_ENABLE_OIDN
-        if ( state.mInitialization.valid() &&
-             state.mInitialization.wait_for( std::chrono::seconds{ 0 } ) == std::future_status::ready ) {
-            auto initialization{ state.mInitialization.get() };
-            if ( initialization.mResult != vkoidn::Result::eSuccess ) {
-                state.mError = string::Format( "OIDN initialization failed: {}", vkoidn::getResultString( initialization.mResult ) );
-                MKT_CORE_LOGGER_ERROR( "{}", state.mError );
-            }
-            state.mContext = std::move( initialization.mContext );
+        if ( mSettings.mEnabled && mState->mError.empty() && mState->mOutput.mHandle ) {
+            mState->DeviceObject::Initialize( device );
         }
-        state.mReady = mSettings.mEnabled && state.mError.empty() && state.mContext && rays.IsReady();
+#endif
+    }
+
+    auto OidnModule::Prepare( const RayTracingModule &rays ) -> void {
+        mState->mReady = false;
+
+#if MIKOTO_ENABLE_OIDN
+        mState->mReady = mSettings.mEnabled && mState->mError.empty() && mState->mDenoiser && rays.IsReady();
 #endif
     }
 
@@ -101,11 +190,13 @@ namespace mikoto::renderer {
         if ( !mSettings.mEnabled ) {
             return;
         }
+
 #if MIKOTO_ENABLE_OIDN
         if ( !device->IsGraphicsApi( GraphicsAPI::eVulkan ) ) {
             mState->mError = "OIDN currently requires the Vulkan renderer.";
             return;
         }
+
         auto *vulkanDevice{ core::checked_cast<vulkan::Device *>( device ) };
         if ( !vulkanDevice->SupportsOidn() ) {
             mState->mError = "OIDN requires FP16 storage/compute, Vulkan memory-model features and push descriptors.";
@@ -116,36 +207,16 @@ namespace mikoto::renderer {
         const auto [width, height]{ InferDimensions( mResolution ) };
         state.mWidth = static_cast<core::u32>( width );
         state.mHeight = static_cast<core::u32>( height );
+        state.mQuality = mSettings.mOidnQuality;
         state.mInput = pathTracing ? graph.GetData<RayTracingInfo>().mDirect : graph.GetData<RayTracingInfo>().mIndirect;
+
         state.mOutput = graph.Create( FGTextureDescription{}
             .SetName( "OIDN_FilteredHDR" )
             .SetWidth( width )
             .SetHeight( height )
             .SetFormat( Format::eRGBA32_FLOAT )
-            .SetUsage( TextureUsageFlagsBits::ShaderResource | TextureUsageFlagsBits::UnorderedAccess ) );
-        graph.GetOrCreate<DenoiserModuleInfo>();
-
-        std::vector<const char *> extensions{};
-        for ( const auto &extension: vulkanDevice->GetEnabledExtensions() ) {
-            extensions.push_back( extension.c_str() );
-        }
-        const VkInstance instance{ vulkan::Context::Get()->GetInstance().mInstance };
-        const VkPhysicalDevice physical{ vulkanDevice->GetPhysicalDevice()->mPhysicalDevice };
-        const VkDevice nativeDevice{ vulkanDevice->GetDevice() };
-        state.mInitialization = std::async( std::launch::async,
-            [instance, physical, nativeDevice, extensions = std::move( extensions )]() {
-                State::Initialization result{};
-                vkoidn::ContextCreateInfo info{};
-                info.instance = instance;
-                info.physicalDevice = physical;
-                info.device = nativeDevice;
-                info.getInstanceProcAddr = vkGetInstanceProcAddr;
-                info.getDeviceProcAddr = vkGetDeviceProcAddr;
-                info.enabledExtensions = extensions.data();
-                info.enabledExtensionCount = static_cast<uint32_t>( extensions.size() );
-                result.mResult = vkoidn::Context::create( info, result.mContext );
-                return result;
-            } );
+            .SetUsage( TextureUsageFlagsBits::ShaderResource | 
+                TextureUsageFlagsBits::UnorderedAccess ) );
 
         // Storage-image input keeps this SDK pass entirely on the GPU. Declaring
         // UAV access places both images in GENERAL and orders it after transport
@@ -163,22 +234,12 @@ namespace mikoto::renderer {
                 if ( !state.mReady || !blackboard.Get<RayTracingInfo>().mTraceOutputsReady ) {
                     return;
                 }
-                VkCommandBuffer commands{ context.GetCommandList()->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
-                if ( !state.mDenoiser ) {
-                    vkoidn::DenoiserCreateInfo info{};
-                    info.width = state.mWidth;
-                    info.height = state.mHeight;
-                    info.hdr = true;
-                    info.quality = static_cast<vkoidn::Quality>( mSettings.mOidnQuality );
-                    // Filter the whole beauty signal. First-hit surface guides
-                    // cannot describe refracted content, participating media or
-                    // a sampled lens, so do not feed NRD's packed guides to OIDN.
-                    const auto result{ vkoidn::Denoiser::create( *state.mContext, commands, info, state.mDenoiser ) };
-                    if ( result != vkoidn::Result::eSuccess ) {
-                        state.mError = string::Format( "OIDN network creation failed: {}", vkoidn::getResultString( result ) );
-                        state.mReady = false;
-                        return;
-                    }
+                auto *native{ core::checked_cast<vulkan::CommandList *>( context.GetCommandList() ) };
+                native->RetainResource( mState.GetPtr() );
+                VkCommandBuffer commands{ native->GetNativeHandle( ObjectType::Vk_CmdBuffer ) };
+                if ( state.mUploadPending ) {
+                    vkCmdExecuteCommands( commands, 1, &state.mUploadCommands );
+                    state.mUploadPending = false;
                 }
 
                 vkoidn::DenoiseInputs inputs{};
@@ -197,6 +258,7 @@ namespace mikoto::renderer {
             .SetName( "OIDN_CompositePipeline" )
             .SetPipelineType( PipelineType::eCompute )
             .PushShader( "Oidn_Composite.slang", FGStageType::eCompute ) ) };
+
         graph.RegisterPass(
             "OIDN_Composite",
             FGPassType::eCompute,
@@ -208,6 +270,7 @@ namespace mikoto::renderer {
                 if ( !mState->mExecuted ) {
                     return;
                 }
+
                 struct Parameters {
                     core::u32 mFiltered{};
                     core::u32 mOutput{};
@@ -221,13 +284,20 @@ namespace mikoto::renderer {
                     .mHeight = mState->mHeight,
                     .mSplit = mSettings.mSplitScreen,
                 };
+
                 // Rebind Mikoto's pipeline, descriptor table and push constants
                 // after the SDK's native command recording changed those bindings.
                 context.BindPipeline( pipeline );
                 context.PushConstants( parameters );
+
                 constexpr core::u32 groupSide{ 8 };
-                context.Dispatch( ( parameters.mWidth + groupSide - 1 ) / groupSide,
-                    ( parameters.mHeight + groupSide - 1 ) / groupSide, 1 );
+
+                const u32 x{ ( parameters.mWidth + groupSide - 1 ) / groupSide };
+                const u32 y{ ( parameters.mHeight + groupSide - 1 ) / groupSide };
+                const u32 z{ 1u };
+
+                context.Dispatch( x, y, z );
+
                 mState->mHasResult = true;
             } );
 #else

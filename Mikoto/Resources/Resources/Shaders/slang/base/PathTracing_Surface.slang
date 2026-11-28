@@ -224,7 +224,7 @@ float3 Offset( Surface s, float3 direction ) {
 // Trace and evaluate a usable surface, applying the material coverage rules while traversing
 // candidate hits.
 bool Intersect( float3 origin, float3 direction, float maximum, inout uint random, out Surface surface, out Hit hit,
-    bool opaqueOnly = false, bool visibilityOnly = false ) {
+    bool opaqueOnly = false, bool visibilityOnly = false, bool deterministicCoverage = false ) {
     RayDesc ray = { origin, 0.0, direction, maximum };
     surface = ( Surface )0;
     hit = ( Hit )0;
@@ -248,7 +248,7 @@ bool Intersect( float3 origin, float3 direction, float maximum, inout uint rando
         bool translucent = surface.mAlphaMode == 2 && surface.mAlpha < 1.0 - 1e-6;
         bool reject = ( !surface.mDoubleSided && !surface.mAreaLight && back ) || ( opaqueOnly && translucent ) ||
                       ( surface.mAlphaMode == 1 && surface.mAlpha < surface.mCutoff ) ||
-                      ( translucent && Random( random ) >= surface.mAlpha );
+                      ( translucent && ( deterministicCoverage ? surface.mAlpha < .5 : Random( random ) >= surface.mAlpha ) );
         if ( !reject ) {
             // PBRT DiffuseAreaLight::L: the unlit back remains an opaque surface.
             // https://pbr-book.org/4ed/Light_Sources/Area_Lights

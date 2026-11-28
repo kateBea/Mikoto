@@ -48,6 +48,7 @@ struct FrameParameters {
     uint mVolumePadding;
     uint64_t mVolumes;
     uint64_t mDenoiser;
+    uint64_t mReconstruction;
 };
 
 struct PushParameters {

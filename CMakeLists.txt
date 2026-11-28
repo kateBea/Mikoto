@@ -17,6 +17,7 @@ cmake_minimum_required(VERSION 3.30)
 # Resolve profiling before vcpkg selects the manifest features in project().
 option(MIKOTO_ENABLE_NRD "Enable NVIDIA Real-Time Denoisers" ON)
 option(MIKOTO_ENABLE_OIDN "Enable Open Image Denoise on Vulkan" ON)
+option(MIKOTO_ENABLE_DLSS "Enable NVIDIA DLSS Ray Reconstruction support on Windows Vulkan" ON)
 
 option(MIKOTO_BUILD_EDITOR "Build the Mikoto editor" ON)
 option(MIKOTO_ENABLE_OPENVDB "Enable native cloud VDB authoring and interchange" ${MIKOTO_BUILD_EDITOR})

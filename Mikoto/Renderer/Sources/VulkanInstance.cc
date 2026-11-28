@@ -35,6 +35,7 @@
 
 #include <Platform/Utility.hh>
 
+#include <Renderer/Rhi/Vulkan/VulkanDlss.hh>
 #include <Renderer/Rhi/Vulkan/VulkanHelpers.hh>
 #include <Renderer/Rhi/Vulkan/VulkanInstance.hh>
 
@@ -144,6 +145,27 @@ namespace mikoto::renderer::vulkan {
 
         // To avoid duplicated extensions we use a set
         eastl::unordered_set<eastl::string> extensionsSet{ mInstanceExtensions.begin(), mInstanceExtensions.end() };
+
+        // Discover optional NGX instance extensions before vkCreateInstance.
+        // Unsupported installations retain the ordinary Vulkan rendering path.
+        core::u32 availableCount{};
+        const auto dlss{ DlssContext::GetRequiredInstanceExtensions() };
+        MKT_VK_CHECK( vkEnumerateInstanceExtensionProperties( nullptr, &availableCount, nullptr ) );
+
+        eastl::vector<VkExtensionProperties> available( availableCount );
+        MKT_VK_CHECK( vkEnumerateInstanceExtensionProperties( nullptr, &availableCount, available.data() ) );
+
+        mDlssExtensionsReady = dlss.mAvailable && std::ranges::all_of( dlss.mNames, [&]( const auto &name ) {
+            return std::ranges::any_of( available, [&]( const auto &extension ) {
+                return name == extension.extensionName;
+            } );
+        } );
+
+        if ( mDlssExtensionsReady ) {
+            for ( const auto &extension: dlss.mNames ) {
+                extensionsSet.emplace( extension.c_str() );
+            }
+        }
 
         if ( builder.mQueryWindowExtensions ) {
             auto extensions{ platform::GetWindowVulkanExtensions() };

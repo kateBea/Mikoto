@@ -12,15 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#pragma once
+#ifndef MIKOTO_RENDERER_FORWARD_RENDERER_OIDN_MODULE_HH
+#define MIKOTO_RENDERER_FORWARD_RENDERER_OIDN_MODULE_HH
 
 #include <EASTL/string.h>
-#include <EASTL/unique_ptr.h>
+
+#include <Core/ReferenceCounted.hh>
 
 #include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Denoising/Denoiser.hh>
 
 namespace mikoto::renderer {
+
     class RayTracingModule;
 
     // One whole-image denoiser per view. Its Vulkan scratch resources stay
@@ -28,19 +31,24 @@ namespace mikoto::renderer {
     class OidnModule final {
     public:
         explicit OidnModule( rhi::RenderResolution resolution );
-        ~OidnModule();
 
         auto SetSettings( DenoiserSettings settings ) -> void;
         auto RegisterPasses( FrameGraph &graph, rhi::IGpuDevice *device, bool pathTracing ) -> void;
+
+        // Called after graph compilation, before publishing this view to the render thread.
+        auto Initialize( rhi::IGpuDevice *device ) -> void;
         auto Prepare( const RayTracingModule &rays ) -> void;
 
         MKT_NODISCARD auto IsActive() const -> bool;
         MKT_NODISCARD auto GetError() const -> const eastl::string &;
 
+        ~OidnModule();
     private:
         struct State;
-        eastl::unique_ptr<State> mState{};
+        core::Ref<State> mState{};
         DenoiserSettings mSettings{};
         rhi::RenderResolution mResolution{};
     };
 }
+
+#endif// MIKOTO_RENDERER_FORWARD_RENDERER_OIDN_MODULE_HH

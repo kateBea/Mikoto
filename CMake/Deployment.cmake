@@ -81,6 +81,17 @@ function(mikoto_deploy_application target)
             VERBATIM)
     endif()
 
+    if(MIKOTO_ENABLE_DLSS AND WIN32 AND MSVC AND CMAKE_SIZEOF_VOID_P EQUAL 8 AND
+       NOT CMAKE_SYSTEM_PROCESSOR MATCHES "[Aa][Rr][Mm]")
+        add_custom_command(TARGET ${target} POST_BUILD
+            COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+                "$<TARGET_PROPERTY:Mikoto,MIKOTO_DLSS_RUNTIME>" "$<TARGET_FILE_DIR:${target}>"
+            COMMAND "${CMAKE_COMMAND}" -E make_directory "$<TARGET_FILE_DIR:${target}>/Licenses/DLSS"
+            COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+                "$<TARGET_PROPERTY:Mikoto,MIKOTO_DLSS_LICENSE>" "$<TARGET_FILE_DIR:${target}>/Licenses/DLSS/LICENSE.txt"
+            VERBATIM)
+    endif()
+
     if(APPLE)
         set_property(TARGET ${target} APPEND PROPERTY BUILD_RPATH "@loader_path")
     elseif(UNIX)

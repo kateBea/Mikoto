@@ -28,6 +28,7 @@
 #include <Renderer/Core/CommandContext.hh>
 #include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Denoising/Denoiser.hh>
+#include <Renderer/Denoising/DlssInputs.hh>
 #include <Renderer/ForwardRenderer/Passes/AtmosphericScatteringModule.hh>
 #include <Renderer/ForwardRenderer/Passes/GeometryShadingModule.hh>
 #include <Renderer/RayTracing/RayTracing.hh>
@@ -39,6 +40,8 @@ namespace mikoto::renderer {
 
     struct RayTracingInfo {
         DenoiserInputs mDenoiser{};
+        DlssInputs mReconstruction{};
+        bool mReconstructionReady{};
         FGTextureHandle mDirect{};
         FGTextureHandle mIndirect{};
         FGTextureHandle mAmbientOcclusion{};
@@ -120,7 +123,10 @@ namespace mikoto::renderer {
             core::u32 mVolumePadding{};
             core::u64 mVolumes{};
             core::u64 mDenoiser{};
+            core::u64 mReconstruction{};
         };
+        static_assert( sizeof( FrameConstants ) == 256 );
+        static_assert( offsetof( FrameConstants, mReconstruction ) == 248 );
 
         struct Vertex {
             core::float4 mPosition{};
@@ -212,6 +218,7 @@ namespace mikoto::renderer {
         auto RegisterGeometryTransferPass( FrameGraph &graph ) -> void;
 
         auto PrepareFrameUpload( CommandContext &context ) -> void;
+        auto PrepareReconstructionUpload( CommandContext &context ) -> void;
         auto PrepareGeometryUpload( CommandContext &context ) -> void;
 
         auto Trace( CommandContext &context ) -> void;
@@ -232,6 +239,14 @@ namespace mikoto::renderer {
     private:
         // Frame graph resources for mesh data, frame constants, dispatch and history.
         DenoiserSettings mDenoiserSettings{};
+        DlssInputs mReconstructionInputs{};
+        DlssRayData mReconstructionData{};
+        FGBufferHandle mReconstructionDataBuffer{};
+        FGBufferHandle mReconstructionPositionsBuffer{};
+        eastl::vector<core::float4> mReconstructionPositions{};
+        core::float4x4 mPreviousReconstructionViewProjection{ 1.0f };
+        const scene::Camera *mReconstructionCamera{};
+        bool mReconstructionHistoryValid{};
         DenoiserInputs mDenoiserInputs{};
         DenoiserRayData mDenoiserData{};
         FGBufferHandle mDenoiserDataBuffer{};
@@ -257,6 +272,8 @@ namespace mikoto::renderer {
         FGSamplerHandle mAtmosphereSampler{};
         FGPipelineHandle mTracePipeline{};
         FGShaderTableHandle mTraceShaderTable{};
+        FGPipelineHandle mReconstructionPipeline{};
+        FGShaderTableHandle mReconstructionShaderTable{};
         FGAccelerationStructureHandle mSceneAccelerationStructure{};
 
         BufferUploadBatch mGeometryUploads{};

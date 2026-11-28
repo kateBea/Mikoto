@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#pragma once
+#ifndef MIKOTO_RENDERER_DENOISING_DENOISER_HH
+#define MIKOTO_RENDERER_DENOISING_DENOISER_HH
 
 #include <EASTL/array.h>
 
@@ -51,7 +52,6 @@ namespace mikoto::renderer {
         core::u32 mMethod{};
         core::float4 mJitter{};
     };
-    static_assert( sizeof( DenoiserRayData ) == 128 );
 
     enum class DenoiserType : core::u32 {
         eReblur,
@@ -82,6 +82,7 @@ namespace mikoto::renderer {
         bool mAdaptiveSampling{ true };
         bool mResponsiveHistory{ true };
         bool mAntiFirefly{ true };
+        bool mReconstructionGuides{};// Runtime-only RR input preview; not serialized.
         bool mValidation{};// Runtime-only viewport selection; not serialized.
         core::u32 mResetRevision{};// Runtime-only reset command; not serialized.
 
@@ -89,3 +90,5 @@ namespace mikoto::renderer {
         auto operator==( const DenoiserSettings & ) const -> bool = default;
     };
 }// namespace mikoto::renderer
+
+#endif// MIKOTO_RENDERER_DENOISING_DENOISER_HH

@@ -48,8 +48,9 @@ namespace mikoto::renderer {
         core::u32 mWidth{};
         core::u32 mHeight{};
         core::float4 mJitter{};// Film offset xy, previous-frame validity z, reserved w.
+        core::uint4 mGuideOptions{};// Clear-glass replacement enabled in x; reserved yzw.
     };
-    static_assert( sizeof( DlssRayData ) == 192 );
+    static_assert( sizeof( DlssRayData ) == 208 );
 }
 
 #endif// MIKOTO_RENDERER_DENOISING_DLSS_INPUTS_HH

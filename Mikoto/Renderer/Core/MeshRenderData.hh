@@ -61,6 +61,8 @@ namespace mikoto::renderer {
         MKT_NODISCARD auto GetAttributes() const -> eastl::span<const core::ubyte>;
         MKT_NODISCARD auto GetIndices() const -> eastl::span<const core::u32>;
         MKT_NODISCARD auto GetVertexCount() const -> core::u32;
+        // Immutable index ordering, computed once and shared by runtime deformation copies.
+        MKT_NODISCARD auto GetTopologyHash() const -> core::u64;
         MKT_NODISCARD auto GetOffsets() const -> const eastl::array<core::u64, kMeshStreamCount> &;
         MKT_NODISCARD auto GetSortCenter() const -> core::float3;
         MKT_NODISCARD auto GetBoundsExtent() const -> core::float3;
@@ -74,6 +76,7 @@ namespace mikoto::renderer {
         core::float3 mSortCenter{};
         core::float3 mBoundsExtent{};
 
+        core::u64 mTopologyHash{};
         core::u32 mVertexCount{};
         bool mSkinned{};
     };

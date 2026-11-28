@@ -17,7 +17,7 @@
 
 #include <EASTL/string.h>
 
-#include <Core/ReferenceCounted.hh>
+#include <EASTL/unique_ptr.h>
 
 #include <Renderer/Core/FrameGraph.hh>
 #include <Renderer/Denoising/Denoiser.hh>
@@ -26,17 +26,16 @@ namespace mikoto::renderer {
 
     class RayTracingModule;
 
-    // One whole-image denoiser per view. Its Vulkan scratch resources stay
+    // One whole-image denoiser per view. Its RHI scratch resources stay
     // alive with this view's graph; transport history remains unfiltered.
     class OidnModule final {
     public:
         explicit OidnModule( rhi::RenderResolution resolution );
+        explicit OidnModule( core::uint2 dimensions );
 
         auto SetSettings( DenoiserSettings settings ) -> void;
-        auto RegisterPasses( FrameGraph &graph, rhi::IGpuDevice *device, bool pathTracing ) -> void;
+        auto RegisterPasses( FrameGraph &graph, bool pathTracing ) -> void;
 
-        // Called after graph compilation, before publishing this view to the render thread.
-        auto Initialize( rhi::IGpuDevice *device ) -> void;
         auto Prepare( const RayTracingModule &rays ) -> void;
 
         MKT_NODISCARD auto IsActive() const -> bool;
@@ -45,9 +44,9 @@ namespace mikoto::renderer {
         ~OidnModule();
     private:
         struct State;
-        core::Ref<State> mState{};
+        eastl::unique_ptr<State> mState{};
         DenoiserSettings mSettings{};
-        rhi::RenderResolution mResolution{};
+        core::uint2 mDimensions{};
     };
 }
 

@@ -23,6 +23,7 @@
 
 #include <Renderer/Core/CommandContext.hh>
 #include <Renderer/ForwardRenderer/Passes/DenoiserModule.hh>
+#include <Renderer/ForwardRenderer/Passes/DlssModule.hh>
 #include <Renderer/ForwardRenderer/Passes/OidnModule.hh>
 
 #if MIKOTO_ENABLE_NRD
@@ -33,7 +34,15 @@ namespace mikoto::renderer {
     using namespace rhi;
 
     auto DenoiserSettings::Sanitize() -> void {
-        if ( mBackend != DenoiserBackend::eNrd && mBackend != DenoiserBackend::eOidn ) {
+        if ( core::as<core::u32>( mDlssInputResolution ) > core::as<core::u32>( DlssInputResolution::eMaximum ) ) {
+            mDlssInputResolution = DlssInputResolution::eNative;
+        }
+        if ( mDlssPreset != rhi::RayReconstructionPreset::eDefault && mDlssPreset != rhi::RayReconstructionPreset::eD &&
+             mDlssPreset != rhi::RayReconstructionPreset::eE && mDlssPreset != rhi::RayReconstructionPreset::eF ) {
+            mDlssPreset = rhi::RayReconstructionPreset::eDefault;
+        }
+
+        if ( mBackend != DenoiserBackend::eNrd && mBackend != DenoiserBackend::eOidn && mBackend != DenoiserBackend::eDlss ) {
             mBackend = DenoiserBackend::eOidn;
         }
         if ( static_cast<core::u32>( mOidnQuality ) > static_cast<core::u32>( OidnQuality::eHigh ) ) {
@@ -109,7 +118,19 @@ namespace mikoto::renderer {
     }
 #endif
 
-    DenoiserModule::DenoiserModule( RenderResolution resolution ) : mState{ eastl::make_unique<State>() }, mOidn{ eastl::make_unique<OidnModule>( resolution ) }, mResolution{ resolution } {
+    DenoiserModule::DenoiserModule( RenderResolution resolution )
+        : DenoiserModule{ resolution, resolution } {
+    }
+
+    DenoiserModule::DenoiserModule( RenderResolution inputResolution, RenderResolution viewportResolution )
+        : DenoiserModule{ GetRenderDimensions( inputResolution ), GetRenderDimensions( viewportResolution ) } {
+    }
+
+    DenoiserModule::DenoiserModule( core::uint2 inputSize, core::uint2 outputSize )
+        : mState{ eastl::make_unique<State>() },
+          mOidn{ eastl::make_unique<OidnModule>( inputSize ) },
+          mDlss{ eastl::make_unique<DlssModule>( inputSize, outputSize ) },
+          mInputSize{ inputSize } {
     }
 
     DenoiserModule::~DenoiserModule() = default;
@@ -118,14 +139,28 @@ namespace mikoto::renderer {
         settings.Sanitize();
         mSettings = settings;
         mOidn->SetSettings( settings );
+        mDlss->SetSettings( settings );
     }
 
     auto DenoiserModule::GetError() const -> const eastl::string & {
         static const eastl::string empty{};
+        if ( mSettings.mBackend == DenoiserBackend::eDlss ) {
+            return mDlss->GetError();
+        }
         return mSettings.mBackend == DenoiserBackend::eOidn ? mOidn->GetError() : empty;
     }
 
+    auto DenoiserModule::GetOutput() const -> FGTextureHandle {
+        if ( mSettings.mBackend == DenoiserBackend::eDlss && mDlss->GetOutput().mHandle ) {
+            return mDlss->GetOutput();
+        }
+        return mOutput;
+    }
+
     auto DenoiserModule::IsActive() const -> bool {
+        if ( mSettings.mBackend == DenoiserBackend::eDlss ) {
+            return mDlss->IsActive();
+        }
         if ( mSettings.mBackend == DenoiserBackend::eOidn ) {
             return mOidn->IsActive();
         }
@@ -189,15 +224,17 @@ namespace mikoto::renderer {
     }
 #endif
 
-    auto DenoiserModule::Initialize( IGpuDevice *device ) -> void {
-        if ( mSettings.mBackend == DenoiserBackend::eOidn ) {
-            mOidn->Initialize( device );
-        }
-    }
-
     auto DenoiserModule::RegisterPasses( FrameGraph &graph, IGpuDevice *device, bool pathTracing ) -> void {
+        const auto &rays{ graph.GetData<RayTracingInfo>() };
+        mOutput = pathTracing ? rays.mDirect : rays.mIndirect;
+        if ( mSettings.mBackend == DenoiserBackend::eDlss ) {
+            if ( pathTracing ) {
+                mDlss->RegisterPasses( graph );
+            }
+            return;
+        }
         if ( mSettings.mBackend == DenoiserBackend::eOidn ) {
-            mOidn->RegisterPasses( graph, device, pathTracing );
+            mOidn->RegisterPasses( graph, pathTracing );
             return;
         }
 #if MIKOTO_ENABLE_NRD
@@ -222,7 +259,8 @@ namespace mikoto::renderer {
         state.mSamplerSlot = vulkan ? offsets.samplerOffset : 0;
 
         // Outputs and both NRD texture pools use the current view resolution.
-        const auto [width, height]{ InferDimensions( mResolution ) };
+        const auto width{ mInputSize.x };
+        const auto height{ mInputSize.y };
         state.mWidth = static_cast<core::u32>( width );
         state.mHeight = static_cast<core::u32>( height );
         const auto texture{ [&]( const char *name, Format format, core::u32 downsample = 1 ) {
@@ -453,6 +491,10 @@ namespace mikoto::renderer {
     }
 
     auto DenoiserModule::Prepare( const scene::Scene *scene, const scene::Camera *camera, const RayTracingModule &rays ) -> void {
+        if ( mSettings.mBackend == DenoiserBackend::eDlss ) {
+            mDlss->Prepare( scene, camera, rays );
+            return;
+        }
         if ( mSettings.mBackend == DenoiserBackend::eOidn ) {
             mOidn->Prepare( rays );
             return;

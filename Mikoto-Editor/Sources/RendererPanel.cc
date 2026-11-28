@@ -338,16 +338,19 @@ namespace mikoto::editor {
                             &samples, 1, static_cast<int>( renderer::RayTracingConfiguration::kMaxPathSamplesPerFrame ) );
                         RendererControlRow( MKT_LOC( "renderer_maximum_bounces" ).c_str() );
                         changed |= ImGui::SliderInt( "##renderer_maximum_bounces", &bounces, 1, 32 );
-                        const bool nrd{ settings.mDenoiser.mBackend == renderer::DenoiserBackend::eNrd && renderer.IsDenoiserActive() };
-                        ImGui::BeginDisabled( nrd );
+                        const bool temporal{ settings.mDenoiser.mEnabled &&
+                            ( settings.mDenoiser.mBackend == renderer::DenoiserBackend::eDlss ||
+                                ( settings.mDenoiser.mBackend == renderer::DenoiserBackend::eNrd && renderer.IsDenoiserActive() ) ) };
+                        ImGui::BeginDisabled( temporal );
                         RendererControlRow( MKT_LOC( "renderer_sample_limit" ).c_str() );
                         changed |= ImGui::InputInt( "##renderer_sample_limit", &limit );
                         ImGui::EndDisabled();
                         settings.mRayTracing.mPathSamplesPerFrame = static_cast<core::u32>( glm::max( samples, 1 ) );
                         settings.mRayTracing.mPathMaxBounces = static_cast<core::u32>( glm::max( bounces, 1 ) );
                         settings.mRayTracing.mPathMaxSamples = static_cast<core::u32>( glm::max( limit, 1 ) );
-                        if ( nrd ) {
-                            RendererMetricRow( "Temporal history", "NRD (see denoising controls)" );
+                        if ( temporal ) {
+                            RendererMetricRow( "Temporal history", settings.mDenoiser.mBackend == renderer::DenoiserBackend::eDlss
+                                ? "DLSS Ray Reconstruction" : "NRD (see denoising controls)" );
                         }
                         else {
                             RendererMetricRow( MKT_LOC( "renderer_accumulated_samples_label" ).c_str(),
@@ -356,7 +359,7 @@ namespace mikoto::editor {
 
                         RendererControlRow( MKT_LOC( "renderer_accumulation" ).c_str() );
                         if ( ImGui::Button( imgui::widget::LocalizedLabel( "renderer_restart_accumulation", "Restart accumulation" ).c_str() ) ) {
-                            if ( nrd ) {
+                            if ( temporal ) {
                                 ++settings.mDenoiser.mResetRevision;
                                 changed = true;
                             }
@@ -549,7 +552,7 @@ namespace mikoto::editor {
                 auto &denoiser{ settings.mDenoiser };
                 if ( BeginRendererRows( "DenoiserSelection" ) ) {
                     RendererControlRow( "Active denoiser" );
-                    const char *backends[]{ "NRD", "OIDN" };
+                    const char *backends[]{ "NRD", "OIDN", "DLSS Ray Reconstruction" };
                     int activeBackend{ static_cast<int>( denoiser.mBackend ) };
                     if ( ImGui::Combo( "##ActiveDenoiser", &activeBackend, backends, IM_ARRAYSIZE( backends ) ) ) {
                         denoiser.mBackend = static_cast<renderer::DenoiserBackend>( activeBackend );
@@ -557,7 +560,7 @@ namespace mikoto::editor {
                     }
                     RendererControlRow( "Enabled" );
                     changed |= imgui::CheckBox( "##DenoiserEnabled", denoiser.mEnabled );
-                    RendererMetricRow( "Current view", renderer.IsPreparing() ? "Preparing" : renderer.IsDenoiserActive() ? "Filtering" : denoiser.mEnabled ? "Progressive / no matching RT signal" : "Disabled" );
+                    RendererMetricRow( "Current view", renderer.IsPreparing() ? "Preparing" : renderer.IsDenoiserActive() ? "Filtering" : denoiser.mEnabled ? ( denoiser.mBackend == renderer::DenoiserBackend::eDlss ? "Raw HDR fallback" : "Progressive / no matching RT signal" ) : "Disabled" );
                     ImGui::EndTable();
                 }
 
@@ -579,6 +582,11 @@ namespace mikoto::editor {
                     const auto oidnFlags{ revealActive && denoiser.mBackend == renderer::DenoiserBackend::eOidn ? ImGuiTabItemFlags_SetSelected : ImGuiTabItemFlags_None };
                     if ( ImGui::BeginTabItem( "OIDN", nullptr, oidnFlags ) ) {
                         settingsView = static_cast<int>( renderer::DenoiserBackend::eOidn );
+                        ImGui::EndTabItem();
+                    }
+                    const auto dlssFlags{ revealActive && denoiser.mBackend == renderer::DenoiserBackend::eDlss ? ImGuiTabItemFlags_SetSelected : ImGuiTabItemFlags_None };
+                    if ( ImGui::BeginTabItem( "DLSS RR", nullptr, dlssFlags ) ) {
+                        settingsView = static_cast<int>( renderer::DenoiserBackend::eDlss );
                         ImGui::EndTabItem();
                     }
                     ImGui::EndTabBar();
@@ -636,7 +644,7 @@ namespace mikoto::editor {
                         ImGui::TextWrapped( "NRD is disabled in this build." );
                     }
                 }
-                else {
+                else if ( settingsView == static_cast<int>( renderer::DenoiserBackend::eOidn ) ) {
                     const auto *device{ renderer::RenderSystem::Get()->GetGpuDevice() };
                     const bool supported{ MIKOTO_ENABLE_OIDN && device->GetGraphicsApi() == renderer::rhi::GraphicsAPI::eVulkan && device->SupportsRayTracing() };
                     ImGui::BeginDisabled( !supported );
@@ -658,6 +666,72 @@ namespace mikoto::editor {
                     ImGui::TextWrapped( "OIDN filters the full HDR image, including transmission, fog and depth of field. Progressive accumulation continues; High quality costs more GPU time." );
                     if ( !supported ) {
                         ImGui::TextWrapped( "OIDN requires a Vulkan build with OIDN enabled and hardware ray tracing." );
+                    }
+                }
+                else {
+                    if ( BeginRendererRows( "DlssSettings" ) ) {
+                        const auto input{ renderer.GetTraceDimensions() };
+                        const auto [width, height]{ renderer::rhi::InferDimensions( renderer.GetRenderResolution() ) };
+                        RendererMetricRow( "Trace input", string::Format( "{} x {}", input.x, input.y ).c_str() );
+                        RendererMetricRow( "Viewport output", string::Format( "{} x {}", width, height ).c_str() );
+                        RendererControlRow( "Input resolution" );
+                        int inputMode{ static_cast<int>( denoiser.mDlssInputResolution ) };
+                        const char *inputModes[]{ "Native", "Optimal (SDK)", "Minimum (SDK)", "Maximum (SDK)" };
+                        if ( ImGui::Combo( "##dlss_input_resolution", &inputMode, inputModes, IM_ARRAYSIZE( inputModes ) ) ) {
+                            denoiser.mDlssInputResolution = static_cast<renderer::DlssInputResolution>( inputMode );
+                            changed = true;
+                        }
+                        RendererControlRow( "Model preset" );
+                        constexpr renderer::rhi::RayReconstructionPreset presets[]{
+                            renderer::rhi::RayReconstructionPreset::eDefault,
+                            renderer::rhi::RayReconstructionPreset::eD,
+                            renderer::rhi::RayReconstructionPreset::eE,
+                            renderer::rhi::RayReconstructionPreset::eF,
+                        };
+                        const char *presetLabels[]{ "Default (SDK)", "D (Transformer)", "E (Latest transformer)", "F (RR2)" };
+                        int presetIndex{};
+                        for ( int index{}; index < IM_ARRAYSIZE( presets ); ++index ) {
+                            if ( denoiser.mDlssPreset == presets[index] ) {
+                                presetIndex = index;
+                            }
+                        }
+                        if ( ImGui::Combo( "##dlss_preset", &presetIndex, presetLabels, IM_ARRAYSIZE( presetLabels ) ) ) {
+                            denoiser.mDlssPreset = presets[presetIndex];
+                            changed = true;
+                        }
+                        RendererControlRow( "Clear-glass guides" );
+                        changed |= imgui::CheckBox( "##dlss_clear_glass", denoiser.mDlssClearGlass );
+                        RendererControlRow( "History" );
+                        if ( ImGui::Button( "Reset history##dlss" ) ) {
+                            ++denoiser.mResetRevision;
+                            changed = true;
+                        }
+                        ImGui::EndTable();
+                    }
+                    ImGui::TextWrapped( "DLSS Ray Reconstruction requires Vulkan, a supported NVIDIA GPU/driver and path tracing. Input size and model changes prepare a new view in the background and reset history." );
+                    ImGui::TextWrapped( "Clear-glass guides follow the content behind thin panes and refracting glass. Rough glass and strongly absorbing or scattering media keep surface guides." );
+                    ImGui::SeparatorText( "Guide previews" );
+                    if ( BeginRendererRows( "DlssGuidePreviews" ) ) {
+                        RendererControlRow( "Viewport output" );
+                        const char *previewLabels[]{ "Rendered image", "Noisy HDR", "Diffuse albedo", "Specular albedo", "Normals", "Depth", "Motion vectors", "Roughness" };
+                        const auto target{ renderer.GetFinalImageType() };
+                        const auto first{ static_cast<int>( renderer::FinalImageType::eDlssNoisyColor ) };
+                        const auto last{ static_cast<int>( renderer::FinalImageType::eDlssRoughness ) };
+                        const auto targetIndex{ static_cast<int>( target ) };
+                        int preview{ targetIndex >= first && targetIndex <= last ? targetIndex - first + 1 : 0 };
+                        if ( ImGui::Combo( "##dlss_preview", &preview, previewLabels, IM_ARRAYSIZE( previewLabels ) ) ) {
+                            const auto output{ preview == 0 ? renderer::FinalImageType::eTonemap_Output :
+                                static_cast<renderer::FinalImageType>( first + preview - 1 ) };
+                            ( void )renderer.GetFinalImage( output );
+                            denoiser.mReconstructionGuides = preview != 0;
+                        }
+                        ImGui::EndTable();
+                    }
+                    if ( denoiser.mBackend == renderer::DenoiserBackend::eDlss ) {
+                        const auto &error{ renderer.GetRayTracingError() };
+                        if ( !error.empty() ) {
+                            ImGui::TextWrapped( "%s Raw HDR is shown while reconstruction is unavailable.", error.c_str() );
+                        }
                     }
                 }
             }

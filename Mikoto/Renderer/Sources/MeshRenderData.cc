@@ -24,8 +24,18 @@
 #include <Renderer/Core/MeshRenderData.hh>
 
 namespace mikoto::renderer {
+    static constexpr core::u64 kMeshTopologyHashSeed{ 1469598103934665603ull };
+    static constexpr core::u64 kMeshTopologyHashPrime{ 1099511628211ull };
+
     MeshRenderData::MeshRenderData( const MeshRenderData& source )
-        : mIndices{ source.mIndices }, mAttributes{ source.mAttributes }, mOffsets{ source.mOffsets }, mSortCenter{ source.mSortCenter }, mBoundsExtent{ source.mBoundsExtent }, mVertexCount{ source.mVertexCount }, mSkinned{ source.mSkinned } {
+        : mIndices{ source.mIndices },
+          mAttributes{ source.mAttributes },
+          mOffsets{ source.mOffsets },
+          mSortCenter{ source.mSortCenter },
+          mBoundsExtent{ source.mBoundsExtent },
+          mTopologyHash{ source.mTopologyHash },
+          mVertexCount{ source.mVertexCount },
+          mSkinned{ source.mSkinned } {
     }
 
     auto MeshRenderData::UpdatePositions( eastl::span<const core::float3> positions ) -> void {
@@ -73,12 +83,18 @@ namespace mikoto::renderer {
         mVertexCount = static_cast<core::u32>( vertices.size() );
         mIndices.reserve( indices.size() );
 
+        // Indices cannot change after construction. Fingerprint their ordering while
+        // copying them so temporal consumers never scan large meshes every frame.
+        // UpdatePositions changes geometry revisions without changing correspondence.
+        mTopologyHash = kMeshTopologyHashSeed;
+
         for ( const core::u32 index: indices ) {
             if ( index >= vertices.size() ) {
                 MKT_THROW_RUNTIME_ERROR( "Mesh index exceeds its vertex stream." );
             }
 
             mIndices.push_back( index );
+            mTopologyHash = ( mTopologyHash ^ index ) * kMeshTopologyHashPrime;
         }
 
         // float3 streams deliberately use 12-byte elements. Shaders load three
@@ -131,6 +147,10 @@ namespace mikoto::renderer {
 
     auto MeshRenderData::GetVertexCount() const -> core::u32 {
         return mVertexCount;
+    }
+
+    auto MeshRenderData::GetTopologyHash() const -> core::u64 {
+        return mTopologyHash;
     }
 
     auto MeshRenderData::GetOffsets() const -> const eastl::array<core::u64, kMeshStreamCount>& {

@@ -45,6 +45,7 @@ namespace mikoto::renderer {
         eDlssNormalRoughness,
         eDlssDepth,
         eDlssMotion,
+        eDlssRoughness,
         eCount,
     };
 

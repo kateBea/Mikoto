@@ -315,6 +315,10 @@ namespace mikoto::renderer {
          */
         MKT_NODISCARD virtual auto GetRenderResolution() const -> rhi::RenderResolution = 0;
 
+        /** Returns the active transport size, which can differ from display size. */
+        MKT_NODISCARD virtual auto GetTraceDimensions() const -> core::uint2;
+        MKT_NODISCARD virtual auto GetFinalImageType() const -> FinalImageType;
+
 
         /**
          * @brief Provides editable bloom configuration.

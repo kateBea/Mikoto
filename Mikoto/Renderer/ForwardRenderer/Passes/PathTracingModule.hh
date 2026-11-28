@@ -39,6 +39,7 @@ namespace mikoto::renderer {
     class PathTracingModule final {
     public:
         explicit PathTracingModule( rhi::RenderResolution resolution = rhi::RenderResolution::e1080P );
+        explicit PathTracingModule( core::uint2 dimensions );
 
         // Exposes the transport module for explicit upload/build/trace/history registration.
         MKT_NODISCARD auto GetRayTracingModule() -> RayTracingModule&;

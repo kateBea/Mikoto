@@ -32,6 +32,7 @@ static const uint DLSS_NOISY_COLOR = 0;
 static const uint DLSS_NORMAL_ROUGHNESS = 3;
 static const uint DLSS_DEPTH = 4;
 static const uint DLSS_MOTION = 5;
+static const uint DLSS_ROUGHNESS = 6;
 static const float MOTION_PREVIEW_RANGE_PIXELS = 32.0;
 
 [shader( "fragment" )]
@@ -40,6 +41,9 @@ float4 main( Input input ) : SV_Target0 {
     float3 color = value.rgb;
     if ( parameters.mMode == DLSS_NORMAL_ROUGHNESS ) {
         color = value.xyz * .5 + .5;
+    }
+    else if ( parameters.mMode == DLSS_ROUGHNESS ) {
+        color = float3( value.w );
     }
     else if ( parameters.mMode == DLSS_DEPTH ) {
         color = float3( pow( saturate( 1.0 - value.x ), .2 ) );

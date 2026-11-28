@@ -88,9 +88,13 @@ namespace mikoto::renderer {
             case FinalImageType::eDlssNormalRoughness:
             case FinalImageType::eDlssDepth:
             case FinalImageType::eDlssMotion:
+            case FinalImageType::eDlssRoughness:
                 if ( b.Contains<RayTracingInfo>() ) {
                     const auto &rays{ b.Get<RayTracingInfo>() };
                     if ( rays.mReconstructionReady ) {
+                        if ( mPresentTarget == FinalImageType::eDlssRoughness ) {
+                            return rays.mReconstruction.mNormalRoughness;
+                        }
                         return rays.mReconstruction.GetTextures()[static_cast<core::u32>( mPresentTarget ) -
                             static_cast<core::u32>( FinalImageType::eDlssNoisyColor )];
                     }
@@ -290,7 +294,7 @@ namespace mikoto::renderer {
                 const bool heatmap{ !fixedSource && ( mPresentTarget == FinalImageType::eClusterHeatmap || mPresentTarget == FinalImageType::eClusterHeatmapOverlay ) };
                 const bool rayAoDebug{ mPresentTarget == FinalImageType::eRayTracedAmbientOcclusion };
                 const bool denoiserDebug{ mPresentTarget == FinalImageType::eDenoiserValidation };
-                const bool reconstructionTarget{ mPresentTarget >= FinalImageType::eDlssNoisyColor && mPresentTarget <= FinalImageType::eDlssMotion };
+                const bool reconstructionTarget{ mPresentTarget >= FinalImageType::eDlssNoisyColor && mPresentTarget <= FinalImageType::eDlssRoughness };
                 const bool reconstructionDebug{ reconstructionTarget && b.Contains<RayTracingInfo>() && b.Get<RayTracingInfo>().mReconstructionReady };
                 const bool ssaoDebug{ rayAoDebug || ( !fixedSource && mPresentTarget == FinalImageType::eSsao ) };
 

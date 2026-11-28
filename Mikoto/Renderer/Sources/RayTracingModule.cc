@@ -43,6 +43,7 @@
 
 #include <Scene/Camera.hh>
 #include <Scene/Scene.hh>
+#include <Scene/Wind.hh>
 
 namespace mikoto::renderer {
     using namespace core;
@@ -85,6 +86,68 @@ namespace mikoto::renderer {
         } };
         return glm::mix( glm::mix( sample( origin.x, origin.y ), sample( origin.x + 1, origin.y ), blend.x ),
             glm::mix( sample( origin.x, origin.y + 1 ), sample( origin.x + 1, origin.y + 1 ), blend.x ), blend.y );
+    }
+
+    // Match base/Foliage_Helpers.slang in world space. The stored vertices are
+    // the actual current pose; the RR snapshot retains the preceding rendered
+    // pose, covering wind deformation together with camera and instance movement.
+    MKT_NODISCARD static auto DeformFoliagePosition( const float3 &position, const MeshInstance &mesh ) -> float3 {
+        if ( mesh.mFoliageMotion.x <= 0.0f ) {
+            return position;
+        }
+
+        constexpr f32 referenceWindSpeed{ 12.0f };
+        // Anchor the plant at its authored local root and keep that base fixed.
+        const auto root{ float3{ mesh.mTransform * float4{ 0, mesh.mFoliageShape.x, 0, 1 } } };
+        const auto axis{ float3{ mesh.mTransform * float4{ 0, 1, 0, 0 } } };
+        const auto scale{ glm::max( glm::length( axis ), 1e-6f ) };
+        const auto up{ axis / scale };
+        const auto delta{ position - root };
+        const auto elevation{ glm::dot( delta, up ) };
+        if ( elevation <= 0.0f ) {
+            return position;
+        }
+
+        const auto velocity{ float3{ mesh.mFoliageWind } };
+        // Only wind perpendicular to the trunk bends the surface.
+        const auto wind{ velocity - up * glm::dot( velocity, up ) };
+        const auto speed{ glm::length( wind ) };
+        if ( speed < 1e-5f ) {
+            return position;
+        }
+
+        const auto direction{ wind / speed };
+        const auto side{ glm::cross( up, direction ) };
+        const auto height{ mesh.mFoliageMotion.x * scale };
+        const auto weight{ glm::clamp( elevation / height, 0.0f, 1.0f ) };
+        const auto strength{ glm::clamp( speed / referenceWindSpeed, 0.0f, 1.0f ) };
+        const auto time{ mesh.mFoliageWind.w * mesh.mFoliageShape.y };
+        const auto phase{ glm::dot( root, float3{ .173f, .137f, .291f } ) };
+        // Slow trunk sway carries the branches; radial phase and faster waves
+        // add branch motion and leaf flutter without moving the root.
+        const auto mainWave{ 1.0f + .2f * std::sin( time * .73f + phase ) + .1f * std::sin( time * 1.31f + phase * 1.7f ) };
+        const auto bend{ height * mesh.mFoliageMotion.y * weight * weight * strength };
+        const auto radial{ delta - up * elevation };
+        const auto branchWeight{ weight * weight * glm::clamp( glm::length( radial ) / glm::max( height * .2f, .05f ), 0.0f, 1.0f ) };
+        const auto branchPhase{ glm::dot( radial, direction * .7f + side * .5f ) + phase };
+        const auto branch{ std::sin( time * 2.17f + branchPhase ) * mesh.mFoliageMotion.z * scale * branchWeight * strength };
+        const auto flutter{ ( std::sin( time * 7.3f + branchPhase * 2.1f ) + .35f * std::sin( time * 11.7f + branchPhase * 3.7f ) ) *
+                            mesh.mFoliageMotion.w * scale * weight * strength };
+        return position + direction * ( bend * mainWave + branch ) +
+               side * ( bend * .15f * std::sin( time * .91f + phase ) + flutter ) -
+               up * ( bend * bend / glm::max( 2.0f * elevation, .01f ) );
+    }
+
+    MKT_NODISCARD static auto DeformFoliageNormal( const float3 &rest, const float3 &deformed,
+        const float3 &normal, const MeshInstance &mesh ) -> float3 {
+        constexpr f32 normalSampleDistance{ .01f };
+        const auto reference{ std::abs( normal.y ) < .9f ? float3{ 0, 1, 0 } : float3{ 1, 0, 0 } };
+        const auto tangent{ glm::normalize( glm::cross( reference, normal ) ) };
+        const auto bitangent{ glm::cross( normal, tangent ) };
+        const auto a{ DeformFoliagePosition( rest + tangent * normalSampleDistance, mesh ) - deformed };
+        const auto b{ DeformFoliagePosition( rest + bitangent * normalSampleDistance, mesh ) - deformed };
+        const auto result{ glm::cross( a, b ) };
+        return glm::dot( result, result ) > 1e-12f ? glm::normalize( result ) : normal;
     }
 
     // PBRT attaches radiance to the shape, independently of its scattering material.
@@ -184,7 +247,11 @@ namespace mikoto::renderer {
     }
 
     RayTracingModule::RayTracingModule( rhi::RenderResolution resolution )
-        : mRenderResolution{ resolution } {
+        : RayTracingModule{ rhi::GetRenderDimensions( resolution ) } {
+    }
+
+    RayTracingModule::RayTracingModule( core::uint2 dimensions )
+        : mDimensions{ dimensions } {
     }
 
     auto RayTracingModule::RegisterUploadPass( FrameGraph &graph ) -> void {
@@ -358,6 +425,10 @@ namespace mikoto::renderer {
                 }
 
                 mFrameUploads.Submit( context );
+                // Preparation only stages bytes. Keep them dirty if preparation or
+                // transfer fails, and acknowledge residency after recording the copies.
+                mPreviousPositions.mUploadPending = false;
+                mReconstructionPositions.mUploadPending = false;
             } );
     }
 
@@ -432,7 +503,8 @@ namespace mikoto::renderer {
     }
 
     auto RayTracingModule::CreateTraceResources( FrameGraph &graph ) -> void {
-        const auto [width, height]{ InferDimensions( mRenderResolution ) };
+        const auto width{ mDimensions.x };
+        const auto height{ mDimensions.y };
 
         const auto texture{ [&]( cstr name ) {
             return graph.Create( FGTextureDescription{}
@@ -552,13 +624,17 @@ namespace mikoto::renderer {
         }
 
         // Raygen reads last frame's history while writing this frame's accumulation.
-        const auto [width, height]{ InferDimensions( mRenderResolution ) };
+        const auto width{ mDimensions.x };
+        const auto height{ mDimensions.y };
         const TextureSlice slice{
             .mWidth = as<u32>( width ),
             .mHeight = as<u32>( height ),
             .mDepth = 1
         };
-        context.CopyTexture( mAccumulatedLightingOutput, slice, mLightingHistory, slice );
+        if ( !mTracePassUsesPathTracing || !mReconstructionDenoising ) {
+            // RR owns radiance history; AO debug keeps its separate history below.
+            context.CopyTexture( mAccumulatedLightingOutput, slice, mLightingHistory, slice );
+        }
 
         if ( IsOcclusionActive() ) {
             context.CopyTexture( mOcclusionOutput, slice, mOcclusionHistory, slice );
@@ -566,7 +642,9 @@ namespace mikoto::renderer {
         }
 
         if ( mTracePassUsesPathTracing ) {
-            mAccumulatedRadianceSamples = eastl::min( mConfiguration.mPathMaxSamples, mAccumulatedRadianceSamples + mActivePathSamples );
+            if ( !mReconstructionDenoising ) {
+                mAccumulatedRadianceSamples = eastl::min( mConfiguration.mPathMaxSamples, mAccumulatedRadianceSamples + mActivePathSamples );
+            }
         }
         else if ( mConfiguration.mGlobalIlluminationEnabled || mConfiguration.mReflectionsEnabled ) {
             const auto samples{ mConfiguration.mRayGiSamplesPerFrame };
@@ -605,8 +683,7 @@ namespace mikoto::renderer {
         mFrameUploads.CopyBuffer( mSceneDataBuffer, 0, data.data(), data.size() );
         mFrameUploads.CopyBuffer( mViewEffectsBuffer, mViewEffects, 0 );
         if ( mDenoiserDataBuffer.mHandle ) {
-            context.EnsureBufferCapacity( mPreviousPositionsBuffer, mPreviousPositions.size() * sizeof( core::float4 ) );
-            mFrameUploads.CopyBuffer( mPreviousPositionsBuffer, 0, mPreviousPositions.data(), mPreviousPositions.size() * sizeof( core::float4 ) );
+            PreparePositionHistoryUpload( context, mPreviousPositionsBuffer, mPreviousPositions );
             auto images{ mDenoiserInputs.Textures() };
             for ( core::u32 i{}; i < 4; ++i ) {
                 mDenoiserData.mImages0[i] = context.PushTexture_UAV( images[i] );
@@ -624,22 +701,49 @@ namespace mikoto::renderer {
         mFrameUploads.CopyBuffer( mFrameConstantsBuffer, mFrameConstants, 0 );
     }
 
+    auto RayTracingModule::CapturePositionHistory( PositionHistory &history ) -> void {
+        if ( history.mGeometryRevision == mGeometryRevision ) {
+            return;
+        }
+
+        // Camera movement never repacks the scene. Avoid gathering millions of
+        // unchanged world positions just to update the previous camera matrix.
+        history.mPositions.resize( mPackedScene.mVertices.size() );
+        for ( core::usize index{}; index < mPackedScene.mVertices.size(); ++index ) {
+            history.mPositions[index] = mPackedScene.mVertices[index].mPosition;
+        }
+        history.mGeometryRevision = mGeometryRevision;
+        history.mTopologyRevision = mTopologyRevision;
+        history.mUploadPending = true;
+    }
+
+    auto RayTracingModule::PreparePositionHistoryUpload( CommandContext &context, FGBufferHandle buffer, PositionHistory &history ) -> void {
+        // Replaced/reordered geometry has no valid previous vertex correspondence,
+        // even when its vertex count is unchanged. Start it at its current pose.
+        if ( history.mGeometryRevision == 0 || history.mTopologyRevision != mTopologyRevision ) {
+            CapturePositionHistory( history );
+        }
+
+        const auto bytes{ history.mPositions.size() * sizeof( core::float4 ) };
+        const bool replaced{ context.EnsureBufferCapacity( buffer, bytes ) };
+        history.mUploadPending |= replaced;
+        if ( history.mUploadPending ) {
+            // Upload once per captured pose (or fresh storage), not once per view
+            // update. Transfer and ray-read dependencies remain owned by the graph.
+            mFrameUploads.CopyBuffer( buffer, 0, history.mPositions.data(), bytes );
+        }
+    }
+
     auto RayTracingModule::PrepareReconstructionUpload( CommandContext &context ) -> void {
         if ( !mReconstructionPipeline.mHandle ) {
             return;
         }
-        // Capture previous rendered positions, including CPU skinning/displacement.
-        // A changed scene/topology starts with current positions and zero motion.
-        if ( !mReconstructionHistoryValid || mReconstructionPositions.size() != mPackedScene.mVertices.size() ) {
-            mReconstructionHistoryValid = false;
-            mReconstructionPositions.clear();
-            for ( const auto &vertex: mPackedScene.mVertices ) {
-                mReconstructionPositions.push_back( vertex.mPosition );
-            }
+        // Camera cuts discard reprojection, but a stationary mesh still has the same
+        // positions. Refresh that snapshot only if the packed geometry also changed.
+        if ( !mReconstructionHistoryValid ) {
+            CapturePositionHistory( mReconstructionPositions );
         }
-        context.EnsureBufferCapacity( mReconstructionPositionsBuffer, mReconstructionPositions.size() * sizeof( core::float4 ) );
-        mFrameUploads.CopyBuffer( mReconstructionPositionsBuffer, 0, mReconstructionPositions.data(),
-            mReconstructionPositions.size() * sizeof( core::float4 ) );
+        PreparePositionHistoryUpload( context, mReconstructionPositionsBuffer, mReconstructionPositions );
         const auto images{ mReconstructionInputs.GetTextures() };
         for ( core::u32 index{}; index < images.size(); ++index ) {
             if ( index < mReconstructionData.mImages0.length() ) {
@@ -649,10 +753,12 @@ namespace mikoto::renderer {
                 mReconstructionData.mImages1[index - mReconstructionData.mImages0.length()] = context.PushTexture_UAV( images[index] );
             }
         }
-        const auto [width, height]{ InferDimensions( mRenderResolution ) };
+        const auto width{ mDimensions.x };
+        const auto height{ mDimensions.y };
         mReconstructionData.mWidth = static_cast<core::u32>( width );
         mReconstructionData.mHeight = static_cast<core::u32>( height );
         mReconstructionData.mPreviousPositions = context.GetDeviceBufferAddress( mReconstructionPositionsBuffer );
+        mReconstructionData.mGuideOptions.x = mDenoiserSettings.mDlssClearGlass ? 1u : 0u;
         mReconstructionData.mViewProjection = glm::inverse( mFrameConstants.mInverseViewProjection );
         mReconstructionData.mPreviousViewProjection = mReconstructionHistoryValid
             ? mPreviousReconstructionViewProjection : mReconstructionData.mViewProjection;
@@ -770,15 +876,21 @@ namespace mikoto::renderer {
         // Frame preparation has already resolved the TLAS index written to the shader constants.
         ( void )context.PushAccelerationStructure( mSceneAccelerationStructure );
 
-        context.BindPipeline( mTracePipeline );
-        context.BindShaderTable( mTraceShaderTable );
-
         const auto frameAddress{ context.GetDeviceBufferAddress( mFrameConstantsBuffer ) };
-        context.PushConstants( frameAddress );
+        const auto width{ mDimensions.x };
+        const auto height{ mDimensions.y };
 
-        const auto [width, height]{ InferDimensions( mRenderResolution ) };
-
-        context.DispatchRays( width, height );
+        // RR's ray generator produces the fresh color and guides in one dispatch.
+        // Diagnostic previews alongside NRD/OIDN still keep the ordinary beauty path.
+        if ( !mTracePassUsesPathTracing || !mReconstructionDenoising || IsOcclusionActive() ) {
+            context.BindPipeline( mTracePipeline );
+            context.BindShaderTable( mTraceShaderTable );
+            context.PushConstants( frameAddress );
+            context.DispatchRays( width, height );
+            if ( mDenoiserDataBuffer.mHandle ) {
+                CapturePositionHistory( mPreviousPositions );
+            }
+        }
         if ( mReconstructionPipeline.mHandle ) {
             // This diagnostic dispatch has its own current-frame color contract.
             // It never reads/writes the progressive or NRD/OIDN beauty histories.
@@ -786,10 +898,10 @@ namespace mikoto::renderer {
             context.BindShaderTable( mReconstructionShaderTable );
             context.PushConstants( frameAddress );
             context.DispatchRays( width, height );
-            mReconstructionPositions.clear();
-            for ( const auto &vertex: mPackedScene.mVertices ) {
-                mReconstructionPositions.push_back( vertex.mPosition );
-            }
+            // Advance only after tracing this pose, never on a skipped frame.
+            // A final upload on the next frame removes motion when an object stops;
+            // later stationary frames reuse both the CPU snapshot and GPU buffer.
+            CapturePositionHistory( mReconstructionPositions );
             mPreviousReconstructionViewProjection = mReconstructionData.mViewProjection;
             mReconstructionHistoryValid = true;
         }
@@ -810,16 +922,13 @@ namespace mikoto::renderer {
     auto RayTracingModule::Prepare( FrameGraph &, const scene::Scene *scene, const scene::Camera *camera, const RayTracingConfiguration &settings,
         rhi::TextureHandle environment, float environmentScale, float exposure, float gamma ) -> void {
         mCanTraceFrame = false;
-        if ( mReconstructionCamera != camera ) {
+        // Ordinary camera motion keeps the previous rendered view. A different
+        // camera or projection type has no compatible reprojection history.
+        const bool orthographic{ camera && camera->IsOrthographic() };
+        if ( mReconstructionCamera != camera || mReconstructionOrthographic != orthographic ) {
             mReconstructionHistoryValid = false;
             mReconstructionCamera = camera;
-        }
-        mPreviousPositions.clear();
-        if ( mDenoiserDataBuffer.mHandle ) {
-            mPreviousPositions.reserve( mPackedScene.mVertices.size() );
-            for ( const auto &vertex: mPackedScene.mVertices ) {
-                mPreviousPositions.push_back( vertex.mPosition );
-            }
+            mReconstructionOrthographic = orthographic;
         }
         if ( camera ) {
             mDenoiserData.mWorldToView = camera->GetViewMatrix();
@@ -867,11 +976,21 @@ namespace mikoto::renderer {
 
     auto RayTracingModule::SetDenoiserSettings( const DenoiserSettings &settings ) -> void {
         auto transportSettings{ settings };
+        mReconstructionDenoising = settings.mEnabled && settings.mBackend == DenoiserBackend::eDlss;
+        transportSettings.mReconstructionGuides |= mReconstructionDenoising;
         transportSettings.mEnabled &= settings.mBackend == DenoiserBackend::eNrd;
         if ( mDenoiserSettings.mEnabled != transportSettings.mEnabled || mDenoiserSettings.mBackend != settings.mBackend ) {
             ResetAccumulation();
         }
         mDenoiserSettings = transportSettings;
+    }
+
+    auto RayTracingModule::ResetReconstructionHistory() -> void {
+        mReconstructionHistoryValid = false;
+    }
+
+    auto RayTracingModule::GetReconstructionData() const -> const DlssRayData & {
+        return mReconstructionData;
     }
 
     auto RayTracingModule::ResetAccumulation() -> void {
@@ -965,9 +1084,11 @@ namespace mikoto::renderer {
         Hash( viewHash, mViewEffects.mLensUp );
         Hash( viewHash, mViewEffects.mLensForward );
 
-        // Interactive navigation needs a fresh image more than extra samples of
-        // a view that has already moved. Stationary views retain the requested SPP.
-        mActivePathSamples = mDenoiserSettings.mEnabled && mDenoiserSettings.mAdaptiveSampling && viewHash != mAccumulationViewHash
+        // The transport's enabled flag is NRD-only; RR owns a separate temporal
+        // history and needs the same navigation budget. OIDN remains progressive.
+        // Moving views use one sample; stationary views retain the requested SPP.
+        const bool temporalDenoising{ mDenoiserSettings.mEnabled || mReconstructionDenoising };
+        mActivePathSamples = temporalDenoising && mDenoiserSettings.mAdaptiveSampling && viewHash != mAccumulationViewHash
                                  ? 1u
                                  : mConfiguration.mPathSamplesPerFrame;
 
@@ -1007,6 +1128,10 @@ namespace mikoto::renderer {
             CollectLights( *scene, inputs );
         }
 
+        // Membership, mesh replacement and index ordering can change while the
+        // total vertex count stays the same. Include correspondence in the cache key.
+        Hash( inputs.mHash, inputs.mTopologyHash );
+
         // Lighting changes need responsive histories, not new vertex/index data.
         Hash( inputs.mLightingHash, scene );
         Hash( inputs.mLightingHash, mViewEffects.mBackground.w );
@@ -1033,15 +1158,12 @@ namespace mikoto::renderer {
 
         const bool topologyChanged{ inputs.mTopologyHash != mTopologyHash || scene != mDenoiserScene };
         mPackedScene = PackScene( inputs );
+        // This revision advances on a repack, independently of camera/history
+        // resets, so static views keep their existing previous-position buffers.
+        ++mGeometryRevision;
         if ( topologyChanged ) {
             mReconstructionHistoryValid = false;
-        }
-        if ( mDenoiserDataBuffer.mHandle && ( topologyChanged || mPreviousPositions.size() != mPackedScene.mVertices.size() ) ) {
             ++mTopologyRevision;
-            mPreviousPositions.clear();
-            for ( const auto &vertex: mPackedScene.mVertices ) {
-                mPreviousPositions.push_back( vertex.mPosition );
-            }
         }
         mTopologyHash = inputs.mTopologyHash;
         mDenoiserScene = scene;
@@ -1076,6 +1198,8 @@ namespace mikoto::renderer {
         }
 
         const auto &registry{ scene.GetRegistry() };
+        const auto windField{ scene.GetWindField() };
+        const bool tracksGeometryHistory{ mDenoiserDataBuffer.mHandle || mReconstructionDataBuffer.mHandle };
 
         for ( const auto [entity, tag, transform, mesh, material]:
             registry.view<scene::TagComponent, scene::TransformComponent, scene::MeshComponent, scene::MaterialComponent>().each() ) {
@@ -1139,13 +1263,36 @@ namespace mikoto::renderer {
                 item.mMeshEmitter = true;
             }
 
-            // Local shape identity excludes shading and world motion, so a static BLAS survives both.
+            // Use the same scene time, root and controls as raster foliage. Baking
+            // the displaced vertices also gives shadows/reflections the moving surface.
+            const auto &foliage{ physical->GetFoliageWind() };
+            if ( foliage.mEnabled && !item.mMesh->IsSkinned() ) {
+                const auto root{ float3{ item.mTransform * float4{ 0, foliage.mRootHeight, 0, 1 } } };
+                const auto velocity{ scene::SampleWind( windField, root ) };
+                // A calm field keeps the ordinary static BLAS cached.
+                if ( velocity != float3{} ) {
+                    item.mFoliageMotion = { glm::clamp( foliage.mHeight, .01f, 100.0f ), glm::clamp( foliage.mTrunkBend, 0.0f, .25f ),
+                        glm::clamp( foliage.mBranchMotion, 0.0f, 2.0f ), glm::clamp( foliage.mLeafFlutter, 0.0f, .5f ) };
+                    item.mFoliageShape = { foliage.mRootHeight, glm::clamp( foliage.mFrequency, 0.0f, 10.0f ), 0.0f, 0.0f };
+                    item.mFoliageWind = { velocity, windField.mTime };
+                }
+            }
+
+            // Local shape identity excludes shading and rigid motion for static
+            // meshes. Wind depends on world placement, so its BLAS includes that state.
             item.mShapeRevision = kRevisionHashSeed;
             Hash( item.mShapeRevision, item.mMesh.GetPtr() );
             Hash( item.mShapeRevision, item.mMesh->GetRevision() );
+            Hash( item.mShapeRevision, item.mMesh->GetTopologyHash() );
             HashBytes( item.mShapeRevision, item.mPalette.data(), item.mPalette.size() * sizeof( float4x4 ) );
             const bool mirrored{ glm::determinant( glm::mat3{ item.mTransform } ) < 0.0f };
             Hash( item.mShapeRevision, mirrored );
+            if ( item.mFoliageMotion.x > 0.0f ) {
+                Hash( item.mShapeRevision, item.mFoliageMotion );
+                Hash( item.mShapeRevision, item.mFoliageShape );
+                Hash( item.mShapeRevision, item.mFoliageWind );
+                Hash( item.mShapeRevision, item.mTransform );
+            }
 
             const auto &height{ physical->GetHeightMapping() };
 
@@ -1166,11 +1313,18 @@ namespace mikoto::renderer {
                 Hash( inputs.mLightingHash, capture->GetTextureRevision() );
             }
 
-            if ( mDenoiserDataBuffer.mHandle ) {
+            // RR and NRD both interpolate previous vertices using current triangle
+            // indices. Deformation/rigid movement preserve this mapping; swaps do not.
+            if ( tracksGeometryHistory ) {
                 Hash( inputs.mTopologyHash, entity );
+                Hash( inputs.mTopologyHash, item.mMesh.GetPtr() );
+                Hash( inputs.mTopologyHash, mirrored );
                 Hash( inputs.mTopologyHash, item.mMesh->GetVertexCount() );
                 Hash( inputs.mTopologyHash, item.mMesh->GetIndices().size() );
-                HashBytes( inputs.mTopologyHash, item.mMesh->GetIndices().data(), item.mMesh->GetIndices().size() * sizeof( core::u32 ) );
+                // Index streams are immutable and fingerprinted at import. Hashing
+                // their bytes here used to rescan each dragon for every instance,
+                // every view, before even reaching the unchanged-scene cache.
+                Hash( inputs.mTopologyHash, item.mMesh->GetTopologyHash() );
             }
             inputs.mMeshes.push_back( eastl::move( item ) );
         }
@@ -1266,6 +1420,10 @@ namespace mikoto::renderer {
                     Hash( inputs.mHash, shape.mRadiance );
                     Hash( inputs.mHash, shape.mTwoSided );
                     inputs.mRectangleEmitters.push_back( shape );
+                    if ( mDenoiserDataBuffer.mHandle || mReconstructionDataBuffer.mHandle ) {
+                        // Rectangle vertices follow mesh vertices in the packed scene.
+                        Hash( inputs.mTopologyHash, entity );
+                    }
                 }
 
                 continue;
@@ -1421,6 +1579,7 @@ namespace mikoto::renderer {
 
         // The BLAS uses local positions. Shading and light sampling use world-space attributes.
         const auto normalMatrix{ glm::inverseTranspose( glm::mat3{ instance.mTransform } ) };
+        const auto inverseTransform{ glm::inverse( instance.mTransform ) };
         float3 localMinimum{ std::numeric_limits<f32>::max() };
         float3 localMaximum{ std::numeric_limits<f32>::lowest() };
 
@@ -1473,9 +1632,19 @@ namespace mikoto::renderer {
                 }
             }
 
-            const auto localPosition{ position };
+            auto localPosition{ position };
             position = core::float3{ instance.mTransform * core::float4{ position, 1.0f } };
             normal = normalMatrix * normal;
+
+            if ( instance.mFoliageMotion.x > 0.0f ) {
+                const auto rest{ position };
+                normal = glm::length( normal ) > 0.000001f ? glm::normalize( normal ) : float3{ 0, 1, 0 };
+                position = DeformFoliagePosition( rest, instance );
+                normal = DeformFoliageNormal( rest, position, normal, instance );
+                // TLAS retains the instance transform, so the BLAS stores the
+                // inverse-transformed wind pose rather than applying placement twice.
+                localPosition = float3{ inverseTransform * float4{ position, 1.0f } };
+            }
 
             next.mBuildPositions.push_back( localPosition );
             localMinimum = glm::min( localMinimum, localPosition );
@@ -1486,7 +1655,6 @@ namespace mikoto::renderer {
         }
 
         // Bound connections to sampled emitters without fetching instance matrices in raygen.
-        const auto inverseTransform{ glm::inverse( instance.mTransform ) };
         const auto linear{ AbsoluteLinear( instance.mTransform ) };
         const auto inverseLinear{ AbsoluteLinear( inverseTransform ) };
         const auto translation{ glm::abs( float3{ instance.mTransform[3] } ) };

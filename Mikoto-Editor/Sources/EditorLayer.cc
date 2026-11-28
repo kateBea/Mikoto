@@ -2488,7 +2488,7 @@ namespace mikoto::editor {
             ImGui::SeparatorText( "DLSS RR inputs" );
             const auto reconstructionSettings{ mEditorRenderer->GetSettings() };
             ImGui::BeginDisabled( !MIKOTO_ENABLE_DLSS || !reconstructionSettings.mRayTracing.mPathTracingEnabled );
-            constexpr const char *reconstructionLabels[]{ "Noisy HDR", "Diffuse albedo", "Specular albedo", "Normal / roughness", "Depth", "Motion vectors" };
+            constexpr const char *reconstructionLabels[]{ "Noisy HDR", "Diffuse albedo", "Specular albedo", "Normals", "Depth", "Motion vectors", "Roughness" };
             for ( core::u32 index{}; index < std::size( reconstructionLabels ); ++index ) {
                 if ( EditorMenuItem( reconstructionLabels[index] ) ) {
                     const auto output{ static_cast<renderer::FinalImageType>( static_cast<core::u32>( renderer::FinalImageType::eDlssNoisyColor ) + index ) };
@@ -2500,7 +2500,7 @@ namespace mikoto::editor {
             auto settings{ mEditorRenderer->GetSettings() };
             auto &denoiser{ settings.mDenoiser };
             bool changed{};
-            ImGui::BeginDisabled( !MIKOTO_ENABLE_NRD || !mEditorRenderer->IsDenoiserActive() );
+            ImGui::BeginDisabled( !MIKOTO_ENABLE_NRD || denoiser.mBackend != renderer::DenoiserBackend::eNrd || !mEditorRenderer->IsDenoiserActive() );
             if ( EditorMenuItem( "Validation" ) ) {
                 mEditorState->mFinalComposition = mEditorRenderer->GetFinalImage( renderer::FinalImageType::eDenoiserValidation );
             }
@@ -4200,11 +4200,13 @@ namespace mikoto::editor {
                 const core::float3 scale{ dimensions / size };
 
                 auto &transform{ entity->GetComponent<scene::TransformComponent>() };
+
                 // Normalize the imported prefab to world-space dimensions and
                 // keep its mesh-space collider offset aligned with the visual.
                 transform.SetTransform( core::float4x4{ 1.0f } );
                 transform.SetUniformSale( false );
                 transform.SetScale( scale );
+                
                 // Lift the starter ground and boxes 10 cm above the editor grid at Y = 0.
                 transform.SetTranslation( position + core::float3{ 0.0f, 0.1f, 0.0f } - center * scale );
 
@@ -4259,17 +4261,20 @@ namespace mikoto::editor {
             auto *player{ scene->CreateEntity( "Player" ) };
             player->GetComponent<scene::TransformComponent>().SetTranslation( { 0.0f, 0.15f, 6.0f } );
             player->GetComponent<scene::TransformComponent>().SetRotation( { 0.0f, 180.0f, 0.0f } );
+
             auto &character{ player->AddComponent<scene::CharacterControllerComponent>() };
             character.SetRadius( 0.26f );
             character.SetHalfHeight( 0.62f );
             character.SetMaxSlopeAngle( 0.85f );
             character.SetMaxStepHeight( 0.3f );
             character.SetMaxStrength( 120.0f );
+            
             const auto model{ asset::AssetRegistryService::Get()->LoadAsset<asset::Model>(
                 filesystem::Path{ "Resources/Demo Projects/Animation_Playground/Assets/Models/PlayerXbot.gltf" } ) };
             if ( !model || !model->IsSkinned() ) {
                 MKT_THROW_RUNTIME_ERROR( "The starter scene requires the Animation_Playground character." );
             }
+
             auto *visual{ scene->CreateEntity( scene::EntityCreateInfo{ .mRoot = player, .mName = "Player visual", .mModel = model } ) };
             const core::float4x4 meshTransform{
                 core::float4{ 0.0099487075f, 0.0f, 0.0f, 0.0f },
@@ -4277,14 +4282,17 @@ namespace mikoto::editor {
                 core::float4{ 0.0f, -2.209056826e-18f, 0.0099487075f, 0.0f },
                 core::float4{ -2.665541311e-08f, 0.00321455934f, -0.01652417146f, 1.0f }
             };
+
             for ( const auto childID: visual->GetComponent<scene::RelationComponent>().GetChildren() ) {
                 if ( auto *child{ scene->FindByID( childID ) } ) {
                     child->GetComponent<scene::TransformComponent>().SetTransform( meshTransform );
                 }
             }
+
             if ( auto *animator{ animation::AnimationSystem::Get()->GetAnimator( visual->GetComponent<scene::AnimatorComponent>().GetAnimatorID() ) } ) {
                 animator->PlayAnimation( "Idle" );
             }
+
             player->AddComponent<scene::ScriptComponent>( characterController, scripting::ScriptLanguage::eCSharp, "PlaygroundCharacterController" );
 
             auto *controls{ scene->CreateEntity( "Wall instructions" ) };
@@ -4318,6 +4326,7 @@ namespace mikoto::editor {
             auto atmosphere{ scene->GetAtmosphereSettings() };
             atmosphere.mSunElevation = 26.0f;
             atmosphere.mSunAzimuth = 135.0f;
+
             // This is a multiplier on the directional light's intensity.
             // A neutral value avoids amplifying the starter sun twice.
             atmosphere.mSunIlluminance = 1.0f;
@@ -4363,6 +4372,7 @@ namespace mikoto::editor {
             clouds.SetMaterial( cloudMaterial );
             clouds.SetBottomAltitude( 1400.0f );
             clouds.SetLayerThickness( 1600.0f );
+
             // Match the procedural preview's 4 x 1.6 x 4 km authoring domain.
             clouds.SetHorizonRadius( 2000.0f );
             clouds.SetWindDirection( core::float2{ 1.0f, 0.2f } );

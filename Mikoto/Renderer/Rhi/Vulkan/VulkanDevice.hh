@@ -209,6 +209,8 @@ namespace mikoto::renderer::vulkan {
 
         auto SetTransition( const rhi::TransitionDescription& description ) -> void override;
         auto SetBarrier( const rhi::BarrierDescription& description ) -> void override;
+        MKT_NODISCARD auto InitializeDenoiser( rhi::IDenoiser *denoiser ) -> bool override;
+        MKT_NODISCARD auto DispatchDenoiser( rhi::IDenoiser *denoiser, const rhi::DenoiserDispatch &dispatch ) -> rhi::DenoiserResult override;
 
         auto AcquireResource( const rhi::BufferBarrierDescription& description, rhi::IQueue* sourceQueue ) -> void override;
         auto ReleaseResource( const rhi::BufferBarrierDescription& description, rhi::IQueue* destQueue ) -> void override;
@@ -765,6 +767,8 @@ namespace mikoto::renderer::vulkan {
         // Creates a video buffer through the shared allocator using the supplied codec profile.
         MKT_NODISCARD auto CreateBuffer( const rhi::BufferCreateDescription& description, const VkVideoProfileInfoKHR& profile ) -> rhi::BufferHandle;
 
+        MKT_NODISCARD auto CreateDenoiser( const rhi::DenoiserDescription &description ) -> rhi::DenoiserHandle override;
+        MKT_NODISCARD auto GetDenoiserInputSizes( const rhi::DenoiserDescription &description ) -> rhi::DenoiserInputSizes override;
         MKT_NODISCARD auto CreateSampler( const rhi::SamplerCreateDescription& description ) -> rhi::SamplerHandle override;
 
         MKT_NODISCARD auto CreatePipeline( const rhi::ComputePipelineDescription& description ) -> rhi::PipelineHandle override;

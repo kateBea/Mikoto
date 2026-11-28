@@ -115,6 +115,9 @@ namespace mikoto::renderer {
         MeshRenderDataHandle mMesh{};
         core::float4x4 mTransform{ 1.0f };
         eastl::vector<core::float4x4> mPalette{};
+        core::float4 mFoliageMotion{};
+        core::float4 mFoliageShape{};
+        core::float4 mFoliageWind{};
         const material::SurfaceMaterial *mMaterialSource{};
 
         bool mMeshEmitter{};

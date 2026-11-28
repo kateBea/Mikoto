@@ -26,9 +26,16 @@
 #include <Renderer/Rhi/VideoDecoder.hh>
 
 namespace mikoto::renderer::rhi {
-    
     using namespace mikoto::core;
     using namespace mikoto::memory;
+
+    auto ICommandList::InitializeDenoiser( IDenoiser * ) -> bool {
+        return false;
+    }
+
+    auto ICommandList::DispatchDenoiser( IDenoiser *, const DenoiserDispatch & ) -> DenoiserResult {
+        return DenoiserResult::eUnavailable;
+    }
 
     auto operator+=( CommandListStatistics& total,
         const CommandListStatistics& statistics ) -> CommandListStatistics& {

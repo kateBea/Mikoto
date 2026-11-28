@@ -24,6 +24,7 @@
 #include <Renderer/CompatibilityRenderer/CompatibilityRenderer.hh>
 #include <Renderer/Core/SceneRenderer.hh>
 #include <Renderer/ForwardRenderer/ForwardRenderer.hh>
+#include <Renderer/Rhi/Utility.hh>
 #include <Renderer/ForwardRenderer/Passes/OutlineModule.hh>
 #include <Renderer/Rhi/GpuDevice.hh>
 
@@ -150,4 +151,11 @@ namespace mikoto::renderer {
         }
     }
 
+    auto ISceneRenderer::GetTraceDimensions() const -> core::uint2 {
+        return rhi::GetRenderDimensions( GetRenderResolution() );
+    }
+
+    auto ISceneRenderer::GetFinalImageType() const -> FinalImageType {
+        return FinalImageType::eTonemap_Output;
+    }
 }// namespace mikoto::renderer

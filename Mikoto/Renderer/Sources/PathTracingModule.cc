@@ -20,6 +20,10 @@ namespace mikoto::renderer {
         : mRayTracing{ resolution } {
     }
 
+    PathTracingModule::PathTracingModule( core::uint2 dimensions )
+        : mRayTracing{ dimensions } {
+    }
+
     auto PathTracingModule::GetRayTracingModule() -> RayTracingModule& {
         return mRayTracing;
     }

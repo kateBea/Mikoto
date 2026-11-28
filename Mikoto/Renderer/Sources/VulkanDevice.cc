@@ -61,6 +61,7 @@
 #include <Renderer/Rhi/Utility.hh>
 #include <Renderer/Rhi/Vulkan/VulkanAccelerationStructure.hh>
 #include <Renderer/Rhi/Vulkan/VulkanContext.hh>
+#include <Renderer/Rhi/Vulkan/VulkanDenoiser.hh>
 #include <Renderer/Rhi/Vulkan/VulkanDevice.hh>
 #include <Renderer/Rhi/Vulkan/VulkanHelpers.hh>
 #include <Renderer/Rhi/Vulkan/VulkanPipeline.hh>
@@ -271,7 +272,6 @@ namespace mikoto::renderer::vulkan {
 
         WaitIdle();
 
-        mDlssContext.Shutdown();
         DestroyDummyResources();
 
         SerializePipelineCache();
@@ -285,6 +285,10 @@ namespace mikoto::renderer::vulkan {
         for ( auto &queue: mQueues | std::ranges::views::values ) {
             queue.Reset();
         }
+
+        // Command-list retirement releases per-view NGX features. Drain its SDK
+        // retirement worker while the logical device and allocator still exist.
+        mDlssContext.Shutdown();
 
         mGpuAllocator->Shutdown();
 
@@ -2026,6 +2030,54 @@ namespace mikoto::renderer::vulkan {
     }
 
     // https://docs.vulkan.org/guide/latest/synchronization_examples.html
+    auto Device::GetDenoiserInputSizes( const DenoiserDescription &description ) -> DenoiserInputSizes {
+        if ( description.mType != ImageDenoiserType::eDlssRayReconstruction ) {
+            return IGpuDevice::GetDenoiserInputSizes( description );
+        }
+        const auto sizes{ GetDlssContext().GetInputSizes( { description.mOutputSize.x, description.mOutputSize.y } ) };
+        return {
+            .mOptimal = { sizes.mOptimal.width, sizes.mOptimal.height },
+            .mMinimum = { sizes.mMinimum.width, sizes.mMinimum.height },
+            .mMaximum = { sizes.mMaximum.width, sizes.mMaximum.height },
+            .mSupport = sizes.mSupport == DlssSupport::ePreparing ? DenoiserSupport::ePreparing :
+                sizes.mSupport == DlssSupport::eAvailable ? DenoiserSupport::eAvailable : DenoiserSupport::eUnavailable,
+        };
+    }
+
+    auto Device::CreateDenoiser( const DenoiserDescription &description ) -> DenoiserHandle {
+        auto denoiser{ core::Ref<Denoiser>::New( description ) };
+        denoiser->DeviceObject::Initialize( this );
+        return denoiser;
+    }
+
+    auto CommandList::InitializeDenoiser( IDenoiser *denoiser ) -> bool {
+        RetainResource( denoiser );
+        return core::checked_cast<Denoiser *>( denoiser )->RecordInitialization( mCurrentCommandBuffer );
+    }
+
+    auto CommandList::DispatchDenoiser( IDenoiser *denoiser, const DenoiserDispatch &dispatch ) -> DenoiserResult {
+        RetainResource( denoiser );
+        const eastl::array<ITexture *, 7> textures{
+            dispatch.mColor,
+            dispatch.mDiffuseAlbedo,
+            dispatch.mSpecularAlbedo,
+            dispatch.mNormalRoughness,
+            dispatch.mDepth,
+            dispatch.mMotion,
+            dispatch.mOutput,
+        };
+        for ( auto *texture: textures ) {
+            if ( texture ) {
+                RetainResource( texture );
+            }
+        }
+        const auto result{ core::checked_cast<Denoiser *>( denoiser )->RecordEvaluation( mCurrentCommandBuffer, dispatch ) };
+        if ( result == DenoiserResult::eSuccess ) {
+            ++mRecordingContext[mRecordingContextIndex].mStatistics.mDispatchCallCount;
+        }
+        return result;
+    }
+
     auto CommandList::SetBarrier( const renderer::rhi::BarrierDescription &description ) -> void {
         MKT_BEGIN_PROFILER();
 
@@ -2033,6 +2085,16 @@ namespace mikoto::renderer::vulkan {
         // TODO: Keep reusable barrier vectors on CommandList and clear them here.
         // Retaining capacity avoids repeated heap allocations when local vectors
         // overflow, while allowing barrier batches to grow beyond the inline limit.
+        eastl::fixed_vector<VkMemoryBarrier2, 4> memory{};
+        for ( const auto &barrier: description.mMemory ) {
+            memory.push_back( VkMemoryBarrier2{
+                .sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2,
+                .srcStageMask = GetStageMask( barrier.mStageBefore ),
+                .srcAccessMask = GetAccessMask( barrier.mAccessBefore ),
+                .dstStageMask = GetStageMask( barrier.mStageAfter ),
+                .dstAccessMask = GetAccessMask( barrier.mAccessAfter ),
+            } );
+        }
         eastl::fixed_vector<VkImageMemoryBarrier2, 30> images{};
         eastl::fixed_vector<VkBufferMemoryBarrier2, 30> buffers{};
 
@@ -2118,12 +2180,14 @@ namespace mikoto::renderer::vulkan {
 
         VkDependencyInfo dependency{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
 
+        dependency.memoryBarrierCount = core::as<core::u32>( memory.size() );
+        dependency.pMemoryBarriers = memory.data();
         dependency.bufferMemoryBarrierCount = core::as<core::u32>( buffers.size() );
         dependency.pBufferMemoryBarriers = buffers.data();
         dependency.imageMemoryBarrierCount = core::as<core::u32>( images.size() );
         dependency.pImageMemoryBarriers = images.data();
 
-        if ( dependency.bufferMemoryBarrierCount || dependency.imageMemoryBarrierCount ) {
+        if ( dependency.memoryBarrierCount || dependency.bufferMemoryBarrierCount || dependency.imageMemoryBarrierCount ) {
             ++mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mCallCount;
             mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mImageCount += dependency.imageMemoryBarrierCount;
             mRecordingContext[mRecordingContextIndex].mStatistics.mBarriers.mBufferCount += dependency.bufferMemoryBarrierCount;

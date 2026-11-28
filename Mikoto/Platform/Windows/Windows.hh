@@ -39,10 +39,6 @@
 #include <windows.h>
 #include <combaseapi.h>
 
-#include <EASTL/string.h>
-
-#include <Core/Core.hh>
-
 #endif
 
 #endif// MIKOTO_PLATFORM_PLATFORM_WINDOWS_HH

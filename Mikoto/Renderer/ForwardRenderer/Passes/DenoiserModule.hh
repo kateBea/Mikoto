@@ -24,29 +24,33 @@
 
 namespace mikoto::renderer {
     class OidnModule;
+    class DlssModule;
 
     // One instance belongs to one renderer/view. The NRD SDK owns dispatch recipes;
     // Mikoto owns all textures, pipelines, synchronization and GPU lifetimes.
     class DenoiserModule final {
     public:
         explicit DenoiserModule( rhi::RenderResolution resolution );
+        DenoiserModule( rhi::RenderResolution inputResolution, rhi::RenderResolution viewportResolution );
+        DenoiserModule( core::uint2 inputSize, core::uint2 outputSize );
         ~DenoiserModule();
 
         auto SetSettings( DenoiserSettings settings ) -> void;
         auto RegisterPasses( FrameGraph &graph, rhi::IGpuDevice *device, bool pathTracing ) -> void;
-        auto Initialize( rhi::IGpuDevice *device ) -> void;
         auto Prepare( const scene::Scene *scene, const scene::Camera *camera, const RayTracingModule &rays ) -> void;
 
+        MKT_NODISCARD auto GetOutput() const -> FGTextureHandle;
         MKT_NODISCARD auto IsActive() const -> bool;
         MKT_NODISCARD auto GetError() const -> const eastl::string &;
-
 
     private:
         struct State;
         eastl::unique_ptr<State> mState{};
         eastl::unique_ptr<OidnModule> mOidn{};
+        eastl::unique_ptr<DlssModule> mDlss{};
+        FGTextureHandle mOutput{};
         DenoiserSettings mSettings{};
-        rhi::RenderResolution mResolution{};
+        core::uint2 mInputSize{};
     };
 }// namespace mikoto::renderer
 

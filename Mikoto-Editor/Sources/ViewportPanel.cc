@@ -30,6 +30,8 @@
 #include <Animation/SkinningPalette.hh>
 #include <Animation/Utility.hh>
 
+#include <Application/PropertyWidgets.hh>
+
 #include <Assets/AssetRegistryService.hh>
 #include <Assets/ImageProcessing.hh>
 #include <Assets/Utility.hh>
@@ -42,7 +44,9 @@
 #include <Core/TimeService.hh>
 #include <Core/Types.hh>
 
+#include <ImGui/IconsFontAwesome6.h>
 #include <ImGui/IconsMaterialDesign.h>
+#include <ImGui/IconsMaterialDesignIcons.h>
 #include <ImGui/ImGuiService.hh>
 #include <ImGui/ImGuiWidget.hh>
 #include <ImGui/Utility.hh>
@@ -94,6 +98,28 @@ namespace mikoto::editor {
         ImGui::TableNextColumn();
         ImGui::AlignTextToFramePadding();
         ImGui::TextUnformatted( label );
+        ImGui::TableNextColumn();
+        ImGui::SetNextItemWidth( -1.0f );
+    }
+
+    MKT_NODISCARD static auto BeginViewSettingsGroup( core::cstr key ) -> bool {
+        ImGui::SeparatorText( MKT_LOC( key ).c_str() );
+        if ( !ImGui::BeginTable( key, 2, ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_NoSavedSettings ) ) {
+            return false;
+        }
+
+        // Share the Inspector's label/control split. Hidden widget labels keep
+        // dropdowns and numeric inputs from pushing their captions off the popup.
+        ImGui::TableSetupColumn( "##Label", ImGuiTableColumnFlags_WidthStretch, 2.0f );
+        ImGui::TableSetupColumn( "##Value", ImGuiTableColumnFlags_WidthStretch, 3.0f );
+        return true;
+    }
+
+    static auto ViewSettingsProperty( core::cstr label ) -> void {
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextWrapped( "%s", label );
         ImGui::TableNextColumn();
         ImGui::SetNextItemWidth( -1.0f );
     }
@@ -1856,7 +1882,7 @@ namespace mikoto::editor {
             }
 
             const auto drawGrabTool = [&] {
-                if ( imgui::widget::ToggleIconButton( "SceneGrabSoftBody", ICON_MD_FRONT_HAND, grabActive, buttonSize ) ) {
+                if ( imgui::widget::ToggleIconButton( "SceneGrabSoftBody", ICON_FA_HAND_BACK_FIST, grabActive, buttonSize ) ) {
                     SetCursorTool( grabActive ? CursorTool::eSelect : CursorTool::eGrabSoftBody );
                 }
 
@@ -1869,7 +1895,9 @@ namespace mikoto::editor {
                 ImGui::SameLine();
             }
 
-            if ( imgui::widget::ToggleIconButton( "SceneLandscape", ICON_MD_TERRAIN, mCursorTool == CursorTool::eLandscape, buttonSize ) ) {
+            // The Material terrain glyph overlaps Font Awesome's road/checkmark.
+            // MDI's elevation-rise symbol has its own code point and conveys sculpting.
+            if ( imgui::widget::ToggleIconButton( "SceneLandscape", ICON_MDI_ELEVATION_RISE, mCursorTool == CursorTool::eLandscape, buttonSize ) ) {
                 SetCursorTool( mCursorTool == CursorTool::eLandscape ? CursorTool::eSelect : CursorTool::eLandscape );
             }
             imgui::widget::ItemTooltip( "%s", MKT_LOC( "terrain_brush_tooltip" ).c_str() );
@@ -2619,133 +2647,160 @@ namespace mikoto::editor {
         imgui::ImGuiScopedStyleVar popupPadding{ ImGuiStyleVar_WindowPadding, ImVec2{ 10.0f, 10.0f } };
         imgui::ImGuiScopedStyleVar itemSpacing{ ImGuiStyleVar_ItemSpacing, ImVec2{ 8.0f, 6.0f } };
 
-        ImGui::SetNextWindowSizeConstraints( { 310, 0 }, { 410, 800 } );
+        ImGui::SetNextWindowSizeConstraints( { 440.0f * scale, 0 }, { 540.0f * scale, 900.0f * scale } );
 
         if ( ImGui::BeginPopup( imgui::widget::LocalizedLabel( "viewport_scene_view_settings", "Scene view settings" ).c_str() ) ) {
             mPickingBlockedByOverlay = true;
             auto &view{ mEditorState->mViewSettings };
 
-            int toolsLayout{ core::as<int>( view.mToolsLayout ) };
-            const eastl::array<const char *, 2> layouts{ MKT_LOC( "viewport_tools_layout_default" ).c_str(), MKT_LOC( "viewport_tools_layout_classic" ).c_str() };
+            if ( BeginViewSettingsGroup( "viewport_toolbar_settings" ) ) {
+                int toolsLayout{ core::as<int>( view.mToolsLayout ) };
+                const eastl::array<const char *, 2> layouts{
+                    MKT_LOC( "viewport_tools_layout_default" ).c_str(),
+                    MKT_LOC( "viewport_tools_layout_classic" ).c_str()
+                };
+                ViewSettingsProperty( MKT_LOC( "viewport_tools_layout" ).c_str() );
 
-            if ( ImGui::Combo( imgui::widget::LocalizedLabel( "viewport_tools_layout", "Viewport tools" ).c_str(), &toolsLayout, layouts.data(), core::as<int>( layouts.size() ) ) ) {
-                view.mToolsLayout = static_cast<EditorState::ViewSettings::ToolsLayout>( toolsLayout );
+                if ( ImGui::Combo( "##ToolsLayout", &toolsLayout, layouts.data(), core::as<int>( layouts.size() ) ) ) {
+                    view.mToolsLayout = static_cast<EditorState::ViewSettings::ToolsLayout>( toolsLayout );
+                }
+
+                if ( classic ) {
+                    ViewSettingsProperty( MKT_LOC( "viewport_toolbar_aspect_ratio" ).c_str() );
+                    if ( ImGui::BeginCombo( "##AspectRatio", aspectLabel ) ) {
+                        for ( const auto &preset: aspectPresets ) {
+                            const bool selected{ mAspectRatio == preset.mRatio };
+
+                            if ( ImGui::Selectable( preset.mRatio == 0.0f ? freeAspect.c_str() : preset.mName, selected ) ) {
+                                mAspectRatio = preset.mRatio;
+                            }
+
+                            if ( selected ) {
+                                ImGui::SetItemDefaultFocus();
+                            }
+                        }
+
+                        ImGui::EndCombo();
+                    }
+                }
+
+                ViewSettingsProperty( MKT_LOC( "viewport_show_play_controls" ).c_str() );
+                imgui::CheckBox( "##ShowPlayControls", view.mShowViewportControls );
+
+                auto &orientationAnchor{ classic ? view.mClassicOrientationAnchor : view.mOrientationAnchor };
+                int anchor{ core::as<int>( orientationAnchor ) };
+                ViewSettingsProperty( MKT_LOC( "viewport_orientation_anchor" ).c_str() );
+
+                if ( ImGui::Combo( "##OrientationAnchor", &anchor, MKT_LOC( "viewport_orientation_anchor_options" ).c_str() ) ) {
+                    orientationAnchor = static_cast<EditorState::ViewSettings::OrientationAnchor>( anchor );
+                }
+
+                ImGui::EndTable();
             }
 
-            if ( ImGui::Button( imgui::widget::LocalizedLabel( "viewport_restore_toolbar_positions", "Restore toolbar positions" ).c_str() ) ) {
+            if ( ImGui::Button( imgui::widget::LocalizedLabel( "viewport_restore_toolbar_positions", "RestoreToolbarPositions" ).c_str(), { -1.0f, 0 } ) ) {
                 mTransformToolbarOffset = {};
                 mViewToolbarOffset = {};
                 mClassicToolbarOffset = {};
             }
 
-            if ( classic && ImGui::BeginCombo( imgui::widget::LocalizedLabel( "viewport_toolbar_aspect_ratio", "Aspect ratio" ).c_str(), aspectLabel ) ) {
-                for ( const auto &preset: aspectPresets ) {
-                    const bool selected{ mAspectRatio == preset.mRatio };
+            if ( BeginViewSettingsGroup( "viewport_selection_settings" ) ) {
+                int mode{ view.mSelectRoot ? 1 : 0 };
+                ViewSettingsProperty( MKT_LOC( "viewport_selection_mode" ).c_str() );
 
-                    if ( ImGui::Selectable( preset.mRatio == 0.0f ? freeAspect.c_str() : preset.mName, selected ) ) {
-                        mAspectRatio = preset.mRatio;
-                    }
-
-                    if ( selected ) {
-                        ImGui::SetItemDefaultFocus();
-                    }
+                if ( ImGui::Combo( "##SelectionMode", &mode, MKT_LOC( "viewport_entity_hierarchy_root" ).c_str() ) ) {
+                    view.mSelectRoot = mode == 1;
                 }
 
-                ImGui::EndCombo();
+                int pivot{ mEditorState->mCenterPivot ? 0 : 1 };
+                ViewSettingsProperty( MKT_LOC( "viewport_transform_pivot" ).c_str() );
+
+                if ( ImGui::Combo( "##TransformPivot", &pivot, MKT_LOC( "viewport_bounds_center_entity_origin" ).c_str() ) ) {
+                    mEditorState->mCenterPivot = pivot == 0;
+                }
+
+                ImGui::EndTable();
             }
 
-            imgui::CheckBox( MKT_LOC( "viewport_show_play_controls" ).c_str(), view.mShowViewportControls );
-            auto &orientationAnchor{ classic ? view.mClassicOrientationAnchor : view.mOrientationAnchor };
-            int anchor{ core::as<int>( orientationAnchor ) };
+            if ( BeginViewSettingsGroup( "viewport_overlay_settings" ) ) {
+                ViewSettingsProperty( MKT_LOC( "viewport_show_icons" ).c_str() );
+                imgui::CheckBox( "##ShowIcons", view.mShowIcons );
+                ViewSettingsProperty( MKT_LOC( "viewport_show_gizmos" ).c_str() );
+                imgui::CheckBox( "##ShowGizmos", view.mShowGizmos );
+                ViewSettingsProperty( MKT_LOC( "viewport_show_gizmos_in_play_mode" ).c_str() );
+                imgui::CheckBox( "##ShowGizmosInPlay", view.mShowGizmosInPlayMode );
+                ViewSettingsProperty( MKT_LOC( "viewport_show_grid" ).c_str() );
+                imgui::CheckBox( "##ShowGrid", view.mShowGrid );
+                ViewSettingsProperty( MKT_LOC( "viewport_show_selected_wireframe" ).c_str() );
+                imgui::CheckBox( "##ShowSelectedWireframe", view.mShowSelectedWireframe );
+                ViewSettingsProperty( MKT_LOC( "viewport_show_bounding_boxes" ).c_str() );
+                imgui::CheckBox( "##ShowBounds", view.mShowBounds );
+                ViewSettingsProperty( MKT_LOC( "viewport_renderer_info" ).c_str() );
+                imgui::CheckBox( "##RendererInfo", mEnablePerformanceOverlay );
+                ViewSettingsProperty( MKT_LOC( "viewport_line_width" ).c_str() );
+                DrawFloatProperty( "##LineWidth", &view.mLineWidth, { 1.0f, 6.0f }, "%.1f px", true );
 
-            if ( ImGui::Combo( imgui::widget::LocalizedLabel( "viewport_orientation_anchor", "OrientationAnchor" ).c_str(),
-                     &anchor, MKT_LOC( "viewport_orientation_anchor_options" ).c_str() ) ) {
-                orientationAnchor = static_cast<EditorState::ViewSettings::OrientationAnchor>( anchor );
+                ImGui::EndTable();
             }
 
-            ImGui::SeparatorText( MKT_LOC( "viewport_general" ).c_str() );
-            int mode = view.mSelectRoot ? 1 : 0;
+            if ( BeginViewSettingsGroup( "viewport_camera_light_settings" ) ) {
+                ViewSettingsProperty( MKT_LOC( "viewport_show_camera_frustums" ).c_str() );
+                imgui::CheckBox( "##ShowCameraFrustums", view.mShowCameraFrustums );
+                ViewSettingsProperty( MKT_LOC( "viewport_show_point_light_ranges" ).c_str() );
+                imgui::CheckBox( "##ShowPointLightRanges", view.mShowPointLightRanges );
+                ViewSettingsProperty( MKT_LOC( "viewport_show_spot_light_ranges" ).c_str() );
+                imgui::CheckBox( "##ShowSpotLightRanges", view.mShowSpotLightRanges );
 
-            if ( ImGui::Combo( imgui::widget::LocalizedLabel( "viewport_selection_mode", "Selection mode" ).c_str(), &mode, MKT_LOC( "viewport_entity_hierarchy_root" ).c_str() ) ) {
-                view.mSelectRoot = mode == 1;
+                int volumeVisibility{ view.mCameraLightVolumesSelectedOnly ? 0 : 1 };
+                ViewSettingsProperty( MKT_LOC( "viewport_volume_visibility" ).c_str() );
+
+                if ( ImGui::Combo( "##VolumeVisibility", &volumeVisibility, MKT_LOC( "viewport_selected_only_always" ).c_str() ) ) {
+                    view.mCameraLightVolumesSelectedOnly = volumeVisibility == 0;
+                }
+
+                imgui::widget::ItemTooltip( MKT_LOC( "viewport_controls_enabled_camera_frustums_and_point_spot_light_ranges" ).c_str() );
+                ImGui::EndTable();
             }
 
-            int pivot = mEditorState->mCenterPivot ? 0 : 1;
+            if ( BeginViewSettingsGroup( "viewport_animation_simulation_settings" ) ) {
+                int vertexVisibility{ core::as<int>( view.mSoftBodyVertexVisibility ) };
+                ViewSettingsProperty( MKT_LOC( "viewport_cloth_vertices" ).c_str() );
 
-            if ( ImGui::Combo( imgui::widget::LocalizedLabel( "viewport_transform_pivot", "Transform pivot" ).c_str(), &pivot, MKT_LOC( "viewport_bounds_center_entity_origin" ).c_str() ) ) {
-                mEditorState->mCenterPivot = pivot == 0;
+                if ( ImGui::Combo( "##ClothVertices", &vertexVisibility, MKT_LOC( "viewport_cloth_vertices_options" ).c_str() ) ) {
+                    view.mSoftBodyVertexVisibility = static_cast<EditorState::ViewSettings::SoftBodyVertexVisibility>( vertexVisibility );
+                }
+
+                int windDebugView{ core::as<int>( view.mWindDebugView ) };
+                ViewSettingsProperty( MKT_LOC( "viewport_wind_zones" ).c_str() );
+
+                if ( ImGui::Combo( "##WindZones", &windDebugView, MKT_LOC( "viewport_wind_zone_modes" ).c_str() ) ) {
+                    view.mWindDebugView = static_cast<renderer::WindDebugView>( windDebugView );
+                }
+
+                imgui::widget::ItemTooltip( MKT_LOC( "viewport_wind_zones_hint" ).c_str() );
+                int armatureMode{ core::as<int>( view.mArmatureDebugMode ) };
+                ViewSettingsProperty( MKT_LOC( "viewport_armature" ).c_str() );
+
+                if ( ImGui::Combo( "##Armature", &armatureMode, MKT_LOC( "viewport_armature_modes" ).c_str() ) ) {
+                    view.mArmatureDebugMode = static_cast<renderer::ArmatureDebugMode>( armatureMode );
+                }
+
+                ImGui::EndTable();
             }
 
-            ImGui::Spacing();
-            ImGui::SeparatorText( MKT_LOC( "viewport_display" ).c_str() );
-            imgui::CheckBox( imgui::widget::LocalizedLabel( "viewport_show_icons", "Show icons" ).c_str(), view.mShowIcons );
-            imgui::CheckBox( imgui::widget::LocalizedLabel( "viewport_show_camera_frustums", "Show camera frustums" ).c_str(), view.mShowCameraFrustums );
-            imgui::CheckBox( imgui::widget::LocalizedLabel( "viewport_show_point_light_ranges", "Show point light ranges" ).c_str(), view.mShowPointLightRanges );
-            imgui::CheckBox( imgui::widget::LocalizedLabel( "viewport_show_spot_light_ranges", "Show spot light ranges" ).c_str(), view.mShowSpotLightRanges );
-            int volumeVisibility{ view.mCameraLightVolumesSelectedOnly ? 0 : 1 };
-
-            if ( ImGui::Combo( imgui::widget::LocalizedLabel( "viewport_volume_visibility", "Volume visibility" ).c_str(), &volumeVisibility, MKT_LOC( "viewport_selected_only_always" ).c_str() ) ) {
-                view.mCameraLightVolumesSelectedOnly = volumeVisibility == 0;
-            }
-
-            mikoto::imgui::widget::ItemTooltip( MKT_LOC( "viewport_controls_enabled_camera_frustums_and_point_spot_light_ranges" ).c_str() );
-            imgui::CheckBox( imgui::widget::LocalizedLabel( "viewport_show_gizmos", "Show gizmos" ).c_str(), view.mShowGizmos );
-            imgui::CheckBox( imgui::widget::LocalizedLabel( "viewport_show_gizmos_in_play_mode", "Show gizmos in Play mode" ).c_str(), view.mShowGizmosInPlayMode );
-            imgui::CheckBox( imgui::widget::LocalizedLabel( "viewport_show_bounding_boxes", "Show bounding boxes" ).c_str(), view.mShowBounds );
-            int vertexVisibility{ core::as<int>( view.mSoftBodyVertexVisibility ) };
-
-            if ( ImGui::Combo( imgui::widget::LocalizedLabel( "viewport_cloth_vertices", "Cloth vertices" ).c_str(),
-                     &vertexVisibility, MKT_LOC( "viewport_cloth_vertices_options" ).c_str() ) ) {
-                view.mSoftBodyVertexVisibility = static_cast<EditorState::ViewSettings::SoftBodyVertexVisibility>( vertexVisibility );
-            }
-
-            ImGui::TextUnformatted( MKT_LOC( "viewport_wind_zones" ).c_str() );
-            ImGui::SameLine();
-            ImGui::SetNextItemWidth( ImGui::GetContentRegionAvail().x );
-            int windDebugView{ core::as<int>( view.mWindDebugView ) };
-
-            if ( ImGui::Combo( "##WindZones", &windDebugView, MKT_LOC( "viewport_wind_zone_modes" ).c_str() ) ) {
-                view.mWindDebugView = static_cast<renderer::WindDebugView>( windDebugView );
-            }
-
-            imgui::widget::ItemTooltip( MKT_LOC( "viewport_wind_zones_hint" ).c_str() );
-            imgui::CheckBox( imgui::widget::LocalizedLabel( "viewport_show_grid", "Show grid" ).c_str(), view.mShowGrid );
-            imgui::CheckBox( imgui::widget::LocalizedLabel( "viewport_show_selected_wireframe", "Show selected wireframe" ).c_str(), view.mShowSelectedWireframe );
-            int armatureMode{ core::as<int>( view.mArmatureDebugMode ) };
-
-            if ( ImGui::Combo( imgui::widget::LocalizedLabel( "viewport_armature", "Armature" ).c_str(),
-                     &armatureMode, MKT_LOC( "viewport_armature_modes" ).c_str() ) ) {
-                view.mArmatureDebugMode = static_cast<renderer::ArmatureDebugMode>( armatureMode );
-            }
-            imgui::CheckBox( imgui::widget::LocalizedLabel( "viewport_renderer_info", "Renderer info" ).c_str(), mEnablePerformanceOverlay );
-
-            if ( mEditorState->mEditorRenderer ) {
+            if ( mEditorState->mEditorRenderer && BeginViewSettingsGroup( "viewport_physics_settings" ) ) {
                 auto &physics{ mEditorState->mEditorRenderer->GetPhysicsDebugSettings() };
-                imgui::CheckBox( imgui::widget::LocalizedLabel( "viewport_show_physics_colliders", "Show physics colliders" ).c_str(), physics.mEnabled );
+                ViewSettingsProperty( MKT_LOC( "viewport_show_physics_colliders" ).c_str() );
+                imgui::CheckBox( "##ShowPhysicsColliders", physics.mEnabled );
                 int filter{ physics.mSelectedOnly ? 1 : 0 };
+                ViewSettingsProperty( MKT_LOC( "viewport_physics_collider_mode" ).c_str() );
 
-                if ( ImGui::Combo( imgui::widget::LocalizedLabel( "viewport_physics_collider_mode", "Physics collider mode" ).c_str(), &filter, MKT_LOC( "viewport_all_entities_selected_entity" ).c_str() ) ) {
+                if ( ImGui::Combo( "##PhysicsColliderMode", &filter, MKT_LOC( "viewport_all_entities_selected_entity" ).c_str() ) ) {
                     physics.mSelectedOnly = filter == 1;
                 }
 
                 physics.mSelectedEntity = mEditorState->mSelectedEntityID;
-            }
-
-            ImGui::SliderFloat( imgui::widget::LocalizedLabel( "viewport_line_width", "Line width" ).c_str(), &view.mLineWidth, 1.0f, 6.0f, "%.1f px" );
-            ImGui::Spacing();
-            ImGui::SeparatorText( MKT_LOC( "viewport_scene_camera" ).c_str() );
-            imgui::CheckBox( imgui::widget::LocalizedLabel( "viewport_override_exposure", "Override exposure" ).c_str(), view.mExposureOverride );
-
-            if ( ImGui::SliderFloat( imgui::widget::LocalizedLabel( "viewport_exposure", "Exposure" ).c_str(), &view.mExposure, 0.05f, 10.0f ) ) {
-                view.mExposureOverride = true;
-            }
-
-            if ( auto *camera{ mEditorState->mEditorCamera } ) {
-                auto speed{ camera->GetMovementSpeed() };
-
-                if ( ImGui::DragFloat( imgui::widget::LocalizedLabel( "viewport_speed", "Speed" ).c_str(), &speed, 0.5f, 0.01f, 5000.0f, "%.2f u/s", ImGuiSliderFlags_AlwaysClamp ) ) {
-                    camera->SetMovementSpeed( speed );
-                }
+                ImGui::EndTable();
             }
 
             ImGui::EndPopup();

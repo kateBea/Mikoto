@@ -61,6 +61,9 @@ namespace mikoto::renderer::rhi {
      */
     MKT_NODISCARD auto InferDimensions( RenderResolution resolution ) -> eastl::pair<float, float>;
 
+    /** Returns integer pixel dimensions for graph resource sizing. */
+    MKT_NODISCARD auto GetRenderDimensions( RenderResolution resolution ) -> core::uint2;
+
     /**
      * Returns the value produced by InferDimensions.
      *

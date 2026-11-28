@@ -388,7 +388,7 @@ namespace mikoto::renderer {
     }
 
     auto GeometryCullModule::SetFoliageWindEnabled( bool enabled ) -> void {
-        // Path tracing still builds acceleration structures from undeformed meshes.
+        // Keep color, depth, picking and shadow geometry on the same wind setting.
         mFoliageWindEnabled = enabled;
     }
 

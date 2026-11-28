@@ -183,6 +183,7 @@ namespace mikoto::renderer {
         auto UseResource( FGBufferHandle handle, FGPipelineStage state, FGResourceAccess access ) -> void;
         auto UseResource( FGVideoHandle handle, FGPipelineStage state, FGResourceAccess access ) -> void;
         auto UseResource( FGAccelerationStructureHandle handle, FGPipelineStage state, FGResourceAccess access ) -> void;
+        auto UseResource( FGDenoiserHandle handle, FGPipelineStage stage, FGResourceAccess access ) -> void;
 
         /** Declares the current images of a runtime video batch.
          * The batch handle supplies graph dependencies; the resolver supplies concrete
@@ -251,6 +252,7 @@ namespace mikoto::renderer {
         MKT_NODISCARD auto Create( const FGVideoDescription &desc ) -> FGVideoHandle;
         MKT_NODISCARD auto Create( const FGPipelineDescription &desc ) -> FGPipelineHandle;
         MKT_NODISCARD auto Create( const FGSamplerDescription &desc ) -> FGSamplerHandle;
+        MKT_NODISCARD auto Create( const FGDenoiserDescription &desc ) -> FGDenoiserHandle;
         MKT_NODISCARD auto Create( const FGAccelerationStructureDescription &desc ) -> FGAccelerationStructureHandle;
 
         MKT_NODISCARD auto CreateShaderTable( FGPipelineHandle pipeline ) -> FGShaderTableHandle;

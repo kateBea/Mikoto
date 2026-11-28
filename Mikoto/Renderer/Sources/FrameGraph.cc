@@ -188,6 +188,10 @@ namespace mikoto::renderer {
         UseResource( handle.mHandle, stage, access, FGResourceType::eTexture );
     }
 
+    auto FGNodeBuilder::UseResource( FGDenoiserHandle handle, FGPipelineStage stage, FGResourceAccess access ) -> void {
+        UseResource( handle.mHandle, stage, access, FGResourceType::eDenoiser );
+    }
+
     auto FGNodeBuilder::UseResource( FGAccelerationStructureHandle handle, FGPipelineStage stage, FGResourceAccess access ) -> void {
         UseResource( handle.mHandle, stage, access, FGResourceType::eAccelerationStructure );
     }
@@ -924,6 +928,16 @@ namespace mikoto::renderer {
         return { resource.mResourceID };
     }
 
+    auto FrameGraph::Create( const FGDenoiserDescription &desc ) -> FGDenoiserHandle {
+        auto &resource{ mResourceManager->Allocate( FGResourceType::eDenoiser ) };
+        mNodeControl->mResources[resource.mResourceID] = FGNodeResource{
+            .mName = desc.mName,
+            .mDescription = static_cast<const rhi::DenoiserDescription &>( desc ),
+            .mVersions = { ResourceVersion{} },
+        };
+        return { resource.mResourceID };
+    }
+
     auto FrameGraph::Create( const FGPipelineDescription &desc ) -> FGPipelineHandle {
         MKT_BEGIN_PROFILER();
         auto &resource{ mResourceManager->Allocate( FGResourceType::ePipeline ) };
@@ -1114,6 +1128,10 @@ namespace mikoto::renderer {
         core::Ref<core::Resource> resource{};
 
         switch ( type ) {
+            case FGResourceType::eDenoiser: {
+                resource = mDevice->CreateDenoiser( eastl::any_cast<const rhi::DenoiserDescription &>( description ) );
+                break;
+            }
             case FGResourceType::eBuffer: {
                 const auto &buffer{ eastl::any_cast<const rhi::BufferCreateDescription &>( description ) };
 

@@ -60,7 +60,8 @@ namespace mikoto::renderer {
 
     enum class DenoiserBackend : core::u32 {
         eNrd,
-        eOidn
+        eOidn,
+        eDlss
     };
 
     enum class OidnQuality : core::u32 {
@@ -69,11 +70,21 @@ namespace mikoto::renderer {
         eHigh
     };
 
+    enum class DlssInputResolution : core::u32 {
+        eNative,
+        eOptimal,
+        eMinimum,
+        eMaximum,
+    };
+
     struct DenoiserSettings {
         bool mEnabled{ true };
         DenoiserBackend mBackend{ DenoiserBackend::eOidn };
         OidnQuality mOidnQuality{ OidnQuality::eHigh };
         DenoiserType mType{ DenoiserType::eReblur };
+        DlssInputResolution mDlssInputResolution{ DlssInputResolution::eNative };
+        rhi::RayReconstructionPreset mDlssPreset{ rhi::RayReconstructionPreset::eDefault };
+        bool mDlssClearGlass{ true };
         core::u32 mHistoryFrames{ 30 };
         core::u32 mFastHistoryFrames{ 6 };
         core::u32 mAtrousIterations{ 5 };

@@ -17,25 +17,26 @@
 
 #include <source_location>
 
+#include <EASTL/fixed_vector.h>
 #include <EASTL/span.h>
 #include <EASTL/string.h>
 #include <EASTL/string_view.h>
-#include <EASTL/fixed_vector.h>
 
 #include <Core/Core.hh>
-#include <Core/Types.hh>
 #include <Core/Profiler.hh>
 #include <Core/Resource.hh>
+#include <Core/Types.hh>
 
 #include <Memory/BufferSpan.hh>
 
-#include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/Buffer.hh>
-#include <Renderer/Rhi/Texture.hh>
-#include <Renderer/Rhi/Utility.hh>
+#include <Renderer/Rhi/Denoiser.hh>
+#include <Renderer/Rhi/DeviceObject.hh>
 #include <Renderer/Rhi/Pipeline.hh>
 #include <Renderer/Rhi/ShaderTable.hh>
-#include <Renderer/Rhi/DeviceObject.hh>
+#include <Renderer/Rhi/Texture.hh>
+#include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/Utility.hh>
 
 namespace mikoto::renderer::rhi {
     struct VideoDecodeDescription;
@@ -576,8 +577,18 @@ namespace mikoto::renderer::rhi {
         auto SetAfterAccess( BarrierAccessFlags access ) -> TextureBarrierDescription&;
     };
 
+    // Global visibility for opaque resource allocations, such as SDK-owned
+    // weights and history. A buffer barrier cannot cover these hidden objects.
+    struct MemoryBarrierDescription {
+        PipelineStageFlags mStageBefore{ PipelineStageFlagsBits::None };
+        BarrierAccessFlags mAccessBefore{ BarrierAccessFlagsBits::None };
+        PipelineStageFlags mStageAfter{ PipelineStageFlagsBits::None };
+        BarrierAccessFlags mAccessAfter{ BarrierAccessFlagsBits::None };
+    };
+
     /** Groups all enhanced barriers recorded by one SetBarrier call. */
     struct BarrierDescription {
+        eastl::fixed_vector<MemoryBarrierDescription, 4> mMemory{};
         eastl::fixed_vector<BufferBarrierDescription, 10> mBuffers{};
         eastl::fixed_vector<TextureBarrierDescription, 10> mTextures{};
 
@@ -743,6 +754,12 @@ namespace mikoto::renderer::rhi {
          * @pre This command list is recording.
          */
         virtual auto SetBarrier( const BarrierDescription& description ) -> void = 0;
+
+        // Record prepared uploads/feature creation once, without submitting work.
+        // Calls retain the feature and its images until the submission completes.
+        MKT_NODISCARD virtual auto InitializeDenoiser( IDenoiser *denoiser ) -> bool;
+        MKT_NODISCARD virtual auto DispatchDenoiser( IDenoiser *denoiser, const DenoiserDispatch &dispatch ) -> DenoiserResult;
+
 
 
         /**

@@ -208,6 +208,9 @@ namespace mikoto::renderer {
                     return BAccessFlags::ShaderStorageRead | BAccessFlags::ShaderStorageWrite;
                 }
 
+                if ( access == FGResourceAccess::eReadStorage ) {
+                    return BAccessFlags::ShaderStorageRead;
+                }
                 return type == FGResourceType::eTexture ? BAccessFlags::ShaderSampledRead : BAccessFlags::StructuredBufferRead;
         }
     }
@@ -327,7 +330,7 @@ namespace mikoto::renderer {
             case FGPipelineStage::eComputeShader:
             case FGPipelineStage::eRayTracingShader:
             case FGPipelineStage::ePixelShader:
-                return access == FGResourceAccess::eWrite ? renderer::rhi::ResourceStates::eUnorderedAccess : renderer::rhi::ResourceStates::eShaderResource;
+                return access == FGResourceAccess::eWrite || access == FGResourceAccess::eReadStorage ? renderer::rhi::ResourceStates::eUnorderedAccess : renderer::rhi::ResourceStates::eShaderResource;
             case FGPipelineStage::eCopy:
                 return access == FGResourceAccess::eWrite ? renderer::rhi::ResourceStates::eCopyDest : renderer::rhi::ResourceStates::eCopySource;
             case FGPipelineStage::eResolve:
@@ -669,6 +672,20 @@ namespace mikoto::renderer {
             }
 
             switch ( resource.mType ) {
+                case FGResourceType::eDenoiser: {
+                    if ( !core::checked_cast<rhi::IDenoiser *>( deviceResource )->IsReady() ) {
+                        break;
+                    }
+                    // The SDK owns hidden weights/scratch/history allocations.
+                    // Cover those allocations with graph-generated global visibility.
+                    description.mMemory.push_back( rhi::MemoryBarrierDescription{
+                        .mStageBefore = stageBefore,
+                        .mAccessBefore = accessBefore,
+                        .mStageAfter = stageAfter,
+                        .mAccessAfter = accessAfter,
+                    } );
+                    break;
+                }
                 case FGResourceType::eTexture: {
                     description.AddTexture( renderer::rhi::TextureBarrierDescription{}
                             .SetTexture( core::checked_cast<renderer::rhi::ITexture *>( resource.mResource.GetPtr() ) )
@@ -802,8 +819,29 @@ namespace mikoto::renderer {
         mCommands->Dispatch( groupX, groupY, groupZ );
     }
 
-    auto CommandContext::GetCommandList() -> rhi::ICommandList * {
-        return mCommands.GetPtr();
+    auto CommandContext::GetDenoiser( FGDenoiserHandle denoiser ) -> rhi::IDenoiser * {
+        return core::checked_cast<rhi::IDenoiser *>( mResourceManager->Get( denoiser.mHandle ).mResource.GetPtr() );
+    }
+
+    auto CommandContext::InitializeDenoiser( FGDenoiserHandle denoiser ) -> bool {
+        return mCommands->InitializeDenoiser( GetDenoiser( denoiser ) );
+    }
+
+    auto CommandContext::DispatchDenoiser( FGDenoiserHandle denoiser, const FGDenoiserDispatch &dispatch ) -> rhi::DenoiserResult {
+        const auto texture{ [this]( FGTextureHandle handle ) -> rhi::ITexture * {
+            return handle.mHandle ? CacheResource( handle ) : nullptr;
+        } };
+        const rhi::DenoiserDispatch resolved{
+            .mColor = texture( dispatch.mColor ),
+            .mDiffuseAlbedo = texture( dispatch.mDiffuseAlbedo ),
+            .mSpecularAlbedo = texture( dispatch.mSpecularAlbedo ),
+            .mNormalRoughness = texture( dispatch.mNormalRoughness ),
+            .mDepth = texture( dispatch.mDepth ),
+            .mMotion = texture( dispatch.mMotion ),
+            .mOutput = texture( dispatch.mOutput ),
+            .mFrame = dispatch.mFrame,
+        };
+        return mCommands->DispatchDenoiser( GetDenoiser( denoiser ), resolved );
     }
 
     auto CommandContext::GetTexture( FGTextureHandle texture ) -> rhi::ITexture * {

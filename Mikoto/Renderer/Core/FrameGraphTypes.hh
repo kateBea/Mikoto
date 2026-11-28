@@ -63,6 +63,9 @@ namespace mikoto::renderer {
     struct FGBufferHandle {
         FGResourceHandle mHandle{};
     };
+    struct FGDenoiserHandle {
+        FGResourceHandle mHandle{};
+    };
     struct FGSamplerHandle {
         FGResourceHandle mHandle{};
     };
@@ -140,6 +143,8 @@ namespace mikoto::renderer {
     enum class FGResourceAccess {
         eNone,
         eRead,
+        // Read-only shader storage access (GENERAL), still a dependency reader.
+        eReadStorage,
         eWrite,
     };
 
@@ -158,6 +163,7 @@ namespace mikoto::renderer {
         eAccelerationStructure,
         eShaderTable,
         eVideo,
+        eDenoiser,
     };
 
     enum class FGPassType {
@@ -190,6 +196,28 @@ namespace mikoto::renderer {
         // Keep each declared stage; a Vulkan barrier combines their stage masks.
         eastl::fixed_vector<FGPipelineStage, 2> mStages{};
         FGResourceAccess mAccess{};
+    };
+
+    struct FGDenoiserDescription : rhi::DenoiserDescription {
+        eastl::string mName{};
+
+        auto SetName( eastl::string_view name ) -> FGDenoiserDescription &;
+        auto SetType( rhi::ImageDenoiserType type ) -> FGDenoiserDescription &;
+        auto SetQuality( rhi::ImageDenoiserQuality quality ) -> FGDenoiserDescription &;
+        auto SetPreset( rhi::RayReconstructionPreset preset ) -> FGDenoiserDescription &;
+        auto SetInputSize( core::uint2 size ) -> FGDenoiserDescription &;
+        auto SetOutputSize( core::uint2 size ) -> FGDenoiserDescription &;
+    };
+
+    struct FGDenoiserDispatch {
+        FGTextureHandle mColor{};
+        FGTextureHandle mDiffuseAlbedo{};
+        FGTextureHandle mSpecularAlbedo{};
+        FGTextureHandle mNormalRoughness{};
+        FGTextureHandle mDepth{};
+        FGTextureHandle mMotion{};
+        FGTextureHandle mOutput{};
+        rhi::DenoiserFrameParameters mFrame{};
     };
 
     struct FGSamplerDescription {

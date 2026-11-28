@@ -296,4 +296,34 @@ namespace mikoto::renderer {
         MKT_BEGIN_PROFILER();
         return !mWriterPass.empty();
     }
+
+    auto FGDenoiserDescription::SetName( eastl::string_view value ) -> FGDenoiserDescription & {
+        mName = value;
+        return *this;
+    }
+
+    auto FGDenoiserDescription::SetType( rhi::ImageDenoiserType value ) -> FGDenoiserDescription & {
+        mType = value;
+        return *this;
+    }
+
+    auto FGDenoiserDescription::SetQuality( rhi::ImageDenoiserQuality value ) -> FGDenoiserDescription & {
+        mQuality = value;
+        return *this;
+    }
+
+    auto FGDenoiserDescription::SetPreset( rhi::RayReconstructionPreset preset ) -> FGDenoiserDescription & {
+        mPreset = preset;
+        return *this;
+    }
+
+    auto FGDenoiserDescription::SetInputSize( core::uint2 value ) -> FGDenoiserDescription & {
+        mInputSize = value;
+        return *this;
+    }
+
+    auto FGDenoiserDescription::SetOutputSize( core::uint2 value ) -> FGDenoiserDescription & {
+        mOutputSize = value;
+        return *this;
+    }
 }// namespace mikoto::renderer

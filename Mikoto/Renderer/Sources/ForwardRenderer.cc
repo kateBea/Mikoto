@@ -44,11 +44,18 @@ namespace mikoto::renderer {
                                                    value.mRayTracing.mGlobalIlluminationEnabled || value.mRayTracing.mReflectionsEnabled );
         } };
 
+        const auto usesGuides{ []( const SceneRenderSettings &value ) {
+            return value.mDenoiser.mReconstructionGuides || ( value.mDenoiser.mEnabled &&
+                value.mDenoiser.mBackend == DenoiserBackend::eDlss && value.mRayTracing.mPathTracingEnabled );
+        } };
+
         return a.mRayTracing.mPathTracingEnabled == b.mRayTracing.mPathTracingEnabled &&
                a.mDenoiser.mEnabled == b.mDenoiser.mEnabled && a.mDenoiser.mBackend == b.mDenoiser.mBackend &&
                ( a.mDenoiser.mBackend != DenoiserBackend::eNrd || a.mDenoiser.mType == b.mDenoiser.mType ) &&
                ( a.mDenoiser.mBackend != DenoiserBackend::eOidn || a.mDenoiser.mOidnQuality == b.mDenoiser.mOidnQuality ) &&
-               a.mDenoiser.mReconstructionGuides == b.mDenoiser.mReconstructionGuides &&
+               ( a.mDenoiser.mBackend != DenoiserBackend::eDlss ||
+                   ( a.mDenoiser.mDlssInputResolution == b.mDenoiser.mDlssInputResolution && a.mDenoiser.mDlssPreset == b.mDenoiser.mDlssPreset ) ) &&
+               usesGuides( a ) == usesGuides( b ) &&
                usesDenoiser( a ) == usesDenoiser( b ) &&
                a.mScreenSpaceReflections.mEnabled == b.mScreenSpaceReflections.mEnabled &&
                a.mScreenSpaceReflections.mHalfResolution == b.mScreenSpaceReflections.mHalfResolution &&
@@ -77,9 +84,9 @@ namespace mikoto::renderer {
 
         RegisterRenderState();
         mState->mFrameGraph->Compile();
-        mState->mDenoiserModule.Initialize( mDevice );
         CompleteRenderState();
-        mRebuildPending = false;
+        const auto dimensions{ GetRequestedTraceDimensions() };
+        mRebuildPending = !dimensions || *dimensions != mState->mTraceDimensions;
     }
 
     auto ForwardRenderer::RegisterRenderState() -> void {
@@ -118,7 +125,8 @@ namespace mikoto::renderer {
         mState->mCascadedShadowsEnabled = mSettings.mCascadedShadowsEnabled;
         mState->mDenoiserSettings = mSettings.mDenoiser;
         mState->mPathMode = mSettings.mRayTracing.mPathTracingEnabled && mDevice->SupportsRayTracing();
-        mState->mGeometryManagement.SetFoliageWindEnabled( !mState->mPathMode );
+        // Path tracing now bakes the same foliage pose into its acceleration geometry.
+        mState->mGeometryManagement.SetFoliageWindEnabled( true );
         mState->mSkyboxStateInitialized = false;
         auto denoiser{ mSettings.mDenoiser };
         denoiser.mValidation = mFinalImageType == FinalImageType::eDenoiserValidation;
@@ -173,7 +181,7 @@ namespace mikoto::renderer {
         // accumulation, so bloom and exposure edits never feed back into subsequent path samples.
         // Pipeline and extension points: Renderer/Documentation/PathTracingDisplay.md.
         mState->mPostEffectsPasses.RegisterPostProcess( *mState->mFrameGraph,
-            material::PostProcessStage::eBeforeToneMapping, mState->mFrameGraph->GetData<RayTracingInfo>().mDirect );
+            material::PostProcessStage::eBeforeToneMapping, mState->mDenoiserModule.GetOutput() );
 
         mState->mPostEffectsPasses.RegisterBloom( *mState->mFrameGraph,
             mState->mFrameGraph->GetData<PostProcessModuleInfo>().mBeforeToneMapping.mColorImage );
@@ -619,7 +627,11 @@ namespace mikoto::renderer {
         try {
             // Registration stays on the render thread. Its callbacks retain the
             // new module instances; the worker captures no renderer or scene pointer.
-            mState = eastl::make_shared<RenderState>( mTargetResolution );
+            const auto dimensions{ GetRequestedTraceDimensions() };
+            if ( !dimensions ) {
+                return false;
+            }
+            mState = eastl::make_shared<RenderState>( mTargetResolution, *dimensions );
             RegisterRenderState();
 
             auto pending{ eastl::make_unique<PendingRenderState>() };
@@ -633,9 +645,8 @@ namespace mikoto::renderer {
             pending->mParticleMode = mParticleModeOverride.value_or( particles ? particles->GetSimulationMode() : ParticleSimulationMode::eCpu );
             mState = previous;
 
-            pending->mCompilation = std::async( std::launch::async, [state = pending->mState, device = mDevice] {
+            pending->mCompilation = std::async( std::launch::async, [state = pending->mState] {
                 state->mFrameGraph->Compile();
-                state->mDenoiserModule.Initialize( device );
             } );
             mPendingRenderState = eastl::move( pending );
             mRebuildPending = false;
@@ -741,7 +752,7 @@ namespace mikoto::renderer {
         // A distant cloud must not disable denoising for every visible solid.
         // Raygen rejects only primary segments that actually intersect a medium.
         // A sampled lens still has no single surface guide for the entire view.
-        denoiser.mEnabled &= denoiser.mBackend == DenoiserBackend::eOidn ||
+        denoiser.mEnabled &= denoiser.mBackend != DenoiserBackend::eNrd ||
                              !( mMainCamera->GetDepthOfFieldSettings().mEnabled && !mMainCamera->IsOrthographic() );
         mState->mPathTracing.GetRayTracingModule().SetDenoiserSettings( denoiser );
         mState->mPathTracing.Prepare( *mState->mFrameGraph, scene, mMainCamera, mSettings.mRayTracing, environment, environmentScale, mExposure, mGamma );
@@ -882,10 +893,11 @@ namespace mikoto::renderer {
 
     auto ForwardRenderer::GetFinalImage( FinalImageType type ) -> renderer::rhi::TextureHandle {
         MKT_BEGIN_PROFILER();
-        const bool reconstruction{ type >= FinalImageType::eDlssNoisyColor && type <= FinalImageType::eDlssMotion };
+        const bool reconstruction{ type >= FinalImageType::eDlssNoisyColor && type <= FinalImageType::eDlssRoughness };
         if ( mSettings.mDenoiser.mReconstructionGuides != reconstruction ) {
+            const auto previous{ mSettings };
             mSettings.mDenoiser.mReconstructionGuides = reconstruction;
-            mRebuildPending = true;
+            mRebuildPending |= !SameRenderGraphSettings( previous, mSettings );
         }
         mFinalImageType = type;
         mState->mPresentationModule.SetFinalImageTarget( type );
@@ -1151,11 +1163,15 @@ namespace mikoto::renderer {
 
     auto ForwardRenderer::ResetPathAccumulation() -> void {
         mState->mPathTracing.ResetAccumulation();
+        mState->mPathTracing.GetRayTracingModule().ResetReconstructionHistory();
+        ++mSettings.mDenoiser.mResetRevision;
     }
 
     auto ForwardRenderer::InvalidateSceneOutput() -> void {
         ISceneRenderer::InvalidateSceneOutput();
         mState->mRayTracingPass.ResetAccumulation();
+        mState->mPathTracing.GetRayTracingModule().ResetReconstructionHistory();
+        mState->mRayTracingPass.ResetReconstructionHistory();
         // A scene replacement invalidates temporal guides as well as colour.
         // This is separate from video-frame accumulation resets, which retain
         // NRD's responsive history within the same scene.
@@ -1223,6 +1239,41 @@ namespace mikoto::renderer {
         mRebuildPending |= mTargetResolution != resolution;
         mTargetResolution = resolution;
         mSettings.mResolution = resolution;
+    }
+
+    auto ForwardRenderer::GetRequestedTraceDimensions() -> eastl::optional<core::uint2> {
+        const auto viewport{ GetRenderDimensions( mTargetResolution ) };
+        const auto &denoiser{ mSettings.mDenoiser };
+        if ( !mSettings.mRayTracing.mPathTracingEnabled || !denoiser.mEnabled ||
+             denoiser.mBackend != DenoiserBackend::eDlss || denoiser.mDlssInputResolution == DlssInputResolution::eNative ) {
+            return viewport;
+        }
+        const auto sizes{ mDevice->GetDenoiserInputSizes( DenoiserDescription{
+            .mType = ImageDenoiserType::eDlssRayReconstruction,
+            .mOutputSize = viewport,
+        } ) };
+        if ( sizes.mSupport == DenoiserSupport::ePreparing ) {
+            return eastl::nullopt;
+        }
+        if ( sizes.mSupport != DenoiserSupport::eAvailable ) {
+            return viewport;
+        }
+        switch ( denoiser.mDlssInputResolution ) {
+            case DlssInputResolution::eMinimum:
+                return sizes.mMinimum;
+            case DlssInputResolution::eMaximum:
+                return sizes.mMaximum;
+            default:
+                return sizes.mOptimal;
+        }
+    }
+
+    auto ForwardRenderer::GetTraceDimensions() const -> core::uint2 {
+        return mState->mTraceDimensions;
+    }
+
+    auto ForwardRenderer::GetFinalImageType() const -> FinalImageType {
+        return mFinalImageType;
     }
 
     auto ForwardRenderer::GetRenderResolution() const -> rhi::RenderResolution {
@@ -1407,6 +1458,10 @@ namespace mikoto::renderer {
     }
 
     ForwardRenderer::RenderState::RenderState( rhi::RenderResolution resolution )
-        : mTargetResolution{ resolution } {
+        : RenderState{ resolution, GetRenderDimensions( resolution ) } {
+    }
+
+    ForwardRenderer::RenderState::RenderState( rhi::RenderResolution viewportResolution, core::uint2 traceDimensions )
+        : mTargetResolution{ viewportResolution }, mTraceDimensions{ traceDimensions } {
     }
 }// namespace mikoto::renderer

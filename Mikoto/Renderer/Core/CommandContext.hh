@@ -158,9 +158,11 @@ namespace mikoto::renderer {
         auto DispatchRays( core::u32 width, core::u32 height ) -> void;
         auto DispatchExternalCompute( const ExternalComputeDispatch &dispatch ) -> void;
 
-        // SDK passes still declare every graph resource. Native recording must
-        // be followed by BindPipeline before returning to Mikoto dispatches.
-        MKT_NODISCARD auto GetCommandList() -> rhi::ICommandList *;
+        // Denoiser state and images must be declared by the pass. These operations
+        // record through the RHI and never submit work or expose native commands.
+        MKT_NODISCARD auto InitializeDenoiser( FGDenoiserHandle denoiser ) -> bool;
+        MKT_NODISCARD auto DispatchDenoiser( FGDenoiserHandle denoiser, const FGDenoiserDispatch &dispatch ) -> rhi::DenoiserResult;
+        MKT_NODISCARD auto GetDenoiser( FGDenoiserHandle denoiser ) -> rhi::IDenoiser *;
         MKT_NODISCARD auto GetTexture( FGTextureHandle texture ) -> rhi::ITexture *;
 
         auto BuildAccelerationStructure( rhi::AccelStructureHandle structure ) -> void;

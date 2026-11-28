@@ -57,6 +57,7 @@ namespace mikoto::renderer {
     class RayTracingModule final {
     public:
         explicit RayTracingModule( rhi::RenderResolution resolution = rhi::RenderResolution::e1080P );
+        explicit RayTracingModule( core::uint2 dimensions );
 
         // Register in this order so trace consumers see uploaded scene data and a built TLAS.
         auto RegisterUploadPass( FrameGraph &graph ) -> void;
@@ -76,6 +77,9 @@ namespace mikoto::renderer {
         auto SetAtmosphere( const AtmosphereData *data, const eastl::array<rhi::TextureHandle, 3> &textures ) -> void;
 
         auto ResetAccumulation() -> void;
+        // Use on scene replacement or camera cuts, independently of SPP restarts.
+        auto ResetReconstructionHistory() -> void;
+        MKT_NODISCARD auto GetReconstructionData() const -> const DlssRayData &;
         auto SetDenoiserSettings( const DenoiserSettings &settings ) -> void;
         MKT_NODISCARD auto GetLightingRevision() const -> core::u64 {
             return mLightingRevision;
@@ -170,6 +174,15 @@ namespace mikoto::renderer {
             eastl::vector<core::u32> mIndices{};
         };
 
+        // Remember the last traced pose separately from whether its bytes have
+        // reached the GPU. Camera history can advance without copying this array.
+        struct PositionHistory {
+            eastl::vector<core::float4> mPositions{};
+            core::u64 mGeometryRevision{};
+            core::u64 mTopologyRevision{};
+            bool mUploadPending{};
+        };
+
         struct GeometryData {
             eastl::vector<Vertex> mVertices{};
             eastl::vector<core::float3> mBuildPositions{};
@@ -219,6 +232,8 @@ namespace mikoto::renderer {
 
         auto PrepareFrameUpload( CommandContext &context ) -> void;
         auto PrepareReconstructionUpload( CommandContext &context ) -> void;
+        auto CapturePositionHistory( PositionHistory &history ) -> void;
+        auto PreparePositionHistoryUpload( CommandContext &context, FGBufferHandle buffer, PositionHistory &history ) -> void;
         auto PrepareGeometryUpload( CommandContext &context ) -> void;
 
         auto Trace( CommandContext &context ) -> void;
@@ -243,15 +258,18 @@ namespace mikoto::renderer {
         DlssRayData mReconstructionData{};
         FGBufferHandle mReconstructionDataBuffer{};
         FGBufferHandle mReconstructionPositionsBuffer{};
-        eastl::vector<core::float4> mReconstructionPositions{};
+        PositionHistory mReconstructionPositions{};
         core::float4x4 mPreviousReconstructionViewProjection{ 1.0f };
         const scene::Camera *mReconstructionCamera{};
         bool mReconstructionHistoryValid{};
+        bool mReconstructionDenoising{};
+        bool mReconstructionOrthographic{};
         DenoiserInputs mDenoiserInputs{};
         DenoiserRayData mDenoiserData{};
         FGBufferHandle mDenoiserDataBuffer{};
         FGBufferHandle mPreviousPositionsBuffer{};
-        eastl::vector<core::float4> mPreviousPositions{};
+        PositionHistory mPreviousPositions{};
+        core::u64 mGeometryRevision{};
         core::u64 mTopologyHash{};
         core::u64 mTopologyRevision{};
         const scene::Scene *mDenoiserScene{};
@@ -290,7 +308,7 @@ namespace mikoto::renderer {
         eastl::array<rhi::TextureHandle, 3> mAtmosphereTextures{};
         eastl::array<rhi::TextureHandle, 6> mEnvironmentFaces{};
 
-        rhi::RenderResolution mRenderResolution{};
+        core::uint2 mDimensions{};
 
         // Scene changes can require a GPU upload. View changes only invalidate accumulation.
         core::u64 mPackedSceneHash{};

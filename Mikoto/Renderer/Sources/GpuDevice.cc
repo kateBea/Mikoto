@@ -32,6 +32,20 @@ namespace mikoto::renderer {
 
     using namespace mikoto::renderer::rhi;
 
+    auto rhi::IGpuDevice::GetDenoiserInputSizes( const DenoiserDescription &description ) -> DenoiserInputSizes {
+        return {
+            .mOptimal = description.mOutputSize,
+            .mMinimum = description.mOutputSize,
+            .mMaximum = description.mOutputSize,
+        };
+    }
+
+    auto rhi::IGpuDevice::CreateDenoiser( const DenoiserDescription &description ) -> DenoiserHandle {
+        auto denoiser{ DenoiserHandle::New( description ) };
+        denoiser->Initialize( this );
+        return denoiser;
+    }
+
     auto rhi::IGpuDevice::CreateVideoDecoder( const VideoDecoderDescription& ) -> VideoDecoderHandle {
         return {};
     }

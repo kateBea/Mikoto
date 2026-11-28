@@ -147,6 +147,8 @@ namespace mikoto::renderer {
         MKT_NODISCARD auto RequestPick( const ReadPixelViewportInfo &viewport ) -> bool override;
 
         MKT_NODISCARD auto GetRenderResolution() const -> rhi::RenderResolution override;
+        MKT_NODISCARD auto GetTraceDimensions() const -> core::uint2 override;
+        MKT_NODISCARD auto GetFinalImageType() const -> FinalImageType override;
 
         MKT_NODISCARD auto GetPickResult() -> eastl::optional<core::u32> override;
         MKT_NODISCARD auto ReadSelectionRectangle( const ReadPixelViewportInfo &first, const ReadPixelViewportInfo &last ) const -> eastl::vector<core::u32> override;
@@ -196,6 +198,10 @@ namespace mikoto::renderer {
         // Settings that can change without rebuilding graph resources.
         auto ApplyFrameSettings() -> void;
 
+        // A missing size means NGX is still warming/busy; retain the current
+        // image and retry without blocking the render thread.
+        MKT_NODISCARD auto GetRequestedTraceDimensions() -> eastl::optional<core::uint2>;
+
     private:
         rhi::IGpuDevice *mDevice{};
         const scene::Scene *mLastRenderedScene{};
@@ -207,8 +213,12 @@ namespace mikoto::renderer {
 
         struct RenderState {
             explicit RenderState( rhi::RenderResolution resolution );
+            RenderState( rhi::RenderResolution viewportResolution, core::uint2 traceDimensions );
 
             rhi::RenderResolution mTargetResolution;
+            // Only transport and its denoiser use the SDK-selected input size.
+            // Picking, overlays, prepass and presentation keep viewport dimensions.
+            core::uint2 mTraceDimensions;
             rhi::Multisampling mMultisampling{ rhi::Multisampling::eMsaaX1 };
             ShadowMapQuality mShadowQuality{ ShadowMapQuality::eMedium };
             bool mCascadedShadowsEnabled{ true };
@@ -223,7 +233,7 @@ namespace mikoto::renderer {
             MousePickingModule mMousePickingModule{ mTargetResolution };
             OutlineModule mOutlineModule{ mTargetResolution };
             IndirectLightingModule mIndirectIlluminationModule{ mTargetResolution };
-            DenoiserModule mDenoiserModule{ mTargetResolution };
+            DenoiserModule mDenoiserModule{ mTraceDimensions, rhi::GetRenderDimensions( mTargetResolution ) };
 
             // Simulations
             WeatherModule mWeatherModule{ mTargetResolution };
@@ -255,7 +265,7 @@ namespace mikoto::renderer {
 
             // Raytracing
             bool mPathMode{};
-            PathTracingModule mPathTracing{ mTargetResolution };
+            PathTracingModule mPathTracing{ mTraceDimensions };
             RayTracingModule mRayTracingPass{ mTargetResolution };
             CpuPathTraceModule mCpuPathTraceModule{ rhi::RenderResolution::e720P };// For now, it uses its own resolution this is very expensive
 

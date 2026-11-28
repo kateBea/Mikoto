@@ -102,6 +102,7 @@ struct DlssRayData {
     uint mWidth;
     uint mHeight;
     float4 mJitter;
+    uint4 mGuideOptions;
 };
 
 // Environment BRDF approximation from Ray Tracing Gems, chapter 32, as used
@@ -131,6 +132,116 @@ float2 GetDlssMotion( DlssRayData data, float4 currentWorld, float4 previousWorl
     return ( previous.xy / previous.w - current.xy / current.w ) * ndcToPixel * float2( data.mWidth, data.mHeight );
 }
 
+// Primary-surface replacement follows the clear specular transmission chain.
+// The noisy transport stays unchanged; these virtual positions are only RR guides.
+// Adapted from NVIDIA's Apache-2.0 clear-glass implementation:
+// https://github.com/nvpro-samples/vk_gltf_renderer/blob/8c0ef8357b19acd05f5ae988a6c9cb912f39909b/shaders/pathtrace_functions.h.slang
+static const uint kDlssMaxGlassLayers = 8;
+static const float kDlssClearTransmission = .9;
+static const float kDlssClearRoughness = .05;
+static const float kDlssClearOpacity = .99;
+static const float kDlssClearTransmittance = .9;
+
+struct DlssGlassGuide {
+    Surface mSurface;
+    float3 mPosition;
+    float3 mPreviousPosition;
+};
+
+float3 GetDlssPreviousPosition( DlssRayData data, Hit hit ) {
+    uint3 indices = LoadTriangleIndices( hit.mTriangle );
+    float3 barycentric = float3( 1.0 - hit.mBarycentrics.x - hit.mBarycentrics.y, hit.mBarycentrics );
+    float3 a = LoadBufferValue<float4>( data.mPreviousPositions, indices.x * sizeof( float4 ) ).xyz;
+    float3 b = LoadBufferValue<float4>( data.mPreviousPositions, indices.y * sizeof( float4 ) ).xyz;
+    float3 c = LoadBufferValue<float4>( data.mPreviousPositions, indices.z * sizeof( float4 ) ).xyz;
+    return a * barycentric.x + b * barycentric.y + c * barycentric.z;
+}
+
+bool IsDlssClearGlass( Surface surface ) {
+    return surface.mModel == MATERIAL_DIELECTRIC &&
+           surface.mTransmission > kDlssClearTransmission &&
+           surface.mRoughness < kDlssClearRoughness &&
+           surface.mAlpha >= kDlssClearOpacity &&
+           !any( surface.mScattering > 0 );
+}
+
+bool GetDlssGlassGuide( DlssRayData data, Surface primary, float3 cameraDirection,
+    inout uint random, out DlssGlassGuide guide ) {
+    guide = ( DlssGlassGuide )0;
+    if ( data.mGuideOptions.x == 0 || !IsDlssClearGlass( primary ) ) {
+        return false;
+    }
+
+    Surface surface = primary;
+    float3 direction = cameraDirection;
+    float pathLength = 0;
+    float3 transmittance = 1;
+    MediumStack media = ( MediumStack )0;
+    uint scatteringDepth = 0;
+
+    for ( uint layer = 0; layer < kDlssMaxGlassLayers; ++layer ) {
+        // Match transport's boundary bookkeeping and bounce budget. Otherwise a
+        // dark, bounce-limited path would receive a bright albedo from behind it.
+        bool nullBoundary = NullMediumBoundary( surface, media );
+        if ( !nullBoundary && ++scatteringDepth >= Parameters.mFrame.z ) {
+            return false;
+        }
+
+        if ( surface.mThinWalled ) {
+            // A thin pane has no interior segment and leaves direction unchanged.
+            transmittance *= exp( -surface.mAbsorption * surface.mThickness /
+                max( abs( dot( surface.mNormal, direction ) ), 1e-6 ) );
+        }
+        else {
+            uint outsideDepth = surface.mFrontFace ? media.mCount : ( media.mCount > 1 ? media.mCount - 1 : 0 );
+            float relativeIOR = surface.mIOR / ReadMedium( media, outsideDepth ).mIOR;
+            float eta = surface.mFrontFace ? relativeIOR : 1.0 / relativeIOR;
+            float3 transmitted;
+            if ( DielectricRefract( -direction, surface.mNormal, eta, transmitted ) ) {
+                direction = transmitted;
+                if ( !CrossMediumBoundary( media, surface ) ) {
+                    return false;
+                }
+            }
+            else {
+                // Total internal reflection stays inside the current medium.
+                direction = reflect( direction, surface.mNormal );
+            }
+        }
+
+        Surface next;
+        Hit hit;
+        // Fixed alpha coverage keeps guide edges stable across stochastic frames.
+        if ( !Intersect( Offset( surface, direction ), direction, RAY_MAX_DISTANCE,
+                 random, next, hit, false, false, true ) ) {
+            return false;
+        }
+        float segmentLength = length( next.mPosition - surface.mPosition );
+        pathLength += segmentLength;
+        transmittance *= exp( -ReadMedium( media, media.mCount ).mAbsorption * segmentLength );
+        if ( min( transmittance.x, min( transmittance.y, transmittance.z ) ) < kDlssClearTransmittance ) {
+            // Strong absorption/tint no longer describes a clear view of the rear surface.
+            return false;
+        }
+        if ( IsDlssClearGlass( next ) ) {
+            surface = next;
+            continue;
+        }
+        if ( next.mModel == MATERIAL_MEDIUM ||
+             ( next.mModel == MATERIAL_DIELECTRIC && any( next.mScattering > 0 ) ) ) {
+            return false;
+        }
+
+        guide.mSurface = next;
+        guide.mPosition = primary.mPosition + cameraDirection * pathLength;
+        // Previous vertices include rigid motion, skinning, cloth and foliage.
+        // Move the virtual point by the rear surface's actual deformation delta.
+        guide.mPreviousPosition = guide.mPosition + GetDlssPreviousPosition( data, hit ) - next.mPosition;
+        return true;
+    }
+    return false;
+}
+
 void RenderDlssInputs( uint2 pixel ) {
     DlssRayData data = LoadBufferValue<DlssRayData>( Parameters.mReconstruction, 0 );
     float3 origin;
@@ -152,14 +263,19 @@ void RenderDlssInputs( uint2 pixel ) {
         diffuse = surface.mBase * ( 1.0 - surface.mMetallic ) * ( 1.0 - surface.mTransmission );
         specular = GetDlssSpecularAlbedo( surface.mF0, surface.mRoughness * surface.mRoughness, dot( surface.mNormal, -direction ) );
         normalRoughness = float4( surface.mNormal, surface.mRoughness );
-        float4 clip = mul( data.mViewProjection, float4( surface.mPosition, 1 ) );
+        float3 position = surface.mPosition;
+        float3 previous = GetDlssPreviousPosition( data, hit );
+        DlssGlassGuide glass;
+        if ( GetDlssGlassGuide( data, surface, direction, guideSeed, glass ) ) {
+            float fresnel = DielectricFresnel( dot( surface.mNormal, -direction ), surface.mFrontFace ? surface.mIOR : 1.0 / surface.mIOR );
+            diffuse = lerp( glass.mSurface.mBase, surface.mBase, fresnel );
+            normalRoughness = float4( glass.mSurface.mNormal, glass.mSurface.mRoughness );
+            position = glass.mPosition;
+            previous = glass.mPreviousPosition;
+        }
+        float4 clip = mul( data.mViewProjection, float4( position, 1 ) );
         depth = saturate( clip.z / clip.w );
-        uint3 indices = LoadTriangleIndices( hit.mTriangle );
-        float3 barycentric = float3( 1.0 - hit.mBarycentrics.x - hit.mBarycentrics.y, hit.mBarycentrics );
-        float3 previous = LoadBufferValue<float4>( data.mPreviousPositions, indices.x * sizeof( float4 ) ).xyz * barycentric.x +
-                          LoadBufferValue<float4>( data.mPreviousPositions, indices.y * sizeof( float4 ) ).xyz * barycentric.y +
-                          LoadBufferValue<float4>( data.mPreviousPositions, indices.z * sizeof( float4 ) ).xyz * barycentric.z;
-        motion = GetDlssMotion( data, float4( surface.mPosition, 1 ), float4( previous, 1 ) );
+        motion = GetDlssMotion( data, float4( position, 1 ), float4( previous, 1 ) );
     }
     else if ( Parameters.mCamera.w == 0 ) {
         // A perspective sky is at infinity: w=0 cancels camera translation.

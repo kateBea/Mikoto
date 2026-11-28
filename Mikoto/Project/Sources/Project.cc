@@ -152,6 +152,9 @@ namespace mikoto::project {
         out << YAML::Key << "Type" << YAML::Value << static_cast<unsigned>( settings.mDenoiser.mType );
         out << YAML::Key << "Backend" << YAML::Value << static_cast<unsigned>( settings.mDenoiser.mBackend );
         out << YAML::Key << "OidnQuality" << YAML::Value << static_cast<unsigned>( settings.mDenoiser.mOidnQuality );
+        out << YAML::Key << "DlssInputResolution" << YAML::Value << static_cast<unsigned>( settings.mDenoiser.mDlssInputResolution );
+        out << YAML::Key << "DlssPreset" << YAML::Value << static_cast<unsigned>( settings.mDenoiser.mDlssPreset );
+        out << YAML::Key << "DlssClearGlass" << YAML::Value << settings.mDenoiser.mDlssClearGlass;
         out << YAML::Key << "HistoryFrames" << YAML::Value << settings.mDenoiser.mHistoryFrames;
         out << YAML::Key << "FastHistoryFrames" << YAML::Value << settings.mDenoiser.mFastHistoryFrames;
         out << YAML::Key << "AtrousIterations" << YAML::Value << settings.mDenoiser.mAtrousIterations;
@@ -270,6 +273,9 @@ namespace mikoto::project {
             settings.mDenoiser.mEnabled = denoiser["Enabled"].as<bool>( settings.mDenoiser.mEnabled );
             settings.mDenoiser.mBackend = static_cast<renderer::DenoiserBackend>( denoiser["Backend"].as<unsigned>( static_cast<unsigned>( settings.mDenoiser.mBackend ) ) );
             settings.mDenoiser.mOidnQuality = static_cast<renderer::OidnQuality>( denoiser["OidnQuality"].as<unsigned>( static_cast<unsigned>( settings.mDenoiser.mOidnQuality ) ) );
+            settings.mDenoiser.mDlssInputResolution = static_cast<renderer::DlssInputResolution>( denoiser["DlssInputResolution"].as<unsigned>( static_cast<unsigned>( settings.mDenoiser.mDlssInputResolution ) ) );
+            settings.mDenoiser.mDlssPreset = static_cast<renderer::rhi::RayReconstructionPreset>( denoiser["DlssPreset"].as<unsigned>( static_cast<unsigned>( settings.mDenoiser.mDlssPreset ) ) );
+            settings.mDenoiser.mDlssClearGlass = denoiser["DlssClearGlass"].as<bool>( settings.mDenoiser.mDlssClearGlass );
             settings.mDenoiser.mType = static_cast<renderer::DenoiserType>( denoiser["Type"].as<unsigned>( static_cast<unsigned>( settings.mDenoiser.mType ) ) );
             settings.mDenoiser.mHistoryFrames = denoiser["HistoryFrames"].as<unsigned>( settings.mDenoiser.mHistoryFrames );
             settings.mDenoiser.mFastHistoryFrames = denoiser["FastHistoryFrames"].as<unsigned>( settings.mDenoiser.mFastHistoryFrames );
@@ -768,6 +774,7 @@ namespace mikoto::project {
                 value.mChromaticAberration.mIntensity, value.mChromaticAberration.mDirection,
                 value.mVisualizeCascades, value.mSelectionOutlineWidth, value.mSelectionOutlineColor,
                 value.mVisualizeFrustum, value.mScreenSpaceReflections, value.mClouds, value.mInfiniteGrid,
+                value.mDenoiser.mDlssInputResolution, value.mDenoiser.mDlssPreset, value.mDenoiser.mDlssClearGlass,
                 value.mDenoiser.mEnabled, value.mDenoiser.mBackend, value.mDenoiser.mOidnQuality, value.mDenoiser.mType, value.mDenoiser.mHistoryFrames,
                 value.mDenoiser.mFastHistoryFrames, value.mDenoiser.mAtrousIterations,
                 value.mDenoiser.mDisocclusionThreshold, value.mDenoiser.mSplitScreen,

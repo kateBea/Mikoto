@@ -2056,6 +2056,25 @@ namespace mikoto::renderer::d3d12 {
         }
 
         CommitBarriers();
+
+        eastl::fixed_vector<D3D12_GLOBAL_BARRIER, 4> memory{};
+        for ( const auto &barrier: description.mMemory ) {
+            memory.push_back( D3D12_GLOBAL_BARRIER{
+                .SyncBefore = d3d12::GetBarrierSync( barrier.mStageBefore ),
+                .SyncAfter = d3d12::GetBarrierSync( barrier.mStageAfter ),
+                .AccessBefore = d3d12::GetBarrierAccess( barrier.mAccessBefore ),
+                .AccessAfter = d3d12::GetBarrierAccess( barrier.mAccessAfter ),
+            } );
+        }
+        if ( !memory.empty() ) {
+            D3D12_BARRIER_GROUP group{};
+            group.Type = D3D12_BARRIER_TYPE_GLOBAL;
+            group.NumBarriers = core::as<UINT>( memory.size() );
+            group.pGlobalBarriers = memory.data();
+            ++mCurrentRecordingContext->mStatistics.mBarriers.mCallCount;
+            mCurrentRecordingContext->mStatistics.mBarriers.mMemoryCount += memory.size();
+            mCurrentRecordingContext->mCommandList->Barrier( 1, &group );
+        }
     }
 
     Fence::Fence( core::u64 initialValue ) {

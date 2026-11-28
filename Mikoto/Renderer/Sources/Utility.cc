@@ -191,6 +191,11 @@ namespace mikoto::renderer::rhi {
         return width * format.mBytesPerBlock;
     }
 
+    auto GetRenderDimensions( RenderResolution resolution ) -> core::uint2 {
+        const auto [width, height]{ InferDimensions( resolution ) };
+        return { static_cast<core::u32>( width ), static_cast<core::u32>( height ) };
+    }
+
     auto InferDimensions( RenderResolution resolution ) -> eastl::pair<float, float> {
         MKT_BEGIN_PROFILER();
 

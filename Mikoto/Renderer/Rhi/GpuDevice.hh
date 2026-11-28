@@ -22,6 +22,7 @@
 #include <Core/Types.hh>
 
 #include <Renderer/Rhi/Types.hh>
+#include <Renderer/Rhi/Denoiser.hh>
 #include <Renderer/Rhi/Fence.hh>
 #include <Renderer/Rhi/Buffer.hh>
 #include <Renderer/Rhi/Texture.hh>
@@ -70,6 +71,13 @@ namespace mikoto::renderer::rhi {
      */
     class IGpuDevice {
     public:
+        // CPU preparation only; the command list records initialization separately.
+        MKT_NODISCARD virtual auto CreateDenoiser( const DenoiserDescription &description ) -> DenoiserHandle;
+
+        // Nonblocking: a preparing result retains the current graph until sizing
+        // is available. Native size remains the fallback for unsupported devices.
+        MKT_NODISCARD virtual auto GetDenoiserInputSizes( const DenoiserDescription &description ) -> DenoiserInputSizes;
+
         /**
          * Creates a hardware video decoder from parsed stream configuration.
          *

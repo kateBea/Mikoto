@@ -1394,7 +1394,7 @@ namespace mikoto::renderer::opengl {
     }
 
     auto CommandList::SetBarrier( const renderer::rhi::BarrierDescription &desc ) -> void {
-        if ( desc.mBuffers.empty() && desc.mTextures.empty() ) {
+        if ( desc.mMemory.empty() && desc.mBuffers.empty() && desc.mTextures.empty() ) {
             return;
         }
 

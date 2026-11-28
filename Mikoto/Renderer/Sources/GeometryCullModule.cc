@@ -1176,6 +1176,9 @@ namespace mikoto::renderer {
             material.mEmissiveFactor = core::float4{ pSurfaceMaterial->GetEmissiveFactor(), 1.0f };
             material.mDiffuseFactor = pSurfaceMaterial->GetDiffuseFactor();
             material.mSpecularFactor = pSurfaceMaterial->GetSpecularFactor();
+            // Specular is RGB. Reuse its spare component for glossiness so the
+            // raster path receives the imported factor without changing the layout.
+            material.mSpecularFactor.w = pSurfaceMaterial->GetGlossinessFactor();
 
             material.mWorkflow = core::as<core::i32>( pSurfaceMaterial->GetWorkflow() );
 

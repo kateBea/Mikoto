@@ -1225,13 +1225,24 @@ namespace mikoto::asset {
             props.AlphaMaskCutoff = gltfMaterial.alphaCutoff;
 
             if ( const auto& specular{ gltfMaterial.specularGlossiness } ) {
+                // The extension selects the workflow even without textures. Factors
+                // are linear multipliers; fastgltf supplies the extension's defaults.
+                // https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Archived/KHR_materials_pbrSpecularGlossiness
+                props.mWorkflow = material::Workflow::eSpecularGlossiness;
+                props.DiffuseFactor = { specular->diffuseFactor[0], specular->diffuseFactor[1],
+                    specular->diffuseFactor[2], specular->diffuseFactor[3] };
+                props.SpecularFactor = { specular->specularFactor[0], specular->specularFactor[1],
+                    specular->specularFactor[2], 1.0f };
+                props.GlossinessFactor = specular->glossinessFactor;
+
                 if ( const auto& info{ specular->specularGlossinessTexture } ) {
                     props.SpecularGlossinessSet = core::as<core::i32>( info->texCoordIndex );
-                    props.mWorkflow = material::Workflow::eSpecularGlossiness;
                     bindTexture( *info, material::MapType::eSpecularGlossiness );
                 }
 
                 if ( const auto& info{ specular->diffuseTexture } ) {
+                    // The spec/gloss diffuse map uses the renderer's base UV slot.
+                    props.BaseColorTextureSet = core::as<core::i32>( info->texCoordIndex );
                     bindTexture( *info, material::MapType::eDiffuse );
                 }
             }

@@ -60,7 +60,7 @@ namespace mikoto::renderer {
         core::float4 mBaseColorFactor{};
         core::float4 mEmissiveFactor{};
         core::float4 mDiffuseFactor{};
-        core::float4 mSpecularFactor{};
+        core::float4 mSpecularFactor{}; // RGB specular factor, W glossiness factor.
 
         core::f32 mMetallicFactor{};
         core::f32 mRoughnessFactor{};

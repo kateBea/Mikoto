@@ -24,6 +24,7 @@
 #include <Animation/SkinningPalette.hh>
 #include <Animation/SkinnedAnimation.hh>
 
+#include <Renderer/Core/Light.hh>
 #include <Renderer/Rhi/Types.hh>
 #include <Renderer/Rhi/GpuDevice.hh>
 
@@ -85,6 +86,17 @@ namespace mikoto::asset {
 
         // Unsigned because it needs at least one material
         core::u32 MaterialIndex{};
+
+        // KHR_lights_punctual
+        bool mIsPunctualLight{ false };
+
+        core::f32 mLightIntensity{ 1.0f };
+        core::float3 mLightColor{ 1.0f, 1.0f, 1.0f };
+        renderer::LightType mLightType{ renderer::LightType::eDirectional };
+
+        // For spot lights we get two aditional parameters
+        core::f32 mInnerConeAngle{};
+        core::f32 mOuterConeAngle{};
     };
 
     class ModelImporter {

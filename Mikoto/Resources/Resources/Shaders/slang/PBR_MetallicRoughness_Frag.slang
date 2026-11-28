@@ -691,13 +691,17 @@ FSOutput main( FSInput input ) {
             specGloss = textures2D[NonUniformResourceIndex( material.mSpecularGlossinessIndex )].Sample(
                 samplerBasic, material.mSpecularGlossinessSet == 0 ? input.mTexCoord0 : input.mTexCoord1 );
         }
-        perceptualRoughness = 1.0 - specGloss.a;
+        // Factors multiply linear texture values before the metallic/roughness
+        // conversion. Glossiness uses raw alpha, including the no-texture value 1.
+        // https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Archived/KHR_materials_pbrSpecularGlossiness
+        perceptualRoughness = 1.0 - specGloss.a * material.mSpecularFactor.w;
         const float epsilon = 1e-6;
         float4 diffuse = material.mDiffuseIndex != INVALID_TEXTURE_INDEX
                              ? SRGBtoLINEAR( textures2D[NonUniformResourceIndex( material.mDiffuseIndex )].Sample(
                                    samplerBasic, ( material.mBaseColorTextureSet == 0 ? input.mTexCoord0 : input.mTexCoord1 ) ) )
                              : float4( 1.0 );
-        float3 specular = SRGBtoLINEAR( specGloss ).rgb;
+        diffuse *= material.mDiffuseFactor;
+        float3 specular = SRGBtoLINEAR( specGloss ).rgb * material.mSpecularFactor.rgb;
 
         float maxSpecular = max( max( specular.r, specular.g ), specular.b );
 
@@ -705,13 +709,10 @@ FSOutput main( FSInput input ) {
         metallic = ConvertMetallic( diffuse.rgb, specular, maxSpecular );
 
         float3 baseColorDiffusePart = diffuse.rgb *
-                                      ( ( 1.0 - maxSpecular ) / ( 1 - MIN_ROUGHNESS ) / max( 1 - metallic, epsilon ) ) *
-                                      material.mDiffuseFactor.rgb;
+                                      ( ( 1.0 - maxSpecular ) / ( 1 - MIN_ROUGHNESS ) / max( 1 - metallic, epsilon ) );
         float3 baseColorSpecularPart =
-            specular - ( float3( MIN_ROUGHNESS ) * ( 1 - metallic ) * ( 1 / max( metallic, epsilon ) ) ) *
-                           material.mSpecularFactor.rgb;
-        baseColor = float4( lerp( baseColorDiffusePart, baseColorSpecularPart, metallic * metallic ),
-            diffuse.a * material.mDiffuseFactor.a );
+            ( specular - float3( MIN_ROUGHNESS ) * ( 1 - metallic ) ) / max( metallic, epsilon );
+        baseColor = float4( lerp( baseColorDiffusePart, baseColorSpecularPart, metallic * metallic ), diffuse.a );
     }
 
     if ( material.mCheckerboardColorA.w != 0.0 ) {

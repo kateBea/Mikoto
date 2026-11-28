@@ -191,7 +191,8 @@ namespace mikoto::asset {
 
         // Collision geometry is static, but must use the same imported rest pose
         // as skinning. Raw POSITION values need not be in the mesh node's units.
-        eastl::vector<eastl::vector<core::float4x4>> restModels( modelDescription.mRigs.empty() ? ( modelDescription.mSkeleton ? 1 : 0 ) : modelDescription.mRigs.size() );
+        eastl::vector<eastl::vector<core::float4x4>> restModels( modelDescription.mRigs.empty() ? 
+            ( modelDescription.mSkeleton ? 1 : 0 ) : modelDescription.mRigs.size() );
 
         for ( core::usize rig{}; rig < restModels.size(); ++rig ) {
             const auto* skeleton{ ( modelDescription.mRigs.empty() ? modelDescription.mSkeleton.get() : modelDescription.mRigs[rig].mSkeleton.get() )->GetOzzSkeleton() };
@@ -329,14 +330,18 @@ namespace mikoto::asset {
 
             if ( !resources.mVertices ) {
                 auto verticesDesc{ renderer::rhi::BufferCreateDescription{}
-                    .SetBufferUsage( renderer::rhi::BufferUsageFlagsBits::Vertex | renderer::rhi::BufferUsageFlagsBits::CopyDest | renderer::rhi::BufferUsageFlagsBits::CopySource )
+                    .SetBufferUsage( renderer::rhi::BufferUsageFlagsBits::Vertex | 
+                        renderer::rhi::BufferUsageFlagsBits::CopyDest | 
+                        renderer::rhi::BufferUsageFlagsBits::CopySource )
                     .SetHeapType( renderer::rhi::HeapType::eDeviceLocal )
                     .SetCpuAccessType( renderer::rhi::AccessType::eRead ) };
                 verticesDesc.mElementSize = MKT_VECTOR_SIZE_BYTES( sourceMesh.mVertices );
                 resources.mVertices = mDevice->CreateBuffer( verticesDesc );
 
                 auto indicesDesc{ renderer::rhi::BufferCreateDescription{}
-                    .SetBufferUsage( renderer::rhi::BufferUsageFlagsBits::Index | renderer::rhi::BufferUsageFlagsBits::CopyDest | renderer::rhi::BufferUsageFlagsBits::CopySource )
+                    .SetBufferUsage( renderer::rhi::BufferUsageFlagsBits::Index | 
+                        renderer::rhi::BufferUsageFlagsBits::CopyDest | 
+                        renderer::rhi::BufferUsageFlagsBits::CopySource )
                     .SetHeapType( renderer::rhi::HeapType::eDeviceLocal )
                     .SetCpuAccessType( renderer::rhi::AccessType::eRead )
                     .SetFormat( renderer::rhi::Format::eR32_UINT ) };

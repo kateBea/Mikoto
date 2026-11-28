@@ -44,7 +44,7 @@ struct MaterialParameters {
     float4 mBaseColorFactor;
     float4 mEmissiveFactor;
     float4 mDiffuseFactor;
-    float4 mSpecularFactor;
+    float4 mSpecularFactor; // RGB specular factor, W glossiness factor.
 
     float mMetallicFactor;
     float mRoughnessFactor;

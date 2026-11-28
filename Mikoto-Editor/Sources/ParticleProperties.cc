@@ -157,8 +157,7 @@ namespace mikoto::editor {
             ImGui::EndDisabled();
             ImGui::EndTable();
         }
-        ImGui::TextWrapped( "%s", MKT_LOC( "particle_material_bloom_help" ).c_str() );
-
+        
         ImGui::TextUnformatted( MKT_LOC( "particle_effect_billboard_texture" ).c_str() );
 
         bool chooseTexture{};
